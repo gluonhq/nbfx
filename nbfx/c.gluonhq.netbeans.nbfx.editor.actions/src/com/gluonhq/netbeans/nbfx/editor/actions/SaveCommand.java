@@ -1,7 +1,7 @@
 package com.gluonhq.netbeans.nbfx.editor.actions;
 
-import com.gluonhq.netbeans.nbfx.api.ActionIds;
-import com.gluonhq.netbeans.nbfx.api.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 
 import javafx.beans.value.ObservableValue;
 
@@ -17,7 +17,7 @@ import org.openide.util.NbBundle;
  * Saves the active editor document. Enabled only when there is an active document with unsaved
  * changes. The active document comes from the supplied observable, so the command works both
  * globally (the shared
- * {@link com.gluonhq.netbeans.nbfx.api.EditorContext#activeDocumentProperty() active document})
+ * {@link com.gluonhq.netbeans.nbfx.api.editor.EditorContext#activeDocumentProperty() active document})
  * and scoped to a single window (that window's selected editor).
  */
 class SaveCommand extends ActiveDocumentCommand {

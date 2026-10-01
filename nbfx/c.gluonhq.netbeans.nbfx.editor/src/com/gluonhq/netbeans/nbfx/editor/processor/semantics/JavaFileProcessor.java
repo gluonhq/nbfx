@@ -39,19 +39,19 @@ public class JavaFileProcessor {
 
     private final JavaDiagnosticAnalyzer diagnosticAnalyzer;
 
-    public JavaFileProcessor(SourceContext context) {
-        this.diagnosticAnalyzer = new JavaDiagnosticAnalyzer(context.fileObject(), context.classpathInfo());
+    public JavaFileProcessor(JavaSourceContext context) {
+        this.diagnosticAnalyzer = new JavaDiagnosticAnalyzer(context.fileObject(), context::classpathInfo);
     }
 
     /**
      * Runs the analysis asynchronously against the given immutable
-     * {@link SourceContext.Snapshot} source.
+     * {@link JavaSourceContext.Snapshot} source.
      *
      * @param snapshot the snapshot captured on the caller thread, or {@code null}
      * @param editLine 0-based line being edited, or -1
      * @return a CompletableFuture with the analysis results
      */
-    public CompletableFuture<List<TextPosResult>> process(SourceContext.Snapshot snapshot, int editLine) {
+    public CompletableFuture<List<TextPosResult>> process(JavaSourceContext.Snapshot snapshot, int editLine) {
         if (snapshot == null || snapshot.javaSource() == null) {
             return CompletableFuture.completedFuture(List.of());
         }
@@ -65,7 +65,7 @@ public class JavaFileProcessor {
         });
     }
 
-    private List<TextPosResult> analyze(SourceContext.Snapshot snapshot, int editLine) {
+    private List<TextPosResult> analyze(JavaSourceContext.Snapshot snapshot, int editLine) {
         List<TextPosResult> results = new ArrayList<>();
         LOG.fine(() -> "Start java processing");
 
@@ -87,7 +87,7 @@ public class JavaFileProcessor {
         };
 
         try {
-            boolean executed = SourceContext.runSemanticTask(snapshot, task, true);
+            boolean executed = JavaSourceContext.runSemanticTask(snapshot, task, true);
             if (!executed) {
                 return results;
             }

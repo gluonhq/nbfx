@@ -2,7 +2,7 @@ package com.gluonhq.netbeans.nbfx.editor.completion;
 
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
 import com.gluonhq.netbeans.nbfx.editor.processor.SourceUtils;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaImportUtils;
@@ -200,11 +200,11 @@ public final class CompletionController {
     /**
      * Whether a {@code .} typed while the popup is showing should commit {@code selected} (like Enter)
      * rather than being inserted as a literal character. Returns {@code false} when there is no
-     * selection, or for {@link CompletionItemKind#MODULE} items as module names embed {@code .} as part
+     * selection, or for {@link SourceElementKind#MODULE} items as module names embed {@code .} as part
      * of the name.
      */
     static boolean commitsOnTypedDot(CompletionItem selected) {
-        return selected != null && selected.kind() != CompletionItemKind.MODULE;
+        return selected != null && selected.kind() != SourceElementKind.MODULE;
     }
 
     /**
@@ -467,7 +467,7 @@ public final class CompletionController {
      * {@linkplain CompletionItem#qualifiedName() fully-qualified name}, or when no import is required.
      */
     private void addMissingImport(CompletionItem item) {
-        if (item == null || item.kind() != CompletionItemKind.TYPE || item.qualifiedName().isBlank()) {
+        if (item == null || item.kind() != SourceElementKind.TYPE || item.qualifiedName().isBlank()) {
             return;
         }
         String source = SourceUtils.getFullText(model);

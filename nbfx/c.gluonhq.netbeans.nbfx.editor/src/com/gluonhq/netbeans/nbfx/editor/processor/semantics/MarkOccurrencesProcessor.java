@@ -26,13 +26,13 @@ public class MarkOccurrencesProcessor {
 
     /**
      * Runs occurrence detection asynchronously against the given immutable
-     * {@link SourceContext.Snapshot}.
+     * {@link JavaSourceContext.Snapshot}.
      *
      * @param snapshot the snapshot captured on the caller thread
      * @param caretOffset the global caret offset
      * @return a future with a list of {@link TextPosResult} per occurrence
      */
-    public CompletableFuture<List<TextPosResult>> process(SourceContext.Snapshot snapshot, int caretOffset) {
+    public CompletableFuture<List<TextPosResult>> process(JavaSourceContext.Snapshot snapshot, int caretOffset) {
         if (snapshot == null || snapshot.javaSource() == null) {
             return CompletableFuture.completedFuture(List.of());
         }
@@ -49,7 +49,7 @@ public class MarkOccurrencesProcessor {
         });
     }
 
-    private static List<TextPosResult> analyze(SourceContext.Snapshot snapshot, int caretOffset) {
+    private static List<TextPosResult> analyze(JavaSourceContext.Snapshot snapshot, int caretOffset) {
         List<TextPosResult> results = new ArrayList<>();
 
         CancellableTask<CompilationController> task = new CancellableTask<>() {
@@ -62,7 +62,7 @@ public class MarkOccurrencesProcessor {
         };
 
         try {
-            boolean executed = SourceContext.runSemanticTask(snapshot, task, true);
+            boolean executed = JavaSourceContext.runSemanticTask(snapshot, task, true);
             if (!executed) {
                 return results;
             }

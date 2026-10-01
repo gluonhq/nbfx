@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.sun.source.tree.MemberSelectTree;
 import com.sun.source.util.TreePath;
@@ -71,7 +71,7 @@ final class JavaMemberQualifierResolver {
     static List<CompletionItem> collectSemanticMembers(CompilationController controller, TypeElement ownerType,
                                                        boolean staticOnly, boolean showAllItems,
                                                        String prefix,
-                                                       CompletionCancellation cancellation) {
+                                                       Cancellation cancellation) {
         return collectSemanticMembers(controller, ownerType, staticOnly, showAllItems,
                 prefix, false, cancellation);
     }
@@ -104,7 +104,7 @@ final class JavaMemberQualifierResolver {
     static List<CompletionItem> collectSemanticMembers(CompilationController controller, TypeElement ownerType,
                                                        boolean staticOnly, boolean showAllItems,
                                                        String prefix, boolean bareNameMethodInsert,
-                                                       CompletionCancellation cancellation) {
+                                                       Cancellation cancellation) {
         String lowerPrefix = lowerPrefix(prefix);
         Map<String, CompletionItem> result = new LinkedHashMap<>();
 

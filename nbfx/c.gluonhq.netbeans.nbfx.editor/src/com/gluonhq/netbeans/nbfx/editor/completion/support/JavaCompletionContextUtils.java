@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.sun.source.tree.AssignmentTree;
@@ -201,7 +201,7 @@ public final class JavaCompletionContextUtils {
                                                                 List<ExecutableElement> overloads,
                                                                 DeclaredType receiverType,
                                                                 int argIndex, String prefix,
-                                                                CompletionCancellation cancellation) {
+                                                                Cancellation cancellation) {
         Map<String, CompletionItem> result = new LinkedHashMap<>();
         for (ExecutableElement overload : overloads) {
             if (cancellation.isCancelled()) {
@@ -230,7 +230,7 @@ public final class JavaCompletionContextUtils {
                                           String prefix,
                                           boolean showAllItems,
                                           String sourceText,
-                                          CompletionCancellation cancellation) {
+                                          Cancellation cancellation) {
         items.addAll(collectTypeItems(controller, prefix, showAllItems, false, sourceText, cancellation));
         items.addAll(collectPackageItems(controller, prefix, showAllItems, cancellation));
     }
@@ -281,12 +281,12 @@ public final class JavaCompletionContextUtils {
     static List<CompletionItem> collectExpectedTypeItems(CompilationController controller,
                                                          TypeMirror expectedTypeMirror,
                                                          String prefix,
-                                                         CompletionCancellation cancellation) {
+                                                         Cancellation cancellation) {
         return collectExpectedTypeItems(controller, expectedTypeMirror, prefix, false, cancellation);
     }
 
     /**
-     * Same as {@link #collectExpectedTypeItems(CompilationController, TypeMirror, String, CompletionCancellation)}
+     * Same as {@link #collectExpectedTypeItems(CompilationController, TypeMirror, String, Cancellation)}
      * but additionally lets the caller broaden the classpath subtype search past the
      * expected type's package — used by query implementations that propagate
      * {@link com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider#COMPLETION_ALL_QUERY_TYPE}
@@ -296,7 +296,7 @@ public final class JavaCompletionContextUtils {
                                                          TypeMirror expectedTypeMirror,
                                                          String prefix,
                                                          boolean includeCrossPackageSubtypes,
-                                                         CompletionCancellation cancellation) {
+                                                         Cancellation cancellation) {
         TypeElement expectedType = asTypeElement(resolveNewInstantiationType(expectedTypeMirror));
         if (expectedType == null) {
             return List.of();
@@ -794,7 +794,7 @@ public final class JavaCompletionContextUtils {
                                                     TypeElement expectedType,
                                                     String prefix,
                                                     boolean includeCrossPackageSubtypes,
-                                                    CompletionCancellation cancellation,
+                                                    Cancellation cancellation,
                                                     Map<String, CompletionItem> result) {
         String lowerPrefix = lowerPrefix(prefix);
         String simpleName = expectedType.getSimpleName().toString();

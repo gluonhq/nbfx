@@ -1,5 +1,10 @@
 package com.gluonhq.netbeans.nbfx.api;
 
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorService;
+import com.gluonhq.netbeans.nbfx.api.file.FileIconProvider;
+import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
+
 import java.util.List;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
@@ -16,6 +21,17 @@ public interface ContentManager {
      *                by a {@link FileIconProvider} is used, if any
      */
     void openFile(FileObject file, Node graphic);
+
+    /**
+     * Opens {@code file} as {@link #openFile(FileObject, Node)} does (with the registered icon),
+     * then {@linkplain EditorDocument#selectRange selects} the range {@code [start, end)} of its
+     * content in the shown document and focuses it - the way a usage or a search result is shown.
+     *
+     * @param file  the file to open
+     * @param start the offset of the first character to select
+     * @param end   the offset after the last character to select
+     */
+    void openFile(FileObject file, int start, int end);
 
     /**
      * Closes every open editor tab across all windows (main and detached), unregistering their
@@ -63,8 +79,23 @@ public interface ContentManager {
     /** Requests focus on the main pane's selected editor (so its caret blinks), if any. */
     void focusActiveEditor();
 
-    /** Closes the tab showing {@code file} in any pane (main or detached), if present. */
+    /** Closes every tab showing {@code file} (its document and any clones), in any pane, if present. */
     void closeFile(FileObject file);
+
+    /**
+     * Closes the tab of {@code document} in any pane (main or detached), if present. Unlike
+     * {@link #closeFile}, which closes every tab of a file, this only closes the one tab of the given
+     * document, leaving any {@linkplain EditorDocument#cloneDocument() clones} of it open.
+     */
+    void closeDocument(EditorDocument document);
+
+    /**
+     * Opens a {@linkplain EditorDocument#cloneDocument() clone} of {@code document} in a new tab next
+     * to it, in the same pane, and selects it. Does nothing if the document cannot be cloned.
+     *
+     * @return the clone, or {@code null} if none was opened
+     */
+    EditorDocument cloneDocument(EditorDocument document);
 
     /**
      * Deletes {@code file} from disk, closing its open editor tab (in any pane) if present.

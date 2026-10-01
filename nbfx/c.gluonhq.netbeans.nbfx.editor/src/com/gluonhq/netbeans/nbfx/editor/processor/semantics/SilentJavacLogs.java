@@ -16,7 +16,7 @@ import java.util.logging.Logger;
  * <p>Two coordinated mechanisms are exposed:</p>
  * <ul>
  *   <li>{@link #isKnownTransientJavacBug(Throwable)} — exception-chain probe used
- *       by callers (e.g. {@code SourceContext.runSemanticTask}) to decide whether
+ *       by callers (e.g. {@code JavaSourceContext.runSemanticTask}) to decide whether
  *       a thrown failure should be quietly retried on the next snapshot or
  *       propagated as a real error.</li>
  *   <li>{@link #installOnce()} — lazily wires a {@link Filter} into the small set

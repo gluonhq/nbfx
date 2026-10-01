@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import org.netbeans.api.java.source.ClassIndex;
@@ -228,7 +228,7 @@ public final class JavaAnnotationCompletionUtils {
      */
     public static List<CompletionItem> collectAnnotationTypes(CompilationController controller,
                                                               String prefix,
-                                                              CompletionCancellation cancellation) {
+                                                              Cancellation cancellation) {
         String lowerPrefix = lowerPrefix(prefix);
         Map<String, CompletionItem> result = new LinkedHashMap<>();
 
@@ -275,7 +275,7 @@ public final class JavaAnnotationCompletionUtils {
      * even when the {@link ClassIndex} scopes don't cover it.
      */
     private static void collectJavaLangAnnotations(CompilationController controller, String prefix,
-                                                   String lowerPrefix, CompletionCancellation cancellation,
+                                                   String lowerPrefix, Cancellation cancellation,
                                                    Map<String, CompletionItem> result) {
         PackageElement javaLang = controller.getElements().getPackageElement("java.lang");
         if (javaLang == null) {
@@ -307,7 +307,7 @@ public final class JavaAnnotationCompletionUtils {
                                                                 String annotationName,
                                                                 String source,
                                                                 String prefix,
-                                                                CompletionCancellation cancellation) {
+                                                                Cancellation cancellation) {
         if (annotationName == null || annotationName.isBlank()) {
             return List.of();
         }
@@ -362,7 +362,7 @@ public final class JavaAnnotationCompletionUtils {
                                                                        String memberName,
                                                                        String source,
                                                                        String prefix,
-                                                                       CompletionCancellation cancellation) {
+                                                                       Cancellation cancellation) {
         if (annotationName == null || annotationName.isBlank() || memberName == null || memberName.isBlank()) {
             return List.of();
         }
@@ -401,7 +401,7 @@ public final class JavaAnnotationCompletionUtils {
     private static List<CompletionItem> collectEnumValueItems(CompilationController controller,
                                                               TypeElement enumType,
                                                               String prefix,
-                                                              CompletionCancellation cancellation) {
+                                                              Cancellation cancellation) {
         String enumSimpleName = enumType.getSimpleName().toString();
         String enumFqcn = enumType.getQualifiedName().toString();
         String lowerPrefix = lowerPrefix(prefix);

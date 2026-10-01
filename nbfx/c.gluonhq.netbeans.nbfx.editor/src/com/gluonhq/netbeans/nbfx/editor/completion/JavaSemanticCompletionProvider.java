@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
@@ -195,7 +195,7 @@ public final class JavaSemanticCompletionProvider implements CompletionProvider 
      * work is isolated inside {@link JavaSemanticCompletionQueries}.
      */
     @Override
-    public CompletableFuture<List<CompletionItem>> query(CompletionContext context, CompletionCancellation cancellation) {
+    public CompletableFuture<List<CompletionItem>> query(CompletionContext context, Cancellation cancellation) {
         return CompletableFuture.supplyAsync(() -> {
             if (cancellation.isCancelled()) {
                 return List.of();

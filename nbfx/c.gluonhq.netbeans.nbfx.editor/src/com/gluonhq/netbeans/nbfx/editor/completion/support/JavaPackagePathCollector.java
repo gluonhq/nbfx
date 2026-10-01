@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
@@ -73,7 +73,7 @@ final class JavaPackagePathCollector {
      */
     static List<CompletionItem> collectPackagePathItems(CompilationController controller,
                                                         String packagePrefix, String prefix,
-                                                        boolean staticImport, CompletionCancellation cancellation) {
+                                                        boolean staticImport, Cancellation cancellation) {
         // Resolve the qualifier just once. Either, both, or neither of these can be non-null.
         PackageElement qualifierPackage = controller.getElements().getPackageElement(packagePrefix);
         TypeElement qualifierType = controller.getElements().getTypeElement(packagePrefix);
@@ -118,7 +118,7 @@ final class JavaPackagePathCollector {
      */
     static List<CompletionItem> collectTopLevelPackageItems(CompilationController controller,
                                                             String prefix,
-                                                            CompletionCancellation cancellation) {
+                                                            Cancellation cancellation) {
         ClassIndex classIndex = controller.getClasspathInfo().getClassIndex();
         // The index API takes a package-name prefix (not the user's typed prefix), so we
         // pass "" to enumerate every top-level package and filter client-side below.
@@ -145,7 +145,7 @@ final class JavaPackagePathCollector {
 
     private static void collectSubPackages(CompilationController controller, String packagePrefix,
                                            String prefix, String lowerPrefix,
-                                           CompletionCancellation cancellation,
+                                           Cancellation cancellation,
                                            Map<String, CompletionItem> subPackages) {
         String packageDotPrefix = packagePrefix + ".";
         Set<String> packageNames = controller.getClasspathInfo().getClassIndex()
@@ -172,7 +172,7 @@ final class JavaPackagePathCollector {
 
     private static void collectTypesIn(Element enclosing, String packagePrefix, String prefix,
                                        String lowerPrefix, boolean staticImport,
-                                       CompletionCancellation cancellation,
+                                       Cancellation cancellation,
                                        Map<String, CompletionItem> types) {
         for (Element child : enclosing.getEnclosedElements()) {
             if (cancellation.isCancelled()) return;

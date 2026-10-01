@@ -20,13 +20,43 @@ public enum TokenCategory {
     METHOD("method", "-fx-fill: -code-method-color; -fx-font-weight: bold;"),
     CLASS("class", "-fx-fill: -code-class-color; -fx-font-weight: bold;"),
 
+    /** CSS selector name (element, class or ID). */
+    CSS_SELECTOR("css-selector", "-fx-fill: -code-css-selector-color;"),
+    /** CSS pseudo-class name. */
+    CSS_PSEUDO("css-pseudo", "-fx-font-style: italic;"),
+    /** CSS property name. */
+    CSS_PROPERTY("css-property", "-fx-fill: -code-css-property-color; -fx-font-style: italic;"),
+
+    /** XML element name, including the angle brackets and the {@code </} / {@code />} delimiters. */
+    XML_TAG("xml-tag", "-fx-fill: -code-xml-tag-color;"),
+    /** XML attribute name. */
+    XML_ATTRIBUTE("xml-attribute", "-fx-fill: -code-xml-attribute-color;"),
+    /** XML attribute value, including the quotes. */
+    XML_VALUE("xml-value", "-fx-fill: -code-xml-value-color;"),
+    /** XML comment. */
+    XML_COMMENT("xml-comment", "-fx-fill: -code-comment-color;"),
+    /** XML doctype declaration. */
+    XML_DOCTYPE("xml-doctype", "-fx-fill: -code-xml-doctype-color; -fx-font-weight: bold;"),
+    /** XML CDATA section. */
+    XML_CDATA("xml-cdata-section", "-fx-fill: -code-xml-cdata-color;"),
+    /** XML processing instruction {@code <?} delimiter. */
+    XML_PI_START("xml-pi-start", "-fx-fill: -code-xml-pi-color;"),
+    /** XML processing instruction target, e.g. {@code xml} in {@code <?xml ... ?>}. */
+    XML_PI_TARGET("xml-pi-target", "-fx-fill: -code-xml-pi-color; -fx-font-weight: bold;"),
+    /** XML processing instruction content. */
+    XML_PI_CONTENT("xml-pi-content", "-fx-fill: -code-xml-pi-color;"),
+    /** XML processing instruction {@code ?>} delimiter. */
+    XML_PI_END("xml-pi-end", "-fx-fill: -code-xml-pi-color;"),
+
     WARNING("warning", "squiggly-warning"),
     ERROR("error", "squiggly-error"),
 
     BRACE_MATCH("brace-match", "brace"),
     BRACE_MISMATCH("brace-mismatch", "brace-error"),
 
-    OCCURRENCE("occurrence", "occurrence");
+    OCCURRENCE("occurrence", "occurrence"),
+
+    SEARCH_MATCH("search-match", "search-match");
 
     /** Prefix that marks a style as a squiggly underline rather than an inline text style. */
     public static final String SQUIGGLY_PREFIX = "squiggly";
@@ -37,10 +67,13 @@ public enum TokenCategory {
     /** Prefix that marks a style as a background highlight for mark-occurrences. */
     public static final String OCCURRENCE_PREFIX = "occurrence";
 
-    /** @return {@code true} if the style is an overlay (squiggly, brace or occurrence) rather than a text style. */
+    /** Prefix that marks a style as a background highlight for the matches of the editor's search bar. */
+    public static final String SEARCH_PREFIX = "search";
+
+    /** @return {@code true} if the style is an overlay (squiggly, brace, occurrence or search match) rather than a text style. */
     public static boolean isOverlayStyle(String style) {
         return style != null && (style.startsWith(SQUIGGLY_PREFIX) || style.startsWith(BRACE_PREFIX) ||
-                    style.startsWith(OCCURRENCE_PREFIX));
+                    style.startsWith(OCCURRENCE_PREFIX) || style.startsWith(SEARCH_PREFIX));
     }
 
     private final String category;

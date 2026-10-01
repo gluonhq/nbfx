@@ -73,6 +73,17 @@ public record LineDecoration(int start, int end, String style) {
                 }
             }
 
+            // Add the search bar's match highlights as overlays
+            for (LineDecoration dec : results) {
+                if (dec.style != null && dec.style.startsWith(TokenCategory.SEARCH_PREFIX)) {
+                    int s = Math.max(dec.start, 0);
+                    int e = Math.min(dec.end, len);
+                    if (s < len && e > s) {
+                        builder.addHighlight(s, e - s, dec.style);
+                    }
+                }
+            }
+
             // Add squiggly underlines as overlays
             for (LineDecoration dec : results) {
                 if (dec.style != null && dec.style.startsWith(TokenCategory.SQUIGGLY_PREFIX)) {

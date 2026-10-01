@@ -1,8 +1,8 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ElementHandle;
@@ -73,7 +73,7 @@ public final class JavaInheritanceClauseUtils {
                                                         ClauseKind clauseKind,
                                                         boolean showAllItems, String sourceText,
                                                         String excludeSimpleName,
-                                                        CompletionCancellation cancellation) {
+                                                        Cancellation cancellation) {
         String lowerPrefix = lowerPrefix(prefix);
         String currentPackage = extractPackageName(sourceText);
         Map<String, CompletionItem> result = new LinkedHashMap<>();
@@ -235,7 +235,7 @@ public final class JavaInheritanceClauseUtils {
                                                         SubtypeFilter subtypeFilter,
                                                         Set<String> alreadyListed,
                                                         Map<String, CompletionItem> result,
-                                                        CompletionCancellation cancellation) {
+                                                        Cancellation cancellation) {
         for (Map.Entry<String, String> entry : imports.entrySet()) {
             if (cancellation.isCancelled()) {
                 return;
@@ -278,7 +278,7 @@ public final class JavaInheritanceClauseUtils {
     private static void collectJavaLangInheritanceTypes(CompilationController controller, String prefix,
                                                         String lowerPrefix, Filter filter,
                                                         Set<String> alreadyListed,
-                                                        CompletionCancellation cancellation,
+                                                        Cancellation cancellation,
                                                         Map<String, CompletionItem> result) {
         PackageElement javaLang = controller.getElements().getPackageElement("java.lang");
         if (javaLang == null) {
@@ -331,7 +331,7 @@ public final class JavaInheritanceClauseUtils {
                 : parseDeclaredTypeInfos(sourceText).entrySet()) {
             String simpleName = entry.getKey();
             JavaCompletionTypeUtils.DeclaredTypeInfo info = entry.getValue();
-            CompletionTypeKind kind = info.kind();
+            SourceTypeKind kind = info.kind();
             if (simpleName.isBlank() || isInvalidCompletionTypeName(simpleName)
                     || prefixMismatch(simpleName, lowerPrefix) || !matchesFilter(kind, filter)
                     || simpleName.equals(excludeSimpleName)
@@ -440,12 +440,12 @@ public final class JavaInheritanceClauseUtils {
         };
     }
 
-    private static boolean matchesFilter(CompletionTypeKind kind, Filter filter) {
+    private static boolean matchesFilter(SourceTypeKind kind, Filter filter) {
         return switch (filter) {
-            case CLASS_ONLY -> kind == CompletionTypeKind.CLASS;
-            case INTERFACE_ONLY -> kind == CompletionTypeKind.INTERFACE;
-            case CLASS_OR_INTERFACE -> kind == CompletionTypeKind.CLASS || kind == CompletionTypeKind.INTERFACE
-                    || kind == CompletionTypeKind.RECORD || kind == CompletionTypeKind.ENUM;
+            case CLASS_ONLY -> kind == SourceTypeKind.CLASS;
+            case INTERFACE_ONLY -> kind == SourceTypeKind.INTERFACE;
+            case CLASS_OR_INTERFACE -> kind == SourceTypeKind.CLASS || kind == SourceTypeKind.INTERFACE
+                    || kind == SourceTypeKind.RECORD || kind == SourceTypeKind.ENUM;
         };
     }
 }

@@ -1,12 +1,11 @@
 package com.gluonhq.netbeans.nbfx.editor.completion;
 
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
+import com.gluonhq.netbeans.nbfx.api.elements.ElementIcons;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
@@ -15,23 +14,21 @@ import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 import javafx.css.PseudoClass;
 
-import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Renders one completion item with icon, primary label to the left, and right-side text.
- * It maps completion kinds to icons and caches images.
+ * Icons come from the shared {@link ElementIcons} mapping.
  * <p>The cell also manages selection, where two clicks are needed to commit the insert
  * text.</p>
  */
 final class CompletionItemCell extends ListCell<CompletionItem> {
 
-    private static final double ICON_SIZE = 16;
+    private static final double ICON_SIZE = ElementIcons.ICON_SIZE;
     private static final PseudoClass EMPHASIZED = PseudoClass.getPseudoClass("emphasized");
     private static final PseudoClass SEPARATOR = PseudoClass.getPseudoClass("separator");
-    private static final Map<String, Image> ICON_CACHE = new ConcurrentHashMap<>();
 
     private static final int MAX_MEASURED_WIDTH_CACHE_SIZE = 4096;
     private static final Map<CompletionItem, Integer> MEASURED_WIDTH_CACHE = new ConcurrentHashMap<>();
@@ -83,13 +80,13 @@ final class CompletionItemCell extends ListCell<CompletionItem> {
         super.updateItem(item, empty);
         setText(null);
         setDisable(false);
-        pseudoClassStateChanged(SEPARATOR, item != null && item.kind() == CompletionItemKind.SEPARATOR);
+        pseudoClassStateChanged(SEPARATOR, item != null && item.kind() == SourceElementKind.SEPARATOR);
         if (empty || item == null) {
             setGraphic(null);
             return;
         }
 
-        if (item.kind() == CompletionItemKind.SEPARATOR) {
+        if (item.kind() == SourceElementKind.SEPARATOR) {
             setGraphic(separatorLine);
             setDisable(true);
             return;
@@ -107,62 +104,7 @@ final class CompletionItemCell extends ListCell<CompletionItem> {
     }
 
     private void updateGlyph(CompletionItem item) {
-        String iconName = iconNameFor(item);
-        iconView.setImage(iconName == null ? null : ICON_CACHE.computeIfAbsent(iconName, CompletionItemCell::loadIcon));
-    }
-
-    /** Maps a completion item kind / type-kind to the icon file shipped in this package. */
-    private static String iconNameFor(CompletionItem item) {
-        return switch (item.kind()) {
-            case METHOD -> item.typeKind() == CompletionTypeKind.CONSTRUCTOR
-                    ? memberIcon("constructor", item.modifiers())
-                    : memberIcon("method", item.modifiers());
-            case FIELD -> memberIcon("field", item.modifiers());
-            case PACKAGE -> "package.png";
-            case MODULE -> "module.png";
-            case TYPE -> switch (item.typeKind()) {
-                case INTERFACE -> "interface.png";
-                case ENUM -> "enum.png";
-                case RECORD -> "record.png";
-                case ANNOTATION, CLASS, OTHER, CONSTRUCTOR -> "class_16.png";
-            };
-            case VARIABLE, KEYWORD -> "localVariable.png";
-            case SEPARATOR, OTHER -> null;
-        };
-    }
-
-    /** Builds the field / method / constructor icon name from {@code modifiers} (visibility + static flag). */
-    private static String memberIcon(String base, int modifiers) {
-        String accessSuffix = accessSuffix(modifiers);
-        if ("constructor".equals(base)) {
-            return "constructor" + accessSuffix + "_16.png";
-        }
-        if (Modifier.isStatic(modifiers)) {
-            return base + "_static" + accessSuffix + "_16.png";
-        }
-        return base + accessSuffix + "_16.png";
-    }
-
-    /** Maps Java reflection access bits onto the icon-name suffix (private / protected / package-private). */
-    private static String accessSuffix(int modifiers) {
-        if (Modifier.isPrivate(modifiers)) {
-            return "_private";
-        }
-        if (Modifier.isProtected(modifiers)) {
-            return "_protected";
-        }
-        if (Modifier.isPublic(modifiers)) {
-            return "";
-        }
-        return "_package_private";
-    }
-
-    private static Image loadIcon(String iconName) {
-        try {
-            return new Image(Objects.requireNonNull(CompletionItemCell.class.getResource(iconName)).toExternalForm());
-        } catch (Exception ex) {
-            return null;
-        }
+        iconView.setImage(ElementIcons.iconFor(item.kind(), item.typeKind(), item.modifiers()));
     }
 
     /**

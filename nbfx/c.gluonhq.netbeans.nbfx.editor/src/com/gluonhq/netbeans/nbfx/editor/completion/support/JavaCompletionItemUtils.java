@@ -3,13 +3,11 @@ package com.gluonhq.netbeans.nbfx.editor.completion.support;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 
 import javax.lang.model.element.Element;
-import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Utilities and helper methods
@@ -120,20 +118,6 @@ public class JavaCompletionItemUtils {
     }
 
     // Element metadata
-
-    /** Converts a {@link Modifier} set into the equivalent {@link java.lang.reflect.Modifier} bitmask. */
-    static int toModifierBits(Set<Modifier> modifiers) {
-        int bits = 0;
-        if (modifiers != null) {
-            if (modifiers.contains(Modifier.PUBLIC)) bits |= java.lang.reflect.Modifier.PUBLIC;
-            if (modifiers.contains(Modifier.PROTECTED)) bits |= java.lang.reflect.Modifier.PROTECTED;
-            if (modifiers.contains(Modifier.PRIVATE)) bits |= java.lang.reflect.Modifier.PRIVATE;
-            if (modifiers.contains(Modifier.STATIC)) bits |= java.lang.reflect.Modifier.STATIC;
-            if (modifiers.contains(Modifier.FINAL)) bits |= java.lang.reflect.Modifier.FINAL;
-            if (modifiers.contains(Modifier.ABSTRACT)) bits |= java.lang.reflect.Modifier.ABSTRACT;
-        }
-        return bits;
-    }
 
     /** Null-safe {@link Elements#isDeprecated} wrapper. */
     static boolean isDeprecated(Elements elements, Element element) {

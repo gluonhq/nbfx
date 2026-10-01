@@ -1,5 +1,8 @@
 package com.gluonhq.netbeans.nbfx.api.completion;
 
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
+
 import java.util.Objects;
 
 /**
@@ -8,7 +11,7 @@ import java.util.Objects;
 public record SimpleCompletionItem(String label, String insertText, String sortText,
                                    int sortPriority,
                                    String leftText, String rightText,
-                                   CompletionItemKind kind, CompletionTypeKind typeKind,
+                                   SourceElementKind kind, SourceTypeKind typeKind,
                                    int modifiers,
                                    boolean emphasized, boolean deprecated,
                                    String qualifiedName) implements CompletionItem {
@@ -19,8 +22,8 @@ public record SimpleCompletionItem(String label, String insertText, String sortT
         sortText = sortText == null ? label : sortText;
         leftText = leftText == null ? label : leftText;
         rightText = rightText == null ? "" : rightText;
-        kind = kind == null ? CompletionItemKind.OTHER : kind;
-        typeKind = typeKind == null ? CompletionTypeKind.OTHER : typeKind;
+        kind = kind == null ? SourceElementKind.OTHER : kind;
+        typeKind = typeKind == null ? SourceTypeKind.OTHER : typeKind;
         qualifiedName = qualifiedName == null ? "" : qualifiedName;
     }
 
@@ -31,7 +34,7 @@ public record SimpleCompletionItem(String label, String insertText, String sortT
     public SimpleCompletionItem(String label, String insertText, String sortText,
                                 int sortPriority,
                                 String leftText, String rightText,
-                                CompletionItemKind kind, CompletionTypeKind typeKind,
+                                SourceElementKind kind, SourceTypeKind typeKind,
                                 int modifiers,
                                 boolean emphasized, boolean deprecated) {
         this(label, insertText, sortText, sortPriority, leftText, rightText,

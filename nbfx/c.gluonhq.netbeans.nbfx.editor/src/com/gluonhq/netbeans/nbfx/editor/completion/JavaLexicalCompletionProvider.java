@@ -1,17 +1,17 @@
 package com.gluonhq.netbeans.nbfx.editor.completion;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.completion.SimpleCompletionItem;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionItems;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionTypeUtils;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaImportContext;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaModuleInfoContextUtils;
-import com.gluonhq.netbeans.nbfx.editor.processor.semantics.SourceContext;
+import com.gluonhq.netbeans.nbfx.editor.processor.semantics.JavaSourceContext;
 import org.netbeans.api.java.lexer.JavaTokenId;
 import org.netbeans.api.lexer.TokenHierarchy;
 import org.netbeans.api.lexer.TokenSequence;
@@ -134,7 +134,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
      */
     @Override
     public CompletableFuture<List<CompletionItem>> query(CompletionContext context,
-                                                         CompletionCancellation cancellation) {
+                                                         Cancellation cancellation) {
         if (cancellation.isCancelled() || isNewKeywordContext(context.documentText(), context.caretOffset())) {
             return CompletableFuture.completedFuture(List.of());
         }
@@ -160,7 +160,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
         }
 
         TokenHierarchy<?> hierarchy = TokenHierarchy.create(source, false, JavaTokenId.language(),
-                null, SourceContext.createLexerAttributes(context.fileObject()));
+                null, JavaSourceContext.createLexerAttributes(context.fileObject()));
         TokenSequence<JavaTokenId> sequence = hierarchy.tokenSequence(JavaTokenId.language());
         if (sequence == null) {
             // No sequences: just return the default list of keywords + literals.
@@ -177,7 +177,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
         // Map of imports: simple name - fqcn
         Map<String, String> explicitImports = JavaCompletionTypeUtils.parseExplicitImports(source);
         // Map of declared types: name - kind
-        Map<String, CompletionTypeKind> declaredTypes = JavaCompletionTypeUtils.parseDeclaredTypes(source);
+        Map<String, SourceTypeKind> declaredTypes = JavaCompletionTypeUtils.parseDeclaredTypes(source);
 
         // Tracks whether we're currently inside an `import ...;` or `package ...;` statement
         boolean inImport = false;
@@ -218,11 +218,11 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
             if (id == JavaTokenId.SEMICOLON) {
                 if (inImport && importedSimpleName != null) {
                     // End of an `import a.b.C;` line: promote the last identifier (`C`) into a type proposal.
-                    CompletionTypeKind typeKind = resolveImportedTypeKind(importedSimpleName, explicitImports);
+                    SourceTypeKind typeKind = resolveImportedTypeKind(importedSimpleName, explicitImports);
                     createItem(results, importedSimpleName,
                             PRIORITY_IMPORT + prefixPenalty(importedSimpleName, prefix),
                             BUNDLE.getString("completion.popup.lexer.import"),
-                            CompletionItemKind.TYPE, typeKind);
+                            SourceElementKind.TYPE, typeKind);
                 }
                 // clear the import/package state for the next token
                 inImport = false;
@@ -252,9 +252,9 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
             // are ranked above forward references that appear later in the file.
             int basePriority = start < context.caretOffset() ? PRIORITY_SOURCE_BEFORE_CARET : PRIORITY_SOURCE_AFTER_CARET;
 
-            CompletionTypeKind declaredTypeKind = declaredTypes.getOrDefault(text, CompletionTypeKind.OTHER);
-            CompletionItemKind itemKind = declaredTypeKind == CompletionTypeKind.OTHER ? CompletionItemKind.VARIABLE
-                    : CompletionItemKind.TYPE;
+            SourceTypeKind declaredTypeKind = declaredTypes.getOrDefault(text, SourceTypeKind.OTHER);
+            SourceElementKind itemKind = declaredTypeKind == SourceTypeKind.OTHER ? SourceElementKind.VARIABLE
+                    : SourceElementKind.TYPE;
 
             // finally, create source identifier item for this token
             createItem(results, text,
@@ -291,7 +291,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
         createItem(result, "static",
                 PRIORITY_KEYWORD + prefixPenalty("static", prefix),
                 BUNDLE.getString("completion.popup.lexer.keyword"),
-                CompletionItemKind.KEYWORD, CompletionTypeKind.OTHER);
+                SourceElementKind.KEYWORD, SourceTypeKind.OTHER);
         return List.copyOf(result.values());
     }
 
@@ -305,13 +305,13 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
             createItem(results, literal,
                     PRIORITY_LITERAL + prefixPenalty(literal, prefix),
                     BUNDLE.getString("completion.popup.lexer.literal"),
-                    CompletionItemKind.KEYWORD, CompletionTypeKind.OTHER);
+                    SourceElementKind.KEYWORD, SourceTypeKind.OTHER);
         }
         for (String keyword : KEYWORDS) {
             createItem(results, keyword,
                     PRIORITY_KEYWORD + prefixPenalty(keyword, prefix),
                     BUNDLE.getString("completion.popup.lexer.keyword"),
-                    CompletionItemKind.KEYWORD, CompletionTypeKind.OTHER);
+                    SourceElementKind.KEYWORD, SourceTypeKind.OTHER);
         }
         String lowerPrefix = prefix.toLowerCase(Locale.ROOT);
         return results.values().stream()
@@ -326,7 +326,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
      */
     private static void createItem(Map<String, CompletionItem> candidates, String label,
                                    int priority, String detail,
-                                   CompletionItemKind kind, CompletionTypeKind typeKind) {
+                                   SourceElementKind kind, SourceTypeKind typeKind) {
         if (label == null || label.isBlank() || !Character.isJavaIdentifierStart(label.charAt(0))) {
             return;
         }
@@ -340,10 +340,10 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
      */
     private static CompletionItem preferItem(CompletionItem existing, CompletionItem incoming) {
         if (existing.kind() != incoming.kind()) {
-            if (incoming.kind() == CompletionItemKind.TYPE && existing.kind() == CompletionItemKind.VARIABLE) {
+            if (incoming.kind() == SourceElementKind.TYPE && existing.kind() == SourceElementKind.VARIABLE) {
                 return incoming;
             }
-            if (existing.kind() == CompletionItemKind.TYPE && incoming.kind() == CompletionItemKind.VARIABLE) {
+            if (existing.kind() == SourceElementKind.TYPE && incoming.kind() == SourceElementKind.VARIABLE) {
                 return existing;
             }
         }
@@ -353,18 +353,18 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
     /**
      * Best-effort classification of an imported simple name. Tries to load the FQCN via
      * {@code Class.forName} — works for JDK and JavaFX types reachable on the classpath,
-     * falls back to {@link CompletionTypeKind#OTHER} for project classes not yet compiled.
+     * falls back to {@link SourceTypeKind#OTHER} for project classes not yet compiled.
      */
-    private static CompletionTypeKind resolveImportedTypeKind(String simpleName, Map<String, String> imports) {
+    private static SourceTypeKind resolveImportedTypeKind(String simpleName, Map<String, String> imports) {
         String fqcn = imports.get(simpleName);
         if (fqcn == null) {
-            return CompletionTypeKind.OTHER;
+            return SourceTypeKind.OTHER;
         }
         Class<?> clazz = JavaCompletionTypeUtils.tryLoad(fqcn);
         if (clazz == null) {
-            return CompletionTypeKind.OTHER;
+            return SourceTypeKind.OTHER;
         }
-        return CompletionTypeKind.from(clazz);
+        return SourceTypeKind.from(clazz);
     }
 
     /** If {@code candidate} starts with the user's prefix, reduce priority, so it stays near the top. */

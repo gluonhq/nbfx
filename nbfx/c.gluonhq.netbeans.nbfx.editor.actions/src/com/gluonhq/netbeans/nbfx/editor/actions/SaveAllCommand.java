@@ -1,8 +1,8 @@
 package com.gluonhq.netbeans.nbfx.editor.actions;
 
-import com.gluonhq.netbeans.nbfx.api.ActionIds;
-import com.gluonhq.netbeans.nbfx.api.EditorContext;
-import com.gluonhq.netbeans.nbfx.api.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorContext;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 
 import java.util.List;
 

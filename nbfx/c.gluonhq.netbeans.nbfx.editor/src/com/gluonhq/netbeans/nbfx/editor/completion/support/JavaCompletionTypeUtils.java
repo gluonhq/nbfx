@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import org.netbeans.api.java.source.CompilationController;
 
 import javax.lang.model.element.TypeElement;
@@ -86,24 +86,24 @@ public final class JavaCompletionTypeUtils {
 
     // Source text parsing helpers
 
-    /** Regex-scans {@code source} for top-level type declarations and maps each name to its {@link CompletionTypeKind}. */
-    public static Map<String, CompletionTypeKind> parseDeclaredTypes(String source) {
-        Map<String, CompletionTypeKind> result = new LinkedHashMap<>();
+    /** Regex-scans {@code source} for top-level type declarations and maps each name to its {@link SourceTypeKind}. */
+    public static Map<String, SourceTypeKind> parseDeclaredTypes(String source) {
+        Map<String, SourceTypeKind> result = new LinkedHashMap<>();
         Matcher matcher = DECLARED_TYPE_PATTERN.matcher(source);
         while (matcher.find()) {
             String kind = matcher.group(1);
             String name = matcher.group(2);
-            result.put(name, CompletionTypeKind.fromSource(kind));
+            result.put(name, SourceTypeKind.fromSource(kind));
         }
         return result;
     }
 
     /**
      * Information about a top-level type declaration extracted from the source text:
-     * its {@link CompletionTypeKind kind} and the simple names listed in its
+     * its {@link SourceTypeKind kind} and the simple names listed in its
      * {@code extends …}, {@code implements …} and {@code permits …} clauses (if any).
      */
-    public record DeclaredTypeInfo(CompletionTypeKind kind, List<String> extendsNames,
+    public record DeclaredTypeInfo(SourceTypeKind kind, List<String> extendsNames,
                                    List<String> implementsNames, List<String> permitsNames) {}
 
     /**
@@ -125,7 +125,7 @@ public final class JavaCompletionTypeUtils {
             List<String> implementsNames = parseClauseNames(stripped, "implements");
             List<String> permitsNames = parseClauseNames(stripped, "permits");
             result.put(name, new DeclaredTypeInfo(
-                    CompletionTypeKind.fromSource(kind), extendsNames, implementsNames, permitsNames));
+                    SourceTypeKind.fromSource(kind), extendsNames, implementsNames, permitsNames));
         }
         return result;
     }

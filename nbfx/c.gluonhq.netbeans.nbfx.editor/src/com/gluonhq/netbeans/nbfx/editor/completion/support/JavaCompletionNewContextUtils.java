@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
@@ -70,19 +70,19 @@ final class JavaCompletionNewContextUtils {
      */
     static List<CompletionItem> collectTypeItems(CompilationController controller, String prefix,
                                                  boolean showAllItems, boolean javaLangOnly,
-                                                 String sourceText, CompletionCancellation cancellation) {
+                                                 String sourceText, Cancellation cancellation) {
         return collectItems(controller, prefix, showAllItems, javaLangOnly, sourceText, cancellation).types();
     }
 
     /** Collects top-level package proposals matching {@code prefix}. */
     static List<CompletionItem> collectPackageItems(CompilationController controller, String prefix,
-                                                    boolean showAllItems, CompletionCancellation cancellation) {
+                                                    boolean showAllItems, Cancellation cancellation) {
         return collectItems(controller, prefix, showAllItems, false, null, cancellation).packages();
     }
 
     private static NewContextItemsRecord collectItems(CompilationController controller, String prefix,
                                                       boolean showAllItems, boolean javaLangOnly,
-                                                      String sourceText, CompletionCancellation cancellation) {
+                                                      String sourceText, Cancellation cancellation) {
         String lowerPrefix = lowerPrefix(prefix);
         Map<String, CompletionItem> types = new LinkedHashMap<>();
         Map<String, CompletionItem> packages = new LinkedHashMap<>();
@@ -161,7 +161,7 @@ final class JavaCompletionNewContextUtils {
      */
     private static void collectJavaLangTypes(CompilationController controller, String prefix,
                                              String lowerPrefix, boolean showAllItems,
-                                             CompletionCancellation cancellation,
+                                             Cancellation cancellation,
                                              Map<String, CompletionItem> types) {
         PackageElement javaLang = controller.getElements().getPackageElement("java.lang");
         if (javaLang == null) {

@@ -1,8 +1,8 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.completion.SimpleCompletionItem;
 
 import javax.lang.model.element.ExecutableElement;
@@ -12,10 +12,10 @@ import javax.lang.model.util.Elements;
 import java.lang.reflect.Modifier;
 import java.util.Locale;
 
+import static com.gluonhq.netbeans.nbfx.api.elements.SourceModifiers.toModifierBits;
 import static com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionItemUtils.isDeprecated;
 import static com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionItemUtils.simpleName;
 import static com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionItemUtils.simpleTypeName;
-import static com.gluonhq.netbeans.nbfx.editor.completion.support.JavaCompletionItemUtils.toModifierBits;
 
 /**
  * Factory methods for completion items: {@link SimpleCompletionItem} constructors used by every provider.
@@ -42,14 +42,14 @@ public final class JavaCompletionItems {
 
     /** Lexical item: keyword, literal, local identifier, imported type. */
     public static CompletionItem lexical(String label, int priority, String rightText,
-                                         CompletionItemKind kind, CompletionTypeKind typeKind) {
+                                         SourceElementKind kind, SourceTypeKind typeKind) {
         return new SimpleCompletionItem(label, label, label.toLowerCase(Locale.ROOT),
                 priority, label, rightText, kind, typeKind, 0, false, false);
     }
 
     /** Type/identifier item with shared parameters. */
     private static CompletionItem typeItem(String name, int priority, String rightText,
-                                           CompletionTypeKind typeKind, int modifierBits,
+                                           SourceTypeKind typeKind, int modifierBits,
                                            boolean emphasized, boolean deprecated) {
         return typeItem(name, priority, rightText, typeKind, modifierBits, emphasized, deprecated, "");
     }
@@ -59,10 +59,10 @@ public final class JavaCompletionItems {
      * fully-qualified name}, so the editor can add a missing {@code import} when the item is committed.
      */
     private static CompletionItem typeItem(String name, int priority, String rightText,
-                                           CompletionTypeKind typeKind, int modifierBits,
+                                           SourceTypeKind typeKind, int modifierBits,
                                            boolean emphasized, boolean deprecated, String qualifiedName) {
         return new SimpleCompletionItem(name, name, name, priority,
-                name, rightText, CompletionItemKind.TYPE, typeKind, modifierBits,
+                name, rightText, SourceElementKind.TYPE, typeKind, modifierBits,
                 emphasized, deprecated, qualifiedName);
     }
 
@@ -73,14 +73,14 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(name, name, name,
                 computePriority(PRIORITY_SEMANTIC_FIELD, name, prefix),
                 name, simpleTypeName(field.asType().toString()),
-                CompletionItemKind.FIELD, CompletionTypeKind.OTHER,
+                SourceElementKind.FIELD, SourceTypeKind.OTHER,
                 toModifierBits(field.getModifiers()),
                 declared, isDeprecated(elements, field));
     }
 
     /**
      * Local variable / parameter / resource / exception-parameter proposal. Renders with
-     * the {@link CompletionItemKind#VARIABLE} icon and ranks higher than a field so the
+     * the {@link SourceElementKind#VARIABLE} icon and ranks higher than a field so the
      * popup surfaces the closest declaration first.
      */
     static CompletionItem semanticLocal(Elements elements, VariableElement variable, String prefix) {
@@ -88,7 +88,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(name, name, name,
                 computePriority(PRIORITY_SCOPE_LOCAL, name, prefix),
                 name, simpleTypeName(variable.asType().toString()),
-                CompletionItemKind.VARIABLE, CompletionTypeKind.OTHER,
+                SourceElementKind.VARIABLE, SourceTypeKind.OTHER,
                 toModifierBits(variable.getModifiers()),
                 true, isDeprecated(elements, variable));
     }
@@ -115,7 +115,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(name, insert, name,
                 computePriority(PRIORITY_SEMANTIC_METHOD, name, prefix),
                 name + "(" + params + ")", simpleTypeName(method.getReturnType().toString()),
-                CompletionItemKind.METHOD, CompletionTypeKind.OTHER,
+                SourceElementKind.METHOD, SourceTypeKind.OTHER,
                 toModifierBits(method.getModifiers()),
                 declared, isDeprecated(elements, method));
     }
@@ -127,7 +127,7 @@ public final class JavaCompletionItems {
         return typeItem(name,
                 computePriority(PRIORITY_EXPECTED_TYPE, name, prefix),
                 fqcn,
-                CompletionTypeKind.from(type.getKind().name()),
+                SourceTypeKind.from(type.getKind().name()),
                 toModifierBits(type.getModifiers()), true, isDeprecated(elements, type), fqcn);
     }
 
@@ -138,7 +138,7 @@ public final class JavaCompletionItems {
         return typeItem(name,
                 computePriority(PRIORITY_ASSIGNABLE_SUBTYPE, name, prefix),
                 fqcn,
-                CompletionTypeKind.from(candidate.getKind().name()),
+                SourceTypeKind.from(candidate.getKind().name()),
                 toModifierBits(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
     }
 
@@ -149,7 +149,7 @@ public final class JavaCompletionItems {
         return typeItem(name,
                 computePriority(PRIORITY_WRAPPER_TYPE, name, prefix),
                 fqcn,
-                CompletionTypeKind.CLASS,
+                SourceTypeKind.CLASS,
                 toModifierBits(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
     }
 
@@ -158,7 +158,7 @@ public final class JavaCompletionItems {
                                                 int modifierBits, boolean deprecated) {
         return typeItem(name,
                 computePriority(PRIORITY_WRAPPER_TYPE, name, prefix),
-                fqcn, CompletionTypeKind.CLASS, modifierBits, false, deprecated, fqcn);
+                fqcn, SourceTypeKind.CLASS, modifierBits, false, deprecated, fqcn);
     }
 
     /** Type item for import/qualified-path context — typed by runtime class when available.
@@ -173,8 +173,8 @@ public final class JavaCompletionItems {
         String insert = appendDot ? simpleName + "." : simpleName;
         return new SimpleCompletionItem(simpleName, insert, simpleName,
                 computePriority(PRIORITY_IMPORT_TYPE, simpleName, prefix),
-                simpleName, rightText, CompletionItemKind.TYPE,
-                runtime != null ? CompletionTypeKind.from(runtime) : CompletionTypeKind.OTHER,
+                simpleName, rightText, SourceElementKind.TYPE,
+                runtime != null ? SourceTypeKind.from(runtime) : SourceTypeKind.OTHER,
                 runtime != null ? runtime.getModifiers() : 0,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class));
     }
@@ -188,7 +188,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(packageName, packageName + ".", packageName,
                 computePriority(PRIORITY_PACKAGE, packageName, prefix),
                 packageName, "",
-                CompletionItemKind.PACKAGE, CompletionTypeKind.OTHER, 0, false, false);
+                SourceElementKind.PACKAGE, SourceTypeKind.OTHER, 0, false, false);
     }
 
     /** Type item for the {@code new ...} context — typed by runtime class when available. */
@@ -199,7 +199,7 @@ public final class JavaCompletionItems {
         return typeItem(simpleName,
                 computePriority(PRIORITY_NEW_TYPE, simpleName, prefix),
                 rightText,
-                runtime != null ? CompletionTypeKind.from(runtime) : CompletionTypeKind.OTHER,
+                runtime != null ? SourceTypeKind.from(runtime) : SourceTypeKind.OTHER,
                 runtime != null ? runtime.getModifiers() : 0,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class),
                 fqcn);
@@ -208,10 +208,10 @@ public final class JavaCompletionItems {
     /**
      * Type item for a top-level type declared in the active source file (not yet on the
      * classpath, so {@link JavaCompletionTypeUtils#tryLoad} would fail). The caller
-     * supplies the {@link CompletionTypeKind} parsed from the {@code class/interface/enum/record}
+     * supplies the {@link SourceTypeKind} parsed from the {@code class/interface/enum/record}
      * keyword so the popup picks the right icon.
      */
-    static CompletionItem sameFileType(String simpleName, String prefix, CompletionTypeKind typeKind) {
+    static CompletionItem sameFileType(String simpleName, String prefix, SourceTypeKind typeKind) {
         return typeItem(simpleName,
                 computePriority(PRIORITY_IMPORT_TYPE, simpleName, prefix),
                 "", typeKind, 0, false, false);
@@ -219,14 +219,14 @@ public final class JavaCompletionItems {
 
     /**
      * Annotation-type proposal for the {@code @|} popup. Renders with the annotation
-     * icon (via {@link CompletionTypeKind#ANNOTATION}) and inserts just the simple
+     * icon (via {@link SourceTypeKind#ANNOTATION}) and inserts just the simple
      * name — the {@code @} is already on the line.
      */
     static CompletionItem annotationType(String fqcn, String prefix) {
         String simpleName = simpleName(fqcn);
         return new SimpleCompletionItem(simpleName, simpleName, simpleName,
                 computePriority(PRIORITY_ANNOTATION_TYPE, simpleName, prefix), simpleName, fqcn,
-                CompletionItemKind.TYPE, CompletionTypeKind.ANNOTATION,
+                SourceElementKind.TYPE, SourceTypeKind.ANNOTATION,
                 Modifier.PUBLIC, false, false);
     }
     /**
@@ -240,7 +240,7 @@ public final class JavaCompletionItems {
         String insert = name + " = ";
         return new SimpleCompletionItem(name, insert, name,
                 computePriority(PRIORITY_ANNOTATION_MEMBER, name, prefix), name, returnType,
-                CompletionItemKind.FIELD, CompletionTypeKind.OTHER,
+                SourceElementKind.FIELD, SourceTypeKind.OTHER,
                 Modifier.PUBLIC | Modifier.ABSTRACT,
                 true, false);
     }
@@ -258,7 +258,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(insert, insert, insert,
                 computePriority(PRIORITY_EXPECTED_TYPE, insert, prefix),
                 insert, enumFqcn,
-                CompletionItemKind.FIELD, CompletionTypeKind.OTHER,
+                SourceElementKind.FIELD, SourceTypeKind.OTHER,
                 Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL,
                 true, isDeprecated(elements, constant));
     }
@@ -268,7 +268,7 @@ public final class JavaCompletionItems {
         int sepPriority = prefix == null || prefix.isBlank() ? 20 : 10;
         return new SimpleCompletionItem("separator", "", "separator",
                 sepPriority, "", "",
-                CompletionItemKind.SEPARATOR, CompletionTypeKind.OTHER, 0, false, false);
+                SourceElementKind.SEPARATOR, SourceTypeKind.OTHER, 0, false, false);
     }
 
     /**
@@ -278,7 +278,7 @@ public final class JavaCompletionItems {
      */
     static CompletionItem nullLiteral() {
         return lexical("null", PRIORITY_PACKAGE - 1, "literal",
-                CompletionItemKind.KEYWORD, CompletionTypeKind.OTHER);
+                SourceElementKind.KEYWORD, SourceTypeKind.OTHER);
     }
 
     /**

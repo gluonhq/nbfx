@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import org.netbeans.api.java.source.ClassIndex;
@@ -50,7 +50,7 @@ final class JavaCompletionWrapperUtils {
     static List<CompletionItem> collectStructuralWrapperTypeItems(CompilationController controller,
                                                                   TypeElement expectedType,
                                                                   String prefix,
-                                                                  CompletionCancellation cancellation) {
+                                                                  Cancellation cancellation) {
         ClassIndex classIndex = controller.getClasspathInfo().getClassIndex();
         EnumSet<ClassIndex.SearchScope> scopes = EnumSet.of(
                 ClassIndex.SearchScope.SOURCE,

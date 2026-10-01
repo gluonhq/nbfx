@@ -28,7 +28,7 @@ public class MarkLineNumberDecorator implements SideDecorator {
     /** Gutter width kept when line numbers are hidden, so error/warning indicators still have room. */
     private static final double INDICATOR_ONLY_WIDTH = 10;
 
-    private final JavaSyntaxDecorator syntaxDecorator;
+    private final BaseSyntaxDecorator syntaxDecorator;
     private final ObjectProperty<Font> fontProperty;
 
     private boolean showLineNumbers = true;
@@ -37,7 +37,7 @@ public class MarkLineNumberDecorator implements SideDecorator {
      * @param syntaxDecorator the decorator that tracks error/warning diagnostics
      * @param fontProperty    the CodeArea font property to bind label fonts to
      */
-    public MarkLineNumberDecorator(JavaSyntaxDecorator syntaxDecorator, ObjectProperty<Font> fontProperty) {
+    public MarkLineNumberDecorator(BaseSyntaxDecorator syntaxDecorator, ObjectProperty<Font> fontProperty) {
         this.syntaxDecorator = syntaxDecorator;
         this.fontProperty = fontProperty;
     }

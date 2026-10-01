@@ -1,5 +1,7 @@
 package com.gluonhq.netbeans.nbfx.launcher;
 
+import com.gluonhq.netbeans.nbfx.launcher.project.VersioningOptOut;
+
 import java.awt.AWTEvent;
 import java.awt.Frame;
 import java.awt.Toolkit;
@@ -24,23 +26,11 @@ public class JavaFXLauncher extends ModuleInstall {
 
     @Override
     public void restored() {
-        System.out.println("JAVAFXLAUNCHER 0");
-        System.err.println("JAVAFXLAUNCHER 0-err");
-        LOG.info("Starting API launcher, register awtEventListener");
+        LOG.info("NetBeans main window, AWT listener added");
         Toolkit.getDefaultToolkit().addAWTEventListener(windowSuppressor, AWTEvent.COMPONENT_EVENT_MASK);
 
         LOG.info("NetBeans Platform loaded, launching JavaFX...");
-        Thread thread = new Thread(() -> {
-            try {
-            LOG.info("Launch jla");
-System.setProperty("javafx.debug","true");
-System.setProperty("prism.verbose","true");
-            Application.launch(JavaFXLaunchApp.class);
-            } catch (Throwable t) {
-                LOG.info("Could not launch javafx framework due to "+ t);
-                t.printStackTrace();
-            }
-        }, "nbfx-javafx-launcher");
+        Thread thread = new Thread(() -> Application.launch(JavaFXLaunchApp.class), "nbfx-javafx-launcher");
         thread.setDaemon(true);
         thread.start();
     }
@@ -62,7 +52,6 @@ System.setProperty("prism.verbose","true");
                 mainWindow.setUndecorated(true);
                 mainWindow.setOpacity(0f);
                 mainWindow.setFocusable(false);
-                Thread.dumpStack();
             } catch (Exception e) {
                 // ignore and hide the window on next events instead
             }
@@ -71,7 +60,6 @@ System.setProperty("prism.verbose","true");
             mainWindow.setVisible(false);
             mainWindow.setFocusable(false);
             Toolkit.getDefaultToolkit().removeAWTEventListener(windowSuppressor);
-            Thread.dumpStack();
             LOG.info("mainWindow hidden");
         }
     }

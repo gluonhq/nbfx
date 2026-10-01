@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
@@ -113,7 +113,7 @@ public final class JavaSemanticCompletionQueries {
      * </ul>
      */
     public static List<CompletionItem> queryNewWithJavaSource(CompletionContext context,
-                                                              CompletionCancellation cancellation) {
+                                                              Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             int offset = resolveSemanticOffset(context.documentText(), context.caretOffset());
@@ -165,7 +165,7 @@ public final class JavaSemanticCompletionQueries {
      * {@link org.netbeans.api.java.source.JavaSource JavaSource} task fails to run.</p>
      */
     public static List<CompletionItem> queryPackageWithJavaSource(CompletionContext context,
-                                                                  CompletionCancellation cancellation) {
+                                                                  Cancellation cancellation) {
         // 1. Find the package path before the caret
         String packagePrefix = JavaCompletionTypeUtils.extractQualifier(
                 context.documentText(), context.anchorOffset() - 1);
@@ -215,7 +215,7 @@ public final class JavaSemanticCompletionQueries {
      * {@link org.netbeans.api.java.source.JavaSource JavaSource} task fails to run.</p>
      */
     public static List<CompletionItem> queryImportTopLevelPackageWithJavaSource(CompletionContext context,
-                                                                                CompletionCancellation cancellation) {
+                                                                                Cancellation cancellation) {
         return JavaSemanticQueryRunner.runQuery(context, cancellation,
             (controller, items) ->
                 items.addAll(collectTopLevelPackageItems(controller, context.prefix(), cancellation)));
@@ -230,7 +230,7 @@ public final class JavaSemanticCompletionQueries {
      * bootstrap classpath is not always covered by the index scopes.
      */
     public static List<CompletionItem> queryAnnotationTypeWithJavaSource(CompletionContext context,
-                                                                         CompletionCancellation cancellation) {
+                                                                         Cancellation cancellation) {
         return JavaSemanticQueryRunner.runQuery(context, cancellation,
             (controller, items) ->
                 items.addAll(collectAnnotationTypes(controller, context.prefix(), cancellation)));
@@ -245,7 +245,7 @@ public final class JavaSemanticCompletionQueries {
      * caret isn't inside an annotation argument list.
      */
     public static List<CompletionItem> queryAnnotationArgumentWithJavaSource(CompletionContext context,
-                                                                             CompletionCancellation cancellation) {
+                                                                             Cancellation cancellation) {
         String annotationName = annotationNameForArgument(context.documentText(), context.anchorOffset());
         if (annotationName == null) {
             return List.of();
@@ -272,7 +272,7 @@ public final class JavaSemanticCompletionQueries {
      * identifier query take over.</p>
      */
     public static List<CompletionItem> queryAnnotationValueWithJavaSource(CompletionContext context,
-                                                                          CompletionCancellation cancellation) {
+                                                                          Cancellation cancellation) {
         JavaAnnotationCompletionUtils.AnnotationValueContext valueContext =
                 annotationValueContext(context.documentText(), context.anchorOffset());
         if (valueContext == null) {
@@ -301,7 +301,7 @@ public final class JavaSemanticCompletionQueries {
      * JavaSource} task fails.</p>
      */
     public static List<CompletionItem> queryThrowableTypeWithJavaSource(CompletionContext context,
-                                                                        CompletionCancellation cancellation) {
+                                                                        Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             TypeElement throwable = controller.getElements().getTypeElement("java.lang.Throwable");
@@ -338,7 +338,7 @@ public final class JavaSemanticCompletionQueries {
      * lexical provider take over.</p>
      */
     public static List<CompletionItem> queryCaseLabelWithJavaSource(CompletionContext context,
-                                                                    CompletionCancellation cancellation) {
+                                                                    Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             int probe = resolveSemanticOffset(context.documentText(), context.caretOffset());
@@ -382,7 +382,7 @@ public final class JavaSemanticCompletionQueries {
      */
     public static List<CompletionItem> queryInheritanceClauseTypesWithJavaSource(CompletionContext context,
                                                                                  JavaInheritanceClauseUtils.ClauseKind clauseKind,
-                                                                                 CompletionCancellation cancellation) {
+                                                                                 Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         JavaInheritanceClauseUtils.Filter filter = resolveInheritanceFilter(context, clauseKind);
         // The type currently being declared cannot legally appear as its own supertype —
@@ -412,7 +412,7 @@ public final class JavaSemanticCompletionQueries {
      * ({@link CompletionProvider#COMPLETION_ALL_QUERY_TYPE}).</p>
      */
     public static List<CompletionItem> queryInstanceofTypeWithJavaSource(CompletionContext context,
-                                                                         CompletionCancellation cancellation) {
+                                                                         Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             int offset = resolveSemanticOffset(context.documentText(), context.caretOffset());
@@ -447,7 +447,7 @@ public final class JavaSemanticCompletionQueries {
      * ({@link CompletionProvider#COMPLETION_ALL_QUERY_TYPE}).</p>
      */
     public static List<CompletionItem> queryCastTypeWithJavaSource(CompletionContext context,
-                                                                   CompletionCancellation cancellation) {
+                                                                   Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             int offset = resolveSemanticOffset(context.documentText(), context.caretOffset());
@@ -503,7 +503,7 @@ public final class JavaSemanticCompletionQueries {
      * </ul>
      */
     public static List<CompletionItem> queryMemberWithJavaSource(CompletionContext context,
-                                                                 CompletionCancellation cancellation) {
+                                                                 Cancellation cancellation) {
         int dotOffset = Math.max(0, context.anchorOffset() - 1);
         int caretProbe = Math.max(0, context.caretOffset() - 1);
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
@@ -581,7 +581,7 @@ public final class JavaSemanticCompletionQueries {
      */
     private static List<CompletionItem> collectQualifiedPackageItems(CompilationController controller,
                                                                      CompletionContext context,
-                                                                     CompletionCancellation cancellation) {
+                                                                     Cancellation cancellation) {
         // 1. Find the package path before the caret
         String packagePrefix = JavaCompletionTypeUtils.extractQualifier(
                 context.documentText(), context.anchorOffset() - 1);
@@ -633,7 +633,7 @@ public final class JavaSemanticCompletionQueries {
      * JavaSource} task fails to run.</p>
      */
     public static List<CompletionItem> queryInvocationArgumentWithJavaSource(CompletionContext context,
-                                                                             CompletionCancellation cancellation) {
+                                                                             Cancellation cancellation) {
         // If the argument list is unterminated (e.g. `add(|`), the Java parser may then fail to produce a
         // usable MethodInvocationTree, so insert the minimal closers needed to balance brackets and recover the tree.
         String sourceOverride = synthesizeBalancedInvocation(context.documentText(), context.caretOffset());
@@ -709,7 +709,7 @@ public final class JavaSemanticCompletionQueries {
      * task fails to run.</p>
      */
     public static List<CompletionItem> queryIdentifierWithJavaSource(CompletionContext context,
-                                                                     CompletionCancellation cancellation) {
+                                                                     Cancellation cancellation) {
         if (context == null || context.prefix().isBlank()) {
             return List.of();
         }
@@ -774,7 +774,7 @@ public final class JavaSemanticCompletionQueries {
 
     private static void addStandaloneNewItems(CompilationController controller, CompletionContext context,
                                               TreePath path, List<CompletionItem> items,
-                                              boolean showAllItems, CompletionCancellation cancellation) {
+                                              boolean showAllItems, Cancellation cancellation) {
         TypeMirror expected = resolveStandaloneNewExpectedType(path, controller);
         if (expected != null) {
             List<CompletionItem> expectedItems = collectExpectedTypeItems(
@@ -843,7 +843,7 @@ public final class JavaSemanticCompletionQueries {
     private static void collectEnumConstantItems(CompilationController controller,
                                                  TypeElement enumElement,
                                                  String prefix,
-                                                 CompletionCancellation cancellation,
+                                                 Cancellation cancellation,
                                                  List<CompletionItem> items) {
         String lowerPrefix = lowerPrefix(prefix);
         for (Element member : controller.getElements().getAllMembers(enumElement)) {
@@ -929,7 +929,7 @@ public final class JavaSemanticCompletionQueries {
                                                           CompletionContext context,
                                                           List<CompletionItem> items,
                                                           boolean showAllItems,
-                                                          CompletionCancellation cancellation) {
+                                                          Cancellation cancellation) {
         List<CompletionItem> generalTypes = collectTypeItems(
                 controller, context.prefix(), showAllItems, !showAllItems,
                 context.documentText(), cancellation);
@@ -955,7 +955,7 @@ public final class JavaSemanticCompletionQueries {
      * {@link JavaPackagePathCollector#collectTopLevelPackageItems}.</p>
      */
     private static void appendPackagesTail(CompilationController controller, CompletionContext context,
-                                           List<CompletionItem> items, CompletionCancellation cancellation) {
+                                           List<CompletionItem> items, Cancellation cancellation) {
         List<CompletionItem> generalPackages = collectTopLevelPackageItems(
                 controller, context.prefix(), cancellation);
         if (generalPackages.isEmpty()) {

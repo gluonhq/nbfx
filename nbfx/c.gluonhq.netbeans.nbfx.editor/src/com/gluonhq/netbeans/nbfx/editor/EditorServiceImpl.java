@@ -1,7 +1,7 @@
 package com.gluonhq.netbeans.nbfx.editor;
 
-import com.gluonhq.netbeans.nbfx.api.EditorDocument;
-import com.gluonhq.netbeans.nbfx.api.EditorService;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorService;
 import com.gluonhq.netbeans.nbfx.editor.codearea.CodeEditor;
 
 import java.util.logging.Logger;
@@ -21,5 +21,11 @@ public class EditorServiceImpl implements EditorService {
     public EditorDocument createDocument(FileObject fo) {
         LOG.info("Will create an editor for " + fo);
         return new CodeEditor(fo);
+    }
+
+    @Override
+    public EditorDocument createPreviewDocument(FileObject fo) {
+        LOG.fine(() -> "Will create a preview for " + fo);
+        return CodeEditor.preview(fo);
     }
 }

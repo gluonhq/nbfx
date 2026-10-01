@@ -2,7 +2,7 @@ package com.gluonhq.netbeans.nbfx.editor.completion;
 
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
@@ -222,7 +222,7 @@ final class CompletionPopup extends PopupControl {
         if (selected == null && !listView.getItems().isEmpty()) {
             selected = listView.getItems().getFirst();
         }
-        if (selected != null && selected.kind() != CompletionItemKind.SEPARATOR) {
+        if (selected != null && selected.kind() != SourceElementKind.SEPARATOR) {
             return selected;
         }
         return null;
@@ -246,7 +246,7 @@ final class CompletionPopup extends PopupControl {
         // Lower score = better match (5 = no signal, 1 = exact identifier hit).
         for (int i = 0; i < rows.size(); i++) {
             CompletionItem item = rows.get(i);
-            if (item.kind() == CompletionItemKind.SEPARATOR) {
+            if (item.kind() == SourceElementKind.SEPARATOR) {
                 continue;
             }
             if (firstSelectable < 0) {
@@ -316,7 +316,7 @@ final class CompletionPopup extends PopupControl {
     }
 
     private void configureSize(List<CompletionItem> items, boolean showAllItems) {
-        boolean hasSeparator = items.stream().anyMatch(item -> item.kind() == CompletionItemKind.SEPARATOR);
+        boolean hasSeparator = items.stream().anyMatch(item -> item.kind() == SourceElementKind.SEPARATOR);
         int rowCount = Math.clamp(items.size() - (hasSeparator ? 1 : 0), 1, MAX_VISIBLE_ROWS);
         listView.setPrefHeight(rowCount * ROW_HEIGHT + (hasSeparator ? 3 : 0));
 

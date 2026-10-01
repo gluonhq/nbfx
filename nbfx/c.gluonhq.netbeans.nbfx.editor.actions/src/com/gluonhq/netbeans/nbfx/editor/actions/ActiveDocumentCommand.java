@@ -1,12 +1,13 @@
 package com.gluonhq.netbeans.nbfx.editor.actions;
 
-import com.gluonhq.netbeans.nbfx.api.AbstractCommand;
-import com.gluonhq.netbeans.nbfx.api.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.actions.AbstractCommand;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.input.KeyCombination;
@@ -18,10 +19,13 @@ import javafx.util.Subscription;
  * selection"). The command re-observes that state whenever the active document changes, so
  * enablement always follows the current context. The active document is taken from the supplied
  * observable, so the same command works globally (the shared
- * {@link com.gluonhq.netbeans.nbfx.api.EditorContext#activeDocumentProperty() active document})
+ * {@link com.gluonhq.netbeans.nbfx.api.editor.EditorContext#activeDocumentProperty() active document})
  * or scoped to a single window (that window's selected editor).
  */
 abstract class ActiveDocumentCommand extends AbstractCommand {
+
+    /** The enablement of a command that is available for any active document. */
+    static final ReadOnlyBooleanProperty ALWAYS = new ReadOnlyBooleanWrapper(true).getReadOnlyProperty();
 
     private final ObservableValue<EditorDocument> activeDocument;
     private final Function<EditorDocument, ReadOnlyBooleanProperty> enablement;

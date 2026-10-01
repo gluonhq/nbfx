@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.sun.source.tree.Scope;
@@ -49,7 +49,7 @@ final class JavaScopeIdentifierCollector {
                                                                     TreePath path,
                                                                     List<TypeMirror> expectedTypes,
                                                                     String prefix,
-                                                                    CompletionCancellation cancellation) {
+                                                                    Cancellation cancellation) {
         Scope scope = controller.getTrees().getScope(path);
         if (scope == null) {
             return List.of();
@@ -129,25 +129,25 @@ final class JavaScopeIdentifierCollector {
      * an expression position).
      */
     static List<CompletionItem> collectScopeIdentifiers(CompilationController controller, TreePath path,
-                                                        String prefix, CompletionCancellation cancellation) {
+                                                        String prefix, Cancellation cancellation) {
         Scope scope = controller.getTrees().getScope(path);
         return collectScopeIdentifiers(controller, scope, prefix, cancellation,
                 excludedSelfReferences(controller, path));
     }
 
     /**
-     * Same as {@link #collectScopeIdentifiers(CompilationController, TreePath, String, CompletionCancellation)}
+     * Same as {@link #collectScopeIdentifiers(CompilationController, TreePath, String, Cancellation)}
      * but accepts a {@link Scope} directly. Use this when the scope has been resolved
      * via {@code TreeUtilities.scopeFor(offset)}, which has stronger error-recovery for
      * incomplete buffers than going through a {@code TreePath}.
      */
     static List<CompletionItem> collectScopeIdentifiers(CompilationController controller, Scope scope,
-                                                        String prefix, CompletionCancellation cancellation) {
+                                                        String prefix, Cancellation cancellation) {
         return collectScopeIdentifiers(controller, scope, prefix, cancellation, new ExcludedScope());
     }
 
     private static List<CompletionItem> collectScopeIdentifiers(CompilationController controller, Scope scope,
-                                                                String prefix, CompletionCancellation cancellation,
+                                                                String prefix, Cancellation cancellation,
                                                                 ExcludedScope excluded) {
         if (scope == null) {
             return List.of();

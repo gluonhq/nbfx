@@ -1,13 +1,35 @@
 package com.gluonhq.netbeans.nbfx.launcher;
 
+import com.gluonhq.netbeans.nbfx.launcher.actions.ActionBars;
+import com.gluonhq.netbeans.nbfx.launcher.context.ContentManagerImpl;
+import com.gluonhq.netbeans.nbfx.launcher.context.EditorContexts;
+import com.gluonhq.netbeans.nbfx.launcher.context.FileSelectionContextImpl;
+import com.gluonhq.netbeans.nbfx.launcher.project.FileSystemRefresher;
+import com.gluonhq.netbeans.nbfx.launcher.project.ProjectLoads;
+import com.gluonhq.netbeans.nbfx.launcher.project.ProjectRegistryImpl;
+import com.gluonhq.netbeans.nbfx.launcher.project.ProjectRootWatcher;
+import com.gluonhq.netbeans.nbfx.launcher.project.ProjectSwitcher;
+import com.gluonhq.netbeans.nbfx.launcher.session.AppState;
+import com.gluonhq.netbeans.nbfx.launcher.session.CloseConfirmation;
+import com.gluonhq.netbeans.nbfx.launcher.session.DocumentCloser;
+import com.gluonhq.netbeans.nbfx.launcher.session.SessionRestorer;
+import com.gluonhq.netbeans.nbfx.docking.DockArea;
+import com.gluonhq.netbeans.nbfx.launcher.ui.Docking;
+import com.gluonhq.netbeans.nbfx.launcher.ui.NbfxTabPane;
+import com.gluonhq.netbeans.nbfx.launcher.ui.StatusBar;
+import com.gluonhq.netbeans.nbfx.launcher.ui.ToolBarContainer;
+import com.gluonhq.netbeans.nbfx.launcher.ui.ViewTabs;
+import com.gluonhq.netbeans.nbfx.launcher.ui.WindowTitles;
+
 import com.gluonhq.netbeans.nbfx.api.ContentManager;
-import com.gluonhq.netbeans.nbfx.api.EditorContext;
-import com.gluonhq.netbeans.nbfx.api.EditorDocument;
-import com.gluonhq.netbeans.nbfx.api.EditorSettings;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorContext;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
+import com.gluonhq.netbeans.nbfx.api.editor.EditorSettings;
+import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
 import com.gluonhq.netbeans.nbfx.api.NavigatorProvider;
-import com.gluonhq.netbeans.nbfx.api.OpenProject;
-import com.gluonhq.netbeans.nbfx.api.ProjectRegistry;
-import com.gluonhq.netbeans.nbfx.file.actions.FileActions;
+import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
+import com.gluonhq.netbeans.nbfx.api.project.ProjectRegistry;
+import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import com.gluonhq.netbeans.nbfx.file.actions.FileUndoManager;
 import java.io.File;
 import java.util.ArrayList;
@@ -24,33 +46,30 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.css.PseudoClass;
 import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
-import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.Region;
-import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Subscription;
+import org.openide.LifecycleManager;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
+import org.openide.util.RequestProcessor;
 import org.openide.util.lookup.Lookups;
+import org.netbeans.modules.parsing.api.indexing.IndexingManager;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class JavaFXLaunchApp extends Application {
 
@@ -59,9 +78,10 @@ public class JavaFXLaunchApp extends Application {
     private Stage stage;
     private Collection<? extends NavigatorProvider> providers;
     private final AppState appState = new AppState();
-    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::navigatorTabFor);
-    private SplitPane splitPane;
+    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
     private NbfxTabPane navigatorPane;
+    /** The left column: the navigator pane and the panes docked next to it. */
+    private DockArea<TabPane> dockArea;
     private ActionBars actionBars;
     private StatusBar statusBar;
     private final ProjectRegistry projectRegistry = projectRegistry();
@@ -70,6 +90,14 @@ public class JavaFXLaunchApp extends Application {
     private final BooleanBinding projectOpen = Bindings.isNotEmpty(projectRegistry.getOpenProjects());
     /** The projects whose trees are still loading; several can load at once. */
     private final ProjectLoads loads = new ProjectLoads();
+    /** Polls the java indexer state to mirror the background scan in the status bar. */
+    private static final RequestProcessor SCAN_WATCH_RP = new RequestProcessor("nbfx-scan-watch", 1);
+    /** Interval between checks of the java indexer scan state. */
+    private static final int SCAN_POLL_MS = 500;
+    /** How many polls to wait for a scan to start after the projects opened, before giving up. */
+    private static final int SCAN_START_GRACE_POLLS = 60;
+    /** Whether a scan watcher is already polling, so load-settled events don't stack watchers. */
+    private final AtomicBoolean scanWatchActive = new AtomicBoolean();
     /** Moves the selection between open projects, from the Window menu and its shortcuts. */
     private final ProjectSwitcher projectSwitcher = new ProjectSwitcher(projectRegistry, this::revealProject);
     /** Watches the open projects' root folders, so one that is gone from disk does not stay open. */
@@ -87,19 +115,9 @@ public class JavaFXLaunchApp extends Application {
     /** The project that was selected when the last session ended, reselected once it is restored. */
     private String sessionSelected;
     /* Dispatch for Cut/Copy/Paste/Undo/Redo on files while the project tree is focused, on the editor otherwise. */
-    private final ObjectProperty<List<FileObject>> navigatorSelection = new SimpleObjectProperty<>(List.of());
-    private final FileActions fileActions = new FileActions(navigatorSelection);
+    private final FileSelectionContext fileSelection = fileSelectionContext();
     /** Whether the treeView is focused or not. */
-    private final BooleanProperty treeFocused = new SimpleBooleanProperty(false) {
-        @Override
-        protected void invalidated() {
-            if (get()) {
-                // The system clipboard is not observable; re-check it whenever the tree regains focus
-                fileActions.refreshClipboardState();
-            }
-        }
-    };
-    private final PseudoClass FOCUS_WITH_IN_TAB_PANE = PseudoClass.getPseudoClass("focus-in-tabpane");
+    private final BooleanProperty treeFocused = new SimpleBooleanProperty(false);
 
     @Override
     public void start(Stage stage) {
@@ -107,18 +125,18 @@ public class JavaFXLaunchApp extends Application {
         // Resolve navigator providers up front
         providers = Lookup.getDefault().lookupAll(NavigatorProvider.class);
         LOG.fine("PROVIDERS = " + providers);
+        // Publish the navigator-focused state so the file commands can track it (clipboard refresh).
+        treeFocused.subscribe(fileSelection::setNavigatorFocused);
         for (NavigatorProvider provider : providers) {
-            provider.selectedFiles().subscribe(navigatorSelection::set);
+            provider.selectedFiles().subscribe(fileSelection::setSelectedFiles);
             // A project's tree is built in the background and reported back through this callback,
             // which resolves the project from the loaded root: several can be loading at once.
             provider.setOnProjectLoaded(this::onProjectLoaded);
             provider.setOnProjectLoadFailed(this::onProjectLoadFailed);
         }
 
-        Region leftArea = createNavigator();
-        Region mainArea = createMainArea();
-        splitPane = new SplitPane(leftArea, mainArea);
-        BorderPane borderPane = new BorderPane(splitPane);
+        dockArea = createDockArea();
+        BorderPane borderPane = new BorderPane(dockArea);
 
         actionBars = new ActionBars();
         actionBars.registerProjectCommands(this::newProject, this::openProject,
@@ -126,10 +144,11 @@ public class JavaFXLaunchApp extends Application {
         actionBars.configureRecentProjects(appState::getRecentProjects, this::openProject,
                 this::clearRecentProjects, this::projectIcon);
         actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
-        actionBars.configureFileActions(fileActions, treeFocused);
+        actionBars.configureFileDispatch(treeFocused);
         // The main window's menu/tool bars are scoped to the main pane's own selected editor.
         ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
         actionBars.registerWindowCommands(windowActions(mainScope));
+        actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0));
         ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
         VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
         borderPane.setTop(topBars);
@@ -137,6 +156,15 @@ public class JavaFXLaunchApp extends Application {
         NbfxTabPane.setActionBars(actionBars);
         // Let detached editor windows reveal their selected file in the main window's navigator.
         NbfxTabPane.setNavigatorRevealer(this::revealFileInNavigator);
+        // Where a tab docks back from a detached window: editors to the editor pane (or wherever the
+        // editors are while it is hidden), views to their default location.
+        NbfxTabPane.setHomeResolver(tab -> {
+            if (NbfxTabPane.documentOf(tab) != null) {
+                TabPane mainPane = contentManager() instanceof ContentManagerImpl cmi ? (TabPane) cmi.getMainPane() : null;
+                return mainPane == null ? null : NbfxTabPane.editorDockHome(mainPane, Lookup.getDefault().lookup(EditorContext.class));
+            }
+            return homeOfView(tab);
+        });
 
         statusBar = new StatusBar();
         borderPane.setBottom(statusBar);
@@ -151,31 +179,25 @@ public class JavaFXLaunchApp extends Application {
         // changes within the window and when the window itself (re)gains focus.
         scene.focusOwnerProperty().subscribe(fo -> {
             if (stage.isFocused()) {
-                updateFocusScope(fo, leftArea, mainArea);
-                // Moving the focus into an area makes what is current there decide the project: the
-                // file being edited, or the file selected in the navigator tree. Their own change
+                updateFocusScope(fo);
+                // Moving the focus into a pane makes what is current there decide the project: the
+                // file selected in the navigator tree, or the file being edited. Their own change
                 // events are not enough, as clicking the tab or the tree node that is ALREADY
                 // selected fires none, yet the user has just moved back to that project.
-                if (isWithin(fo, mainArea) && activeDocument != null) {
-                    selectProjectOf(activeDocument.getValue());
-                } else if (isWithin(fo, leftArea)) {
+                if (isNavigatorFocused(fo)) {
                     selectProjectOf(focusedNavigatorFile(fo));
+                } else if (isWithin(fo, dockArea) && activeDocument != null) {
+                    selectProjectOf(activeDocument.getValue());
                 }
             }
         });
         stage.focusedProperty().subscribe(focused -> {
+            Node focusOwner = scene.getFocusOwner();
             if (!focused) {
-                leftArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
-                mainArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
+                dockArea.markFocused(false, focusOwner);
                 treeFocused.set(false);
-            } else if (isWithin(scene.getFocusOwner(), leftArea)) {
-                leftArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, true);
-                mainArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
-                treeFocused.set(isNavigatorFocused(scene.getFocusOwner()));
             } else {
-                leftArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
-                mainArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, true);
-                treeFocused.set(isNavigatorFocused(scene.getFocusOwner()));
+                updateFocusScope(focusOwner);
             }
         });
         scene.getStylesheets().add(JavaFXLaunchApp.class.getResource("styles.css").toExternalForm());
@@ -194,6 +216,14 @@ public class JavaFXLaunchApp extends Application {
         });
         if (activeDocument != null) {
             activeDocument.subscribe(this::selectProjectOf);
+            activeDocument.flatMap(EditorDocument::caretInfoProperty).subscribe(statusBar::setCaretInfo);
+            activeDocument.flatMap(EditorDocument::lineSeparatorProperty).subscribe(statusBar::setLineSeparator);
+            statusBar.setOnLineSeparatorChange(separator -> {
+                EditorDocument document = activeDocument.getValue();
+                if (document != null) {
+                    document.setLineSeparator(separator);
+                }
+            });
         }
         stage.setScene(scene);
 
@@ -225,11 +255,7 @@ public class JavaFXLaunchApp extends Application {
 
         stage.show();
 
-        // Divider position is only meaningful once the SplitPane is laid out.
-        Platform.runLater(() -> {
-            appState.initDivider(splitPane);
-            restoreSessionProjects();
-        });
+        Platform.runLater(this::restoreSessionProjects);
     }
 
     private boolean confirmClose() {
@@ -311,10 +337,10 @@ public class JavaFXLaunchApp extends Application {
         appState.save();
         refresher.shutdown();
         LOG.info("JavaFX application stopping, shutting down NetBeans Platform...");
-        System.exit(0);
+        LifecycleManager.getDefault().exit();
     }
 
-    private TabPane createNavigator() {
+    private NbfxTabPane createNavigator() {
         navigatorPane = new NbfxTabPane(NbfxTabPane.PaneRole.NAVIGATOR);
         // Every persisted navigator tab is docked here first, whichever pane the layout last put it
         // in; opening a project then redistributes them (restoreLayout). This keeps every navigator
@@ -326,14 +352,14 @@ public class JavaFXLaunchApp extends Application {
             // it back. Only the absence of any layout at all (first run) docks every provider - an
             // empty order means the user closed them all, and docking them here would flash them into
             // the pane until the project's own layout removed them again.
-            if (layout.isEmpty() || order.contains(navigatorId(provider))) {
+            if (layout.isEmpty() || order.contains(provider.getId())) {
                 NbfxTabPane.attachTab(navigatorPane, createNavigatorTab(provider));
             }
         }
         String selected = navigatorSelectedOf(layout);
         if (selected != null) {
             for (Tab tab : navigatorPane.getTabs()) {
-                if (selected.equals(NbfxTabPane.navigatorId(tab))) {
+                if (selected.equals(NbfxTabPane.viewId(tab))) {
                     navigatorPane.getSelectionModel().select(tab);
                     break;
                 }
@@ -342,12 +368,12 @@ public class JavaFXLaunchApp extends Application {
         return navigatorPane;
     }
 
-    /** The navigator provider ids held by {@code layout}, in pane order then tab order. */
+    /** The view provider ids held by {@code layout}, in pane order then tab order. */
     private static List<String> navigatorIdsOf(AppState.Layout layout) {
         List<String> ids = new ArrayList<>();
         for (AppState.PaneLayout pane : layout.panes()) {
             for (AppState.TabEntry tab : pane.tabs()) {
-                if (tab.kind() == AppState.TabKind.NAVIGATOR) {
+                if (tab.kind() == AppState.TabKind.VIEW) {
                     ids.add(tab.id());
                 }
             }
@@ -363,46 +389,45 @@ public class JavaFXLaunchApp extends Application {
             }
             AppState.TabEntry active = pane.activeIndex() >= 0 && pane.activeIndex() < pane.tabs().size()
                     ? pane.tabs().get(pane.activeIndex()) : null;
-            return active != null && active.kind() == AppState.TabKind.NAVIGATOR ? active.id() : null;
+            return active != null && active.kind() == AppState.TabKind.VIEW ? active.id() : null;
         }
         return null;
     }
 
     /**
-     * The tab of the navigator provider identified by {@code providerId}: the live one, wherever it
-     * currently is, or a freshly built one if that provider has no tab. Returns {@code null} for an
-     * unknown provider (one persisted by an earlier run but no longer installed).
+     * The tab of the view identified by {@code viewId}: the live one, wherever it currently is, or a
+     * freshly built one if that view has no tab. Navigators are looked up first, then every other
+     * {@link ViewProvider} published in the Lookup. Returns {@code null} for an unknown view (one
+     * persisted by an earlier run but no longer installed).
      */
-    private Tab navigatorTabFor(String providerId) {
-        return NbfxTabPane.findNavigatorTab(providerId).orElseGet(() -> {
+    private Tab viewTabFor(String viewId) {
+        return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
             for (NavigatorProvider provider : providers) {
-                if (navigatorId(provider).equals(providerId)) {
+                if (provider.getId().equals(viewId)) {
                     return createNavigatorTab(provider);
                 }
             }
-            return null;
+            ViewProvider view = viewById(viewId);
+            return view == null ? null : ViewTabs.create(view, view.getDescription());
         });
     }
 
-    /** Builds a navigator tab for {@code provider}: a draggable Label graphic, its view, and its stable id. */
-    private Tab createNavigatorTab(NavigatorProvider provider) {
-        Tab tab = new Tab();
-        // A Label graphic (not tab text) is required so the tab can be dragged/detached.
-        tab.setGraphic(new Label(provider.getTitle()));
-        tab.setContent(provider.getView());
-        NbfxTabPane.setNavigatorId(tab, navigatorId(provider));
-        int index = new ArrayList<>(providers).indexOf(provider);
-        NbfxTabPane.installTabLabelTooltip(tab, NbBundle.getMessage(JavaFXLaunchApp.class,
-                "Tab.navigator.tooltip", provider.getDescription(),
-                NbfxTabPane.SYM_SHIFT, NbfxTabPane.SYM_CMD, String.valueOf(index + 1)));
-        NbfxTabPane.installCloseButtonTooltip(tab,
-                NbBundle.getMessage(JavaFXLaunchApp.class, "Tab.navigator.close.tooltip"));
-        return tab;
+    /** The non-navigator view published under {@code viewId}, or {@code null}. */
+    private static ViewProvider viewById(String viewId) {
+        for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
+            if (view.getId().equals(viewId)) {
+                return view;
+            }
+        }
+        return null;
     }
 
-    /** The stable persistence id for a navigator provider (its implementation class name). */
-    private static String navigatorId(NavigatorProvider provider) {
-        return provider.getClass().getName();
+    /** Builds a navigator tab for {@code provider}, whose tooltip names the shortcut selecting it. */
+    private Tab createNavigatorTab(NavigatorProvider provider) {
+        int index = new ArrayList<>(providers).indexOf(provider);
+        return ViewTabs.create(provider, NbBundle.getMessage(JavaFXLaunchApp.class,
+                "Tab.navigator.tooltip", provider.getDescription(),
+                NbfxTabPane.SYM_SHIFT, NbfxTabPane.SYM_CMD, String.valueOf(index + 1)));
     }
 
     /** Providers ordered by {@code order} (persisted ids); unknown providers keep their natural order at the end. */
@@ -410,7 +435,7 @@ public class JavaFXLaunchApp extends Application {
         List<NavigatorProvider> ordered = new ArrayList<>(providers);
         if (!order.isEmpty()) {
             ordered.sort(Comparator.comparingInt(p -> {
-                int i = order.indexOf(navigatorId(p));
+                int i = order.indexOf(p.getId());
                 return i < 0 ? Integer.MAX_VALUE : i;
             }));
         }
@@ -418,18 +443,22 @@ public class JavaFXLaunchApp extends Application {
     }
 
 
-    private Region createMainArea() {
+    /**
+     * The window's dock area: the navigator pane left of the editor pane - the navigator pane alone
+     * if there is no (or no known) content manager to provide the editor pane.
+     */
+    private DockArea<TabPane> createDockArea() {
+        NbfxTabPane navigator = createNavigator();
         ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
         if (contentManager == null) {
             LOG.severe("We have no content manager!!");
-            return new StackPane(new Label("No content manager found"));
+            return Docking.create(navigator);
         }
-        if (contentManager instanceof ContentManagerImpl cmi) {
-            return cmi.getMainPane();
-        } else {
-            LOG.severe("We have competing content managers!");
-            return new StackPane(new Label("Competing content manager found"));
+        if (contentManager instanceof ContentManagerImpl cmi && cmi.getMainPane() instanceof NbfxTabPane mainPane) {
+            return Docking.create(navigator, mainPane);
         }
+        LOG.severe("We have competing content managers!");
+        return Docking.create(navigator);
     }
 
     /** The main pane's active-document observable, or {@code null} if no content manager is present. */
@@ -465,7 +494,7 @@ public class JavaFXLaunchApp extends Application {
     /** The stable navigator id of the provider at {@code index} in natural order, or {@code null} if absent. */
     private String firstNavigatorId(int index) {
         List<NavigatorProvider> list = new ArrayList<>(providers);
-        return index < list.size() ? navigatorId(list.get(index)) : null;
+        return index < list.size() ? list.get(index).getId() : null;
     }
 
     /** Shows the navigator tab for {@code providerId}: selects it or reopens it in the docked navigator pane. */
@@ -479,7 +508,7 @@ public class JavaFXLaunchApp extends Application {
         }
         for (TabPane pane : NbfxTabPane.tabPanes()) {
             for (Tab tab : pane.getTabs()) {
-                if (providerId.equals(NbfxTabPane.navigatorId(tab))) {
+                if (providerId.equals(NbfxTabPane.viewId(tab))) {
                     NbfxTabPane.selectTabAndMoveToFront(tab);
                     Node content = tab.getContent();
                     if (focusTree && content != null) {
@@ -494,7 +523,7 @@ public class JavaFXLaunchApp extends Application {
 
     /** Recreates and selects a closed navigator tab in the docked navigator pane. */
     private void reopenNavigatorTab(String providerId) {
-        Tab tab = navigatorTabFor(providerId);
+        Tab tab = viewTabFor(providerId);
         if (tab != null) {
             NbfxTabPane.attachTab(navigatorPane, tab);
             navigatorPane.getSelectionModel().select(tab);
@@ -515,7 +544,7 @@ public class JavaFXLaunchApp extends Application {
         }
         NavigatorProvider provider = list.get(index);
         NbfxTabPane.setNavigatorRevealInProgress(true);
-        selectNavigator(navigatorId(provider), false);
+        selectNavigator(provider.getId(), false);
         provider.revealFile(file);
         Platform.runLater(() -> focusNavigatorView(provider.getView()));
     }
@@ -575,16 +604,17 @@ public class JavaFXLaunchApp extends Application {
     }
 
     /**
-     * Restores the default layout: re-docks every detached window back into the main/navigator panes,
-     * moves each tab back to its home pane (navigator tabs to the navigator pane, editor tabs to the
-     * main pane), restores any closed navigator tab in default order (Projects selected), and resets
-     * the split divider.
+     * Restores the default layout: re-docks every detached window and docked pane back into the
+     * main/navigator panes, moves each tab back to its home pane (navigator tabs to the navigator
+     * pane, editor tabs to the main pane, other views to their default location), restores any closed
+     * navigator tab in default order (Projects selected), and restores the default arrangement of the
+     * navigator and editor panes.
      */
     private void resetWindows() {
         ContentManager cm = contentManager();
         TabPane mainPane = cm instanceof ContentManagerImpl cmi ? (TabPane) cmi.getMainPane() : null;
         if (mainPane != null) {
-            NbfxTabPane.redockAll(mainPane, navigatorPane);
+            NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab));
             // Editor tabs dragged into the navigator pane belong back in the editor pane.
             for (Tab tab : List.copyOf(navigatorPane.getTabs())) {
                 if (NbfxTabPane.documentOf(tab) != null) {
@@ -596,7 +626,7 @@ public class JavaFXLaunchApp extends Application {
         // into the editor pane), so no emptied duplicate is left behind there.
         int index = 0;
         for (NavigatorProvider provider : providers) {
-            Tab tab = navigatorTabFor(navigatorId(provider));
+            Tab tab = viewTabFor(provider.getId());
             if (tab != null) {
                 NbfxTabPane.moveTab(navigatorPane, tab, index++);
             }
@@ -604,24 +634,37 @@ public class JavaFXLaunchApp extends Application {
         if (!navigatorPane.getTabs().isEmpty()) {
             navigatorPane.getSelectionModel().select(0);
         }
-        if (splitPane != null) {
-            splitPane.setDividerPositions(AppState.DEFAULT_DIVIDER);
-        }
+        dockArea.applyTree(dockArea.defaultTree());
     }
 
     /**
-     * Sets the {@code focus-in-tabpane} styling on whichever of the navigator ({@code leftArea}) or
-     * editor ({@code mainArea}) currently owns keyboard focus, and tracks whether that focus is in a
-     * navigator view.
+     * The pane a view tab belongs in by default: the navigator pane for a navigator (and for any tab
+     * whose view is unknown), the pane of its {@link ViewProvider#getDefaultLocation() default
+     * location} for any other view.
      */
-    private void updateFocusScope(Node focusOwner, Node leftArea, Node mainArea) {
-        if (isWithin(focusOwner, leftArea)) {
-            leftArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, true);
-            mainArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
-            treeFocused.set(isNavigatorFocused(focusOwner));
-        } else if (isWithin(focusOwner, mainArea)) {
-            leftArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, false);
-            mainArea.pseudoClassStateChanged(FOCUS_WITH_IN_TAB_PANE, true);
+    private TabPane homeOfView(Tab tab) {
+        String id = NbfxTabPane.viewId(tab);
+        if (id == null) {
+            return navigatorPane;
+        }
+        for (NavigatorProvider provider : providers) {
+            if (provider.getId().equals(id)) {
+                return navigatorPane;
+            }
+        }
+        ViewProvider view = viewById(id);
+        TabPane home = view == null ? null : Docking.paneAt(view.getDefaultLocation());
+        return home != null ? home : navigatorPane;
+    }
+
+    /**
+     * Sets the {@code dock-focused} styling on the docked pane that currently owns keyboard
+     * focus, and tracks whether that focus is in a navigator view. Focus outside the dock area (in
+     * the menu or tool bars) leaves the styling as it was.
+     */
+    private void updateFocusScope(Node focusOwner) {
+        if (isWithin(focusOwner, dockArea)) {
+            dockArea.markFocused(true, focusOwner);
             treeFocused.set(isNavigatorFocused(focusOwner));
         }
     }
@@ -689,6 +732,15 @@ public class JavaFXLaunchApp extends Application {
             registry = new ProjectRegistryImpl();
         }
         return registry;
+    }
+
+    private static FileSelectionContext fileSelectionContext() {
+        FileSelectionContext context = Lookup.getDefault().lookup(FileSelectionContext.class);
+        if (context == null) {
+            LOG.warning("No FileSelectionContext found in the Lookup; using a local instance");
+            context = new FileSelectionContextImpl();
+        }
+        return context;
     }
 
     /**
@@ -829,6 +881,7 @@ public class JavaFXLaunchApp extends Application {
         File current = loads.current();
         if (current == null) {
             statusBar.hideProgress();
+            watchScanProgress();
             return;
         }
         int loading = loads.size();
@@ -840,6 +893,43 @@ public class JavaFXLaunchApp extends Application {
         String path = loads.currentPath();
         statusBar.showProgress(NbBundle.getMessage(JavaFXLaunchApp.class,
                 "StatusBar.openingProject", current.getName()), () -> cancelProjectLoading(path));
+    }
+
+    /**
+     * After all project loads have settled, mirrors the java indexer activity in the status bar:
+     * while the background scan runs, an uncancellable "Background scanning of projects..."
+     * progress is shown, hidden again once the indexer goes idle. The scan usually starts shortly
+     * <em>after</em> the projects finish opening, so the watcher waits up to
+     * {@link #SCAN_START_GRACE_POLLS} polls for it to begin before giving up.
+     */
+    private void watchScanProgress() {
+        if (!scanWatchActive.compareAndSet(false, true)) {
+            return;
+        }
+        pollScanProgress(0, false);
+    }
+
+    private void pollScanProgress(int polls, boolean scanSeen) {
+        SCAN_WATCH_RP.post(() -> {
+            if (loads.current() != null) {
+                // A new project started opening: its progress owns the status bar; the watcher is
+                // re-armed when that load settles.
+                scanWatchActive.set(false);
+                return;
+            }
+            if (IndexingManager.getDefault().isIndexing()) {
+                statusBar.showProgress(NbBundle.getMessage(JavaFXLaunchApp.class,
+                        "StatusBar.scanningProjects"), null);
+                pollScanProgress(polls + 1, true);
+            } else if (scanSeen) {
+                statusBar.hideProgress();
+                scanWatchActive.set(false);
+            } else if (polls < SCAN_START_GRACE_POLLS) {
+                pollScanProgress(polls + 1, false);
+            } else {
+                scanWatchActive.set(false);
+            }
+        }, SCAN_POLL_MS);
     }
 
     /**
@@ -1045,7 +1135,7 @@ public class JavaFXLaunchApp extends Application {
             return;
         }
         NbfxTabPane.setNavigatorRevealInProgress(true);
-        selectNavigator(navigatorId(provider), false);
+        selectNavigator(provider.getId(), false);
         provider.revealFile(project.getRoot());
         Platform.runLater(() -> focusNavigatorView(provider.getView()));
     }
@@ -1057,10 +1147,10 @@ public class JavaFXLaunchApp extends Application {
             return null;
         }
         Tab selected = navigatorPane == null ? null : navigatorPane.getSelectionModel().getSelectedItem();
-        String id = selected == null ? null : NbfxTabPane.navigatorId(selected);
+        String id = selected == null ? null : NbfxTabPane.viewId(selected);
         if (id != null) {
             for (NavigatorProvider provider : list) {
-                if (id.equals(navigatorId(provider))) {
+                if (id.equals(provider.getId())) {
                     return provider;
                 }
             }

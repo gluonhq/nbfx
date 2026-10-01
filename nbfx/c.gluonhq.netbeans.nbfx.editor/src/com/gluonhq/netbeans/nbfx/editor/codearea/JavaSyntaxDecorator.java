@@ -3,18 +3,17 @@ package com.gluonhq.netbeans.nbfx.editor.codearea;
 import com.gluonhq.netbeans.nbfx.editor.decoration.LineDecoration;
 import com.gluonhq.netbeans.nbfx.editor.decoration.MarkedDecoration;
 import com.gluonhq.netbeans.nbfx.editor.decoration.TokenCategory;
-import com.gluonhq.netbeans.nbfx.editor.processor.SourceUtils;
-import com.gluonhq.netbeans.nbfx.editor.processor.lex.LexDecorationProcessor;
+import com.gluonhq.netbeans.nbfx.editor.processor.lex.BaseLexDecorationProcessor;
+import com.gluonhq.netbeans.nbfx.editor.processor.lex.JavaLexDecorationProcessor;
 import com.gluonhq.netbeans.nbfx.editor.processor.semantics.JavaFileProcessor;
 import com.gluonhq.netbeans.nbfx.editor.processor.semantics.MarkOccurrencesProcessor;
-import com.gluonhq.netbeans.nbfx.editor.processor.semantics.SourceContext;
+import com.gluonhq.netbeans.nbfx.editor.processor.semantics.JavaSourceContext;
 import com.gluonhq.netbeans.nbfx.editor.processor.semantics.TextPosResult;
 import javafx.application.Platform;
 import jfx.incubator.scene.control.richtext.Marker;
 import jfx.incubator.scene.control.richtext.SyntaxDecorator;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
-import jfx.incubator.scene.control.richtext.model.RichParagraph;
 import org.openide.filesystems.FileObject;
 
 import java.util.ArrayList;
@@ -28,7 +27,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.netbeans.api.java.source.SourceUtils;
 
 /**
  * A {@link SyntaxDecorator} extension that combines lex-based syntax highlighting
@@ -46,7 +49,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * new position, and stored as {@link MarkedDecoration}s.
  * </p>
  */
-public class JavaSyntaxDecorator implements SyntaxDecorator {
+public class JavaSyntaxDecorator extends BaseSyntaxDecorator {
+
+    private static final Logger LOG = Logger.getLogger(JavaSyntaxDecorator.class.getName());
 
     private static final Executor FX_EXECUTOR = Platform::runLater;
 
@@ -75,14 +80,11 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
                 }
             });
 
-    private final SourceContext context;
-    private final LexDecorationProcessor lexProcessor;
+    private final JavaSourceContext context;
     private final JavaFileProcessor javaProcessor;
     private final MarkOccurrencesProcessor occurrencesProcessor;
 
     private List<MarkedDecoration> javaDecorations = List.of();
-    private List<MarkedDecoration> braceDecorations = List.of();
-    private List<MarkedDecoration> occurrenceDecorations = List.of();
 
     /**
      * Currently running background Java analysis, canceled on each new change. Restarted both from
@@ -100,8 +102,23 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
     /** Pending debounced kick-off of the mark-occurrences analysis. */
     private ScheduledFuture<?> pendingOccurrences;
 
+    /**
+     * Whether a re-analysis is already registered for the end of the current classpath scan, so
+     * repeated analyses during one scan don't stack up multiple registrations.
+     */
+    private final AtomicBoolean rescanScheduled = new AtomicBoolean();
+
+    /** Whether the next analysis is the first one for this editor (grants the scan-start grace period). */
+    private final AtomicBoolean firstAnalysis = new AtomicBoolean(true);
+
     /** Delay between a caret move and the start of the mark-occurrences analysis. */
     private static final long OCCURRENCES_DELAY_MS = 250;
+
+    /** Interval between checks of the java indexer scan state. */
+    private static final long SCAN_POLL_MS = 500;
+
+    /** How many polls to wait for a scan to start before giving up */
+    private static final int SCAN_START_GRACE_POLLS = 60;
 
     /**
      * Line currently being edited, or {@code -1} when no suppression is needed. Cleared by the
@@ -113,33 +130,23 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
     private ScheduledFuture<?> delayedAnalysis;
 
     public JavaSyntaxDecorator(FileObject fo) {
-        this.context = new SourceContext(fo);
-        this.lexProcessor = new LexDecorationProcessor(context);
+        super(fo);
+        this.context = (JavaSourceContext) lexProcessor.context();
         this.javaProcessor = new JavaFileProcessor(context);
         this.occurrencesProcessor = new MarkOccurrencesProcessor();
     }
 
     @Override
-    public RichParagraph createRichParagraph(CodeTextModel model, int index) {
-        String text = Objects.requireNonNull(model).getPlainText(index);
-        if (text == null || text.isEmpty()) {
-            return RichParagraph.builder().build();
-        }
-        ensureSource(model);
+    protected BaseLexDecorationProcessor getLexProcessor(FileObject fo) {
+        return new JavaLexDecorationProcessor(new JavaSourceContext(fo));
+    }
 
+    @Override
+    protected List<LineDecoration> lineDecorations(int index, String text) {
         List<LineDecoration> lexDecorations = lexProcessor.getLineDecorations(index);
 
-        // Brace decorations for this line (overlay)
-        List<LineDecoration> braceDecs = braceDecorations.stream()
-                .filter(md -> md.touchesLine(index))
-                .map(md -> md.toLineLocal(index, text.length()))
-                .toList();
-
-        // Mark-occurrence decorations for this line (overlay)
-        List<LineDecoration> occurrenceDecs = occurrenceDecorations.stream()
-                .filter(md -> md.touchesLine(index))
-                .map(md -> md.toLineLocal(index, text.length()))
-                .toList();
+        // Brace-match and mark-occurrence decorations for this line (overlay)
+        List<LineDecoration> caretOverlays = caretOverlays(index, text.length());
 
         // Java decorations for this line (Markers already have up-to-date positions)
         List<LineDecoration> allJavaDecs = javaDecorations.stream()
@@ -168,24 +175,18 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
 
         // Append brace, occurrence and squiggly overlays
         List<LineDecoration> results = new ArrayList<>(merged.size() +
-                braceDecs.size() + occurrenceDecs.size() + squigglyDecs.size());
+                caretOverlays.size() + squigglyDecs.size());
         results.addAll(merged);
-        results.addAll(braceDecs);
-        results.addAll(occurrenceDecs);
+        results.addAll(caretOverlays);
         results.addAll(squigglyDecs);
-
-        return LineDecoration.getRichParagraph(text, results);
+        return results;
     }
 
     @Override
     public void handleChange(CodeTextModel m, TextPos start, TextPos end, int charsTop, int linesAdded, int charsBottom) {
-        // Invalidate lex cache and source context when the model changes
-        lexProcessor.invalidate();
-        context.invalidate();
-
-        // invalidate braces and mark-occurrences, which are re-computed when the caret position is updated
-        braceDecorations = List.of();
-        occurrenceDecorations = List.of();
+        // Invalidate lex cache and source context, and drop the braces and
+        // mark-occurrences highlights (re-computed on the next caret update)
+        super.handleChange(m, start, end, charsTop, linesAdded, charsBottom);
         cancelPendingOccurrences();
 
         // Record the line being edited so diagnostics on it can be suppressed
@@ -193,56 +194,9 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
     }
 
     /**
-     * Recomputes brace-match decorations for the caret position and fires a
-     * targeted style change only for the affected paragraphs.
-     * <p>Safe to call on every caret move; the underlying token hierarchy
-     * is cached by the lex processor and reused until the document changes.
-     * </p>
-     *
-     * @param model the code text model
-     * @param caret the current caret position
-     */
-    public void updateBraceMatch(CodeTextModel model, TextPos caret) {
-        if (model == null || caret == null) {
-            return;
-        }
-        ensureSource(model);
-        String source = context.source();
-        if (source == null || source.isEmpty()) {
-            clearBraceMatch(model);
-            return;
-        }
-
-        List<TextPosResult> results = lexProcessor.findBraceMatchResults(caret);
-        List<MarkedDecoration> newDecs = TextPosResult.toMarkedDecorations(results, model);
-
-        if (MarkedDecoration.sameDecorations(newDecs, braceDecorations)) {
-            return;
-        }
-
-        int[] range = MarkedDecoration.lineRange(braceDecorations, newDecs);
-        braceDecorations = newDecs;
-        fireCaretHighlightChange(model, range);
-    }
-
-    /**
-     * Clears any active brace-match highlight and refreshes the previously
-     * affected paragraphs.
-     *
-     * @param model the code text model
-     */
-    public void clearBraceMatch(CodeTextModel model) {
-        if (braceDecorations.isEmpty()) {
-            return;
-        }
-        int[] range = MarkedDecoration.lineRange(braceDecorations);
-        braceDecorations = List.of();
-        fireCaretHighlightChange(model, range);
-    }
-
-    /**
      * Schedules a mark-occurrences analysis for the current caret position.
      */
+    @Override
     public void updateOccurrencesInBackground(CodeTextModel model, TextPos caret) {
         if (model == null || caret == null) {
             return;
@@ -251,7 +205,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
         cancelPendingOccurrences();
 
         ensureSource(model);
-        SourceContext.Snapshot snapshot = context.snapshot();
+        JavaSourceContext.Snapshot snapshot = context.snapshot();
         if (snapshot == null) {
             clearOccurrences(model);
             return;
@@ -271,13 +225,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
                 if (model.size() != expectedLineCount || !capturedSource.equals(context.source())) {
                     return;
                 }
-                List<MarkedDecoration> newDecs = TextPosResult.toMarkedDecorations(list, model);
-                if (MarkedDecoration.sameDecorations(newDecs, occurrenceDecorations)) {
-                    return;
-                }
-                int[] range = MarkedDecoration.lineRange(occurrenceDecorations, newDecs);
-                occurrenceDecorations = newDecs;
-                fireCaretHighlightChange(model, range);
+                applyOccurrenceDecorations(model, TextPosResult.toMarkedDecorations(list, model));
             }, FX_EXECUTOR);
         }, OCCURRENCES_DELAY_MS, TimeUnit.MILLISECONDS);
     }
@@ -286,14 +234,10 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
      * Clears any active mark-occurrences highlights and refreshes the previously
      * affected paragraphs.
      */
+    @Override
     public void clearOccurrences(CodeTextModel model) {
         cancelPendingOccurrences();
-        if (occurrenceDecorations.isEmpty()) {
-            return;
-        }
-        int[] range = MarkedDecoration.lineRange(occurrenceDecorations);
-        occurrenceDecorations = List.of();
-        fireCaretHighlightChange(model, range);
+        super.clearOccurrences(model);
     }
 
     private void cancelPendingOccurrences() {
@@ -312,6 +256,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
      * Triggers a background Java semantic analysis of the full source.
      * Call this after the model content has been set, and after successive edits.
      */
+    @Override
     public void analyzeInBackground(CodeTextModel model) {
         int editLine = lastEditLine;
         restartJavaAnalysis(model, editLine);
@@ -330,15 +275,9 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
         }
     }
 
-    private void ensureSource(CodeTextModel model) {
-        if (context.source() == null) {
-            context.setSource(SourceUtils.getFullText(model));
-        }
-    }
-
     private synchronized void restartJavaAnalysis(CodeTextModel model, int editLine) {
         ensureSource(model);
-        SourceContext.Snapshot snapshot = context.snapshot();
+        JavaSourceContext.Snapshot snapshot = context.snapshot();
         if (snapshot == null) {
             return;
         }
@@ -346,6 +285,10 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
             javaAnalysisFuture.cancel(true);
         }
         final int expectedLineCount = model.size();
+
+        // Diagnostics computed while the java indexer is still scanning see an incomplete
+        // classpath and report spurious "cannot find symbol" errors: re-run once the scan ends.
+        rerunWhenScanFinishes(model);
 
         javaAnalysisFuture = javaProcessor.process(snapshot, editLine)
                 .thenAcceptAsync(analysisResults -> {
@@ -360,6 +303,43 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
                     javaDecorations = newDecorations;
                     model.fireStyleChangeEvent(TextPos.ZERO, model.getDocumentEnd());
                 }, FX_EXECUTOR);
+    }
+
+    /**
+     * Re-analysis to run once the java indexer finishes scanning, to reevaluate files already opened.
+     * Polls {@link SourceUtils#isScanInProgress()} and covers the case where the scan has
+     * not started yet because the owning project is still being opened in the background.
+     */
+    private void rerunWhenScanFinishes(CodeTextModel model) {
+        boolean first = firstAnalysis.compareAndSet(true, false);
+        if (!first && !SourceUtils.isScanInProgress()) {
+            return; // after the initial open, only re-run when a scan is actually running
+        }
+        if (!rescanScheduled.compareAndSet(false, true)) {
+            return;
+        }
+        pollScanState(model, SourceUtils.isScanInProgress(), 0);
+    }
+
+    private void pollScanState(CodeTextModel model, boolean scanSeen, int polls) {
+        SCHEDULED_EXECUTOR.schedule(() -> {
+            if (SourceUtils.isScanInProgress()) {
+                pollScanState(model, true, polls + 1);
+            } else if (scanSeen) {
+                // The scan just finished: rebuild the classpath (the project is now fully
+                // opened and indexed) and re-run the analysis once.
+                rescanScheduled.set(false);
+                LOG.log(Level.FINE, "Scan finished, re-running java analysis for {0}",
+                        new Object[]{context.fileObject().getNameExt()});
+                context.refreshClasspath();
+                FX_EXECUTOR.execute(() -> restartJavaAnalysis(model, -1));
+            } else if (polls < SCAN_START_GRACE_POLLS) {
+                // No scan observed yet: give the project opening some time to trigger one
+                pollScanState(model, false, polls + 1);
+            } else {
+                rescanScheduled.set(false);
+            }
+        }, SCAN_POLL_MS, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -406,18 +386,6 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
                 .toList();
     }
 
-    private void fireCaretHighlightChange(CodeTextModel model, int[] range) {
-        if (model == null || range == null) {
-            return;
-        }
-        int minLine = range[0];
-        int maxLine = Math.clamp(model.size() - 1, 0, range[1]);
-        String last = model.getPlainText(maxLine);
-        model.fireStyleChangeEvent(
-                TextPos.ofLeading(minLine, 0),
-                TextPos.ofLeading(maxLine, last == null ? 0 : last.length()));
-    }
-
     /**
      * Returns the error/warning message for the squiggly decoration at the given
      * paragraph index and character offset, or {@code null} if no diagnostic covers
@@ -427,6 +395,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
      * @param charOffset the character offset within the paragraph
      * @return the diagnostic message, or null
      */
+    @Override
     public String getErrorMessageAt(int lineIndex, int charOffset) {
         for (MarkedDecoration md : squiggliesOnLine(lineIndex)) {
             if (md.message() == null) {
@@ -449,6 +418,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
      * @param lineIndex the 0-based paragraph index
      * @return the diagnostic message(s), or null
      */
+    @Override
     public String getErrorMessagesForLine(int lineIndex) {
         List<String> messages = squiggliesOnLine(lineIndex).stream()
                 .map(MarkedDecoration::message)
@@ -463,6 +433,7 @@ public class JavaSyntaxDecorator implements SyntaxDecorator {
      * @param lineIndex the 0-based paragraph index
      * @return {@code "error"}, {@code "warning"}, or {@code null}
      */
+    @Override
     public String getErrorSeverityOnLine(int lineIndex) {
         for (MarkedDecoration md : squiggliesOnLine(lineIndex)) {
             if (TokenCategory.ERROR.style().equals(md.style())) {

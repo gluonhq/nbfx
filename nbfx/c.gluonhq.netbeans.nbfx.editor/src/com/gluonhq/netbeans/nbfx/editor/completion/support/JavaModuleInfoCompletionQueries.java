@@ -1,11 +1,11 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionItemKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionTypeKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.completion.SimpleCompletionItem;
 import com.gluonhq.netbeans.nbfx.editor.completion.support.JavaModuleInfoContextUtils.ModuleCompletionContext;
 import org.netbeans.api.java.classpath.ClassPath;
@@ -103,7 +103,7 @@ public final class JavaModuleInfoCompletionQueries {
      * caller can short-circuit every {@code module-info.java} request through this method instead of the
      * regular Java member/identifier detectors.
      */
-    public static List<CompletionItem> query(CompletionContext context, CompletionCancellation cancellation) {
+    public static List<CompletionItem> query(CompletionContext context, Cancellation cancellation) {
         ModuleCompletionContext moduleContext = JavaModuleInfoContextUtils.classify(context);
         return switch (moduleContext.kind()) {
             case NONE -> List.of();
@@ -129,7 +129,7 @@ public final class JavaModuleInfoCompletionQueries {
 
     private static List<CompletionItem> requiresItems(CompletionContext context,
                                                       ModuleCompletionContext moduleContext,
-                                                      CompletionCancellation cancellation) {
+                                                      Cancellation cancellation) {
         List<CompletionItem> items = new ArrayList<>();
         String typed = typedName(context);
         if (moduleContext.allowStatic()) {
@@ -143,7 +143,7 @@ public final class JavaModuleInfoCompletionQueries {
     }
 
     private static List<CompletionItem> moduleItems(CompletionContext context,
-                                                    CompletionCancellation cancellation) {
+                                                    Cancellation cancellation) {
         String typed = typedName(context);
         return JavaSemanticQueryRunner.runQuery(context, cancellation, (controller, items) -> {
             for (String name : SourceUtils.getModuleNames(controller, SEARCH_SCOPE)) {
@@ -159,7 +159,7 @@ public final class JavaModuleInfoCompletionQueries {
     }
 
     private static List<CompletionItem> packageItems(CompletionContext context,
-                                                     CompletionCancellation cancellation) {
+                                                     Cancellation cancellation) {
         boolean qualified = context.hasCharBeforeAnchor(SEGMENT_SEPARATOR);
         String qualifier = qualified
                 ? extractQualifier(context.documentText(), context.anchorOffset() - 1) : "";
@@ -213,7 +213,7 @@ public final class JavaModuleInfoCompletionQueries {
      * Only folders that actually contain a {@code .java} file are reported as packages.
      */
     private static void collectSourcePackages(ClassPath sourcePath, Set<String> packages,
-                                              CompletionCancellation cancellation) {
+                                              Cancellation cancellation) {
         if (sourcePath == null) {
             return;
         }
@@ -223,7 +223,7 @@ public final class JavaModuleInfoCompletionQueries {
     }
 
     private static void collectSourcePackages(FileObject root, FileObject folder, Set<String> packages,
-                                              CompletionCancellation cancellation) {
+                                              Cancellation cancellation) {
         if (cancellation.isCancelled()) {
             return;
         }
@@ -245,7 +245,7 @@ public final class JavaModuleInfoCompletionQueries {
     }
 
     private static List<CompletionItem> serviceTypeItems(CompletionContext context,
-                                                         CompletionCancellation cancellation) {
+                                                         Cancellation cancellation) {
         boolean showAllItems = context.queryType() == CompletionProvider.COMPLETION_ALL_QUERY_TYPE;
         boolean qualified = context.hasCharBeforeAnchor(SEGMENT_SEPARATOR);
         String qualifier = qualified
@@ -270,7 +270,7 @@ public final class JavaModuleInfoCompletionQueries {
      */
     private static List<CompletionItem> serviceTypeCatalog(CompilationController controller,
                                                            CompletionContext context, boolean showAllItems,
-                                                           CompletionCancellation cancellation) {
+                                                           Cancellation cancellation) {
         String prefix = context.prefix();
         String lowerPrefix = lowerPrefix(prefix);
         Map<String, CompletionItem> types = new LinkedHashMap<>();
@@ -340,13 +340,13 @@ public final class JavaModuleInfoCompletionQueries {
     private static CompletionItem keywordItem(String keyword, String insert) {
         return new SimpleCompletionItem(keyword, insert, keyword, PRIORITY_MODULE_KEYWORD,
                 keyword, BUNDLE.getString("completion.popup.lexer.keyword"),
-                CompletionItemKind.KEYWORD, CompletionTypeKind.OTHER, 0, false, false);
+                SourceElementKind.KEYWORD, SourceTypeKind.OTHER, 0, false, false);
     }
 
     private static CompletionItem moduleItem(String name, String insert) {
         return new SimpleCompletionItem(name, insert, name, PRIORITY_MODULE,
                 name, BUNDLE.getString("completion.popup.module"),
-                CompletionItemKind.MODULE, CompletionTypeKind.OTHER, 0, false, false);
+                SourceElementKind.MODULE, SourceTypeKind.OTHER, 0, false, false);
     }
 
     /**
@@ -360,7 +360,7 @@ public final class JavaModuleInfoCompletionQueries {
         String packageName = packageName(fqcn);
         return new SimpleCompletionItem(simpleName, remainderInsert(context, fqcn), simpleName,
                 PRIORITY_SERVICE_TYPE, simpleName, packageName,
-                CompletionItemKind.TYPE, CompletionTypeKind.from(kindName), 0, false, false);
+                SourceElementKind.TYPE, SourceTypeKind.from(kindName), 0, false, false);
     }
 
     // Anchor-relative insertion helpers

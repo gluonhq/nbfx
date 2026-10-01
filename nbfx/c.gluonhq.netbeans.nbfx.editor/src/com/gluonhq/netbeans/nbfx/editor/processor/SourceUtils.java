@@ -36,6 +36,48 @@ public final class SourceUtils {
     }
 
     /**
+     * Precompute the length of each line (excluding the trailing {@code '\n'}).
+     *
+     * @param source     the full source text
+     * @param lineStarts array produced by {@link #computeLineStarts(String)}
+     * @return an array where {@code lineLengths[i]} is the character count of line {@code i}
+     */
+    public static int[] computeLineLengths(String source, int[] lineStarts) {
+        int n = Objects.requireNonNull(lineStarts).length;
+        int[] lengths = new int[n];
+        for (int i = 0; i < n - 1; i++) {
+            lengths[i] = lineStarts[i + 1] - 1 - lineStarts[i];
+        }
+        lengths[n - 1] = source.length() - lineStarts[n - 1];
+        return lengths;
+    }
+
+    /**
+     * Returns the index just past the string literal starting at {@code start} (whose
+     * character is the quote), honoring backslash escapes and stopping at an
+     * unterminated end of line or end of source.
+     *
+     * @param source the full source text
+     * @param start  the offset of the opening quote character
+     * @return the offset just past the closing quote (or the unterminated end)
+     */
+    public static int skipString(String source, int start) {
+        char quote = source.charAt(start);
+        int i = start + 1;
+        while (i < source.length()) {
+            char c = source.charAt(i);
+            if (c == '\\') {
+                i += 2;
+            } else if (c == quote || c == '\n') {
+                return i + 1;
+            } else {
+                i++;
+            }
+        }
+        return i;
+    }
+
+    /**
      * Binary search for the 0-based line index that contains the given
      * global character offset.
      *

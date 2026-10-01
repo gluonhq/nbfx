@@ -1,9 +1,9 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionContext;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
-import com.gluonhq.netbeans.nbfx.editor.processor.semantics.SourceContext;
+import com.gluonhq.netbeans.nbfx.editor.processor.semantics.JavaSourceContext;
 import org.netbeans.api.java.source.CancellableTask;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.JavaSource;
@@ -32,7 +32,7 @@ final class JavaSemanticQueryRunner {
      * runtime exception, or the {@link org.netbeans.api.java.source.JavaSource} was not
      * available for the file).
      */
-    static List<CompletionItem> runQuery(CompletionContext context, CompletionCancellation cancellation,
+    static List<CompletionItem> runQuery(CompletionContext context, Cancellation cancellation,
                                          SemanticAction action) {
         return runQueryWithSource(context, context.documentText(), cancellation, action);
     }
@@ -44,10 +44,10 @@ final class JavaSemanticQueryRunner {
      */
     static List<CompletionItem> runQueryWithSource(CompletionContext context,
                                                    String sourceOverride,
-                                                   CompletionCancellation cancellation,
+                                                   Cancellation cancellation,
                                                    SemanticAction action) {
         try {
-            SourceContext sourceContext = new SourceContext(context.fileObject());
+            JavaSourceContext sourceContext = new JavaSourceContext(context.fileObject());
             List<CompletionItem> items = new ArrayList<>();
             CancellableTask<CompilationController> task = new CancellableTask<>() {
                 @Override

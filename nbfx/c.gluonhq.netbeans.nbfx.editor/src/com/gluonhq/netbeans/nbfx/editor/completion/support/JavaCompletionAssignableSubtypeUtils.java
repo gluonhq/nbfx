@@ -1,6 +1,6 @@
 package com.gluonhq.netbeans.nbfx.editor.completion.support;
 
-import com.gluonhq.netbeans.nbfx.api.completion.CompletionCancellation;
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
@@ -55,7 +55,7 @@ final class JavaCompletionAssignableSubtypeUtils {
                                                                     TypeElement expectedType,
                                                                     String prefix,
                                                                     boolean includeCrossPackage,
-                                                                    CompletionCancellation cancellation) {
+                                                                    Cancellation cancellation) {
         String lowerPrefix = lowerPrefix(prefix);
         ClassIndex classIndex = controller.getClasspathInfo().getClassIndex();
         EnumSet<ClassIndex.SearchScope> scopes = EnumSet.of(
@@ -130,7 +130,7 @@ final class JavaCompletionAssignableSubtypeUtils {
     static List<CompletionItem> collectAssignableTypesFromClasspath(CompilationController controller,
                                                                     TypeElement expectedType,
                                                                     String prefix,
-                                                                    CompletionCancellation cancellation) {
+                                                                    Cancellation cancellation) {
         return collectAssignableTypesFromClasspath(controller, expectedType, prefix, false, cancellation);
     }
 }

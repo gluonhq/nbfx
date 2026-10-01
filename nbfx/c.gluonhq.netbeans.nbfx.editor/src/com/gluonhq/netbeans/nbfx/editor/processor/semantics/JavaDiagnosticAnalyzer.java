@@ -4,6 +4,7 @@ package com.gluonhq.netbeans.nbfx.editor.processor.semantics;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,9 +44,9 @@ class JavaDiagnosticAnalyzer {
             ClasspathInfo.PathKind.MODULE_CLASS};
 
     private final FileObject fileObject;
-    private final ClasspathInfo cpInfo;
+    private final Supplier<ClasspathInfo> cpInfo;
 
-    JavaDiagnosticAnalyzer(FileObject fileObject, ClasspathInfo cpInfo) {
+    JavaDiagnosticAnalyzer(FileObject fileObject, Supplier<ClasspathInfo> cpInfo) {
         this.fileObject = fileObject;
         this.cpInfo = cpInfo;
     }
@@ -63,15 +64,7 @@ class JavaDiagnosticAnalyzer {
      */
     public List<TextPosResult> analyze(CompilationController controller, String source, int[] lineStarts, int editLine) {
         List<TextPosResult> results = new ArrayList<>();
-        LOG.info("Need to analyze, controller = " + controller);
-        LOG.info("Need to analyze, controllerClass = " + controller.getClass());
-        List<Diagnostic> diagnostics = controller.getDiagnostics();
-        LOG.info("List of diagnostics = "+diagnostics);
-        LOG.info("Size of diagostics = " + diagnostics.size());
-        if (diagnostics.size() > 0) {
-            Diagnostic dc1 = diagnostics.get(0);
-            LOG.info("Got first diag of class "+dc1.getClass());
-        }
+
         controller.getDiagnostics().forEach(diagnostic -> {
             String code = diagnostic.getCode();
 
@@ -231,7 +224,7 @@ class JavaDiagnosticAnalyzer {
     private boolean moduleExistsOnClasspath(String moduleName) {
         for (ClasspathInfo.PathKind pk : PATH_KINDS) {
             try {
-                ClassPath cp = cpInfo.getClassPath(pk);
+                ClassPath cp = cpInfo.get().getClassPath(pk);
                 if (cp != null) {
                     for (FileObject root : cp.getRoots()) {
                         if (root.getPath().contains(moduleName.replace('.', '-'))

@@ -1,5 +1,8 @@
 package com.gluonhq.netbeans.nbfx.api.completion;
 
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
+
 /**
  * Describes one completion entry. Implementations should define the content for such entry
  * in a way that allows the renderer to display it in a completion list and
@@ -60,19 +63,19 @@ public interface CompletionItem {
     /**
      * General semantic category used for icon/styling.
      *
-     * @return item kind, defaults to {@link CompletionItemKind#OTHER}
+     * @return item kind, defaults to {@link SourceElementKind#OTHER}
      */
-    default CompletionItemKind kind() {
-        return CompletionItemKind.OTHER;
+    default SourceElementKind kind() {
+        return SourceElementKind.OTHER;
     }
 
     /**
-     * Detailed type hint when {@link #kind()} is {@link CompletionItemKind#TYPE}.
+     * Detailed type hint when {@link #kind()} is {@link SourceElementKind#TYPE}.
      *
-     * @return type kind, defaults to {@link CompletionTypeKind#OTHER}
+     * @return type kind, defaults to {@link SourceTypeKind#OTHER}
      */
-    default CompletionTypeKind typeKind() {
-        return CompletionTypeKind.OTHER;
+    default SourceTypeKind typeKind() {
+        return SourceTypeKind.OTHER;
     }
 
     /**

@@ -1,5 +1,7 @@
 package com.gluonhq.netbeans.nbfx.api.completion;
 
+import com.gluonhq.netbeans.nbfx.api.Cancellation;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,6 +37,6 @@ public interface CompletionProvider {
      * that can be displayed to the user as completion proposals
      */
     CompletableFuture<List<CompletionItem>> query(CompletionContext context,
-                                                  CompletionCancellation cancellation);
+                                                  Cancellation cancellation);
 }
 

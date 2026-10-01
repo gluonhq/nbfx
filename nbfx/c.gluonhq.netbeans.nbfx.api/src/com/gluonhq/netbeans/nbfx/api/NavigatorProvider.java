@@ -1,5 +1,6 @@
 package com.gluonhq.netbeans.nbfx.api;
 
+import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import javafx.scene.Node;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,13 +18,18 @@ import javafx.beans.value.ObservableValue;
  * {@link #addProject(Lookup)} and removed with {@link #removeProject(FileObject)} or
  * {@link #removeAllProjects()}, and every piece of per-project state (expanded nodes, selected node)
  * is addressed by the project's root {@link FileObject}.
+ * <p>
+ * A navigator is a {@link ViewProvider} that is docked in the left column at start-up; its tab is
+ * persisted and restored under {@link #getId()}.
  */
-public interface NavigatorProvider {
+public interface NavigatorProvider extends ViewProvider {
 
     /** Return the title of the tab holding this provider */
+    @Override
     String getTitle();
 
     /** Return the content of the tab holding this provider (e.g. a treeview with Files) */
+    @Override
     Node getView();
 
     /**
@@ -208,14 +214,6 @@ public interface NavigatorProvider {
      */
     default ObservableValue<List<FileObject>> selectedFiles() {
         return new SimpleObjectProperty<>(List.of());
-    }
-
-    /**
-     * A short description of this provider's view, used for tooltips. Defaults to {@link #getTitle()}.
-     * @return the view description
-     */
-    default String getDescription() {
-        return getTitle();
     }
 
     /**
