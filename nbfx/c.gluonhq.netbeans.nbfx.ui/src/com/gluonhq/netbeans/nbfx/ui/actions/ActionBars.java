@@ -101,9 +101,11 @@ public final class ActionBars {
         ICONS.put(ActionIds.REDO, "redo24.png");
         ICONS.put(ActionIds.SELECT_PROJECTS, "projectTab.png");
         ICONS.put(ActionIds.SELECT_FILES, "filesTab.png");
+        ICONS.put(ActionIds.SELECT_IN_PROJECTS, "projectTab.png");
+        ICONS.put(ActionIds.SELECT_IN_FILES, "filesTab.png");
         ICONS.put(ActionIds.BUILD, "build.png");
         ICONS.put(ActionIds.CLEAN_BUILD, "cleanBuild.png");
-        ICONS.put(ActionIds.CLEAN, "clean24.gif");
+        ICONS.put(ActionIds.CLEAN, "clean24.png");
         ICONS.put(ActionIds.TEST, "test.png");
         ICONS.put(ActionIds.RUN, "run.png");
         ICONS.put(ActionIds.DEBUG_FILE, "debug.png");
@@ -222,12 +224,15 @@ public final class ActionBars {
     }
 
     /**
-     * Registers the launcher-owned entry of the editor's context menu: Select in Projects, which
-     * reveals the file of the globally active editor (the right-clicked one, as opening the menu
-     * focuses it) in the Projects view. The menu entry itself is declared in the layer by
-     * {@link MenuRegistrations}.
+     * Registers the Select in Projects / Select in Files commands (Navigate menu), which reveal the
+     * file of the globally active editor in the Projects / Files view; Select in Projects is also
+     * in the editor's context menu, the right-clicked editor being the active one, as opening the
+     * menu focuses it. The menu entries themselves are declared in the layer by
+     * {@link MenuRegistrations}. Their shortcuts (Shift+Shortcut+1 / +2) are bound by the windows
+     * themselves, so they also work in detached windows; the commands carry them for the menus to
+     * show.
      */
-    public void registerEditorContextCommands(Consumer<FileObject> selectInProjects) {
+    public void registerEditorContextCommands(Consumer<FileObject> selectInProjects, Consumer<FileObject> selectInFiles) {
         if (registry == null) {
             LOG.warning("No ActionRegistry found; editor context actions will not be available");
             return;
@@ -237,10 +242,17 @@ public final class ActionBars {
                 ? new SimpleBooleanProperty(true)
                 : Bindings.createBooleanBinding(() -> active.getValue() == null, active);
         registry.register(new RunnableCommand(ActionIds.SELECT_IN_PROJECTS, message("CTL_SelectInProjectsCommand"),
-                null, () -> {
+                new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
                     EditorDocument document = active == null ? null : active.getValue();
                     if (document != null) {
                         selectInProjects.accept(document.getFileObject());
+                    }
+                }, disabled));
+        registry.register(new RunnableCommand(ActionIds.SELECT_IN_FILES, message("CTL_SelectInFilesCommand"),
+                new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
+                    EditorDocument document = active == null ? null : active.getValue();
+                    if (document != null) {
+                        selectInFiles.accept(document.getFileObject());
                     }
                 }, disabled));
     }
@@ -947,7 +959,8 @@ public final class ActionBars {
         if (command == null) {
             return null;
         }
-        ImageView graphic = menuIcon(ICONS.get(commandId));
+        // The shell's commands have their icons here; a contributed command brings its own.
+        Node graphic = ICONS.containsKey(commandId) ? menuIcon(ICONS.get(commandId)) : command.getIcon();
         MenuItem item = new MenuItem(command.getText(), graphic);
         item.disableProperty().bind(command.disabledProperty());
         item.setOnAction(e -> command.run());
@@ -971,7 +984,9 @@ public final class ActionBars {
         // focus escapes to another node (the tree), flipping the focus-based Cut/Copy/Paste/Undo/Redo
         // dispatch to the wrong target.
         button.setFocusTraversable(false);
-        ImageView graphic = toolbarIcon(ICONS.get(commandId), TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE);
+        Node graphic = ICONS.containsKey(commandId)
+                ? toolbarIcon(ICONS.get(commandId), TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE)
+                : command.getIcon();
         if (graphic != null) {
             button.setGraphic(graphic);
         } else {

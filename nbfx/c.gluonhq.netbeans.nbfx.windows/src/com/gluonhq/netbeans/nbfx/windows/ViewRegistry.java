@@ -62,6 +62,22 @@ public final class ViewRegistry {
         return read(folder, lookup.lookupAll(ViewProvider.class));
     }
 
+    /**
+     * The registration of the view with {@code id}, or {@code null} when no view declares it. Reads
+     * the configuration filesystem like {@link #discover()}.
+     *
+     * @param id the view id
+     * @return the registration, or {@code null}
+     */
+    public static ViewRegistration find(String id) {
+        for (ViewRegistration registration : discover()) {
+            if (registration.id().equals(id)) {
+                return registration;
+            }
+        }
+        return null;
+    }
+
     /** Reads the registrations of {@code views}, taking placement from {@code folder}'s attributes. */
     static List<ViewRegistration> read(FileObject folder, Iterable<? extends ViewProvider> views) {
         List<ViewRegistration> registrations = new ArrayList<>();

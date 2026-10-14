@@ -92,6 +92,25 @@ public class NbfxGlobalContextProviderTest {
     }
 
     @Test
+    public void editorWinsOverEarlierNavigatorSelection() throws IOException {
+        FileObject a = newFile("A.java");
+        FileObject b = newFile("B.java");
+        FakeEditorDocument document = new FakeEditorDocument(b);
+        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+
+        // A navigator carries a file; the focus then moves to an editor tab (no active view).
+        views.setActiveView(new FakeView(a));
+        editors.setActiveDocument(document);
+        assertSame("navigator's file missing", a, global.lookup(FileObject.class));
+
+        views.setActiveView(null);
+
+        assertSame("the active editor did not replace the navigator's selection", document,
+                global.lookup(EditorDocument.class));
+        assertSame("the active editor's file is missing", b, global.lookup(FileObject.class));
+    }
+
+    @Test
     public void navigatorsDoNotAnswerForEachOther() throws IOException {
         FileObject a = newFile("A.java");
         FileObject c = newFile("C.java");

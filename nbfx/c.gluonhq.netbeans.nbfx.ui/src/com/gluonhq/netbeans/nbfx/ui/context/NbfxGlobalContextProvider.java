@@ -37,7 +37,7 @@ import org.openide.util.lookup.ServiceProvider;
  * explicit {@code position} makes {@code Lookup.getDefault()} pick this one over the swing
  * {@code GlobalActionContextImpl}.
  */
-@ServiceProvider(service = ContextGlobalProvider.class)
+@ServiceProvider(service = ContextGlobalProvider.class, position = 100)
 public final class NbfxGlobalContextProvider implements ContextGlobalProvider {
 
     /** The context is a stable proxy; this is the lookup it currently delegates to. */
@@ -76,11 +76,16 @@ public final class NbfxGlobalContextProvider implements ContextGlobalProvider {
 
     /**
      * The lookup the global context should delegate to right now: the active view's lookup when it
-     * carries a selection of its own; otherwise the last selection-bearing component (so a follower
-     * view keeps the previous file/editor); otherwise the active editor document.
+     * carries a selection of its own; the active editor document's when no view is active (an editor
+     * tab is the active component, so it must win over a navigator's earlier selection); otherwise -
+     * a follower view that exposes nothing is active - the last selection-bearing component, so the
+     * previous file/editor is kept.
      */
     private Lookup computeActive(ViewProvider view, EditorDocument document) {
         Lookup candidate = view == null ? null : view.getLookup();
+        if (view == null && document != null) {
+            candidate = document.getLookup();
+        }
         if (!hasSelection(candidate)) {
             candidate = lastSelection.get();
             if (!hasSelection(candidate) && document != null) {

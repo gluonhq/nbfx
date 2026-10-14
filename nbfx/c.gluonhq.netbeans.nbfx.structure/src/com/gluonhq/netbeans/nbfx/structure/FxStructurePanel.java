@@ -47,7 +47,11 @@ public interface FxStructurePanel {
      */
     Node getComponent();
 
-    /** An optional toolbar shown above the content, or {@code null} when there is none. */
+    /**
+     * An optional toolbar shown in the window's header beside the panel selector (as a Swing
+     * {@code NavigatorPanelWithToolbar}'s), or {@code null} when there is none. Must return the same
+     * node on every call.
+     */
     default Node getToolbar() {
         return null;
     }

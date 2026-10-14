@@ -110,6 +110,36 @@
             <class package="com.gluonhq.netbeans.nbfx.api.project" name="ProjectIconProvider"/>
             <class package="com.gluonhq.netbeans.nbfx.api.view" name="NavigatorRevealer"/>
         </change>
+        <change id="editor.navigation.spi">
+            <api name="netbeansfx_api"/>
+            <summary>Editor hyperlinks, gutter annotations and element context menus for Java navigation.</summary>
+            <version major="1" minor="0"/>
+            <date day="14" month="10" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds the SPIs the Java structure module (<code>nbfx.structure.java</code>) implements
+                for the editor: <code>HyperlinkProvider</code> (Shortcut+Click goes to the declaration,
+                Alt+Shortcut+Click to the implementations), <code>EditorAnnotationProvider</code> with
+                <code>EditorAnnotation</code> (the gutter glyphs of overriding and overridden methods),
+                <code>ElementContextMenuContributor</code> (items for a source element shown outside the
+                editor, such as a row of the Navigator) and <code>SourceLocation</code>; the Navigate
+                command ids in <code>ActionIds</code>; <code>EditorDocument.textVersionProperty()</code>
+                and <code>getCaretScreenPosition()</code>; <code>Command.getIcon()</code> for a command
+                that brings its own icon to the menus the shell builds; and <code>CellBreadth</code>,
+                the shared cell width that keeps a tree's horizontal scroll bar from oscillating.
+                Under development until the MVP freeze.
+            </description>
+            <class package="com.gluonhq.netbeans.nbfx.api.actions" name="ActionIds"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.actions" name="Command"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.actions" name="ElementContextMenuContributor"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.editor" name="EditorAnnotation"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.editor" name="EditorAnnotationProvider"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.editor" name="EditorDocument"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.editor" name="HyperlinkProvider"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.elements" name="SourceLocation"/>
+            <class package="com.gluonhq.netbeans.nbfx.api.view" name="CellBreadth"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

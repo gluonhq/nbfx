@@ -60,7 +60,7 @@ public class FxViewRegistrationProcessor extends LayerGeneratingProcessor {
                 id = processingEnv.getElementUtils().getBinaryName(type).toString();
             }
             File file = layer(element).instanceFile(FxLayer.VIEWS, id, (Class<?>) null);
-            file.stringvalue("displayName", registration.displayName());
+            file.bundlevalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("location", registration.location().name());
             file.intvalue("position", registration.position());

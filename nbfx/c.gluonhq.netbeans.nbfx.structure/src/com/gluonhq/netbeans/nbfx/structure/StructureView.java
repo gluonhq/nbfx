@@ -35,11 +35,13 @@ import org.openide.util.lookup.ServiceProvider;
  * the members of the active Java document), contributed by {@link FxStructurePanel}s.
  * <p>
  * This is the FX counterpart of the Swing Navigator window ({@code NavigatorTC}); it keeps that name,
- * matching Swing. It is docked below the project views (the {@code navigator} area).
+ * matching Swing. It is docked below the project views (the {@code navigator} area) and, as in
+ * NetBeans, is part of the default layout ({@code openAtStartup}).
  */
 @ServiceProvider(service = ViewProvider.class)
-@FxViewRegistration(id = StructureView.ID, displayName = "Navigator",
-        location = FxViewLocation.LEFT_BOTTOM, position = 20)
+@FxViewRegistration(id = StructureView.ID, displayName = "#StructureView.title",
+        iconName = "com/gluonhq/netbeans/nbfx/structure/navigator.png",
+        location = FxViewLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
 @FxActionReference(id = ActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 45)
 public final class StructureView implements ViewProvider {
 
@@ -71,11 +73,29 @@ public final class StructureView implements ViewProvider {
         return panel;
     }
 
-    /** Brings the Structure view on screen. Must run on the JavaFX Application Thread. */
+    @Override
+    public String getDescription() {
+        return NbBundle.getMessage(StructureView.class, "StructureView.description");
+    }
+
+    /** Brings the Navigator window on screen. Must run on the JavaFX Application Thread. */
     public void show() {
         ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
         if (manager != null) {
             manager.show(this);
+        }
+    }
+
+    /**
+     * Selects {@code panel} in the window, when it is one of the panels of the current content
+     * type - a command of the panel's module showing something in it. Must run on the JavaFX
+     * Application Thread.
+     *
+     * @param panel the panel to select
+     */
+    public void select(FxStructurePanel panel) {
+        if (panel != null) {
+            ((StructurePanel) getView()).select(panel);
         }
     }
 

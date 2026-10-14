@@ -45,6 +45,7 @@ import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SAVE;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SAVE_ALL;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_EDITOR;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_FILES;
+import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_IN_FILES;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_IN_PROJECTS;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_PROJECTS;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_SEARCH_RESULTS;
@@ -67,6 +68,7 @@ import com.gluonhq.netbeans.nbfx.annotations.FxMenuRegistration;
 @FxMenuRegistration(id = "File", position = 10)
 @FxMenuRegistration(id = "Edit", position = 20)
 @FxMenuRegistration(id = "View", position = 30)
+@FxMenuRegistration(id = "Navigate", position = 40)
 @FxMenuRegistration(id = "Tools", position = 60)
 @FxMenuRegistration(id = "Window", position = 70)
 @FxMenuRegistration(id = "Window/IDE Tools", displayName = "IDE Tools", position = 100)
@@ -92,6 +94,8 @@ import com.gluonhq.netbeans.nbfx.annotations.FxMenuRegistration;
 @FxActionReference(id = NEXT_PROJECT, path = "Menus/Window", position = 110, separatorBefore = true)
 @FxActionReference(id = PREVIOUS_PROJECT, path = "Menus/Window", position = 120)
 @FxActionReference(id = SELECT_IN_PROJECTS, path = "ContextMenus/Editor", position = 120, separatorBefore = true)
+@FxActionReference(id = SELECT_IN_PROJECTS, path = "Menus/Navigate", position = 70, separatorBefore = true)
+@FxActionReference(id = SELECT_IN_FILES, path = "Menus/Navigate", position = 80)
 @FxActionReference(id = UNDO, path = "Menus/Edit", position = 10)
 @FxActionReference(id = REDO, path = "Menus/Edit", position = 20)
 @FxActionReference(id = CUT, path = "Menus/Edit", position = 30, separatorBefore = true)
