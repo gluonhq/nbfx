@@ -1,7 +1,7 @@
 package com.gluonhq.netbeans.nbfx.findinprojects.ui;
 
-import com.gluonhq.netbeans.nbfx.api.NavigatorProvider;
 import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
+import com.gluonhq.netbeans.nbfx.api.project.ProjectIconProvider;
 import com.gluonhq.netbeans.nbfx.findinprojects.query.SearchScope;
 import java.io.File;
 import java.util.ArrayList;
@@ -234,17 +234,11 @@ final class ScopeChooser extends ComboBox<ScopeChooser.Item> {
 
     /**
      * The icon the Projects view shows for the project rooted at {@code root} - its project type -,
-     * or {@code null} when no {@link NavigatorProvider} has that project loaded.
+     * or {@code null} when no {@link ProjectIconProvider} knows that project.
      */
     private static Node projectIcon(FileObject root) {
-        for (NavigatorProvider navigator : Lookup.getDefault().lookupAll(NavigatorProvider.class)) {
-            String iconName = navigator.getProjectIconName(root);
-            Node icon = iconName == null ? null : navigator.getProjectIcon(root, iconName);
-            if (icon != null) {
-                return icon;
-            }
-        }
-        return null;
+        ProjectIconProvider provider = Lookup.getDefault().lookup(ProjectIconProvider.class);
+        return provider == null ? null : provider.createIcon(root);
     }
 
     /** An entry drawn as its icon plus its label; used for the list and for the combo's button. */

@@ -10,6 +10,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 
 /**
  * A savable, dirty-aware view of a single open editor.
@@ -18,8 +19,24 @@ import org.openide.util.Lookup;
  * {@link FileObject} it edits, tracks whether it has unsaved changes
  * ({@link #modifiedProperty()}), and can persist those changes back to the file
  * ({@link #save()}).
+ * <p>
+ * A document is a {@link Lookup.Provider}: while its editor is active its
+ * {@link #getLookup() lookup} is the global action context, mirroring the editor
+ * {@code TopComponent}'s lookup. It carries the document and its file.
  */
-public interface EditorDocument {
+public interface EditorDocument extends Lookup.Provider {
+
+    /**
+     * The lookup of this editor, published as the global action context while its tab is active:
+     * the document itself and the {@link FileObject} it edits, so consumers can read either.
+     *
+     * @return the editor's lookup
+     */
+    @Override
+    default Lookup getLookup() {
+        FileObject file = getFileObject();
+        return file == null ? Lookups.fixed(this) : Lookups.fixed(this, file);
+    }
 
     /**
      * Returns the file this document edits.

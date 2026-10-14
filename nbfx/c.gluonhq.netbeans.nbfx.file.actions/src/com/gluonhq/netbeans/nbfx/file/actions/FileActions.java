@@ -5,13 +5,11 @@ import java.util.List;
 
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.actions.Command;
-import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
+import com.gluonhq.netbeans.nbfx.api.actions.ContextAction;
+import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 import com.gluonhq.netbeans.nbfx.api.actions.RunnableCommand;
+import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -22,18 +20,14 @@ import org.openide.util.NbBundle;
 
 /**
  * Builds the file-scoped {@link Command}s (Cut / Copy / Paste / Undo / Redo, registered under the
- * {@code file.*} ids) driven by the shared {@link FileSelectionContext}, the system clipboard and
- * the shared {@link FileUndoManager}.
+ * {@code file.*} ids) driven by the global {@link FxActionContext}, the system clipboard and the
+ * shared {@link FileUndoManager}.
  *
- * <p>The system clipboard is not observable, so {@link #refreshClipboardState()} must be called
- * when the paste enablement should be re-evaluated. Copy/cut/paste refresh it automatically, and
- * so does the navigator regaining focus.</p>
+ * <p>The file selection is the set of {@link FileObject}s carried by the context; the system
+ * clipboard is not observable, so Paste enablement is re-read whenever the context changes (the
+ * selection or the active view), which includes the navigator regaining focus.</p>
  */
 public final class FileActions {
-
-    private final ObservableValue<List<FileObject>> selection;
-    private final SimpleBooleanProperty clipboardHasFiles =
-            new SimpleBooleanProperty(this, "clipboardHasFiles");
 
     private final Command copyCommand;
     private final Command cutCommand;
@@ -41,38 +35,21 @@ public final class FileActions {
     private final Command undoCommand;
     private final Command redoCommand;
 
-    public FileActions(FileSelectionContext context) {
-        this.selection = context.selectedFiles();
-
-        BooleanBinding canCopyCut = Bindings.createBooleanBinding(
-                () -> !realFiles().isEmpty(), selection);
-        BooleanBinding canPaste = Bindings.createBooleanBinding(
-                () -> clipboardHasFiles.get() && targetFolder() != null,
-                clipboardHasFiles, selection);
-
+    public FileActions() {
         FileUndoManager undo = FileUndoManager.getDefault();
 
-        copyCommand = RunnableCommand.enabledWhen(ActionIds.FILE_COPY, message("CTL_FileCopy"),
-                shortcut(KeyCode.C), canCopyCut, this::copy);
-        cutCommand = RunnableCommand.enabledWhen(ActionIds.FILE_CUT, message("CTL_FileCut"),
-                shortcut(KeyCode.X), canCopyCut, this::cut);
-        pasteCommand = RunnableCommand.enabledWhen(ActionIds.FILE_PASTE, message("CTL_FilePaste"),
-                shortcut(KeyCode.V), canPaste, this::paste);
+        copyCommand = new ContextAction(ActionIds.FILE_COPY, message("CTL_FileCopy"), shortcut(KeyCode.C),
+                FileActions::canCopyCut, FileActions::copy, FileObject.class, ViewProvider.class);
+        cutCommand = new ContextAction(ActionIds.FILE_CUT, message("CTL_FileCut"), shortcut(KeyCode.X),
+                FileActions::canCopyCut, FileActions::cut, FileObject.class, ViewProvider.class);
+        pasteCommand = new ContextAction(ActionIds.FILE_PASTE, message("CTL_FilePaste"), shortcut(KeyCode.V),
+                FileActions::canPaste, FileActions::paste, FileObject.class, ViewProvider.class);
         undoCommand = RunnableCommand.enabledWhen(ActionIds.FILE_UNDO, message("CTL_FileUndo"),
                 new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN),
                 undo.canUndoProperty(), undo::undo);
         redoCommand = RunnableCommand.enabledWhen(ActionIds.FILE_REDO, message("CTL_FileRedo"),
                 new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
                 undo.canRedoProperty(), undo::redo);
-
-        selection.addListener((obs, old, now) -> refreshClipboardState());
-        // The system clipboard is not observable; re-check it whenever the navigator regains focus.
-        context.navigatorFocused().addListener((obs, was, focused) -> {
-            if (Boolean.TRUE.equals(focused)) {
-                refreshClipboardState();
-            }
-        });
-        refreshClipboardState();
     }
 
     public Command copyCommand() {
@@ -95,43 +72,39 @@ public final class FileActions {
         return redoCommand;
     }
 
-    /** Re-reads the system clipboard so paste enablement reflects its current content. */
-    public void refreshClipboardState() {
-        clipboardHasFiles.set(FileClipboard.hasFiles());
+    static boolean canCopyCut(FxActionContext context) {
+        return !realFiles(context).isEmpty();
     }
 
-    private void copy() {
-        List<FileObject> files = realFiles();
+    static boolean canPaste(FxActionContext context) {
+        return FileClipboard.hasFiles() && targetFolder(context) != null;
+    }
+
+    private static void copy(FxActionContext context) {
+        List<FileObject> files = realFiles(context);
         if (!files.isEmpty()) {
             FileClipboardActions.copy(files);
-            refreshClipboardState();
         }
     }
 
-    private void cut() {
-        List<FileObject> files = realFiles();
+    private static void cut(FxActionContext context) {
+        List<FileObject> files = realFiles(context);
         if (!files.isEmpty()) {
             FileClipboardActions.cut(files);
-            refreshClipboardState();
         }
     }
 
-    private void paste() {
-        FileObject target = targetFolder();
+    private static void paste(FxActionContext context) {
+        FileObject target = targetFolder(context);
         if (target != null) {
             FileClipboardActions.paste(target);
-            refreshClipboardState();
         }
     }
 
     /** The current selection restricted to entries backed by a real file on disk. */
-    private List<FileObject> realFiles() {
-        List<FileObject> selected = selection.getValue();
-        if (selected == null || selected.isEmpty()) {
-            return List.of();
-        }
+    private static List<FileObject> realFiles(FxActionContext context) {
         List<FileObject> files = new ArrayList<>();
-        for (FileObject fo : selected) {
+        for (FileObject fo : context.lookupAll(FileObject.class)) {
             if (hasRealFile(fo)) {
                 files.add(fo);
             }
@@ -140,16 +113,11 @@ public final class FileActions {
     }
 
     /** The folder a paste targets: the first selected entry if a folder, else its parent. */
-    private FileObject targetFolder() {
-        List<FileObject> selected = selection.getValue();
-        if (selected == null || selected.isEmpty()) {
-            return null;
+    static FileObject targetFolder(FxActionContext context) {
+        for (FileObject fo : context.lookupAll(FileObject.class)) {
+            return fo.isFolder() ? fo : fo.getParent();
         }
-        FileObject fo = selected.get(0);
-        if (fo == null) {
-            return null;
-        }
-        return fo.isFolder() ? fo : fo.getParent();
+        return null;
     }
 
     private static boolean hasRealFile(FileObject fo) {

@@ -2,7 +2,6 @@ package com.gluonhq.netbeans.nbfx.findinprojects.actions;
 
 import com.gluonhq.netbeans.nbfx.api.actions.Command;
 import com.gluonhq.netbeans.nbfx.api.actions.CommandsProvider;
-import com.gluonhq.netbeans.nbfx.api.editor.EditorContext;
 import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
 import com.gluonhq.netbeans.nbfx.findinprojects.model.FindModel;
 import java.util.ArrayList;
@@ -29,9 +28,8 @@ public class FindInProjectsCommandsProvider implements CommandsProvider {
             LOG.warning("No FindModel found; Find in Projects actions will not be registered");
             return List.of();
         }
-        EditorContext editors = Lookup.getDefault().lookup(EditorContext.class);
-        FindInProjectsCommand find = new FindInProjectsCommand(model, editors);
-        FindInProjectsCommand replace = new FindInProjectsCommand(model, editors, true);
+        FindInProjectsCommand find = new FindInProjectsCommand(model);
+        FindInProjectsCommand replace = new FindInProjectsCommand(model, true);
         List<Command> commands = new ArrayList<>(List.of(find, replace, new SelectSearchResultsCommand()));
         FileSelectionContext selection = Lookup.getDefault().lookup(FileSelectionContext.class);
         if (selection != null) {

@@ -1,12 +1,12 @@
 package com.gluonhq.netbeans.nbfx.findusages.ui;
 
-import com.gluonhq.netbeans.nbfx.api.NavigatorProvider;
 import com.gluonhq.netbeans.nbfx.api.elements.ElementIcons;
 import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import com.gluonhq.netbeans.nbfx.api.elements.SourceModifiers;
 import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.file.FileIconProvider;
 import com.gluonhq.netbeans.nbfx.api.icons.ToolIcons;
+import com.gluonhq.netbeans.nbfx.api.project.ProjectIconProvider;
 import com.gluonhq.netbeans.nbfx.findusages.model.Access;
 import com.gluonhq.netbeans.nbfx.findusages.model.Usage;
 import java.net.URL;
@@ -95,14 +95,9 @@ final class UsagesIcons {
         if (projectRoot == null) {
             return null;
         }
-        for (NavigatorProvider navigator : Lookup.getDefault().lookupAll(NavigatorProvider.class)) {
-            String iconName = navigator.getProjectIconName(projectRoot);
-            Node icon = iconName == null ? null : navigator.getProjectIcon(projectRoot, iconName);
-            if (icon != null) {
-                return icon;
-            }
-        }
-        return fileIcon(projectRoot);
+        ProjectIconProvider provider = Lookup.getDefault().lookup(ProjectIconProvider.class);
+        Node icon = provider == null ? null : provider.createIcon(projectRoot);
+        return icon != null ? icon : fileIcon(projectRoot);
     }
 
     /** The registered file icon of {@code file} (a folder icon for roots), or {@code null} without a provider. */

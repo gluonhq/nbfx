@@ -1,11 +1,10 @@
 package com.gluonhq.netbeans.nbfx.findinprojects.ui;
 
 import com.gluonhq.netbeans.nbfx.api.ContentManager;
-import com.gluonhq.netbeans.nbfx.api.NavigatorProvider;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorPreview;
 import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectRegistry;
-import com.gluonhq.netbeans.nbfx.api.view.ViewManager;
+import com.gluonhq.netbeans.nbfx.api.view.NavigatorRevealer;
 import com.gluonhq.netbeans.nbfx.findinprojects.model.FileResult;
 import com.gluonhq.netbeans.nbfx.findinprojects.model.FindModel;
 import com.gluonhq.netbeans.nbfx.findinprojects.model.Issue;
@@ -636,7 +635,7 @@ final class SearchResultsPane extends HBox {
             open.setText(message(row instanceof Detail ? "CTX_GoToDetail" : "CTX_GoToSource"));
             open.setDisable(!(row instanceof File || row instanceof Detail));
             copyPath.setDisable(row == null || row.file() == null);
-            select.setDisable(row == null || row.file() == null || navigatorOf(row.file()) == null);
+            select.setDisable(row == null || row.file() == null || !isInOpenProject(row.file()));
             remove.setDisable(row == null || row instanceof Summary);
         });
         return menu;
@@ -654,30 +653,19 @@ final class SearchResultsPane extends HBox {
     /** Reveals the selected row's file in the Projects (or Files) view that shows its project. */
     private void selectInProjects() {
         ResultRow row = selectedRow();
-        NavigatorProvider navigator = row == null ? null : navigatorOf(row.file());
-        if (navigator == null) {
+        if (row == null) {
             return;
         }
-        ViewManager views = Lookup.getDefault().lookup(ViewManager.class);
-        if (views != null) {
-            views.show(navigator);
+        NavigatorRevealer revealer = Lookup.getDefault().lookup(NavigatorRevealer.class);
+        if (revealer != null) {
+            revealer.reveal(row.file());
         }
-        navigator.revealFile(row.file());
     }
 
-    /** The first navigator whose projects hold {@code file}, or {@code null}. */
-    private static NavigatorProvider navigatorOf(FileObject file) {
-        if (file == null) {
-            return null;
-        }
-        for (NavigatorProvider navigator : Lookup.getDefault().lookupAll(NavigatorProvider.class)) {
-            for (FileObject root : navigator.getProjectRoots()) {
-                if (root.equals(file) || FileUtil.isParentOf(root, file)) {
-                    return navigator;
-                }
-            }
-        }
-        return null;
+    /** Whether {@code file} belongs to an open project, i.e. a navigator can reveal it. */
+    private static boolean isInOpenProject(FileObject file) {
+        ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
+        return registry != null && registry.ownerOf(file) != null;
     }
 
     // -- tree ----------------------------------------------------------------------------------

@@ -3,7 +3,7 @@ package com.gluonhq.netbeans.nbfx.findinprojects.actions;
 import com.gluonhq.netbeans.nbfx.api.actions.AbstractCommand;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionRegistry;
-import com.gluonhq.netbeans.nbfx.api.editor.EditorContext;
+import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 import com.gluonhq.netbeans.nbfx.findinprojects.model.FindModel;
 import com.gluonhq.netbeans.nbfx.findinprojects.query.FindQuery;
@@ -37,22 +37,20 @@ final class FindInProjectsCommand extends AbstractCommand {
             KeyCombination.SHIFT_DOWN);
 
     private final FindModel model;
-    private final EditorContext context;
     private final boolean replace;
 
     /** The Find in Projects command. */
-    FindInProjectsCommand(FindModel model, EditorContext context) {
-        this(model, context, false);
+    FindInProjectsCommand(FindModel model) {
+        this(model, false);
     }
 
     /** @param replace {@code true} for Replace in Projects */
-    FindInProjectsCommand(FindModel model, EditorContext context, boolean replace) {
+    FindInProjectsCommand(FindModel model, boolean replace) {
         super(replace ? ActionIds.REPLACE_IN_PROJECTS : ActionIds.FIND_IN_PROJECTS,
                 NbBundle.getMessage(FindInProjectsCommand.class,
                         replace ? "CTL_ReplaceInProjectsCommand" : "CTL_FindInProjectsCommand"),
                 replace ? REPLACE_SHORTCUT : SHORTCUT, false);
         this.model = Objects.requireNonNull(model);
-        this.context = context;
         this.replace = replace;
     }
 
@@ -100,7 +98,8 @@ final class FindInProjectsCommand extends AbstractCommand {
     }
 
     private String selectedText() {
-        EditorDocument document = context == null ? null : context.getActiveDocument();
+        FxActionContext context = FxActionContext.getDefault();
+        EditorDocument document = context == null ? null : context.lookup(EditorDocument.class);
         String text = document == null ? null : document.getSelectedText();
         return text == null ? "" : text;
     }

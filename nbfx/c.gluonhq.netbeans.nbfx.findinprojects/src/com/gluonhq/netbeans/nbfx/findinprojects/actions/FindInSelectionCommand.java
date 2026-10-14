@@ -2,6 +2,7 @@ package com.gluonhq.netbeans.nbfx.findinprojects.actions;
 
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.actions.Command;
+import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 import com.gluonhq.netbeans.nbfx.api.actions.RunnableCommand;
 import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
 import java.util.ArrayList;
@@ -12,11 +13,13 @@ import java.util.Set;
 import java.util.function.Consumer;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import org.openide.filesystems.FileObject;
+import org.openide.util.LookupListener;
 import org.openide.util.NbBundle;
 
 /**
@@ -25,6 +28,10 @@ import org.openide.util.NbBundle;
  * dispatches to it while a navigator view has the focus. Opens the Find in Projects dialog with
  * the selected folders - a selected file stands for its folder, as NetBeans' node
  * {@code SearchInfo} does - as the "Selected Packages and Folders" scope.
+ * <p>
+ * The selection is the {@link FileObject}s carried by the {@link FxActionContext}: since the global
+ * context follows the active component, a focused navigator publishes its own selection there, so
+ * this no longer reads the retired shared selection slot.
  */
 final class FindInSelectionCommand {
 
@@ -40,19 +47,30 @@ final class FindInSelectionCommand {
     static Command create(FileSelectionContext context, Consumer<List<FileObject>> open) {
         Objects.requireNonNull(context);
         Objects.requireNonNull(open);
-        ObservableValue<List<FileObject>> selection = context.selectedFiles();
         ObservableValue<Boolean> focused = context.navigatorFocused();
+        FxActionContext action = FxActionContext.getDefault();
+        SimpleBooleanProperty hasSelection = new SimpleBooleanProperty(false);
+        if (action != null) {
+            LookupListener listener = event -> hasSelection.set(!selectionOf(action).isEmpty());
+            action.lookupResult(FileObject.class).addLookupListener(listener);
+            hasSelection.set(!selectionOf(action).isEmpty());
+        }
         BooleanBinding enabled = Bindings.createBooleanBinding(
-                () -> Boolean.TRUE.equals(focused.getValue()) && !foldersOf(selection.getValue()).isEmpty(),
-                focused, selection);
+                () -> Boolean.TRUE.equals(focused.getValue()) && hasSelection.get(),
+                focused, hasSelection);
         return RunnableCommand.enabledWhen(ActionIds.FILE_FIND,
                 NbBundle.getMessage(FindInSelectionCommand.class, "CTL_FindInSelectionCommand"), SHORTCUT, enabled,
                 () -> {
-                    List<FileObject> folders = foldersOf(selection.getValue());
+                    List<FileObject> folders = action == null ? List.of() : foldersOf(selectionOf(action));
                     if (!folders.isEmpty()) {
                         open.accept(folders);
                     }
                 });
+    }
+
+    /** The navigator selection carried by {@code context}, in iteration order. */
+    private static List<FileObject> selectionOf(FxActionContext context) {
+        return new ArrayList<>(context.lookupAll(FileObject.class));
     }
 
     /** The folders {@code files} stand for: a folder itself, a file its parent; each once, in selection order. */

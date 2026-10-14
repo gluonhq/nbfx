@@ -1,8 +1,8 @@
 package com.gluonhq.netbeans.nbfx.findinprojects.ui;
 
-import com.gluonhq.netbeans.nbfx.api.NavigatorProvider;
 import com.gluonhq.netbeans.nbfx.api.file.FileIconProvider;
 import com.gluonhq.netbeans.nbfx.api.icons.ToolIcons;
+import com.gluonhq.netbeans.nbfx.api.project.ProjectIconProvider;
 import java.net.URL;
 import java.util.Map;
 import java.util.Objects;
@@ -49,12 +49,10 @@ final class SearchIcons {
      */
     static Node projectIcon(FileObject root) {
         if (root != null) {
-            for (NavigatorProvider navigator : Lookup.getDefault().lookupAll(NavigatorProvider.class)) {
-                String iconName = navigator.getProjectIconName(root);
-                Node icon = iconName == null ? null : navigator.getProjectIcon(root, iconName);
-                if (icon != null) {
-                    return icon;
-                }
+            ProjectIconProvider provider = Lookup.getDefault().lookup(ProjectIconProvider.class);
+            Node icon = provider == null ? null : provider.createIcon(root);
+            if (icon != null) {
+                return icon;
             }
         }
         return folder();

@@ -2,19 +2,18 @@ package com.gluonhq.netbeans.nbfx.file.actions;
 
 import com.gluonhq.netbeans.nbfx.api.actions.Command;
 import com.gluonhq.netbeans.nbfx.api.actions.CommandsProvider;
-import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
+import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Contributes the file-scoped commands (file Cut / Copy / Paste / Undo / Redo, built by
- * {@link FileActions}) to the shared registry, wiring their enablement to the shared
- * {@link FileSelectionContext}.
+ * {@link FileActions}) to the shared registry. Their enablement is derived from the global
+ * {@link FxActionContext}.
  */
 @ServiceProvider(service = CommandsProvider.class)
 public class FileCommandsProvider implements CommandsProvider {
@@ -23,12 +22,11 @@ public class FileCommandsProvider implements CommandsProvider {
 
     @Override
     public Collection<Command> createCommands() {
-        FileSelectionContext context = Lookup.getDefault().lookup(FileSelectionContext.class);
-        if (context == null) {
-            LOG.warning("No FileSelectionContext found; file actions will not be registered");
+        if (FxActionContext.getDefault() == null) {
+            LOG.warning("No FxActionContext found; file actions will not be registered");
             return List.of();
         }
-        FileActions actions = new FileActions(context);
+        FileActions actions = new FileActions();
         return List.of(
                 actions.cutCommand(),
                 actions.copyCommand(),
