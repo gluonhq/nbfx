@@ -281,6 +281,11 @@ nbfx-java/</echo>
             <arg value="${nbfx.source.remote}"/>
             <arg value="${nbfx.source.branch}"/>
         </exec>
+        <exec executable="git" dir="${basedir}" outputproperty="nbfx.source.new" failonerror="true">
+            <arg value="rev-parse"/>
+            <arg value="${nbfx.source.remote}/${nbfx.source.branch}"/>
+        </exec>
+        <!-- cluster dirs carry no repo-specific edits: pure tree sync -->
         <exec executable="git" dir="${basedir}" failonerror="true">
             <arg value="checkout"/>
             <arg value="${nbfx.source.remote}/${nbfx.source.branch}"/>
@@ -288,10 +293,12 @@ nbfx-java/</echo>
             <arg value="nbfx-platform"/>
             <arg value="nbfx-ide"/>
             <arg value="nbfx-java"/>
-            <arg value="check-purity.xml"/>
-            <arg value="docs/MVP.md"/>
         </exec>
-        <echo message="[nbfx] synced sources from ${nbfx.source.remote}/${nbfx.source.branch}; review the diff and commit"/>
+        <echo message="[nbfx] synced nbfx-platform/ide/java from ${nbfx.source.remote}/${nbfx.source.branch} (${nbfx.source.new})"/>
+        <echo message="[nbfx] docs/MVP.md and check-purity.xml carry repo-specific edits and were NOT overwritten."/>
+        <echo message="[nbfx] merge upstream changes to them manually, e.g.:"/>
+        <echo message="       git diff ${nbfx.source.commit} ${nbfx.source.new} -- docs/MVP.md check-purity.xml | git apply --3way"/>
+        <echo message="[nbfx] then update nbfx.source.commit in nbfx.properties to ${nbfx.source.new} and review/commit"/>
     </target>
 
     <target name="clean" description="Remove the overlay, generated cluster config and submodule build outputs">

@@ -142,9 +142,16 @@ Because the direct upstream dependency is a moving target, the model is:
 
 The **nbfx sources themselves** originated in `gluon-netbeans-fx` and keep evolving there.
 `ant resync-source` fetches `nbfx.source.remote`/`nbfx.source.branch` (configure the remote once with
-`git remote add source https://github.com/gluonhq/netbeans`) and copies the current `nbfx-platform/`,
-`nbfx-ide/`, `nbfx-java/`, `check-purity.xml` and `docs/MVP.md` trees in — a tree-level sync, not a
-history merge. Review the diff and commit.
+`git remote add source https://github.com/gluonhq/netbeans`) and tree-syncs the `nbfx-platform/`,
+`nbfx-ide/` and `nbfx-java/` clusters (they carry no repo-specific edits). `docs/MVP.md` and
+`check-purity.xml` **do** carry repo-specific edits (the repo/build integration and the dist-dir
+change), so the target does not overwrite them; merge the upstream delta manually with:
+
+```sh
+git diff <old-source-commit> source/netbeansfx-sep26 -- docs/MVP.md check-purity.xml | git apply --3way
+```
+
+then update `nbfx.source.commit` in `nbfx.properties`, review and commit.
 
 ## 7. Verification
 
