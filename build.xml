@@ -47,7 +47,9 @@
         <attribute name="cluster"/>
         <sequential>
             <sync todir="${nbfx.sub.dir}/@{cluster}" includeEmptyDirs="false">
-                <fileset dir="@{cluster}" excludes="**/build/**,**/dist/**"/>
+                <!-- only exclude the per-module output dirs (<module>/build, <module>/dist);
+                     a bare **/build/** would also drop source packages named ".../build/..." -->
+                <fileset dir="@{cluster}" excludes="*/build/**,*/dist/**"/>
             </sync>
         </sequential>
     </macrodef>
@@ -160,6 +162,10 @@
         <replace file="${nbfx.cluster.file}"
                  token="clusters.config.full.list=\"
                  value="clusters.config.full.list=\&#10;        nb.cluster.nbfx-platform,\&#10;        nb.cluster.nbfx-ide,\&#10;        nb.cluster.nbfx-java,\"/>
+        <!-- pure-JavaFX: the Swing window system (core.windows) is dropped from the platform
+             cluster, as in the nbfx source configuration (remove the module + its line ending so
+             the backslash-continued property stays valid) -->
+        <replace file="${nbfx.cluster.file}" token="core.windows,\&#10;" value=""/>
         <concat destfile="${nbfx.cluster.file}" append="true" fixlastline="yes">
             <fileset file="${nbfx.fragment}"/>
         </concat>

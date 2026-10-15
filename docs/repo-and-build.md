@@ -59,8 +59,9 @@ them).
 2. registers the nbfx cluster dirs in `clusters.config.full.list` (the harness's `ModuleListParser`
    only scans the `FOREST` dirs plus the dirs of clusters listed there — without this the
    `all-<module>` targets for the nbfx clusters are never created),
-3. appends the fragment (the three `nb.cluster.nbfx-*` definitions and `clusters.config.nbfx.list`),
-4. writes the result to `build/cluster.properties` **and installs it as the submodule's
+3. drops `core.windows` from the platform cluster (the pure-JavaFX window-system removal, M9.2/M9.4),
+4. appends the fragment (the three `nb.cluster.nbfx-*` definitions and `clusters.config.nbfx.list`),
+5. writes the result to `build/cluster.properties` **and installs it as the submodule's
    `nbbuild/cluster.properties`**, because several harness targets read that path directly
    (`-define-cluster-path` builds `cluster.path` from it; packaging targets too). An external
    `-Dclusters.list.file` alone is not sufficient.
@@ -76,10 +77,12 @@ nb.cluster.nbfx-java.dir=nbfx-java           depends nb.cluster.nbfx-ide, java, 
 clusters.config.nbfx.list = platform, nbfx-platform, nbfx-ide, nbfx-java, java, ide, extide, apisupport
 ```
 
-The nbfx clusters are reachable as a normal cluster set via `-Dcluster.config=nbfx`; the stock
-`java`/`release` configs stay Swing-based. Registering the dirs in `full.list` means the dev `full`
-config (`-Dcluster.config=full`) also includes the nbfx clusters; `release`/`java` do not.
-`ant clean` restores the submodule's `cluster.properties`.
+The nbfx clusters are reachable as a normal cluster set via `-Dcluster.config=nbfx`; the nbfx
+clusters themselves are not added to `clusters.config.java`/`release`. Registering the dirs in
+`full.list` means the dev `full` config (`-Dcluster.config=full`) also includes the nbfx clusters.
+Because the `core.windows` removal edits the shared `nb.cluster.platform`, any config built from this
+repository also drops the Swing window system — this repository builds the pure-FX app, not the stock
+Swing IDE. `ant clean` restores the submodule's `cluster.properties`.
 
 ## 4. Patch set
 
