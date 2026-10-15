@@ -7,12 +7,14 @@ There is no NetBeans Swing window: `core.windows` is dropped from the nbfx clust
 owned by the JavaFX application.
 
 The full roadmap, milestones and history live in **[`docs/MVP.md`](docs/MVP.md)** (the canonical
-plan). This file is the short project overview.
+plan); the repository layout, upstream patch set and build harness are documented in
+**[`docs/repo-and-build.md`](docs/repo-and-build.md)**. This file is the short project overview.
 
-## Branch
+## Repository
 
-- Integration branch: **`nbfx/mvp-phase2`** (based on `netbeansfx-sep26`).
-- `nbfx/mvp-phase1` is the earlier line; `nbfx/mvp-phase2` is intended to replace it.
+This repository hosts the nbfx clusters and consumes apache/netbeans as a **git submodule**
+(`netbeans/`). The build is driven by the Ant harness [`build.xml`](build.xml) (no shell scripts); see
+[`docs/repo-and-build.md`](docs/repo-and-build.md).
 
 ## Clusters
 
@@ -28,22 +30,26 @@ layout differs. Dependency direction is `platform → ide → java`.
 
 ## Build and test
 
-The clusters are built as part of the NetBeans build; the lean set the application runs on is
-`clusters.config.nbfx.list` (platform + the three nbfx clusters + their dependencies).
+The nbfx clusters are built on top of an **apache/netbeans git submodule**. The Ant harness at the
+repository root initialises the submodule, applies the required upstream patches, generates the
+cluster configuration and runs the build:
 
 ```sh
-# Build the nbfx clusters (incremental; ~1.5 min once warm)
-cd nbbuild && ant -Dcluster.config=nbfx build -q
-
-# Purity/guardrail checks (forbidden Swing/AWT imports & deps, bundled classes,
-#   and no core.windows jar in the distribution)
-ant -f check-purity.xml check-purity
-
-# Unit tests of a module (run from the repository root)
-ant -f <cluster-dir>/<module-dir>/build.xml test-unit -Dnetbeans.dest.dir="$PWD/nbbuild/netbeans"
+ant bootstrap      # submodule + upstream patches + cluster config + overlay
+ant build          # build the 'nbfx' cluster config
+ant run            # launch the FX app on the lean cluster set
+ant check-purity   # forbidden Swing/AWT imports & deps, bundled classes, no core.windows jar
+ant update-upstream -Dnbfx.submodule.commit=<sha>
+ant clean
 ```
 
-Run the application with `ant tryme` from `nbbuild` (it launches on the lean nbfx cluster set).
+See [`docs/repo-and-build.md`](docs/repo-and-build.md) for the layout, the upstream patch set and how
+the cluster configuration is generated. Unit tests of a single module:
+
+```sh
+ant -f netbeans/<cluster-dir>/<module-dir>/build.xml test-unit \
+    -Dnetbeans.dest.dir="$PWD/netbeans/nbbuild/netbeans"
+```
 
 ## Architecture in a nutshell
 

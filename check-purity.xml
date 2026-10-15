@@ -38,7 +38,7 @@
     <property name="nbfx.src.pattern" value="nbfx-platform/*/src/**/*.java,nbfx-ide/*/src/**/*.java,nbfx-java/*/src/**/*.java"/>
     <property name="nbfx.deps.pattern" value="nbfx-platform/*/nbproject/project.xml,nbfx-ide/*/nbproject/project.xml,nbfx-java/*/nbproject/project.xml"/>
     <property name="nbfx.jar.pattern" value="com-gluonhq-netbeans-nbfx-*.jar"/>
-    <property name="nbfx.dist.dir" value="nbbuild/netbeans"/>
+    <property name="nbfx.dist.dir" value="netbeans/nbbuild/netbeans"/>
 
     <!-- Forbidden imports in nbfx sources. -->
     <target name="check-sources">

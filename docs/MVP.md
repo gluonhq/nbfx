@@ -27,6 +27,7 @@ services and substituting every view/component with a JavaFX equivalent.
 | Options SPI | **nbfx-native `FxOptions` SPI** (own namespace) |
 | SPI maturity | **"Under development" until MVP**, then freeze |
 | Docs/versioning | Follow **NetBeans conventions** (`apichanges.xml`, `arch.xml`, spec versions, sigtest) |
+| Repository/build | apache/netbeans **submodule** + generated cluster config; **Ant** harness (`build.xml`); see [`repo-and-build.md`](repo-and-build.md) |
 | Action context | **View-tied `FxActionContext`** in the global Lookup; commands bind enablement to it (§17) |
 | Window modes | **nbfx `FxArea` descriptor** mirroring the Swing modes/layout; sliding sides done (§24) |
 
@@ -44,11 +45,10 @@ The branch already contains a working **JavaFX shell over the NetBeans Runtime**
 
 - 38 modules across the three nbfx clusters (`nbfx-platform/`, `nbfx-ide/`, `nbfx-java/`), which
   parallel the NetBeans `platform`/`ide`/`java` clusters (dependency direction platform → ide → java).
-- Cluster wiring: `nbbuild/cluster.properties` lists `nb.cluster.nbfx-platform`,
-  `nb.cluster.nbfx-ide` and `nb.cluster.nbfx-java` in `clusters.config.java.list` and
-  `clusters.config.nbfx.list`, and defines each with its `.dir` and `.depends`
-  (`nb.cluster.platform`; then `nb.cluster.ide`/`nb.cluster.java`; then `nb.cluster.java`/
-  `nb.cluster.extide`/`nb.cluster.apisupport`).
+- Repo/build model: apache/netbeans is consumed as a **git submodule**; the clusters are wired in
+  **only** via a dedicated `cluster.config=nbfx` generated from the submodule (fragment
+  `cluster/nbfx-cluster.properties.fragment`), and a small patch set adds the upstream hooks. See
+  [`repo-and-build.md`](repo-and-build.md) for the layout, patch set and Ant targets.
 - Bootstrap: `nbfx-ide/.../launcher/FxGuiRunLevel.java` (`@ServiceProvider(service=RunLevel.class)`) starts
   `Application.launch(JavaFXLaunchApp.class)` on a daemon thread once the platform is up (the
   `core.startup` `RunLevel` sweep); `LauncherInstall` (`ModuleInstall`) keeps only the early
@@ -385,17 +385,19 @@ Workstream:
 6. **Freeze gate** (after Phase 3): switch SPIs from "under development" to stable, finalize
    `apichanges.xml`, and enable **`sigtest`** signature checks (commit `.sig` files,
    `sigtest.gen.fail.on.error=true`) in CI.
-7. **Legal/release**: Apache headers on new files; update `nbbuild/rat-exclusions.txt` when needed;
-   document the JDK/JavaFX baseline (`lib.javafx/javafx.version` = 27,
+7. **Legal/release**: Apache headers on new files; the nbfx dirs are excluded from Rat via
+   `patches/0013-rat-exclusions`; document the JDK/JavaFX baseline (`lib.javafx/javafx.version` = 27,
    `OpenIDE-Module-Java-Dependencies: Java > 25`) in `arch.xml`; bump versions when JavaFX/JDK move.
 
 ---
 
 ## 10. Lean cluster and guardrails
 
-- Define `clusters.config.nbfx.list` in `nbbuild/cluster.properties` with an allowlist of needed
-  platform/core/java modules; exclude user-facing Swing UI clusters (`ide` editor/options/project UI,
-  `extide`, `autoupdate.ui`).
+- The lean `clusters.config.nbfx.list` is generated from
+  `cluster/nbfx-cluster.properties.fragment` into `build/cluster.properties` and installed as the
+  submodule's `nbbuild/cluster.properties` (see [`repo-and-build.md`](repo-and-build.md) §3). It
+  allow-lists the needed platform/core/java modules and excludes user-facing Swing UI clusters (`ide`
+  editor/options/project UI, `extide`, `autoupdate.ui`).
 - Retain the thin Swing layer transitively required by `parsing`/`indexing`
   (`api.progress`, `projectuiapi.base`, `openide.dialogs`); whole-classpath purity is **not** required.
 - Guardrail build target fails when:
@@ -492,8 +494,8 @@ Workstream:
 
 ## 12. Verification
 
-- Per phase: guardrail green; `nbfx` cluster builds (`ant -Dcluster.config=nbfx build`); smoke matrix
-  (open/edit/build/run Maven, Gradle, Ant; output; session restore).
+- Per phase: guardrail green (`ant check-purity`); `nbfx` cluster builds (`ant bootstrap build`); smoke
+  matrix (open/edit/build/run Maven, Gradle, Ant; output; session restore).
 - Harness unit tests for annotation processors (assert generated `META-INF/generated-layer.xml`
   content) and presenters (layer traversal → menu/tree/status construction).
 - At the Freeze gate: `sigtest` API compatibility + `ant javadoc` validation of `arch.xml` and
@@ -520,6 +522,9 @@ Workstream:
 | View-tied global context vs existing global singletons | Compose the singletons under `FxActionContext`; migrate command groups incrementally (§17) |
 | Duplicating the Swing mode layout | Declarative `FxArea` weights over the existing `DockLocation`/`Docking` substrate (§18) |
 | Structure panel activation contract | Test `panelActivated`/`panelDeactivated` against the editor context with the Java members provider (§19.2) |
+| nbfx sources compiled against an older NetBeans revision | Pin the submodule (`nbfx.properties`); `ant patches-check` + `ant update-upstream` on every bump; forward-port source drift |
+| Harness reads `nbbuild/cluster.properties` directly (`-define-cluster-path`, module scan) | `ant cluster-config` installs the generated config there; `ant clean` restores it |
+| Upstream patch set drifts | Idempotent friend insertions; `git apply --3way`; `patches-check` fails loudly when an anchor moves |
 
 ---
 
@@ -1580,7 +1585,11 @@ maximized state and splits the pane in the full layout.
 - Existing status bar: `nbfx-platform/.../statusbar/FxStatusBar.java`.
 - Existing editor settings: `nbfx-platform/.../api/editor/EditorSettings.java`.
 - Existing project bridge: `nbfx-ide/.../ui/project/ProjectRegistryImpl.java:191-234`.
-- Clusters config: `nbbuild/cluster.properties:99-101`, `:1351-1407`.
+- Cluster config: `cluster/nbfx-cluster.properties.fragment` + `build.xml:cluster-config` (installed
+  into the submodule's `nbbuild/cluster.properties`; see [`repo-and-build.md`](repo-and-build.md) §3).
+- Upstream patch set: `patches/` — friend declarations in `platform/core.startup`, `java/maven`,
+  `java/maven.embedder`; launcher/tryme/Rat/extlib hooks.
+- Build harness: `build.xml` (submodule/patch/cluster-config/overlay/build/run/check-purity/update-upstream).
 - Docs to fix: `nbfx-platform/.../api/apichanges.xml`, `nbfx-platform/.../api/arch.xml`.
 - Swing Properties window: `platform/core.windows/src/org/netbeans/core/windows/view/ui/NbSheet.java`
   (+ `actions/GlobalPropertiesAction.java`), `platform/core.ui/.../resources/properties.wstcref`.
@@ -1620,7 +1629,7 @@ maximized state and splits the pane in the full layout.
   persistenceType)`), `.../persistence/ModuleChangeHandler.java`.
 - nbfx launcher (M9.2, done): `nbfx-ide/.../launcher/{FxGuiRunLevel,LauncherInstall}.java` replaced
   `JavaFXLauncher`/`SwingWindowSuppressor`; `core.startup` now lists `com.gluonhq.netbeans.nbfx.launcher`
-  as a friend so it can implement `RunLevel`.
+  as a friend so it can implement `RunLevel` (patch `0001`).
 - nbfx view/mode substrate: `nbfx-platform/.../api/view/{ViewProvider,ViewManager,DockLocation}.java`,
   `nbfx-ide/.../ui/shell/Docking.java`, `nbfx-platform/.../windows/ViewRegistry.java`.
 - Git status element: `nbfx-ide/.../vcs/GitBranchStatusElement.java`.
