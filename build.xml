@@ -268,6 +268,26 @@ nbfx-java/</echo>
         <antcall target="bootstrap"/>
     </target>
 
+    <target name="resync-source"
+            description="Pull the latest nbfx sources from the upstream source repo (tree-level sync)">
+        <exec executable="git" dir="${basedir}" failonerror="true">
+            <arg value="fetch"/>
+            <arg value="${nbfx.source.remote}"/>
+            <arg value="${nbfx.source.branch}"/>
+        </exec>
+        <exec executable="git" dir="${basedir}" failonerror="true">
+            <arg value="checkout"/>
+            <arg value="${nbfx.source.remote}/${nbfx.source.branch}"/>
+            <arg value="--"/>
+            <arg value="nbfx-platform"/>
+            <arg value="nbfx-ide"/>
+            <arg value="nbfx-java"/>
+            <arg value="check-purity.xml"/>
+            <arg value="docs/MVP.md"/>
+        </exec>
+        <echo message="[nbfx] synced sources from ${nbfx.source.remote}/${nbfx.source.branch}; review the diff and commit"/>
+    </target>
+
     <target name="clean" description="Remove the overlay, generated cluster config and submodule build outputs">
         <antcall target="unoverlay"/>
         <delete dir="${nbfx.build.dir}"/>
@@ -307,6 +327,7 @@ nbfx build harness — targets:
   overlay          sync/symlink the nbfx clusters into the submodule
   unoverlay        remove the overlay
   update-upstream  fetch a new submodule revision and re-apply patches
+  resync-source    pull the latest nbfx sources from the upstream source repo
   clean            remove overlay + generated files + submodule build outputs
   print-config     print the effective configuration
 

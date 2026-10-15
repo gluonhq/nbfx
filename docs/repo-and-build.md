@@ -110,6 +110,7 @@ ant build          # build the 'nbfx' cluster config
 ant run            # launch the FX app on the lean cluster set
 ant check-purity   # source/deps/bundled-class/packaging guardrails
 ant update-upstream -Dnbfx.submodule.commit=<sha>
+ant resync-source  # pull new nbfx sources from the source repo
 ant clean
 ```
 
@@ -135,6 +136,12 @@ Because the direct upstream dependency is a moving target, the model is:
 
 `update-upstream` performs: fetch → checkout the new revision → tear down the overlay → `patches-check`
 → `bootstrap`.
+
+The **nbfx sources themselves** originated in `gluon-netbeans-fx` and keep evolving there.
+`ant resync-source` fetches `nbfx.source.remote`/`nbfx.source.branch` (configure the remote once with
+`git remote add source https://github.com/gluonhq/netbeans`) and copies the current `nbfx-platform/`,
+`nbfx-ide/`, `nbfx-java/`, `check-purity.xml` and `docs/MVP.md` trees in — a tree-level sync, not a
+history merge. Review the diff and commit.
 
 ## 7. Verification
 
