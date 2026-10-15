@@ -96,13 +96,15 @@ final class SlideBar extends StackPane {
 
     private final Side side;
     private final SlidingArea owner;
-    private final Pane strip = newBox();
+    /** The groups, side by side along the bar: built once the side is known, so a top or bottom bar runs along. */
+    private final Pane strip;
     private final Map<TabPane, PaneGroup> groups = new LinkedHashMap<>();
     private Tab slid;
 
     SlideBar(Side side, SlidingArea owner) {
         this.side = side;
         this.owner = owner;
+        this.strip = newBox();
         getStyleClass().addAll("nbfx-slide-bar", side.name().toLowerCase());
         strip.getStyleClass().add("nbfx-slide-strip");
         getChildren().add(strip);
@@ -260,6 +262,8 @@ final class SlideBar extends StackPane {
         button.setTooltip(tooltip);
         button.hoverProperty().subscribe(hovered -> owner.buttonHovered(tab, hovered));
         button.setOnAction(_ -> owner.buttonPressed(tab));
+        // The tab's own context menu (Close, Dock, Maximize...), as on its header.
+        button.setContextMenu(tab.getContextMenu());
         return button;
     }
 

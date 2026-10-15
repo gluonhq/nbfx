@@ -35,6 +35,7 @@ import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
+import javafx.geometry.Pos;
 import javafx.geometry.Side;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
@@ -53,10 +54,12 @@ import javafx.scene.input.DragEvent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
+import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
@@ -113,6 +116,22 @@ public final class NbfxTabPane extends TabPane {
         public boolean isPermanent() {
             return this == MAIN || this == NAVIGATOR;
         }
+    }
+
+    /**
+     * The kind of a pane in the dock area, as a NetBeans mode is of the editor or the view kind: an
+     * {@link #EDITOR} pane can be maximized (its header carries Maximize Window), a {@link #VIEW}
+     * pane minimized to a sliding side (Minimize Window Group) - never both. The kind is the pane's,
+     * not its tabs': the editor pane stays maximizable with a tool view dragged into it, and an
+     * editor dragged next to the Projects pane joins a minimizable group. A pane docked next to an
+     * editor pane is an editor pane; one docked along a side of the area, or next to a view pane, a
+     * view pane.
+     */
+    public enum PaneKind {
+        /** A tool-window pane: minimizable. */
+        VIEW,
+        /** An editor pane: maximizable. */
+        EDITOR
     }
 
     /** Custom drag board data format used to identify internal tab drags. */
@@ -187,12 +206,16 @@ public final class NbfxTabPane extends TabPane {
     }
 
     private final PaneRole role;
+    private PaneKind kind;
     /**
-     * The control button at the right end of the header: Minimize Window Group, shown while the pane
-     * is in the dock area next to the editor pane, or Dock on the sliding panel's pane. It is a child
-     * of the control laid out here, over the header, as the skin knows nothing of it.
+     * The control button at the right end of the header: Minimize Window Group on a view pane in the
+     * dock area, Maximize Window / Restore Window on an editor pane in it, Dock on the sliding
+     * panel's pane. It is a child of the control laid out here, over the header, as the skin knows
+     * nothing of it.
      */
     private final Button headerButton;
+    /** What the editor pane shows while it holds no tab: an invitation to open a file; {@code null} on other panes. */
+    private final Label placeholder;
 
     /** The pane that last held focus, so the persisted layout can restore the active pane and window. */
     private static TabPane lastFocusedPane;
@@ -202,9 +225,15 @@ public final class NbfxTabPane extends TabPane {
         this(PaneRole.DETACHED);
     }
 
-    /** Creates a new pane with cross-pane drag and drop features and focus/active-document wiring. */
+    /** Creates a new pane of the kind its role implies: the editor pane an editor pane, any other a view pane. */
     public NbfxTabPane(PaneRole role) {
+        this(role, role == PaneRole.MAIN ? PaneKind.EDITOR : PaneKind.VIEW);
+    }
+
+    /** Creates a new pane with cross-pane drag and drop features and focus/active-document wiring. */
+    public NbfxTabPane(PaneRole role, PaneKind kind) {
         this.role = Objects.requireNonNull(role);
+        this.kind = Objects.requireNonNull(kind);
         setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         getStyleClass().add(TAB_PANE_CLASS);
         attachStylesheetWhenAttached(this);
@@ -222,25 +251,8 @@ public final class NbfxTabPane extends TabPane {
             lastPressShift = e.isShiftDown();
             lastPressAlt = e.isAltDown();
         });
-        if (role == PaneRole.SLIDE) {
-            headerButton = SlidingArea.iconButton("restore",
-                    NbBundle.getMessage(NbfxTabPane.class, "SlidePanel.dock.tooltip"));
-            headerButton.setOnAction(e -> {
-                SlidingArea slides = Docking.slides();
-                if (slides != null) {
-                    slides.dock(getSelectionModel().getSelectedItem());
-                }
-            });
-        } else {
-            headerButton = SlidingArea.iconButton("minimize",
-                    NbBundle.getMessage(NbfxTabPane.class, "Tab.minimizeGroup.tooltip"));
-            headerButton.setOnAction(e -> {
-                SlidingArea slides = Docking.slides();
-                if (slides != null) {
-                    slides.minimize(this);
-                }
-            });
-        }
+        headerButton = SlidingArea.iconButton("minimize", "");
+        headerButton.setOnAction(e -> headerButtonPressed());
         headerButton.getStyleClass().add("nbfx-header-button");
         headerButton.setManaged(false);
         headerButton.setVisible(false);
@@ -257,23 +269,109 @@ public final class NbfxTabPane extends TabPane {
         // The permanent panes join the area's split before the area is published: check again
         // once the pane is in a scene.
         sceneProperty().subscribe(scene -> updateHeaderButton());
+        if (role == PaneRole.MAIN) {
+            placeholder = new Label(NbBundle.getMessage(NbfxTabPane.class, "Tab.editor.placeholder"));
+            placeholder.getStyleClass().add("nbfx-editor-placeholder");
+            placeholder.setAlignment(Pos.CENTER);
+            placeholder.setWrapText(true);
+            placeholder.setManaged(false);
+            placeholder.setMouseTransparent(true);
+            getChildren().add(placeholder);
+        } else {
+            placeholder = null;
+        }
+        // An editor pane without tabs has nothing to maximize, and the editor pane then shows its placeholder.
+        getTabs().addListener((ListChangeListener<Tab>) change -> updateHeaderButton());
+        updateHeaderButton();
+    }
+
+    /** The kind of this pane; see {@link PaneKind}. */
+    public PaneKind getKind() {
+        return kind;
+    }
+
+    /** Makes this pane an editor or a view pane; its header button follows. */
+    public void setKind(PaneKind kind) {
+        this.kind = Objects.requireNonNull(kind);
+        updateHeaderButton();
+    }
+
+    /** The kind of {@code pane}: a view pane unless it is an {@code NbfxTabPane} that says otherwise. */
+    public static PaneKind kindOf(TabPane pane) {
+        return pane instanceof NbfxTabPane nbfx ? nbfx.kind : PaneKind.VIEW;
+    }
+
+    /** The header button's action: Dock, Minimize Window Group, or Maximize / Restore Window. */
+    private void headerButtonPressed() {
+        SlidingArea slides = Docking.slides();
+        if (slides == null) {
+            return;
+        }
+        if (role == PaneRole.SLIDE) {
+            slides.dock(getSelectionModel().getSelectedItem());
+        } else if (kind == PaneKind.VIEW) {
+            slides.minimize(this);
+        } else {
+            slides.toggleMaximize(getSelectionModel().getSelectedItem());
+        }
     }
 
     /**
-     * Shows the header button: always on the sliding panel's pane (Dock); on any other pane while it
-     * is in the dock area and is not the editor pane (Minimize Window Group).
+     * Shows the header button and gives it its role: Dock, always, on the sliding panel's pane;
+     * Minimize Window Group on a view pane while it is in the dock area and is not the editor pane;
+     * Maximize Window on an editor pane in the area, Restore Window on the maximized one.
      */
     private void updateHeaderButton() {
         DockArea<TabPane> area = Docking.area();
-        boolean shown = role == PaneRole.SLIDE
-                || (area != null && area.contains(this) && this != area.mainPane());
+        boolean inArea = area != null && area.contains(this);
+        String glyph;
+        String tooltip;
+        boolean shown;
+        if (role == PaneRole.SLIDE) {
+            glyph = "restore";
+            tooltip = "SlidePanel.dock.tooltip";
+            shown = true;
+        } else if (kind == PaneKind.VIEW) {
+            glyph = "minimize";
+            tooltip = "Tab.minimizeGroup.tooltip";
+            shown = inArea && this != area.mainPane();
+        } else {
+            boolean maximized = inArea && area.isMaximized() && area.maximizedPane() == this;
+            glyph = maximized ? "restore" : "maximize";
+            tooltip = maximized ? "Tab.restoreWindow.tooltip" : "Tab.maximize.tooltip";
+            shown = inArea && !getTabs().isEmpty();
+        }
+        if (placeholder != null) {
+            placeholder.setVisible(getTabs().isEmpty());
+        }
+        if (headerButton.getGraphic() instanceof Region icon) {
+            icon.getStyleClass().removeAll("minimize", "maximize", "restore");
+            icon.getStyleClass().add(glyph);
+        }
+        Tooltip tip = headerButton.getTooltip();
+        if (tip != null) {
+            tip.setText(NbBundle.getMessage(NbfxTabPane.class, tooltip));
+        }
         pseudoClassStateChanged(HEADER_CONTROL, shown);
         headerButton.setVisible(shown);
+    }
+
+    /** Refreshes every pane's header button, after a pane was maximized or restored. */
+    static void refreshHeaderButtons() {
+        for (TabPane pane : TAB_PANES) {
+            if (pane instanceof NbfxTabPane nbfx) {
+                nbfx.updateHeaderButton();
+            }
+        }
     }
 
     @Override
     protected void layoutChildren() {
         super.layoutChildren();
+        if (placeholder != null && placeholder.isVisible()) {
+            placeholder.resizeRelocate(0, 0, getWidth(), getHeight());
+            placeholder.toFront();
+        }
         if (headerButton.isVisible()) {
             double x = getWidth() - snappedRightInset() - HEADER_BUTTON_SIZE - 4;
             double y = snappedTopInset() + (TAB_HEADER_HEIGHT - HEADER_BUTTON_SIZE) / 2;
@@ -340,15 +438,17 @@ public final class NbfxTabPane extends TabPane {
         if (active != null) {
             Optional<Tab> tab = findTab(active);
             TabPane pane = tab.map(Tab::getTabPane).orElse(null);
-            // A minimized pane, or the panel its tab slides in to, is no place to open files in: as
-            // in NetBeans, they go to the editor area.
+            // A minimized pane, the panel its tab slides in to, or a pane set aside by a maximized
+            // one is no place to open files in: as in NetBeans, they go to the editor area showing.
+            DockArea<TabPane> area = Docking.area();
+            boolean showing = roleOf(pane) == PaneRole.DETACHED ? !dockedOnly : area == null || area.contains(pane);
             if (pane != null && TAB_PANES.contains(pane) && !isMinimized(pane) && roleOf(pane) != PaneRole.SLIDE
-                    && (!dockedOnly || roleOf(pane) != PaneRole.DETACHED)) {
+                    && showing) {
                 return pane;
             }
         }
         DockArea<TabPane> area = Docking.area();
-        if (area != null && area.isPrimaryHidden(mainPane)) {
+        if (area != null && !area.contains(mainPane)) {
             for (TabPane pane : area.leaves()) {
                 if (roleOf(pane) == PaneRole.DOCKED && !documentsOf(pane).isEmpty()) {
                     return pane;
@@ -738,9 +838,11 @@ public final class NbfxTabPane extends TabPane {
                 if (target == null) {
                     int dropIndex = TabDropIndicator.getDropIndex(tabPane, e.getX());
                     applyDrop(tabPane, dragged, dropIndex);
+                    Docking.logLayout("dropping a tab on a pane");
                 } else {
                     TabDropIndicator.hide(tabPane);
                     selectTabAndMoveToFront(dock(dragged, target), dragged);
+                    Docking.logLayout("dropping a tab on a dock edge");
                 }
                 return true;
             }).orElse(false);
@@ -904,6 +1006,10 @@ public final class NbfxTabPane extends TabPane {
             slides.slideIn(Objects.requireNonNull(tab));
             return;
         }
+        if (slides != null && slides.isSetAside(tabPane)) {
+            // The pane is behind a maximized one: showing a tab of it ends the maximized state.
+            slides.restoreMaximized();
+        }
         Objects.requireNonNull(tabPane).getSelectionModel().select(Objects.requireNonNull(tab));
         if (tabPane.getScene() != null && tabPane.getScene().getWindow() instanceof Stage stage) {
             stage.toFront();
@@ -917,6 +1023,16 @@ public final class NbfxTabPane extends TabPane {
         if (!label.getStyleClass().contains(TAB_HEADER_CLASS)) {
             label.getStyleClass().add(TAB_HEADER_CLASS);
         }
+        // Double-clicking a tab maximizes it, or restores the layout when it is the maximized one.
+        label.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2) {
+                SlidingArea slides = Docking.slides();
+                if (slides != null) {
+                    slides.toggleMaximize(tab);
+                    e.consume();
+                }
+            }
+        });
 
         label.setOnDragDetected(e -> {
             String id = UUID.randomUUID().toString();

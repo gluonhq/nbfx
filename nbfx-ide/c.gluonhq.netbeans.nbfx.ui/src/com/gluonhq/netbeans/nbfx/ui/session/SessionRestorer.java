@@ -120,6 +120,14 @@ public final class SessionRestorer {
      * (pruned) tree it goes back to.
      */
     private void captureLayout() {
+        SlidingArea slides = Docking.slides();
+        // The layout persisted is the one with nothing maximized - the maximized pane is noted and
+        // maximized again on restore - so the shape it set aside comes back first. Captured at exit,
+        // so the change is not seen.
+        TabPane maximized = slides == null ? null : slides.maximizedPane();
+        if (maximized != null) {
+            slides.restoreMaximized();
+        }
         Map<TabPane, PaneLayout> captured = new LinkedHashMap<>();
         Set<TabPane> skipped = new HashSet<>();
         for (TabPane pane : NbfxTabPane.panesByRole()) {
@@ -138,7 +146,6 @@ public final class SessionRestorer {
             dock = area.tree().retainLeaves(i -> !skipped.contains(leaves.get(i)));
             keptLeaves = leaves.stream().filter(leaf -> !skipped.contains(leaf)).toList();
         }
-        SlidingArea slides = Docking.slides();
         TabPane focusedPane = NbfxTabPane.focusedPane();
         List<TabPane> capturedPanes = new ArrayList<>(captured.keySet());
         List<PaneLayout> panes = new ArrayList<>();
@@ -154,7 +161,7 @@ public final class SessionRestorer {
             }
             panes.add(layout);
         }
-        appState.setSessionLayout(new Layout(panes, focused, dock));
+        appState.setSessionLayout(new Layout(panes, focused, dock, capturedPanes.indexOf(maximized)));
         int focusedIndex = focused;
         LOG.info(() -> "Captured layout: " + panes.size() + " panes, focused index " + focusedIndex
                 + " (" + (focusedIndex >= 0 ? panes.get(focusedIndex).role() : "none") + ")");
@@ -195,7 +202,7 @@ public final class SessionRestorer {
             return new PaneLayout(role, stage.getX(), stage.getY(),
                     stage.getWidth(), stage.getHeight(), tabs, activeIndex);
         }
-        return PaneLayout.docked(role, tabs, activeIndex);
+        return PaneLayout.docked(role, tabs, activeIndex).withKind(NbfxTabPane.kindOf(pane));
     }
 
     /**
@@ -208,11 +215,12 @@ public final class SessionRestorer {
             List<TabPane> leaves, List<TabPane> panes) {
         Anchor<TabPane> anchor = area == null ? null : area.anchorOf(pane);
         int leaf = anchor == null ? Minimized.NO_ANCHOR : leaves.indexOf(anchor.leaf());
+        int far = anchor == null || leaf < 0 ? Minimized.NO_ANCHOR : leaves.indexOf(anchor.farLeaf());
         int other = anchor == null || leaf >= 0 || !slides.isMinimized(anchor.leaf())
                 ? Minimized.NO_ANCHOR : panes.indexOf(anchor.leaf());
         boolean anchored = leaf >= 0 || other >= 0;
         return new Minimized(slides.sideOf(pane), slides.sizeOf(pane), leaf,
-                anchored ? anchor.side() : null, anchor == null ? Double.NaN : anchor.share(), other);
+                anchored ? anchor.side() : null, anchor == null ? Double.NaN : anchor.share(), other, far);
     }
 
     /** The persistable descriptor of {@code tab}, or {@code null} if it carries no stable id. */
@@ -379,6 +387,10 @@ public final class SessionRestorer {
                 if (active != null) {
                     target.getSelectionModel().select(active);
                 }
+                if (target instanceof NbfxTabPane nbfx && pane.role() == PaneRole.DOCKED) {
+                    // An editor group split off the editor pane stays maximizable, not minimizable.
+                    nbfx.setKind(pane.kind());
+                }
                 if (pane == focusedPane) {
                     focusTarget = target;
                 }
@@ -386,7 +398,25 @@ public final class SessionRestorer {
         }
         anchorMinimizedToEachOther(layout, minimizedTargets);
         closeUnplacedViewTabs(placed);
+        maximizeRecorded(layout, dockedTargets);
+        Docking.logLayout("restoring the session");
         return focusTarget;
+    }
+
+    /** Maximizes again the pane the layout had maximized, once every pane is in place. */
+    private static void maximizeRecorded(Layout layout, Map<PaneLayout, TabPane> dockedTargets) {
+        PaneLayout recorded = layout.maximizedPane();
+        SlidingArea slides = Docking.slides();
+        if (recorded == null || slides == null || recorded.role() == PaneRole.DETACHED || recorded.isMinimized()) {
+            return;
+        }
+        TabPane target = dockedTargets.containsKey(recorded)
+                ? dockedTargets.get(recorded)
+                : NbfxTabPane.paneWithRole(recorded.role());
+        Tab selected = target == null ? null : target.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            slides.maximize(selected);
+        }
     }
 
     /**
@@ -434,8 +464,10 @@ public final class SessionRestorer {
         Anchor<TabPane> anchor = null;
         if (shaped.recordedShape() && state.anchorIndex() >= 0 && state.anchorIndex() < shaped.leaves().size()) {
             TabPane leaf = shaped.leaves().get(state.anchorIndex());
+            TabPane far = state.anchorFar() >= 0 && state.anchorFar() < shaped.leaves().size()
+                    ? shaped.leaves().get(state.anchorFar()) : leaf;
             if (leaf != target) {
-                anchor = new Anchor<>(leaf, state.anchorSide(), state.anchorShare());
+                anchor = new Anchor<>(leaf, far == target ? leaf : far, state.anchorSide(), state.anchorShare());
             }
         }
         slides.minimize(target, state.side(), state.size(), anchor);

@@ -4,10 +4,13 @@ import com.gluonhq.netbeans.nbfx.api.view.DockLocation;
 import com.gluonhq.netbeans.nbfx.api.view.FxArea;
 import com.gluonhq.netbeans.nbfx.docking.DockArea;
 import com.gluonhq.netbeans.nbfx.docking.DockHost;
+import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane.PaneKind;
 import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane.PaneRole;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedMap;
+import java.util.logging.Logger;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -34,6 +37,14 @@ public final class Docking implements DockHost<TabPane> {
     @Deprecated
     public static final double DEFAULT_NAVIGATOR_SHARE = FxArea.EXPLORER.weight();
 
+    private static final Logger LOG = Logger.getLogger(Docking.class.getName());
+
+    /**
+     * Debug: whether {@link #logLayout} prints the layout at INFO after every change, while the
+     * window system is being worked on. Set to {@code true} for debugging purposes.
+     */
+    static final boolean LOG_LAYOUT = false;
+
     private static DockArea<TabPane> area;
     /** The area with the sliding sides around it: what the window shows. */
     private static SlidingArea slides;
@@ -59,7 +70,7 @@ public final class Docking implements DockHost<TabPane> {
             panes.put(role.name(), primary);
         }
         List<Double> dividers = panes.size() == 2 ? List.of(FxArea.EXPLORER.weight()) : List.of();
-        area = new DockArea(new Docking(), panes, dividers);
+        area = new DockArea<>(new Docking(), panes, dividers);
         slides = new SlidingArea(area);
         return area;
     }
@@ -67,6 +78,37 @@ public final class Docking implements DockHost<TabPane> {
     /** The application's area, or {@code null} before it is created (or headless). */
     public static DockArea<TabPane> area() {
         return area;
+    }
+
+    /**
+     * Logs the layout after {@code what} happened, at INFO while {@link #LOG_LAYOUT} is on: the
+     * area's tree with each pane's role, kind and tab titles, the maximized pane, and the minimized
+     * panes with their sides.
+     */
+    public static void logLayout(String what) {
+        if (!LOG_LAYOUT || area == null) {
+            return;
+        }
+        StringBuilder text = new StringBuilder("Layout after ").append(what).append(":\n");
+        text.append(area.printTree(Docking::describe));
+        if (area.isMaximized()) {
+            text.append("maximized: ").append(describe(area.maximizedPane())).append('\n');
+        }
+        for (TabPane minimized : area.minimizedPanes()) {
+            text.append("minimized ").append(slides == null ? "" : slides.sideOf(minimized)).append(": ")
+                    .append(describe(minimized)).append('\n');
+        }
+        LOG.info(text.toString());
+    }
+
+    /** {@code pane} as {@code ROLE/KIND [tab titles]}, a slid-in tab counted with its group. */
+    private static String describe(TabPane pane) {
+        List<String> titles = new ArrayList<>();
+        List<Tab> tabs = slides != null && slides.isMinimized(pane) ? slides.tabsOf(pane) : pane.getTabs();
+        for (Tab tab : tabs) {
+            titles.add(NbfxTabPane.titleOf(tab));
+        }
+        return NbfxTabPane.roleOf(pane) + "/" + NbfxTabPane.kindOf(pane) + " " + titles;
     }
 
     /**
@@ -119,6 +161,17 @@ public final class Docking implements DockHost<TabPane> {
         return new NbfxTabPane(PaneRole.DOCKED);
     }
 
+    /**
+     * A pane split off an editor pane (a drop on its edge, New Document Tab Group) is an editor pane;
+     * one split off a view pane, docked along the area, or created for a dock location (Output below
+     * the editors, through {@link #paneAt}) is a view pane.
+     */
+    @Override
+    public TabPane createDockedPane(TabPane beside) {
+        PaneKind kind = beside != null && NbfxTabPane.kindOf(beside) == PaneKind.EDITOR ? PaneKind.EDITOR : PaneKind.VIEW;
+        return new NbfxTabPane(PaneRole.DOCKED, kind);
+    }
+
     @Override
     public void disposeDockedPane(TabPane pane) {
         NbfxTabPane.unregister(pane);
@@ -134,6 +187,12 @@ public final class Docking implements DockHost<TabPane> {
     public ObservableValue<Boolean> isEmpty(TabPane pane) {
         return Bindings.createBooleanBinding(() -> pane.getTabs().isEmpty() && lending.get() != pane,
                 pane.getTabs(), lending);
+    }
+
+    /** The editor pane's area is made of editor panes: those an emptied editor pane takes over, and what Output goes below. */
+    @Override
+    public boolean belongsToMainArea(TabPane pane) {
+        return NbfxTabPane.kindOf(pane) == PaneKind.EDITOR;
     }
 
     @Override

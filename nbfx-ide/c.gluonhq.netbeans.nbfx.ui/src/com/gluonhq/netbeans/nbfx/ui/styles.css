@@ -516,6 +516,9 @@
 .nbfx-glyph.minimize {
     -fx-shape: "M 3 11.5 H 13 V 13.5 H 3 Z";
 }
+.nbfx-glyph.maximize {
+    -fx-shape: "M 3 3 H 13 V 13 H 3 Z M 4 4 V 12 H 12 V 4 Z";
+}
 .nbfx-glyph.restore {
     -fx-shape: "M 3 6 H 6 V 7 H 3 Z M 3 6 H 4 V 13 H 3 Z M 3 12 H 10 V 13 H 3 Z M 9 10 H 10 V 13 H 9 Z M 6 3 H 13 V 10 H 6 Z M 7 4 V 9 H 12 V 4 Z";
 }
@@ -528,6 +531,13 @@
 
 .nbfx-tab-pane:header-control > .tab-header-area {
     -fx-padding: 0em 28 0.0em 0.416667em;
+}
+
+/* The editor pane while it holds no tab. */
+.nbfx-editor-placeholder {
+    -fx-text-fill: #8A8A8A;
+    -fx-font-size: 14px;
+    -fx-padding: 0 24 0 24;
 }
 
 .nbfx-slide-bar {

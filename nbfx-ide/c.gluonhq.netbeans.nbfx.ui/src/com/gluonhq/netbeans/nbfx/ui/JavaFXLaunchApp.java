@@ -887,26 +887,37 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     }
 
     /**
-     * Restores the default layout: re-docks every detached window and docked pane back into the
-     * main/navigator panes, moves each tab back to its home pane (navigator tabs to the navigator
-     * pane, editor tabs to the main pane, other views to their default location), restores any closed
-     * navigator tab in default order (Projects selected), and restores the default arrangement of the
-     * navigator and editor panes.
+     * Restores the default layout, the way NetBeans' Reset Windows puts every window back in its
+     * default mode: the layout is first collapsed to the default arrangement of the navigator and
+     * editor panes - the maximized pane restored, the minimized groups brought back, the detached
+     * windows closed, every docked pane disposed of - and then each tab goes to its default place:
+     * editors to the editor pane, the navigators to the navigator pane in registration order
+     * (Projects selected), every other view to its registered dock location, which recreates the
+     * panes below the two (the Navigator window below Projects, Output below the editors). Closed
+     * default views are shown again.
      */
     private void resetWindows() {
         ContentManager cm = contentManager();
         TabPane mainPane = cm instanceof ContentManagerImpl cmi ? (TabPane) cmi.getMainPane() : null;
-        if (mainPane != null) {
-            NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab));
-            // Editor tabs dragged into the navigator pane belong back in the editor pane.
-            for (Tab tab : List.copyOf(navigatorPane.getTabs())) {
-                if (NbfxTabPane.documentOf(tab) != null) {
-                    NbfxTabPane.moveTab(mainPane, tab, mainPane.getTabs().size());
+        if (mainPane == null) {
+            return;
+        }
+        // 1. The default shape: the two permanent panes only. The detached windows empty into them
+        //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
+        //    and moves the docked panes' content into the editor pane.
+        NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
+        dockArea.applyTree(dockArea.defaultTree());
+        // 2. Every tab to its default place. A view's default location below one of the permanent
+        //    panes creates its pane now, in the default shape, where it stays.
+        for (TabPane pane : List.of(navigatorPane, mainPane)) {
+            for (Tab tab : List.copyOf(pane.getTabs())) {
+                TabPane home = NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab);
+                if (home != null && home != tab.getTabPane()) {
+                    NbfxTabPane.moveTab(home, tab, home.getTabs().size());
                 }
             }
         }
-        // Reuse the live tab of each provider wherever it currently sits (it may have been dragged
-        // into the editor pane), so no emptied duplicate is left behind there.
+        // The navigators in registration order, Projects first and selected.
         int index = 0;
         for (ViewProvider provider : providers) {
             Tab tab = viewTabFor(provider.getId());
@@ -917,8 +928,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         if (!navigatorPane.getTabs().isEmpty()) {
             navigatorPane.getSelectionModel().select(0);
         }
-        dockArea.applyTree(dockArea.defaultTree());
         showDefaultViews();
+        Docking.logLayout("Reset Windows");
     }
 
     /**

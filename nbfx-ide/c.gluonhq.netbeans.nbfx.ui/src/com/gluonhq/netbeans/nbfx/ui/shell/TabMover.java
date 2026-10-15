@@ -201,6 +201,7 @@ final class TabMover {
                 Candidate chosen = candidates.get(current);
                 end();
                 onConfirm.accept(chosen);
+                Docking.logLayout("a keyboard move");
             }
             case ESCAPE -> end();
             default -> {

@@ -18,6 +18,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @FxViewRegistration(id = UsagesViewProvider.ID, displayName = "Usages",
+        iconName = "com/gluonhq/netbeans/nbfx/findusages/ui/icons/findusages.png",
         location = FxViewLocation.CENTER_BOTTOM, position = 20)
 public final class UsagesViewProvider implements ViewProvider {
 

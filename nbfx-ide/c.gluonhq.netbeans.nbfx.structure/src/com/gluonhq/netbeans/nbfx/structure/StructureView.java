@@ -42,7 +42,7 @@ import org.openide.util.lookup.ServiceProvider;
 @FxViewRegistration(id = StructureView.ID, displayName = "#StructureView.title",
         iconName = "com/gluonhq/netbeans/nbfx/structure/navigator.png",
         location = FxViewLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
-@FxActionReference(id = ActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 45)
+@FxActionReference(id = ActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 50)
 public final class StructureView implements ViewProvider {
 
     /** The stable id of the view. */

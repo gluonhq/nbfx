@@ -24,6 +24,7 @@ import com.gluonhq.netbeans.nbfx.ui.session.AppState.PaneLayout;
 import com.gluonhq.netbeans.nbfx.ui.session.AppState.PaneLayout.Minimized;
 import com.gluonhq.netbeans.nbfx.ui.session.AppState.TabEntry;
 import com.gluonhq.netbeans.nbfx.ui.session.AppState.TabKind;
+import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane;
 import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane.PaneRole;
 import java.util.List;
 import javafx.geometry.Side;
@@ -84,6 +85,36 @@ public class AppStateLayoutTest {
         assertEquals(pane.minimized(), read.minimized());
         assertTrue(read.minimized().hasAnchor());
         assertEquals(3, read.minimized().anchorPane());
+    }
+
+    @Test
+    public void editorKindOfADockedPaneRoundTrips() {
+        PaneLayout pane = PaneLayout.docked(PaneRole.DOCKED, List.of(EDITOR), 0).withKind(NbfxTabPane.PaneKind.EDITOR);
+
+        PaneLayout read = AppState.parsePane(AppState.serialize(pane));
+
+        assertNotNull(read);
+        assertEquals(NbfxTabPane.PaneKind.EDITOR, read.kind());
+        assertTrue("the kind is written only when it is not the role's default",
+                AppState.serialize(pane).startsWith("DOCKED#EDITOR\t"));
+        assertEquals("a docked pane is a view pane unless the layout says otherwise",
+                NbfxTabPane.PaneKind.VIEW, AppState.parsePane("DOCKED\tNaN\tNaN\tNaN\tNaN\t0\tVIEW\rprojects\r0\r0\r0").kind());
+        assertEquals(NbfxTabPane.PaneKind.EDITOR, PaneLayout.docked(PaneRole.MAIN, List.of(EDITOR), 0).kind());
+    }
+
+    @Test
+    public void anchorNextToARowOfPanesRoundTrips() {
+        PaneLayout pane = PaneLayout.docked(PaneRole.DOCKED, List.of(PROJECTS), 0)
+                .withMinimized(new Minimized(Side.BOTTOM, 180, 2, Side.BOTTOM, 0.35, Minimized.NO_ANCHOR, 1));
+
+        PaneLayout read = AppState.parsePane(AppState.serialize(pane));
+
+        assertNotNull(read);
+        assertEquals(pane.minimized(), read.minimized());
+        assertEquals(1, read.minimized().anchorFar());
+        assertEquals("a line without the far leaf reads as anchored to a single pane", Minimized.NO_ANCHOR,
+                AppState.parsePane("DOCKED@BOTTOM@180.0@2@BOTTOM@0.35@-1\tNaN\tNaN\tNaN\tNaN\t0\tVIEW\rprojects\r0\r0\r0")
+                        .minimized().anchorFar());
     }
 
     @Test

@@ -1374,17 +1374,19 @@ tab header of every pane docked next to the editor pane (never the editor pane i
 into it loses the button, an editor group dragged next to it gains one); clicking it collapses the
 pane to a group of buttons - *Restore Window Group*, then one button per tab with its icon and its
 title written along the bar - in a bar along the edge the pane was nearest to (left, right or bottom,
-judged against the editor pane exactly as `DefaultView.guessSlideSide` does, plus the top for a pane
-above the editors, a side NetBeans does not slide to); hovering a button
+judged against the editor pane as `DefaultView.guessSlideSide` does but from the dock tree,
+`DockArea.sideOf`, since screen bounds lag behind a layout change; plus the top for a pane above
+the editors, a side NetBeans does not slide to); hovering a button
 slides the tab's content in over the area after 200 ms and out 400 ms after the mouse leaves;
 clicking it slides the tab in to stay, with the focus, until the focus leaves it, the mouse is
 pressed elsewhere or Escape; the slid-in panel's header offers *Dock* (that one tab back, the
 rest of the group staying minimized) and *Close*, and its inner edge drags to resize.
 
 - **Model: `nbfx.docking`.** `DockArea.minimize(pane)` takes any pane but the main one out of the
-  tree with its components, remembering an `Anchor` (the neighbouring leaf, the side, and the share
-  of their joint space it had - the same anchor an emptied permanent pane now records, so it also
-  comes back at its former size); `restore(pane)` puts it back there, or along the area's edge when
+  tree with its components, remembering an `Anchor` (the former neighbour - a pane or a whole split,
+  kept as its two outermost leaves so a pane that sat below a row of editors comes back below the
+  row, not below one of them - the side, and the share of their joint space it had; the same anchor
+  an emptied permanent pane now records, so it also comes back at its former size); `restore(pane)` puts it back there, or along the area's edge when
   the leaf is gone; `minimizedPanes()` is an observable list the host follows; `anchorOf` tells where
   a pane goes back. An `Anchor.into(leaf)` makes a single component minimized out of a pane rejoin
   it. An anchor to a leaf that is out itself (Projects/Files and the Navigator below it both
@@ -1434,12 +1436,19 @@ rest of the group staying minimized) and *Close*, and its inner edge drags to re
   their Window-menu items use (`projectTab.png`/`filesTab.png`, now resources of
   `nbfx.project.ui.java` beside their views), and Output its own (`output.png` on the view,
   `output-16.png` on `SelectOutputCommand.getIcon()` for *Window ▸ Output*, both in `nbfx.output`,
-  the pattern `SelectNavigatorCommand` set) - unlike NetBeans, which hides the icon on a view tab
-  until it slides in or is dragged elsewhere, a tab keeps its icon wherever it shows.
+  the pattern `SelectNavigatorCommand` set; *Window ▸ Usages* and *Window ▸ Search Results* (the
+  16 px Find icon of the tool bar, `find-16.png`, also on the view's tab) the same way, and
+  *Window ▸ Editor*, which NetBeans leaves without one, the Tango text-editor icon of
+  `ide/texttools` as `editorTab-16.png` in the shell's icon table) - unlike NetBeans, which hides
+  the icon on a view tab until it slides in or is dragged elsewhere, a tab keeps its icon wherever
+  it shows. The Window menu's window items are ordered by shortcut: Editor (⌘0, position 5),
+  Projects (⌘1, 10), Files (⌘2, 20), Usages (⌘3, 30), Search Results (⌘4, 40), Navigator (⌘7, 50),
+  Output (⌘8, 55; the shortcut is new, NetBeans uses ⌘4 for it), then Versioning (56), which has
+  none.
 - **Persistence.** `AppState.PaneLayout` gained `Minimized(side, size, anchorIndex, anchorSide,
   anchorShare, anchorPane)`, serialized into the role field (`DOCKED@LEFT@250.0@1@BOTTOM@0.35@-1`;
-  `INTO` for an anchor into a leaf; `anchorPane` indexes the layout's panes when the anchor is
-  another minimized pane, set in a second pass of `applyLayout` once every minimized pane exists;
+  `INTO` for an anchor into a leaf; `anchorFar` the far leaf of a neighbour split; `anchorPane`
+  indexes the layout's panes when the anchor is another minimized pane, set in a second pass of `applyLayout` once every minimized pane exists;
   old lines read as showing panes; the editor and detached panes never read as minimized). `Layout.dockedPanes()` excludes minimized panes (they are not tree leaves);
   `withoutEditors` remaps the anchor indexes to the pruned tree. `SessionRestorer` captures the
   state from `SlidingArea`/`DockArea.anchorOf` (anchor = index of the leaf among the persisted
@@ -1449,8 +1458,8 @@ rest of the group staying minimized) and *Close*, and its inner edge drags to re
   close; `.nbfx-slide-bar`, `.nbfx-slide-button`, `.nbfx-slide-panel`), kept to the tab-header
   palette; proper theming later, as with the Navigator.
 - **Deferred:** dragging the slide *buttons* themselves (the slid-in tab's header already drags)
-  and dropping tabs on a bar; a context menu on the slide buttons; Maximize; the slide-in
-  animation is a short fade rather than a slide.
+  and dropping tabs on a bar; the slide-in animation is a short fade rather than a slide. The
+  slide buttons now show the tab's own context menu, and Maximize is §25.
 - **Verification:** `nbfx.docking` got a headless unit-test setup (same `glass.platform=Headless`
   properties as `nbfx.api`) and `DockAreaTest` (10: leave/return with share, docked pane below the
   navigator, disposal when emptied, anchor into a pane, minimized primary ignoring content, empty
@@ -1463,6 +1472,96 @@ rest of the group staying minimized) and *Close*, and its inner edge drags to re
   docking tabs one by one back into one pane, the slid-in tab's header dragging to other panes and
   windows, the four sides; persistence across a restart with both left groups minimized still to
   be confirmed.
+
+---
+
+## 25. Maximize window (editor panes)
+
+The counterpart of §24, as NetBeans maximizes an editor (`Central.userMaximized*`, the
+`maximize`/`restore` buttons of the editor tab displayer): a tab is maximized by double-clicking its
+header, from *Maximize* in its context menu (which reads *Restore Window* while it is the maximized
+one) or the *Window ▸ Configure Window* submenu, or with the *Maximize Window* button at the right end
+of an editor pane's header (a single square; a double square and *Restore Window* once maximized).
+Its pane fills the dock area; the view panes showing around it are minimized to the sliding sides,
+the other editor panes set aside. Double-clicking the tab again, the button or the menu restore the
+layout and bring the view panes minimized for it back (those the user restored meanwhile stay where
+they were put). Any change to the shape while maximized - a tab dropped on a dock edge, New
+Document Tab Group, a keyboard move, a view opening at a dock location, a pane minimized - restores
+the layout first and then applies, so dragging a tab out of a maximized two-tab pane ends the
+maximized state and splits the pane in the full layout.
+
+- **Pane kinds.** A pane is of the `EDITOR` or the `VIEW` kind (`NbfxTabPane.PaneKind`), as a
+  NetBeans mode is: an editor pane carries Maximize Window, a view pane Minimize Window Group, never
+  both, and the kind is the pane's rather than its tabs' (the editor pane keeps its button with a tool
+  view dragged in; an editor dragged next to Projects joins a minimizable group). The editor pane is
+  an editor pane; a pane docked next to an editor pane is an editor pane (New Document Tab Group, a
+  drop on the editor pane's edge), one docked along the area, next to a view pane, or created for a
+  dock location (`DockArea.paneBelow`: Output, Usages, Search below the editors) a view pane -
+  `DockHost.createDockedPane(beside)`, which `Docking` implements, carries the neighbour, and
+  `paneBelow` asks for a pane beside nothing. Any tab may
+  nonetheless be maximized (a tab of a minimized group is docked back first). The kind of a docked
+  pane persists as `DOCKED#EDITOR` in the layout line.
+- **Model: `DockArea.maximize`/`unmaximize`.** The maximized pane becomes the area's root; the shape
+  it leaves is kept aside with a placeholder in the pane's slot (`isSetAside`), its panes intact but
+  out of the scene; `unmaximize` puts the visible part back into the slot. The area ends the
+  maximized state itself ahead of any change to its shape (`split`, `splitArea`, `relocate`,
+  `edgePane`, `paneBelow`, maximizing another pane, `applyTree`, the maximized pane emptying) and
+  publishes it through `maximizedPaneProperty()`, which the shell follows to bring the view panes
+  back; a permanent pane that emptied while set aside hides when the shape comes back. A set-aside pane is
+  neither in the area nor hidden (`isPrimaryHidden` is false for it, so content arriving does not
+  pull it into the visible shape), and it cannot be minimized.
+- **Shell: `SlidingArea.maximize`/`toggleMaximize`/`restoreMaximized`.** Minimizes the minimizable
+  panes around the target (remembering them), then maximizes; whenever the area's maximized pane
+  goes back to `null` - asked to, or ahead of a layout change - the view panes minimized for it are
+  restored, the last minimized first, since each anchor describes the shape as it was when that pane
+  left (restoring Projects before Output would join the editor row's split, which had become the
+  root, and send Output below the whole window). Minimizing a pane while maximized restores first; revealing a tab of a set-aside pane
+  (`selectTabAndMoveToFront`) restores too, and `editorHome` never opens files into a set-aside
+  pane. **Temporary:** `Docking.logLayout` prints the layout (tree with roles, kinds and tab titles,
+  the maximized pane, the minimized panes and their sides) at INFO after every layout change -
+  drops, New/Collapse Document Tab Group, keyboard moves, minimize/restore/dock, maximize/restore,
+  Reset Windows, session restore - while the window system is being worked on; `Docking.LOG_LAYOUT`
+  switches it off. The header button of `NbfxTabPane` now
+  follows the kind and the maximized state (`refreshHeaderButtons`).
+- **Persistence.** The layout persisted is the one with nothing maximized (`captureLayout` restores
+  at exit, which is not seen) plus the index of the maximized pane in the layout header; on restore,
+  `maximizeRecorded` maximizes that pane's selected tab again once every pane is in place, which
+  minimizes the view panes again.
+- **Reset Windows** (`JavaFXLaunchApp.resetWindows`) now works as NetBeans' does: the layout is
+  first collapsed to the default two-pane shape (`applyTree`, which restores the maximized and
+  minimized panes and empties the docked panes into the editor pane; the detached windows are
+  emptied too), then every tab goes to its default place - editors to the editor pane, navigators to
+  the navigator pane in registration order, any other view to its registered dock location, which
+  recreates the pane below Projects or below the editors. Before, the second step was missing, so a
+  view that lived in a docked pane (the Navigator window, Output) came out of a reset as an editor
+  tab.
+- **The editor pane's area** (`DockHost.belongsToMainArea`, which `Docking` answers for editor
+  panes): the editor pane and the editor groups in the horizontal splits around it. An emptied
+  editor pane takes over only such a neighbour (so two content panes never sit side by side with one
+  empty), never a tool window - closing the last editor next to the Navigator window used to pull its
+  tab into the editor pane, which made it maximizable. And "below the editor pane"
+  (`DockArea.paneBelow`, the `CENTER_BOTTOM` location) means below that whole area: Output, Usages
+  and Search go below a row of editor groups and find the pane already there, instead of each
+  editor group getting its own pane below it.
+- **Empty editor pane:** the editor pane shows a placeholder ("Select a file from the Projects or
+  Files tree", `Tab.editor.placeholder`) while it holds no tab, and no Maximize button.
+- **Also in this round:** the slide buttons show the tab's own context menu (Close, Dock, Maximize,
+  ...), Dock / Dock Group work for a tab of a minimized group from its header menu too, and the
+  Usages and Search Results views carry the icons of their root tree items (`findusages.png`,
+  `find.png`). `nbfx.launcher` got a hand-written `layer.xml` (its first; the annotation-generated
+  one is merged with it) masking the three `Keymaps/<profile>/D-BACK_QUOTE.shadow` entries of
+  `ide/defaults`, whose `originalFile` is computed by calling
+  `core.windows`' `RecentViewListAction` and so logged a `ClassNotFoundException` at every start
+  (the warm-up of the Java editor kit resolves the keymap); the launcher depends on
+  `org.netbeans.modules.defaults` at run time only, so its layer is ordered above that one
+  (`NbInstaller` lets dependents mask). The other 39 shadows of that layer pointing at
+  `core.windows` actions dangle silently and are left alone.
+- **Verification:** `DockAreaTest` (14: maximize shows the pane alone and the shape comes back; a
+  change to the shape while maximized restores it first and is published; maximizing another pane
+  and `applyTree` restore first; the only pane sets nothing aside), `AppStateLayoutTest` (8: the docked
+  editor kind round trip), `check-purity` 0; docking, ui, launcher, findusages, findinprojects build.
+  To check in `ant tryme`: the two header buttons, double-click, the slide bars while maximized,
+  dragging a tab out of a maximized pane and restoring, Reset Windows, and a restart while maximized.
 
 ---
 

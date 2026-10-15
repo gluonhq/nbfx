@@ -76,6 +76,8 @@ public final class AppState {
     private static final String TAB_SEP = "\r";
     /** Separates a pane's role from how it is minimized, within the first field of its line. */
     private static final String MINIMIZED_SEP = "@";
+    /** Separates a pane's role from its kind (an editor pane) within the first field of its line. */
+    private static final String KIND_SEP = "#";
     /** Stands for an anchor <em>into</em> a leaf (no side) in a minimized pane's serialized form. */
     private static final String ANCHOR_INTO = "INTO";
 
@@ -580,12 +582,32 @@ public final class AppState {
      * Tabs of both kinds may appear in any pane, since the user can drag them freely between panes.
      */
     public record PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
-                      List<TabEntry> tabs, int activeIndex, Minimized minimized) {
+                      List<TabEntry> tabs, int activeIndex, Minimized minimized, NbfxTabPane.PaneKind kind) {
 
-        /** A pane that is showing, or detached: not minimized. */
+        public PaneLayout {
+            kind = kind != null ? kind : defaultKind(role);
+        }
+
+        /** A pane that is showing, or detached: not minimized; of the kind its role implies. */
         public PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
                           List<TabEntry> tabs, int activeIndex) {
-            this(role, x, y, width, height, tabs, activeIndex, null);
+            this(role, x, y, width, height, tabs, activeIndex, null, null);
+        }
+
+        /** A pane of the kind its role implies. */
+        public PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
+                          List<TabEntry> tabs, int activeIndex, Minimized minimized) {
+            this(role, x, y, width, height, tabs, activeIndex, minimized, null);
+        }
+
+        /** The kind a pane of {@code role} is unless the layout says otherwise: the editor pane an editor pane. */
+        static NbfxTabPane.PaneKind defaultKind(NbfxTabPane.PaneRole role) {
+            return role == NbfxTabPane.PaneRole.MAIN ? NbfxTabPane.PaneKind.EDITOR : NbfxTabPane.PaneKind.VIEW;
+        }
+
+        /** This pane of {@code kind} (an editor group split off the editor pane, say). */
+        public PaneLayout withKind(NbfxTabPane.PaneKind kind) {
+            return new PaneLayout(role, x, y, width, height, tabs, activeIndex, minimized, kind);
         }
 
         /**
@@ -593,13 +615,15 @@ public final class AppState {
          * {@link com.gluonhq.netbeans.nbfx.ui.shell.SlidingArea}): the {@code side} it slides from,
          * its slide-in {@code size} (a width for the left and right sides, a height for the bottom),
          * and where it goes back when restored - next to the dock area's leaf at {@code anchorIndex}
-         * (its depth-first index in the layout's {@link Layout#dock() tree}) or next to the minimized
-         * pane at {@code anchorPane} (its index in the layout's {@link Layout#panes() panes}), one of
-         * the two being {@link #NO_ANCHOR} - on {@code anchorSide}, or into it when the side is
-         * {@code null}, with {@code anchorShare} of its space.
+         * (its depth-first index in the layout's {@link Layout#dock() tree}; the neighbour it went
+         * back next to being the smallest split from that leaf to the one at {@code anchorFar}, the
+         * same leaf for a single pane) or next to the minimized pane at {@code anchorPane} (its index
+         * in the layout's {@link Layout#panes() panes}), one of the two being {@link #NO_ANCHOR} - on
+         * {@code anchorSide}, or into it when the side is {@code null}, with {@code anchorShare} of
+         * its space.
          */
         public record Minimized(Side side, double size, int anchorIndex, Side anchorSide, double anchorShare,
-                                int anchorPane) {
+                                int anchorPane, int anchorFar) {
 
             /** The anchor index of a pane that has nowhere in particular to go back to. */
             public static final int NO_ANCHOR = -1;
@@ -610,7 +634,13 @@ public final class AppState {
 
             /** A state anchored at a leaf of the tree, or nowhere. */
             public Minimized(Side side, double size, int anchorIndex, Side anchorSide, double anchorShare) {
-                this(side, size, anchorIndex, anchorSide, anchorShare, NO_ANCHOR);
+                this(side, size, anchorIndex, anchorSide, anchorShare, NO_ANCHOR, NO_ANCHOR);
+            }
+
+            /** A state anchored at a leaf of the tree or next to a minimized pane. */
+            public Minimized(Side side, double size, int anchorIndex, Side anchorSide, double anchorShare,
+                             int anchorPane) {
+                this(side, size, anchorIndex, anchorSide, anchorShare, anchorPane, NO_ANCHOR);
             }
 
             /** Whether the pane goes back at a leaf of the tree, or next to another minimized pane. */
@@ -618,10 +648,11 @@ public final class AppState {
                 return anchorIndex >= 0 || anchorPane >= 0;
             }
 
-            /** This state anchored at the leaf {@code index} and the minimized pane {@code pane} ({@link #NO_ANCHOR}: not). */
-            Minimized withAnchor(int index, int pane) {
+            /** This state anchored at the leaves {@code index}..{@code far} and the minimized pane {@code pane} ({@link #NO_ANCHOR}: not). */
+            Minimized withAnchor(int index, int far, int pane) {
                 boolean anchored = index >= 0 || pane >= 0;
-                return new Minimized(side, size, index, anchored ? anchorSide : null, anchorShare, pane);
+                return new Minimized(side, size, index, anchored ? anchorSide : null, anchorShare, pane,
+                        index >= 0 ? far : NO_ANCHOR);
             }
         }
 
@@ -637,7 +668,7 @@ public final class AppState {
 
         /** This pane minimized as {@code state} says ({@code null} for showing). */
         public PaneLayout withMinimized(Minimized state) {
-            return new PaneLayout(role, x, y, width, height, tabs, activeIndex, state);
+            return new PaneLayout(role, x, y, width, height, tabs, activeIndex, state, kind);
         }
 
         /** This pane with its editor tabs removed, and {@code activeIndex} adjusted accordingly. */
@@ -653,7 +684,7 @@ public final class AppState {
                 }
             }
             return new PaneLayout(role, x, y, width, height, kept,
-                    active >= 0 ? active : (kept.isEmpty() ? -1 : 0), minimized);
+                    active >= 0 ? active : (kept.isEmpty() ? -1 : 0), minimized, kind);
         }
     }
 
@@ -661,11 +692,13 @@ public final class AppState {
      * The full window layout: every pane - the dock area's in the depth-first order of its
      * {@link DockTree}, then any permanent pane hidden for being empty or minimized, then the
      * minimized docked panes and the detached panes - the index into {@code panes} of the pane that
-     * held focus ({@code -1} when unknown), and the shape of the dock area ({@code null} when
-     * unknown, in which case the docked panes are stacked). The tree's leaves are matched to the
-     * docked panes by {@link #leafPanes(DockTree)}; a minimized pane is not in the tree.
+     * held focus ({@code -1} when unknown), the shape of the dock area ({@code null} when
+     * unknown, in which case the docked panes are stacked), and the index of the pane that was
+     * maximized ({@code -1} for none). The tree's leaves are matched to the docked panes by
+     * {@link #leafPanes(DockTree)}; a minimized pane is not in the tree. The layout is the one the
+     * window shows with nothing maximized: the maximized pane is maximized again once it is applied.
      */
-    public record Layout(List<PaneLayout> panes, int focusedIndex, DockTree dock) {
+    public record Layout(List<PaneLayout> panes, int focusedIndex, DockTree dock, int maximizedIndex) {
 
         static final Layout EMPTY = new Layout(List.of(), -1);
 
@@ -675,6 +708,15 @@ public final class AppState {
 
         public Layout(List<PaneLayout> panes, int focusedIndex) {
             this(panes, focusedIndex, null);
+        }
+
+        public Layout(List<PaneLayout> panes, int focusedIndex, DockTree dock) {
+            this(panes, focusedIndex, dock, -1);
+        }
+
+        /** The pane that was maximized, or {@code null} when none was. */
+        PaneLayout maximizedPane() {
+            return maximizedIndex >= 0 && maximizedIndex < panes.size() ? panes.get(maximizedIndex) : null;
         }
 
         Layout(List<PaneLayout> panes) {
@@ -732,15 +774,19 @@ public final class AppState {
             List<PaneLayout> kept = new ArrayList<>();
             Set<PaneLayout> dropped = Collections.newSetFromMap(new IdentityHashMap<>());
             int focused = -1;
+            int maximized = -1;
             for (int i = 0; i < panes.size(); i++) {
                 PaneLayout stripped = panes.get(i).withoutEditors();
                 if (stripped.tabs().isEmpty() && !stripped.role().isPermanent()) {
                     dropped.add(panes.get(i));
                     continue;
                 }
-                // Dropping panes shifts the positions the focus index refers to.
+                // Dropping panes shifts the positions the focus and maximized indexes refer to.
                 if (i == focusedIndex) {
                     focused = kept.size();
+                }
+                if (i == maximizedIndex) {
+                    maximized = kept.size();
                 }
                 kept.add(stripped);
             }
@@ -758,15 +804,8 @@ public final class AppState {
                     continue;
                 }
                 int leaf = pane.minimized().anchorIndex();
-                int remappedLeaf = PaneLayout.Minimized.NO_ANCHOR;
-                if (leaf >= 0 && leafPanes != null && leaf < leafPanes.size() && !dropped.contains(leafPanes.get(leaf))) {
-                    remappedLeaf = 0;
-                    for (int j = 0; j < leaf; j++) {
-                        if (!dropped.contains(leafPanes.get(j))) {
-                            remappedLeaf++;
-                        }
-                    }
-                }
+                int remappedLeaf = remapLeaf(leaf, leafPanes, dropped);
+                int remappedFar = remapLeaf(pane.minimized().anchorFar(), leafPanes, dropped);
                 int anchorPane = pane.minimized().anchorPane();
                 int remappedPane = PaneLayout.Minimized.NO_ANCHOR;
                 if (anchorPane >= 0 && anchorPane < panes.size() && !dropped.contains(panes.get(anchorPane))) {
@@ -777,9 +816,23 @@ public final class AppState {
                         }
                     }
                 }
-                kept.set(i, pane.withMinimized(pane.minimized().withAnchor(remappedLeaf, remappedPane)));
+                kept.set(i, pane.withMinimized(pane.minimized().withAnchor(remappedLeaf, remappedFar, remappedPane)));
             }
-            return new Layout(kept, focused, pruned);
+            return new Layout(kept, focused, pruned, maximized);
+        }
+
+        /** {@code leaf}'s index among the leaves that are not {@code dropped}, or {@link PaneLayout.Minimized#NO_ANCHOR}. */
+        private static int remapLeaf(int leaf, List<PaneLayout> leafPanes, Set<PaneLayout> dropped) {
+            if (leaf < 0 || leafPanes == null || leaf >= leafPanes.size() || dropped.contains(leafPanes.get(leaf))) {
+                return PaneLayout.Minimized.NO_ANCHOR;
+            }
+            int remapped = 0;
+            for (int j = 0; j < leaf; j++) {
+                if (!dropped.contains(leafPanes.get(j))) {
+                    remapped++;
+                }
+            }
+            return remapped;
         }
     }
 
@@ -825,7 +878,8 @@ public final class AppState {
         }
         int focused = header.length > 1 ? Math.min(parseInt(header, 1), panes.size() - 1) : -1;
         DockTree dock = header.length > 2 ? DockTrees.parse(header[2]) : null;
-        return new Layout(panes, Math.max(focused, -1), dock);
+        int maximized = header.length > 3 ? Math.min(parseInt(header, 3), panes.size() - 1) : -1;
+        return new Layout(panes, Math.max(focused, -1), dock, Math.max(maximized, -1));
     }
 
     private void writeLayout(String key, String guard, Layout layout) {
@@ -835,7 +889,8 @@ public final class AppState {
         } else {
             StringBuilder sb = new StringBuilder(guard)
                     .append(FIELD_SEP).append(layout.focusedIndex())
-                    .append(FIELD_SEP).append(layout.dock() == null ? "" : DockTrees.format(layout.dock()));
+                    .append(FIELD_SEP).append(layout.dock() == null ? "" : DockTrees.format(layout.dock()))
+                    .append(FIELD_SEP).append(layout.maximizedIndex());
             for (PaneLayout pane : layout.panes()) {
                 sb.append('\n').append(serialize(pane));
             }
@@ -881,12 +936,15 @@ public final class AppState {
     }
 
     /**
-     * One line per pane: the role - followed, for a minimized pane, by
-     * {@code @side@size@anchorLeaf@anchorSide@share@anchorPane} - then the bounds, the active index
-     * and the tabs, tab-separated.
+     * One line per pane: the role - followed by {@code #EDITOR} for a docked editor pane, and, for a
+     * minimized pane, by {@code @side@size@anchorLeaf@anchorSide@share@anchorPane@anchorFar} - then
+     * the bounds, the active index and the tabs, tab-separated.
      */
     static String serialize(PaneLayout pane) {
         StringBuilder sb = new StringBuilder(pane.role().name());
+        if (pane.kind() != PaneLayout.defaultKind(pane.role())) {
+            sb.append(KIND_SEP).append(pane.kind().name());
+        }
         PaneLayout.Minimized minimized = pane.minimized();
         if (minimized != null) {
             sb.append(MINIMIZED_SEP).append(minimized.side().name())
@@ -894,7 +952,8 @@ public final class AppState {
                     .append(MINIMIZED_SEP).append(minimized.anchorIndex())
                     .append(MINIMIZED_SEP).append(minimized.anchorSide() == null ? ANCHOR_INTO : minimized.anchorSide().name())
                     .append(MINIMIZED_SEP).append(minimized.anchorShare())
-                    .append(MINIMIZED_SEP).append(minimized.anchorPane());
+                    .append(MINIMIZED_SEP).append(minimized.anchorPane())
+                    .append(MINIMIZED_SEP).append(minimized.anchorFar());
         }
         sb.append(FIELD_SEP).append(pane.x())
                 .append(FIELD_SEP).append(pane.y())
@@ -927,10 +986,12 @@ public final class AppState {
             return null;
         }
         String[] head = f[0].split(MINIMIZED_SEP, -1);
-        NbfxTabPane.PaneRole role = parseEnum(NbfxTabPane.PaneRole.class, head[0]);
+        String[] roleAndKind = head[0].split(KIND_SEP, -1);
+        NbfxTabPane.PaneRole role = parseEnum(NbfxTabPane.PaneRole.class, roleAndKind[0]);
         if (role == null) {
             return null;
         }
+        NbfxTabPane.PaneKind kind = roleAndKind.length > 1 ? parseEnum(NbfxTabPane.PaneKind.class, roleAndKind[1]) : null;
         PaneLayout.Minimized minimized = parseMinimized(role, head);
         List<TabEntry> tabs = new ArrayList<>();
         for (int i = 6; i < f.length; i++) {
@@ -946,7 +1007,7 @@ public final class AppState {
             return null;
         }
         return new PaneLayout(role, parseDouble(f, 1), parseDouble(f, 2),
-                parseDouble(f, 3), parseDouble(f, 4), tabs, active, minimized);
+                parseDouble(f, 3), parseDouble(f, 4), tabs, active, minimized, kind);
     }
 
     /**
@@ -965,6 +1026,7 @@ public final class AppState {
         }
         int leaf = head.length > 3 ? parseInt(head, 3) : PaneLayout.Minimized.NO_ANCHOR;
         int pane = head.length > 6 ? parseInt(head, 6) : PaneLayout.Minimized.NO_ANCHOR;
+        int far = head.length > 7 ? parseInt(head, 7) : PaneLayout.Minimized.NO_ANCHOR;
         boolean into = head.length > 4 && ANCHOR_INTO.equals(head[4].trim());
         Side anchorSide = head.length > 4 && !into ? parseEnum(Side.class, head[4]) : null;
         if (anchorSide == null && !into) {
@@ -973,7 +1035,8 @@ public final class AppState {
         }
         boolean anchored = leaf >= 0 || pane >= 0;
         return new PaneLayout.Minimized(side, parseDouble(head, 2), Math.max(leaf, -1),
-                anchored ? anchorSide : null, parseDouble(head, 5), Math.max(pane, -1));
+                anchored ? anchorSide : null, parseDouble(head, 5), Math.max(pane, -1),
+                leaf >= 0 ? Math.max(far, -1) : PaneLayout.Minimized.NO_ANCHOR);
     }
 
     /** Parses one serialized tab field, returning {@code null} if it is malformed or unknown. */

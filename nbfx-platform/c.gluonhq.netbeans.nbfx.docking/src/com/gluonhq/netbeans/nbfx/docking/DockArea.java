@@ -18,6 +18,8 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectProperty;
+import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -132,6 +134,12 @@ import javafx.scene.layout.StackPane;
  * that slides the components in on demand, the way NetBeans minimizes a window group to a sliding
  * side - and {@linkplain #restore put back} where it was later. {@link #minimizedPanes()} lists the
  * minimized panes for the host to follow, and {@link #anchorOf} tells where each one goes back.
+ * <p>
+ * A pane can also be <em>maximized</em>: shown alone, the rest of the shape set aside with its panes
+ * until {@link #unmaximize()} puts it back - around whatever the area shows by then, so panes docked
+ * next to the maximized one meanwhile keep their place in the restored shape. Any change to the
+ * shape - a pane docked, moved, created along a side - restores it first, as in NetBeans, so the
+ * change applies to the whole layout; {@link #maximizedPaneProperty()} tells when that happens.
  */
 public final class DockArea<N extends Node> extends StackPane {
 
@@ -168,6 +176,15 @@ public final class DockArea<N extends Node> extends StackPane {
     private final List<Double> defaultDividers;
     private Node root;
     /**
+     * The shape set aside by {@link #maximize}, with {@link #maximizedSlot} where the maximized pane
+     * was; {@code null} while nothing is maximized, or while the maximized pane was the only one.
+     */
+    private Node layoutRoot;
+    /** Stands in for the maximized pane in {@link #layoutRoot}. */
+    private final Region maximizedSlot = new Region();
+    /** The maximized pane, or {@code null}; observable, as the area ends the maximized state itself on layout changes. */
+    private final ReadOnlyObjectWrapper<N> maximizedPane = new ReadOnlyObjectWrapper<>();
+    /**
      * Where each pane that is out of the area - a hidden empty permanent pane, or a minimized one -
      * goes back; absent for a pane that shows, or that has nowhere in particular to go back to.
      */
@@ -183,26 +200,37 @@ public final class DockArea<N extends Node> extends StackPane {
     private final Map<N, ObservableValue<Boolean>> emptiness = new HashMap<>();
 
     /**
-     * Where a pane that is out of the area goes back: next to {@code leaf} - a pane of the area - on
-     * its {@code side}, taking {@code share} of the leaf's space; or, with a {@code null} side,
+     * Where a pane that is out of the area goes back: next to its former neighbour on its
+     * {@code side}, taking {@code share} of their joint space; or, with a {@code null} side,
      * <em>into</em> {@code leaf}, its components joining that pane's (a single component minimized
-     * out of a pane goes back to it). A leaf that has left the area by then is ignored and the pane
-     * goes back along the side of the area its default shape has it on, or the anchor's side.
+     * out of a pane goes back to it). The neighbour was a pane or a whole split (a row of editors
+     * below which an output pane sat), and is remembered by its two outermost leaves: {@code leaf},
+     * the one nearest the pane, and {@code farLeaf}, the one farthest (the same pane when the
+     * neighbour was one). The pane goes back next to the smallest split holding both, so that a
+     * pane that sat below a row comes back below the row and not below one pane of it; next to
+     * whichever of the two is still in the area when the other has left; and, when both have left,
+     * along the side of the area its default shape has it on, or the anchor's side.
      *
      * @param <N> the type of the area's panes
      */
-    public record Anchor<N>(N leaf, Side side, double share) {
+    public record Anchor<N>(N leaf, N farLeaf, Side side, double share) {
 
         public Anchor {
             Objects.requireNonNull(leaf);
+            farLeaf = farLeaf == null ? leaf : farLeaf;
             if (Double.isNaN(share) || share <= 0 || share >= 1) {
                 share = DEFAULT_SHARE;
             }
         }
 
+        /** An anchor next to the single pane {@code leaf}. */
+        public Anchor(N leaf, Side side, double share) {
+            this(leaf, null, side, share);
+        }
+
         /** An anchor into {@code leaf}: the pane's components join that pane when it goes back. */
         public static <N> Anchor<N> into(N leaf) {
-            return new Anchor<>(leaf, null, DEFAULT_SHARE);
+            return new Anchor<>(leaf, null, null, DEFAULT_SHARE);
         }
 
         /** Whether the pane goes back into the leaf rather than next to it. */
@@ -293,9 +321,17 @@ public final class DockArea<N extends Node> extends StackPane {
         return primaries.containsValue(pane);
     }
 
-    /** Whether the permanent pane {@code primary} is currently out of the area: empty, or minimized. */
+    /**
+     * Whether the permanent pane {@code primary} is currently out of the area: empty, or minimized.
+     * A pane set aside by a maximized one is not hidden in this sense: it is still in the shape.
+     */
     public boolean isPrimaryHidden(N primary) {
-        return isPrimary(primary) && root != primary && parentSplitOf(root, primary) == null;
+        return isPrimary(primary) && root != primary && parentSplitOf(root, primary) == null && !isSetAside(primary);
+    }
+
+    /** Whether {@code pane} is in the shape a maximized pane set aside (see {@link #maximize}). */
+    public boolean isSetAside(N pane) {
+        return layoutRoot != null && parentSplitOf(layoutRoot, pane) != null;
     }
 
     /** The permanent pane playing {@code role}, or {@code null} if this area has none. */
@@ -385,8 +421,9 @@ public final class DockArea<N extends Node> extends StackPane {
 
     /**
      * Rebuilds the area in the shape of {@code tree}, whose permanent leaves must name distinct roles
-     * this area has a pane for - a permanent pane the tree leaves out is hidden. Every minimized pane
-     * is {@linkplain #restore restored} first; then every docked pane the area has is disposed and its
+     * this area has a pane for - a permanent pane the tree leaves out is hidden. A maximized pane is
+     * {@linkplain #unmaximize() restored} and every minimized pane is {@linkplain #restore restored}
+     * first; then every docked pane the area has is disposed and its
      * components moved to the {@linkplain #mainPane() main pane}, unless the area already has that
      * shape, in which case only the dividers are set. The docked panes created here are empty and
      * remove themselves on the next pulse unless a component is placed in them.
@@ -397,6 +434,7 @@ public final class DockArea<N extends Node> extends StackPane {
         if (!accepts(tree)) {
             throw new IllegalArgumentException("Not a shape of this area's permanent panes: " + DockTrees.format(tree));
         }
+        unmaximize();
         for (N pane : List.copyOf(minimized)) {
             restore(pane);
         }
@@ -437,7 +475,7 @@ public final class DockArea<N extends Node> extends StackPane {
 
     private Node build(DockTree tree) {
         return switch (tree) {
-            case Leaf leaf -> leaf.isPrimary() ? primaryOf(leaf) : newDockPane();
+            case Leaf leaf -> leaf.isPrimary() ? primaryOf(leaf) : newDockPane(null);
             case Split split -> {
                 SplitPane pane = newSplit(split.orientation());
                 split.children().forEach(child -> pane.getItems().add(build(child)));
@@ -469,10 +507,11 @@ public final class DockArea<N extends Node> extends StackPane {
      * is placed in it.
      */
     public N split(N target, Side side) {
+        unmaximize();
         if (!contains(Objects.requireNonNull(target))) {
             throw new IllegalArgumentException("Not a pane of this area");
         }
-        N pane = newDockPane();
+        N pane = newDockPane(target);
         splitNode(target, side, pane, DEFAULT_SHARE);
         return pane;
     }
@@ -487,9 +526,120 @@ public final class DockArea<N extends Node> extends StackPane {
      * its space; see {@link #split(Node, Side)}.
      */
     public N splitArea(Side side) {
-        N pane = newDockPane();
+        unmaximize();
+        N pane = newDockPane(null);
         splitNode(root, side, pane, DEFAULT_SHARE);
         return pane;
+    }
+
+    /**
+     * The side of {@code reference} that {@code pane} lies on in the shape, both panes of this area:
+     * where their paths from the root part, in a horizontal split {@code pane} is to the
+     * {@link Side#LEFT} or {@link Side#RIGHT} of the reference, in a vertical one above
+     * ({@link Side#TOP}) or below it. {@code null} when either is not in the area, or they are the
+     * same pane. Read from the shape rather than from screen bounds, which lag behind a change
+     * until the next layout pass.
+     */
+    public Side sideOf(N pane, N reference) {
+        if (pane == reference || !contains(pane) || !contains(reference)) {
+            return null;
+        }
+        List<Node> pathA = pathTo(root, pane, new ArrayList<>());
+        List<Node> pathB = pathTo(root, reference, new ArrayList<>());
+        int depth = 0;
+        while (depth + 1 < pathA.size() && depth + 1 < pathB.size() && pathA.get(depth + 1) == pathB.get(depth + 1)) {
+            depth++;
+        }
+        SplitPane split = (SplitPane) pathA.get(depth);
+        boolean before = split.getItems().indexOf(pathA.get(depth + 1)) < split.getItems().indexOf(pathB.get(depth + 1));
+        if (split.getOrientation() == Orientation.HORIZONTAL) {
+            return before ? Side.LEFT : Side.RIGHT;
+        }
+        return before ? Side.TOP : Side.BOTTOM;
+    }
+
+    // --- Maximizing ------------------------------------------------------------------------------
+
+    /**
+     * Shows {@code pane}, one of this area's panes, alone: the rest of the shape is set aside, with
+     * its panes and their components, until {@link #unmaximize()} puts it back around whatever the
+     * area shows by then. Any change to the shape meanwhile - a pane split off, moved, docked along a
+     * side, another pane maximized - restores it first and then applies, so the shape set aside is
+     * always the one that comes back; only minimizing and restoring panes leave it alone.
+     *
+     * @throws IllegalArgumentException for a pane that is not in the area
+     */
+    public void maximize(N pane) {
+        if (isMaximized()) {
+            if (maximizedPane.get() == pane) {
+                return;
+            }
+            // Another pane, set aside: the shape comes back first.
+            unmaximize();
+        }
+        if (!contains(Objects.requireNonNull(pane))) {
+            throw new IllegalArgumentException("Not a pane of this area");
+        }
+        SplitPane parent = parentSplitOf(root, pane);
+        if (parent == null) {
+            // Alone already: nothing to set aside.
+            layoutRoot = null;
+        } else {
+            double[] sizes = sizesOf(parent);
+            parent.getItems().set(parent.getItems().indexOf(pane), maximizedSlot);
+            applySizes(parent, sizes);
+            layoutRoot = root;
+            setRoot(pane);
+        }
+        maximizedPane.set(pane);
+        LOG.fine(() -> "Maximized a pane" + (isPrimary(pane) ? " (" + roleOf(pane) + ")" : ""));
+    }
+
+    /**
+     * Puts the shape set aside by {@link #maximize} back, with what the area shows now in the place
+     * of the maximized pane. Does nothing while nothing is maximized.
+     */
+    public void unmaximize() {
+        if (!isMaximized()) {
+            return;
+        }
+        Node shown = root;
+        if (layoutRoot != null) {
+            getChildren().setAll(dropLine);
+            SplitPane parent = parentSplitOf(layoutRoot, maximizedSlot);
+            double[] sizes = sizesOf(parent);
+            parent.getItems().set(parent.getItems().indexOf(maximizedSlot), shown);
+            applySizes(parent, sizes);
+            Node restored = layoutRoot;
+            layoutRoot = null;
+            setRoot(restored);
+            // A permanent pane emptied while set aside hides now, as it would have then.
+            for (N pane : leaves()) {
+                if (isPrimary(pane) && isEmpty(pane)) {
+                    Platform.runLater(() -> hidePrimaryIfEmpty(pane));
+                }
+            }
+        }
+        maximizedPane.set(null);
+        LOG.fine("Restored the shape a maximized pane had set aside");
+    }
+
+    /** Whether a pane is {@linkplain #maximize maximized}. */
+    public boolean isMaximized() {
+        return maximizedPane.get() != null;
+    }
+
+    /** The maximized pane, or {@code null}. */
+    public N maximizedPane() {
+        return maximizedPane.get();
+    }
+
+    /**
+     * The maximized pane as an observable: {@code null} again when the shape is restored - by
+     * {@link #unmaximize()}, or by the area itself ahead of a change to the shape.
+     */
+    public ReadOnlyObjectProperty<N> maximizedPaneProperty() {
+        return maximizedPane.getReadOnlyProperty();
     }
 
     /**
@@ -497,6 +647,7 @@ public final class DockArea<N extends Node> extends StackPane {
      * here must receive a component before the next pulse, or it removes itself again.
      */
     public N edgePane(Side side) {
+        unmaximize();
         boolean horizontal = side == Side.LEFT || side == Side.RIGHT;
         if (isSplit(root) && ((SplitPane) root).getOrientation() == (horizontal ? Orientation.HORIZONTAL : Orientation.VERTICAL)) {
             List<Node> items = ((SplitPane) root).getItems();
@@ -510,7 +661,12 @@ public final class DockArea<N extends Node> extends StackPane {
 
     /**
      * The docked pane right below the permanent pane {@code primary}, created if there is none (see
-     * {@link #edgePane}); a hidden primary is shown again first. Returns {@code null} when
+     * {@link #edgePane}); a hidden primary is shown again first. Below the main pane means below its
+     * whole area - the main pane and the panes of a kind with it in the horizontal splits around it
+     * ({@link DockHost#belongsToMainArea}: a row of editor groups) - so Output goes below the row
+     * and the pane already there is found whichever editor group is asked. A pane created here is
+     * one for a place of the layout rather than one split off its neighbour, so the host is asked for
+     * a pane beside nothing (a view pane, say, below the editor pane). Returns {@code null} when
      * {@code primary} is not a permanent pane of this area, or is {@linkplain #minimize minimized} -
      * there is no below to a pane that is not showing.
      */
@@ -518,12 +674,14 @@ public final class DockArea<N extends Node> extends StackPane {
         if (!isPrimary(primary) || isMinimized(primary)) {
             return null;
         }
+        unmaximize();
         if (isPrimaryHidden(primary)) {
             showPrimary(primary);
         }
-        SplitPane parent = parentSplitOf(root, primary);
+        Node above = primary == mainPane() ? mainAreaOf(primary) : primary;
+        SplitPane parent = parentSplitOf(root, above);
         if (parent != null && parent.getOrientation() == Orientation.VERTICAL) {
-            int index = parent.getItems().indexOf(primary);
+            int index = parent.getItems().indexOf(above);
             if (index + 1 < parent.getItems().size()) {
                 Node next = parent.getItems().get(index + 1);
                 if (!isSplit(next) && !isPrimary(next)) {
@@ -531,7 +689,29 @@ public final class DockArea<N extends Node> extends StackPane {
                 }
             }
         }
-        return split(primary, Side.BOTTOM);
+        N pane = newDockPane(null);
+        splitNode(above, Side.BOTTOM, pane, DEFAULT_SHARE);
+        return pane;
+    }
+
+    /**
+     * The main pane's area: the outermost horizontal split around {@code main} whose panes are all
+     * {@code main} or docked panes of a kind with it ({@link DockHost#belongsToMainArea}), or
+     * {@code main} itself when there is none.
+     */
+    private Node mainAreaOf(N main) {
+        Node area = main;
+        for (SplitPane parent = parentSplitOf(root, area); parent != null && parent.getOrientation() == Orientation.HORIZONTAL;
+                parent = parentSplitOf(root, parent)) {
+            List<N> leaves = new ArrayList<>();
+            collectLeaves(parent, leaves);
+            boolean editors = leaves.stream().allMatch(leaf -> leaf == main || (!isPrimary(leaf) && host.belongsToMainArea(leaf)));
+            if (!editors) {
+                break;
+            }
+            area = parent;
+        }
+        return area;
     }
 
     // --- Drops -----------------------------------------------------------------------------------
@@ -593,6 +773,7 @@ public final class DockArea<N extends Node> extends StackPane {
      * go to a new docked pane at the target instead, leaving it empty.
      */
     public void relocate(N pane, DropTarget<N> target) {
+        unmaximize();
         if (!contains(Objects.requireNonNull(pane))) {
             throw new IllegalArgumentException("Not a pane of this area");
         }
@@ -665,8 +846,9 @@ public final class DockArea<N extends Node> extends StackPane {
         }
     }
 
-    private N newDockPane() {
-        N pane = host.createDockedPane();
+    /** A new docked pane from the host, to go next to {@code beside} (or along the area, when {@code null}). */
+    private N newDockPane(N beside) {
+        N pane = host.createDockedPane(beside);
         watchEmptiness(pane);
         return pane;
     }
@@ -713,6 +895,10 @@ public final class DockArea<N extends Node> extends StackPane {
         }
         if (!contains(pane)) {
             return;
+        }
+        if (pane == root && isMaximized()) {
+            // The maximized pane emptied: the shape comes back, and the pane leaves it as any other.
+            unmaximize();
         }
         if (pane == root) {
             // The last docked pane, with every permanent pane hidden: they take the area back.
@@ -766,9 +952,10 @@ public final class DockArea<N extends Node> extends StackPane {
 
     /**
      * Where {@code pane}, one of this area's panes in a split, would go back once taken out: next to
-     * the nearest leaf of its previous neighbour in the split (its next one when it is first), on the
-     * side that puts it back in its place, with the share of their joint space it has now. Returns
-     * {@code null} for a pane that is not in a split (the only pane of the area).
+     * its previous neighbour in the split (its next one when it is first) - a pane or a whole split,
+     * remembered by its outermost leaves - on the side that puts it back in its place, with the share
+     * of their joint space it has now. Returns {@code null} for a pane that is not in a split (the
+     * only pane of the area).
      */
     private Anchor<N> anchorFor(N pane) {
         SplitPane parent = parentSplitOf(root, pane);
@@ -782,11 +969,53 @@ public final class DockArea<N extends Node> extends StackPane {
         if (index > 0) {
             collectLeaves(parent.getItems().get(index - 1), neighbours);
             double share = sizes[index] / (sizes[index] + sizes[index - 1]);
-            return new Anchor<>(neighbours.getLast(), horizontal ? Side.RIGHT : Side.BOTTOM, share);
+            return new Anchor<>(neighbours.getLast(), neighbours.getFirst(), horizontal ? Side.RIGHT : Side.BOTTOM, share);
         }
         collectLeaves(parent.getItems().get(index + 1), neighbours);
         double share = sizes[index] / (sizes[index] + sizes[index + 1]);
-        return new Anchor<>(neighbours.getFirst(), horizontal ? Side.LEFT : Side.TOP, share);
+        return new Anchor<>(neighbours.getFirst(), neighbours.getLast(), horizontal ? Side.LEFT : Side.TOP, share);
+    }
+
+    /**
+     * The node of the area {@code anchor} puts a pane next to: the smallest split holding both of
+     * the anchor's leaves, the one of them still in the area when the other left, or {@code null}
+     * when both have.
+     */
+    private Node anchorTarget(Anchor<N> anchor) {
+        boolean near = contains(anchor.leaf());
+        boolean far = contains(anchor.farLeaf());
+        if (near && far) {
+            return anchor.leaf() == anchor.farLeaf() ? anchor.leaf() : commonAncestor(anchor.leaf(), anchor.farLeaf());
+        }
+        return near ? anchor.leaf() : far ? anchor.farLeaf() : null;
+    }
+
+    /** The deepest split holding both {@code a} and {@code b}, panes of the area. */
+    private Node commonAncestor(Node a, Node b) {
+        List<Node> pathA = pathTo(root, a, new ArrayList<>());
+        List<Node> pathB = pathTo(root, b, new ArrayList<>());
+        Node common = root;
+        for (int i = 0; i < pathA.size() && i < pathB.size() && pathA.get(i) == pathB.get(i); i++) {
+            common = pathA.get(i);
+        }
+        return common;
+    }
+
+    /** The nodes from {@code node} down to {@code target}, both included, or {@code null} if it is not below. */
+    private static List<Node> pathTo(Node node, Node target, List<Node> path) {
+        path.add(node);
+        if (node == target) {
+            return path;
+        }
+        if (isSplit(node)) {
+            for (Node item : ((SplitPane) node).getItems()) {
+                if (pathTo(item, target, path) != null) {
+                    return path;
+                }
+            }
+        }
+        path.removeLast();
+        return null;
     }
 
     // --- Minimizing ------------------------------------------------------------------------------
@@ -825,6 +1054,9 @@ public final class DockArea<N extends Node> extends StackPane {
                 anchors.put(pane, anchor);
             }
             return;
+        }
+        if (isSetAside(pane)) {
+            throw new IllegalArgumentException("A pane set aside by a maximized pane cannot be minimized");
         }
         if (contains(pane)) {
             if (pane == root) {
@@ -902,8 +1134,9 @@ public final class DockArea<N extends Node> extends StackPane {
      * over and leaves its room to the main pane. When the neighbour is a split, the main pane moves
      * into it, taking the place of that split's docked leaf nearest to it - so that a column of two
      * editors next to an emptied main pane becomes a column of the main pane and the other editor,
-     * rather than leaving an empty pane beside them. Nothing happens when no docked pane is a
-     * neighbour - the main pane then stays, empty.
+     * rather than leaving an empty pane beside them. Only a neighbour of the main pane's area counts
+     * ({@link DockHost#belongsToMainArea}: an editor group, not a tool window). Nothing happens when
+     * no such pane is a neighbour - the main pane then stays, empty.
      */
     private void absorbNeighbourInto(N main) {
         SplitPane parent = parentSplitOf(root, main);
@@ -917,7 +1150,7 @@ public final class DockArea<N extends Node> extends StackPane {
             }
             Node node = parent.getItems().get(i);
             if (!isSplit(node)) {
-                if (!isPrimary(node)) {
+                if (!isPrimary(node) && host.belongsToMainArea(leaf(node))) {
                     @SuppressWarnings("unchecked")
                     N neighbour = (N) node;
                     host.moveContent(neighbour, main);
@@ -932,7 +1165,7 @@ public final class DockArea<N extends Node> extends StackPane {
                 Collections.reverse(leaves);
             }
             for (N leaf : leaves) {
-                if (!isPrimary(leaf)) {
+                if (!isPrimary(leaf) && host.belongsToMainArea(leaf)) {
                     takePlaceOf(main, leaf);
                     return;
                 }
@@ -971,8 +1204,9 @@ public final class DockArea<N extends Node> extends StackPane {
      */
     private void reattach(N pane) {
         Anchor<N> anchor = resolveAnchor(pane, anchors.remove(pane));
-        if (anchor != null && !anchor.joins() && leaves().contains(anchor.leaf())) {
-            splitNode(anchor.leaf(), anchor.side(), pane, anchor.share());
+        Node target = anchor == null || anchor.joins() ? null : anchorTarget(anchor);
+        if (target != null) {
+            splitNode(target, anchor.side(), pane, anchor.share());
             return;
         }
         if (anchor != null && anchor.joins() && !isPrimary(pane)
@@ -1003,7 +1237,8 @@ public final class DockArea<N extends Node> extends StackPane {
     private Anchor<N> resolveAnchor(N pane, Anchor<N> anchor) {
         Set<N> visited = new HashSet<>();
         visited.add(pane);
-        while (anchor != null && !leaves().contains(anchor.leaf()) && visited.add(anchor.leaf())) {
+        while (anchor != null && !leaves().contains(anchor.leaf()) && !leaves().contains(anchor.farLeaf())
+                && visited.add(anchor.leaf())) {
             N leaf = anchor.leaf();
             if (anchor.joins()) {
                 if (minimized.contains(leaf)) {

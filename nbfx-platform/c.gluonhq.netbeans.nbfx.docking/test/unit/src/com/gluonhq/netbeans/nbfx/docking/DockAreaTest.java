@@ -60,10 +60,17 @@ public class DockAreaTest {
     private static final class Host implements DockHost<StackPane> {
 
         final List<StackPane> disposed = new ArrayList<>();
+        /** Panes the host treats as tool windows: the main pane never absorbs them. */
+        final List<StackPane> views = new ArrayList<>();
 
         @Override
         public StackPane createDockedPane() {
             return new StackPane();
+        }
+
+        @Override
+        public boolean belongsToMainArea(StackPane pane) {
+            return !views.contains(pane);
         }
 
         @Override
@@ -272,6 +279,243 @@ public class DockAreaTest {
             assertFalse(f.area.isMinimized(f.navigator));
             assertTrue(f.navigator.getChildren().contains(component));
             assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            return null;
+        });
+    }
+
+    @Test
+    public void maximizedPaneShowsAloneAndTheShapeComesBack() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            StackPane docked = f.area.split(f.navigator, Side.BOTTOM);
+            docked.getChildren().add(new Region());
+            f.area.maximize(f.main);
+            assertTrue(f.area.isMaximized());
+            assertSame(f.main, f.area.maximizedPane());
+            assertEquals("P:MAIN", DockTrees.format(f.area.tree()));
+            assertTrue("set aside, not hidden", f.area.isSetAside(f.navigator));
+            assertFalse(f.area.isPrimaryHidden(f.navigator));
+            assertFalse(f.area.contains(docked));
+
+            f.area.unmaximize();
+            assertFalse(f.area.isMaximized());
+            assertEquals("H[0.3000](V[0.6500](P:NAVIGATOR,L),P:MAIN)", DockTrees.format(f.area.tree()));
+            assertEquals(List.of(f.navigator, docked, f.main), f.area.leaves());
+            return null;
+        });
+    }
+
+    @Test
+    public void aChangeToTheShapeWhileMaximizedRestoresItFirst() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            List<StackPane> ended = new ArrayList<>();
+            f.area.maximizedPaneProperty().subscribe((was, now) -> {
+                if (was != null && now == null) {
+                    ended.add(was);
+                }
+            });
+            f.area.maximize(f.main);
+            StackPane editors = f.area.split(f.main, Side.RIGHT);
+            editors.getChildren().add(new Region());
+            assertFalse("splitting a pane ends the maximized state", f.area.isMaximized());
+            assertEquals(List.of(f.main), ended);
+            // Split in the full layout: next to the editor pane in the root split, not alone.
+            assertEquals("H[0.3000,0.7550](P:NAVIGATOR,P:MAIN,L)", DockTrees.format(f.area.tree()));
+            assertEquals(List.of(f.navigator, f.main, editors), f.area.leaves());
+
+            f.area.maximize(editors);
+            f.area.splitArea(Side.BOTTOM).getChildren().add(new Region());
+            assertFalse("a pane along the area ends it too", f.area.isMaximized());
+            assertEquals(4, f.area.leaves().size());
+            return null;
+        });
+    }
+
+    @Test
+    public void maximizingAnotherPaneOrApplyingAShapeRestoresFirst() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            f.area.maximize(f.main);
+            f.area.maximize(f.navigator);
+            assertSame(f.navigator, f.area.maximizedPane());
+            assertEquals("P:NAVIGATOR", DockTrees.format(f.area.tree()));
+
+            f.area.applyTree(f.area.defaultTree());
+            assertFalse(f.area.isMaximized());
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            return null;
+        });
+    }
+
+    @Test
+    public void maximizingTheOnlyPaneSetsNothingAside() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            f.area.minimize(f.navigator);
+            f.area.maximize(f.main);
+            assertTrue(f.area.isMaximized());
+            f.area.unmaximize();
+            assertEquals("P:MAIN", DockTrees.format(f.area.tree()));
+            f.area.restore(f.navigator);
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            return null;
+        });
+    }
+
+    @Test
+    public void paneBelowARowOfPanesComesBackBelowTheRow() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            // An output pane below a row of two editor panes, beside the navigator.
+            List<StackPane> leaves = f.area.applyTree(DockTrees.parse("H[0.3000](P:NAVIGATOR,V[0.6500](H[0.5000](P:MAIN,L),L))"));
+            StackPane editors = leaves.get(2);
+            StackPane output = leaves.get(3);
+            editors.getChildren().add(new Region());
+            output.getChildren().add(new Region());
+
+            f.area.minimize(output);
+            Anchor<StackPane> anchor = f.area.anchorOf(output);
+            assertSame("nearest leaf of the row", editors, anchor.leaf());
+            assertSame("farthest leaf of the row", f.main, anchor.farLeaf());
+            assertEquals("H[0.3000](P:NAVIGATOR,H[0.5000](P:MAIN,L))", DockTrees.format(f.area.tree()));
+
+            f.area.restore(output);
+            assertEquals("below the whole row, not below one of its panes",
+                    "H[0.3000](P:NAVIGATOR,V[0.6500](H[0.5000](P:MAIN,L),L))", DockTrees.format(f.area.tree()));
+            assertEquals(List.of(f.navigator, f.main, editors, output), f.area.leaves());
+
+            // With one of the row's panes gone, it comes back below the other.
+            f.area.minimize(output);
+            editors.getChildren().clear();
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            StackPane output = f.area.minimizedPanes().getFirst();
+            f.area.restore(output);
+            assertEquals("H[0.3000](P:NAVIGATOR,V[0.6500](P:MAIN,L))", DockTrees.format(f.area.tree()));
+            return null;
+        });
+    }
+
+    @Test
+    public void panesMinimizedInTurnComeBackInReverseOrderAsTheyWere() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            // Projects above the Navigator on the left; two editor panes in a row above Output on the right.
+            String shape = "H[0.3000](V[0.6500](P:NAVIGATOR,L),V[0.6500](H[0.5000](P:MAIN,L),L))";
+            List<StackPane> leaves = f.area.applyTree(DockTrees.parse(shape));
+            StackPane navigator = leaves.get(1);
+            StackPane editors = leaves.get(3);
+            StackPane output = leaves.get(4);
+            for (StackPane pane : List.of(navigator, editors, output)) {
+                pane.getChildren().add(new Region());
+            }
+            // Minimized the way a maximize minimizes the view panes around an editor: in shape order.
+            f.area.minimize(f.navigator);
+            f.area.minimize(navigator);
+            f.area.minimize(output);
+            assertEquals("H[0.5000](P:MAIN,L)", DockTrees.format(f.area.tree()));
+            f.area.maximize(f.main);
+            f.area.unmaximize();
+
+            // Restored last minimized first: each anchor finds the shape it left.
+            f.area.restore(output);
+            f.area.restore(navigator);
+            f.area.restore(f.navigator);
+            assertEquals(shape, DockTrees.format(f.area.tree()));
+            assertEquals(List.of(f.navigator, navigator, f.main, editors, output), f.area.leaves());
+            return null;
+        });
+    }
+
+    @Test
+    public void sideOfAPaneComesFromTheShape() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            List<StackPane> leaves = f.area.applyTree(DockTrees.parse(
+                    "V[0.2000](L,H[0.3000,0.7000](V[0.6500](P:NAVIGATOR,L),V[0.6500](P:MAIN,L),L))"));
+            for (StackPane leaf : leaves) {
+                if (!f.area.isPrimary(leaf)) {
+                    leaf.getChildren().add(new Region());
+                }
+            }
+            assertEquals(Side.TOP, f.area.sideOf(leaves.get(0), f.main));
+            assertEquals(Side.LEFT, f.area.sideOf(f.navigator, f.main));
+            assertEquals("the pane below the navigator is left of the editors too", Side.LEFT, f.area.sideOf(leaves.get(2), f.main));
+            assertEquals(Side.BOTTOM, f.area.sideOf(leaves.get(4), f.main));
+            assertEquals(Side.RIGHT, f.area.sideOf(leaves.get(5), f.main));
+            assertNull(f.area.sideOf(f.main, f.main));
+            f.area.minimize(f.navigator);
+            assertNull("a minimized pane has no side in the shape", f.area.sideOf(f.navigator, f.main));
+            return null;
+        });
+    }
+
+    @Test
+    public void emptiedMainPaneAbsorbsOnlyWhatTheHostAllows() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        StackPane docked = onFx(() -> {
+            StackPane pane = f.area.split(f.navigator, Side.BOTTOM);
+            pane.getChildren().add(new Region());
+            f.main.getChildren().add(new Region());
+            f.host.views.add(pane);
+            f.main.getChildren().clear();
+            return pane;
+        });
+        pulse();
+        onFx(() -> {
+            assertEquals("a tool-window pane is left alone by the emptied editor pane",
+                    "H[0.3000](V[0.6500](P:NAVIGATOR,L),P:MAIN)", DockTrees.format(f.area.tree()));
+            assertTrue(f.main.getChildren().isEmpty());
+            f.host.views.clear();
+            f.main.getChildren().add(new Region());
+            f.main.getChildren().clear();
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            // The editor pane moved into the editor group's slot, and the split it left collapsed.
+            assertEquals("an editor group next to it is taken over",
+                    "V[0.6500](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            assertFalse(f.main.getChildren().isEmpty());
+            assertEquals(List.of(docked), f.host.disposed);
+            return null;
+        });
+    }
+
+    @Test
+    public void belowTheMainPaneMeansBelowItsRowOfEditorGroups() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            // A second editor group beside the editor pane, Output below the row.
+            List<StackPane> leaves = f.area.applyTree(DockTrees.parse("H[0.3000](P:NAVIGATOR,V[0.6500](H[0.5000](P:MAIN,L),L))"));
+            StackPane editors = leaves.get(2);
+            StackPane output = leaves.get(3);
+            editors.getChildren().add(new Region());
+            output.getChildren().add(new Region());
+            f.host.views.add(output);
+
+            assertSame("the pane below the row is found", output, f.area.paneBelow(f.main));
+
+            // Without it, a new pane goes below the row, not below the editor pane alone.
+            f.area.minimize(output);
+            StackPane created = f.area.paneBelow(f.main);
+            created.getChildren().add(new Region());
+            assertEquals("H[0.3000](P:NAVIGATOR,V[0.6500](H[0.5000](P:MAIN,L),L))", DockTrees.format(f.area.tree()));
+
+            // A tool-window pane beside the editor pane is not part of its area.
+            f.host.views.add(editors);
+            created.getChildren().clear();
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            StackPane below = f.area.paneBelow(f.main);
+            below.getChildren().add(new Region());
+            assertEquals("H[0.3000](H[0.5000](V[0.6500](P:MAIN,L),L))".replace("H[0.3000](H", "H[0.3000](P:NAVIGATOR,H"),
+                    DockTrees.format(f.area.tree()));
             return null;
         });
     }

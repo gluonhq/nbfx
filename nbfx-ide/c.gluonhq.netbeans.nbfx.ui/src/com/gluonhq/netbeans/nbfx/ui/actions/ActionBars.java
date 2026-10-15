@@ -101,6 +101,8 @@ public final class ActionBars {
         ICONS.put(ActionIds.REDO, "redo24.png");
         ICONS.put(ActionIds.SELECT_PROJECTS, "projectTab.png");
         ICONS.put(ActionIds.SELECT_FILES, "filesTab.png");
+        // NetBeans has no icon for Window > Editor; the Tango text-editor icon (ide/texttools) fills in, 16 px only.
+        ICONS.put(ActionIds.SELECT_EDITOR, "editorTab.png");
         ICONS.put(ActionIds.SELECT_IN_PROJECTS, "projectTab.png");
         ICONS.put(ActionIds.SELECT_IN_FILES, "filesTab.png");
         ICONS.put(ActionIds.BUILD, "build.png");

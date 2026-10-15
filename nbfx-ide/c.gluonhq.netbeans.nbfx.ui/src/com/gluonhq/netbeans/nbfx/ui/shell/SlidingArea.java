@@ -20,6 +20,7 @@ package com.gluonhq.netbeans.nbfx.ui.shell;
 
 import com.gluonhq.netbeans.nbfx.docking.DockArea;
 import com.gluonhq.netbeans.nbfx.docking.DockArea.Anchor;
+import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane.PaneKind;
 import com.gluonhq.netbeans.nbfx.ui.shell.NbfxTabPane.PaneRole;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -70,6 +71,13 @@ import org.openide.util.NbBundle;
  * the slide-in size of each minimized pane are kept here and persisted with the layout. A tab on loan
  * to the panel still belongs to its group: {@link #tabsOf} lists a minimized pane's tabs with it, and
  * the pane does not count as empty without it (see {@link Docking#isEmpty}).
+ * <p>
+ * The counterpart of minimizing is {@linkplain #maximize maximizing} a tab, as NetBeans maximizes an
+ * editor: its pane fills the area, the view panes around it are minimized to the sliding sides and
+ * the other editor panes set aside, until the tab is {@linkplain #restoreMaximized restored} - by
+ * double-clicking it again, its header's Restore Window button or the context menu - when the
+ * layout comes back with whatever was docked next to the maximized pane meanwhile. A view pane is
+ * minimizable, an editor pane maximizable (see {@link PaneKind}); any tab may be maximized.
  */
 public final class SlidingArea extends StackPane {
 
@@ -102,6 +110,8 @@ public final class SlidingArea extends StackPane {
     private Tab pending;
     /** The pane that held the focus before the panel took it, to give it back on slide-out. */
     private TabPane previousFocus;
+    /** The view panes minimized to make room for the maximized pane, restored with it. */
+    private final List<TabPane> minimizedForMaximize = new ArrayList<>();
     private Subscription sceneSubscription = Subscription.EMPTY;
 
     public SlidingArea(DockArea<TabPane> area) {
@@ -122,6 +132,13 @@ public final class SlidingArea extends StackPane {
             while (change.next()) {
                 change.getRemoved().forEach(this::paneRestored);
                 change.getAddedSubList().forEach(this::paneMinimized);
+            }
+        });
+        // The area ends the maximized state itself ahead of any change to its shape (a pane split
+        // off, moved, docked along a side): the view panes minimized for it come back then too.
+        area.maximizedPaneProperty().subscribe((was, now) -> {
+            if (was != null && now == null) {
+                unmaximized();
             }
         });
         slideInDelay.setOnFinished(_ -> {
@@ -160,12 +177,17 @@ public final class SlidingArea extends StackPane {
         if (!isMinimizable(pane)) {
             return;
         }
+        if (area.isMaximized()) {
+            // Minimizing is a layout change: the maximized state ends first.
+            restoreMaximized();
+        }
         Side side = guessSide(pane);
         sides.put(pane, side);
         sizes.put(pane, isHorizontal(side) ? pane.getHeight() : pane.getWidth());
         boolean hadFocus = pane.isFocusWithin();
         area.minimize(pane);
         LOG.fine(() -> "Minimized the " + NbfxTabPane.roleOf(pane) + " pane to the " + side);
+        Docking.logLayout("minimizing a group");
         if (hadFocus) {
             NbfxTabPane.focusSelectedTab(area.mainPane());
         }
@@ -185,6 +207,9 @@ public final class SlidingArea extends StackPane {
             minimize(source);
             return;
         }
+        if (area.isMaximized()) {
+            restoreMaximized();
+        }
         Side side = guessSide(source);
         TabPane pane = new NbfxTabPane(PaneRole.DOCKED);
         sides.put(pane, side);
@@ -192,6 +217,7 @@ public final class SlidingArea extends StackPane {
         boolean hadFocus = tab.getContent() != null && tab.getContent().isFocusWithin();
         NbfxTabPane.moveTab(pane, tab, 0);
         area.minimize(pane, Anchor.into(source));
+        Docking.logLayout("minimizing a tab");
         if (hadFocus) {
             NbfxTabPane.focusSelectedTab(source);
         }
@@ -222,6 +248,7 @@ public final class SlidingArea extends StackPane {
         if (area.contains(pane)) {
             NbfxTabPane.focusSelectedTab(pane);
         }
+        Docking.logLayout("restoring a group");
     }
 
     /**
@@ -254,6 +281,7 @@ public final class SlidingArea extends StackPane {
                 // A slid-in tab leaves the panel here, which notes the loss and slides out.
                 NbfxTabPane.moveTab(home, tab, home.getTabs().size());
                 NbfxTabPane.selectTabAndMoveToFront(tab);
+                Docking.logLayout("docking a tab into its group's pane");
                 return;
             }
             if (area.isMinimized(home)) {
@@ -288,6 +316,7 @@ public final class SlidingArea extends StackPane {
         }
         area.restore(group);
         NbfxTabPane.selectTabAndMoveToFront(tab);
+        Docking.logLayout("docking a tab out of its group");
     }
 
     /** The minimized pane anchored into {@code group}, or a new docked pane on the group's side. */
@@ -309,9 +338,108 @@ public final class SlidingArea extends StackPane {
         return pane != null && area.isMinimized(pane);
     }
 
-    /** Whether {@code pane} can be minimized: a pane of the area other than the editor pane. */
+    /** Whether {@code pane} can be minimized: a view pane of the area other than the editor pane. */
     public boolean isMinimizable(TabPane pane) {
-        return pane != null && area.contains(pane) && pane != area.mainPane();
+        return pane != null && area.contains(pane) && pane != area.mainPane()
+                && NbfxTabPane.kindOf(pane) == PaneKind.VIEW;
+    }
+
+    /** Whether {@code pane} is set aside by a maximized pane (see {@link #maximize}). */
+    public boolean isSetAside(TabPane pane) {
+        return pane != null && area.isSetAside(pane);
+    }
+
+    // --- Maximizing ------------------------------------------------------------------------------
+
+    /**
+     * Maximizes {@code tab}: its pane fills the area; the view panes showing around it are
+     * minimized to the sliding sides (and come back with the layout), the other editor panes set
+     * aside. A tab of a minimized pane, or slid in, is docked back first. Maximizing while another
+     * pane is maximized restores the layout first.
+     */
+    public void maximize(Tab tab) {
+        if (tab == null) {
+            return;
+        }
+        if (groupOf(tab) != null) {
+            dock(tab);
+        }
+        TabPane pane = tab.getTabPane();
+        if (pane == null || !area.contains(pane)) {
+            return;
+        }
+        if (area.isMaximized()) {
+            if (area.maximizedPane() == pane) {
+                pane.getSelectionModel().select(tab);
+                return;
+            }
+            restoreMaximized();
+        }
+        pane.getSelectionModel().select(tab);
+        for (TabPane other : area.leaves()) {
+            if (other != pane && isMinimizable(other)) {
+                minimize(other);
+                minimizedForMaximize.add(other);
+            }
+        }
+        area.maximize(pane);
+        NbfxTabPane.refreshHeaderButtons();
+        NbfxTabPane.focusSelectedTab(pane);
+        LOG.fine(() -> "Maximized " + NbfxTabPane.titleOf(tab));
+        Docking.logLayout("maximizing " + NbfxTabPane.titleOf(tab));
+    }
+
+    /** Maximizes {@code tab}, or restores the layout when its pane is the maximized one. */
+    public void toggleMaximize(Tab tab) {
+        TabPane pane = tab == null ? null : tab.getTabPane();
+        if (pane != null && area.isMaximized() && area.maximizedPane() == pane) {
+            restoreMaximized();
+        } else {
+            maximize(tab);
+        }
+    }
+
+    /**
+     * Restores the layout a maximized pane set aside, with whatever was docked next to it
+     * meanwhile in its place, and brings back the view panes minimized for it that are still
+     * minimized. Does nothing while nothing is maximized.
+     */
+    public void restoreMaximized() {
+        if (!area.isMaximized()) {
+            return;
+        }
+        TabPane pane = area.maximizedPane();
+        area.unmaximize();
+        if (area.contains(pane)) {
+            NbfxTabPane.focusSelectedTab(pane);
+        }
+    }
+
+    /**
+     * The area restored the shape (asked to, or ahead of a layout change): the view panes minimized
+     * for it come back - the last minimized first, as each one's anchor describes the shape as it
+     * was when that pane left, which the panes minimized after it had left intact.
+     */
+    private void unmaximized() {
+        for (TabPane minimized : List.copyOf(minimizedForMaximize).reversed()) {
+            if (area.isMinimized(minimized)) {
+                area.restore(minimized);
+            }
+        }
+        minimizedForMaximize.clear();
+        NbfxTabPane.refreshHeaderButtons();
+        LOG.fine("Restored the layout a maximized pane had set aside");
+        Docking.logLayout("restoring the maximized pane");
+    }
+
+    /** Whether a tab is maximized. */
+    public boolean isMaximized() {
+        return area.isMaximized();
+    }
+
+    /** The pane of the maximized tab, or {@code null}. */
+    public TabPane maximizedPane() {
+        return area.maximizedPane();
     }
 
     /** The side the minimized {@code pane} slides from (the left for a pane that is not minimized). */
@@ -492,17 +620,26 @@ public final class SlidingArea extends StackPane {
         }
         bars.values().forEach(bar -> bar.remove(pane));
         sides.remove(pane);
+        // Restored by hand while maximized: it stays where the user put it afterwards.
+        minimizedForMaximize.remove(pane);
     }
 
     /**
      * The side of the window {@code pane} is nearest to, judged against the editor pane as NetBeans
-     * judges a window against the editor area: wholly to its left, the left; wholly to its right,
-     * the right; below it, the bottom; above it, the top (a side NetBeans does not slide to);
-     * anything else (around it) the left.
+     * judges a window against the editor area, but from the dock area's shape (see
+     * {@link DockArea#sideOf}): to its left, the left; to its right, the right; below it, the
+     * bottom; above it, the top (a side NetBeans does not slide to). The screen bounds are the
+     * fallback, and anything else (around it) is the left.
      */
     private Side guessSide(TabPane pane) {
-        Bounds p = pane.localToScene(pane.getLayoutBounds());
         TabPane main = area.mainPane();
+        // The shape says where the pane is; the bounds below only serve a pane the shape cannot
+        // place against the editor pane (set aside by a maximized one, say).
+        Side inShape = area.sideOf(pane, main);
+        if (inShape != null) {
+            return inShape;
+        }
+        Bounds p = pane.localToScene(pane.getLayoutBounds());
         Bounds m = main.localToScene(main.getLayoutBounds());
         if (p == null || m == null || m.getWidth() <= 0 || m.getHeight() <= 0) {
             return Side.LEFT;

@@ -78,6 +78,15 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
+                    <!-- No compile use: the dependency orders this module's layer above ide/defaults'
+                         keymap layer, so the masks in layer.xml apply. -->
+                    <code-name-base>org.netbeans.modules.defaults</code-name-base>
+                    <run-dependency>
+                        <release-version>1</release-version>
+                        <specification-version>1.65</specification-version>
+                    </run-dependency>
+                </dependency>
+                <dependency>
                     <code-name-base>org.netbeans.modules.parsing.indexing</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>

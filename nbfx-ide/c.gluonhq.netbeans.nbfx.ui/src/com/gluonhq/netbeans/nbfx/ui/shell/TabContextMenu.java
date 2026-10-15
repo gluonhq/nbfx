@@ -67,7 +67,7 @@ public final class TabContextMenu {
         close.setAccelerator(new KeyCodeCombination(KeyCode.W, KeyCombination.SHORTCUT_DOWN));
         MenuItem closeGroup = item("closeGroup", e -> closeGroup(tab.getTabPane()));
 
-        MenuItem maximize = todo("maximize");
+        MenuItem maximize = item("maximize", e -> maximize(tab));
         MenuItem minimize = item("minimize", e -> minimize(tab));
         MenuItem minimizeGroup = item("minimizeGroup", e -> minimizeGroup(tab.getTabPane()));
         MenuItem floatTab = item("float", e -> floatTab(tab));
@@ -88,6 +88,7 @@ public final class TabContextMenu {
         menu.setOnShowing(e -> {
             refreshCommon(tab, floatTab, floatGroup, dock, dockGroup, move, moveGroup, shiftLeft, shiftRight);
             refreshMinimize(tab.getTabPane(), minimize, minimizeGroup);
+            refreshMaximize(tab, maximize);
         });
         tab.setContextMenu(menu);
     }
@@ -103,7 +104,7 @@ public final class TabContextMenu {
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN));
         MenuItem closeOther = item("closeOther", e -> closeOthers(tab));
 
-        MenuItem maximize = todo("maximize");
+        MenuItem maximize = item("maximize", e -> maximize(tab));
         // An editor dragged into a pane next to the editor pane minimizes with that pane, as in NetBeans.
         MenuItem minimize = item("minimize", e -> minimize(tab));
         MenuItem minimizeGroup = item("minimizeGroup", e -> minimizeGroup(tab.getTabPane()));
@@ -142,6 +143,7 @@ public final class TabContextMenu {
             refreshCommon(tab, floatTab, floatAll, dock, dockAll, move, moveAll, shiftLeft, shiftRight);
             TabPane pane = tab.getTabPane();
             refreshMinimize(pane, minimize, minimizeGroup);
+            refreshMaximize(tab, maximize);
             int count = pane == null ? 0 : pane.getTabs().size();
             boolean inArea = inArea(pane);
             closeOther.setDisable(count <= 1);
@@ -169,7 +171,7 @@ public final class TabContextMenu {
     public static Menu createConfigureWindowMenu() {
         Menu menu = new Menu(message("configureWindow"));
 
-        MenuItem maximize = todo("maximize");
+        MenuItem maximize = item("maximize", e -> withFocusedTab(TabContextMenu::maximize));
         MenuItem floatTab = item("float", e -> withFocusedTab(TabContextMenu::floatTab));
         MenuItem floatGroup = item("floatGroup", e -> withFocusedTab(tab -> floatGroup(tab.getTabPane())));
         MenuItem minimize = item("minimize", e -> withFocusedTab(TabContextMenu::minimize));
@@ -198,12 +200,13 @@ public final class TabContextMenu {
             boolean inArea = inArea(pane);
             boolean editor = tab != null && NbfxTabPane.documentOf(tab) != null;
             int count = pane == null ? 0 : pane.getTabs().size();
-            boolean slid = isSlid(tab);
-            floatTab.setDisable(tab == null || detached);
-            floatGroup.setDisable(tab == null || detached || slid);
+            boolean grouped = isGrouped(tab);
+            refreshMaximize(tab, maximize);
+            floatTab.setDisable(tab == null || detached || grouped);
+            floatGroup.setDisable(tab == null || detached || grouped);
             refreshMinimize(pane, minimize, minimizeGroup);
-            dock.setDisable(!(detached || slid) || NbfxTabPane.homeOf(tab) == null);
-            dockGroup.setDisable(!detached);
+            dock.setDisable(!(detached || grouped) || NbfxTabPane.homeOf(tab) == null);
+            dockGroup.setDisable(!(detached || grouped));
             clone.setDisable(!editor);
             Orientation current = tab == null ? null : EditorSplit.orientationOf(tab);
             boolean canSplit = editor && EditorSplit.canSplit(tab);
@@ -238,13 +241,13 @@ public final class TabContextMenu {
             MenuItem dockGroup, MenuItem move, MenuItem moveGroup, MenuItem shiftLeft, MenuItem shiftRight) {
         TabPane pane = tab.getTabPane();
         boolean detached = pane != null && NbfxTabPane.roleOf(pane) == PaneRole.DETACHED;
-        boolean slid = isSlid(tab);
+        boolean grouped = isGrouped(tab);
         boolean inArea = inArea(pane);
         int index = pane == null ? -1 : pane.getTabs().indexOf(tab);
-        floatTab.setDisable(detached);
-        floatGroup.setDisable(detached || slid);
-        dock.setDisable(!(detached || slid) || NbfxTabPane.homeOf(tab) == null);
-        dockGroup.setDisable(!detached);
+        floatTab.setDisable(detached || grouped);
+        floatGroup.setDisable(detached || grouped);
+        dock.setDisable(!(detached || grouped) || NbfxTabPane.homeOf(tab) == null);
+        dockGroup.setDisable(!(detached || grouped));
         move.setDisable(Docking.area() == null || (!inArea && !detached));
         moveGroup.setDisable(Docking.area() == null || (!inArea && !detached));
         shiftLeft.setDisable(index <= 0);
@@ -255,10 +258,23 @@ public final class TabContextMenu {
         return pane != null && Docking.area() != null && Docking.area().contains(pane);
     }
 
-    /** Whether {@code tab} is slid in from a sliding side. */
-    private static boolean isSlid(Tab tab) {
+    /** Whether {@code tab} belongs to a minimized group - in its slide bar, or slid in from it. */
+    private static boolean isGrouped(Tab tab) {
         SlidingArea slides = Docking.slides();
-        return slides != null && slides.isSlid(tab);
+        return slides != null && slides.groupOf(tab) != null;
+    }
+
+    /**
+     * Labels the Maximize item Restore Window while {@code tab}'s pane is the maximized one, and
+     * disables it for a tab in a detached window, which has no layout to fill.
+     */
+    private static void refreshMaximize(Tab tab, MenuItem maximize) {
+        SlidingArea slides = Docking.slides();
+        TabPane pane = tab == null ? null : tab.getTabPane();
+        boolean maximized = slides != null && pane != null && slides.maximizedPane() == pane;
+        maximize.setText(message(maximized ? "restoreWindow" : "maximize"));
+        maximize.setDisable(tab == null || slides == null
+                || (pane != null && NbfxTabPane.roleOf(pane) == PaneRole.DETACHED));
     }
 
     /** Enables Minimize / Minimize Group only for a pane that can be minimized to a sliding side. */
@@ -340,6 +356,16 @@ public final class TabContextMenu {
         }
     }
 
+    // --- Maximize --------------------------------------------------------------------------------
+
+    /** Maximizes {@code tab}, or restores the layout when it is the maximized one; see {@link SlidingArea#toggleMaximize}. */
+    private static void maximize(Tab tab) {
+        SlidingArea slides = Docking.slides();
+        if (slides != null) {
+            slides.toggleMaximize(tab);
+        }
+    }
+
     // --- Minimize --------------------------------------------------------------------------------
 
     /** Minimizes {@code tab} alone to a sliding side of the main window; see {@link SlidingArea#minimize(Tab)}. */
@@ -378,7 +404,7 @@ public final class TabContextMenu {
     }
 
     private static void dock(Tab tab) {
-        if (isSlid(tab)) {
+        if (isGrouped(tab)) {
             // Back from a sliding side rather than from a detached window.
             Docking.slides().dock(tab);
             return;
@@ -392,6 +418,11 @@ public final class TabContextMenu {
 
     private static void dockGroup(TabPane pane) {
         if (pane == null) {
+            return;
+        }
+        SlidingArea slides = Docking.slides();
+        if (slides != null && slides.isMinimized(pane)) {
+            slides.restore(pane);
             return;
         }
         Tab selected = pane.getSelectionModel().getSelectedItem();
@@ -418,6 +449,7 @@ public final class TabContextMenu {
         TabPane target = area.split(new DropTarget<>(pane, Side.RIGHT));
         NbfxTabPane.moveTab(target, tab, 0);
         NbfxTabPane.selectTabAndMoveToFront(tab);
+        Docking.logLayout("New Document Tab Group");
     }
 
     /** Moves every tab of {@code pane} into another pane of the area; the emptied pane goes away by itself. */
@@ -433,6 +465,7 @@ public final class TabContextMenu {
         if (selected != null) {
             NbfxTabPane.selectTabAndMoveToFront(selected);
         }
+        Docking.logLayout("Collapse Document Tab Group");
     }
 
     /**
