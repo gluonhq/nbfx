@@ -42,9 +42,13 @@ options — all inside the lean, pure-JavaFX app with no visible Swing UI.
 
 The branch already contains a working **JavaFX shell over the NetBeans Runtime**:
 
-- 11 modules under `nbfx/`, ~48k LOC / 287 Java sources (excluding `build/`).
-- Cluster wiring: `nbbuild/cluster.properties:99` adds `nb.cluster.nbfx` to `clusters.config.java.list`;
-  `nbbuild/cluster.properties:1337-1351` defines the cluster and its dependency on `nb.cluster.java`.
+- 38 modules across the three nbfx clusters (`nbfx-platform/`, `nbfx-ide/`, `nbfx-java/`), which
+  parallel the NetBeans `platform`/`ide`/`java` clusters (dependency direction platform → ide → java).
+- Cluster wiring: `nbbuild/cluster.properties` lists `nb.cluster.nbfx-platform`,
+  `nb.cluster.nbfx-ide` and `nb.cluster.nbfx-java` in `clusters.config.java.list` and
+  `clusters.config.nbfx.list`, and defines each with its `.dir` and `.depends`
+  (`nb.cluster.platform`; then `nb.cluster.ide`/`nb.cluster.java`; then `nb.cluster.java`/
+  `nb.cluster.extide`/`nb.cluster.apisupport`).
 - Bootstrap: `nbfx/.../launcher/FxGuiRunLevel.java` (`@ServiceProvider(service=RunLevel.class)`) starts
   `Application.launch(JavaFXLaunchApp.class)` on a daemon thread once the platform is up (the
   `core.startup` `RunLevel` sweep); `LauncherInstall` (`ModuleInstall`) keeps only the early
@@ -69,7 +73,10 @@ configurable keymaps, plugins UI, and any layer/annotation-based registration.
 
 ## 3. Purity and architecture rules
 
-### 3.1 Hard forbidden imports/dependencies for `nbfx/*/src`
+The guardrail lives at `check-purity.xml` in the repository root and scans the three nbfx clusters
+(`nbfx-platform/`, `nbfx-ide/`, `nbfx-java/`); run `ant -f check-purity.xml check-purity`.
+
+### 3.1 Hard forbidden imports/dependencies for the nbfx modules (`nbfx-platform/`, `nbfx-ide/`, `nbfx-java/`)
 
 - `javax.swing.*`, `java.awt.*` (UI), `javafx.embed.swing.*`, `SwingFXUtils`, `SwingNode`, `JFXPanel`.
 - Direct module deps on: `org.openide.awt`, `org.openide.nodes`, `org.openide.explorer`,
@@ -392,7 +399,7 @@ Workstream:
 - Retain the thin Swing layer transitively required by `parsing`/`indexing`
   (`api.progress`, `projectuiapi.base`, `openide.dialogs`); whole-classpath purity is **not** required.
 - Guardrail build target fails when:
-    1. `nbfx/*/src` imports a forbidden package (§3.1);
+    1. an nbfx module (`nbfx-platform/*/src`, `nbfx-ide/*/src`, `nbfx-java/*/src`) imports a forbidden package (§3.1);
     2. any `nbfx` module directly depends on a denylisted module (§3.1);
     3. `nbfx` JARs contain `javax/swing` or `java/awt` classes.
 - Keep a full-cluster config as a development fallback until the lean set is stable.
@@ -566,9 +573,9 @@ Always copy the original architecture first, then reimplement with FX + layer/an
   `libraries-badge.png`, suite root `suite.png`.
 - **Cluster requirement**: `ProjectManager` only recognises an apisupport project if its
   `AntBasedProjectType` is registered, which is done by `apisupport.ant`; `project.ant` alone is not
-  enough. The nbfx cluster therefore depends on `nb.cluster.apisupport` (`nbbuild/cluster.properties`).
-  Trade-off: this widens the otherwise-lean nbfx cluster; the long-term alternative is an nbfx-native
-  Ant/apisupport `Project` provider (§6).
+  enough. The nbfx clusters therefore depend on `nb.cluster.apisupport` (`nbbuild/cluster.properties`;
+  `nb.cluster.nbfx-java.depends` names it). Trade-off: this widens the otherwise-lean nbfx clusters;
+  the long-term alternative is an nbfx-native Ant/apisupport `Project` provider (§6).
 - **Acceptance for dog-food**: open this repository's own modules (and `nbbuild`) and build them.
 
 ### 14.4 Maven (`java/maven`) — reference (implemented)
@@ -870,7 +877,7 @@ declared default weights (only `DEFAULT_NAVIGATOR_SHARE = 0.22`).
 ### 19.1 Properties window (`nbfx.propertysheet`, renamed from `nbfx.properties`)
 
 - Rename the module `c.gluonhq.netbeans.nbfx.properties` → `c.gluonhq.netbeans.nbfx.propertysheet`
-  (update `nb.cluster.nbfx`, dependencies, `apichanges.xml`/`arch.xml`, refs).
+  (update the nbfx cluster module lists, dependencies, `apichanges.xml`/`arch.xml`, refs).
 - The window is the FX `NbSheet` analogue: a dockable view hosting `FxPropertySheet`, driven by
   `FxActionContext` (current global selection: project/file/editor document) via `FxPropertiesProvider`s;
   add an `EditorDocument` provider.
@@ -941,7 +948,7 @@ root from the selected project/file/document.
 ### 20.1 Status (updated this round)
 
 - **Done:** milestones 1–6. `nbfx.context`, `nbfx.project.actions`, `nbfx.propertysheet` (renamed),
-  `nbfx.structure`, `nbfx.structure.java` all created/updated and in `nb.cluster.nbfx`; submenu support
+  `nbfx.structure`, `nbfx.structure.java` all created/updated and in the nbfx clusters; submenu support
   and `Window ▸ IDE Tools` added; Git follows `FxActionContext`; the Java members panel
   (`JavaStructurePanel`) is the first `FxStructurePanel`.
 - **In progress:** milestone 7 (migrate remaining command groups). Migrated so far:
@@ -966,7 +973,7 @@ root from the selected project/file/document.
       launcher-owned project Open/Close commands keep the shell's project observable; `SearchScope` and
       `NavigatorContextMenuFactory.hasModifiedDocuments` need the full document registry, not the
       selection.
-- **Verification:** `ant -Dcluster.config=nbfx build -q` green; `ant -f nbfx/check-purity.xml -q` green;
+- **Verification:** `ant -Dcluster.config=nbfx build -q` green; `ant -f check-purity.xml -q` green;
   unit tests green for `nbfx.api`, `nbfx.run`, `nbfx.project.context`, `nbfx.project.actions`,
   `nbfx.propertysheet`, `nbfx.ui`, and `nbfx.file.actions`.
 - **Registration-class fold (Part A, §21.3):** `@FxActionReference` moved onto the owning classes —
