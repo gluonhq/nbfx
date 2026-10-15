@@ -81,12 +81,22 @@
     <!-- submodule                                                                -->
     <!-- ======================================================================== -->
 
-    <target name="submodule" description="Initialise/update the netbeans submodule and check out the pinned revision">
+    <target name="-submodule-present">
+        <condition property="nbfx.submodule.present">
+            <available file="${nbfx.sub.dir}/.git"/>
+        </condition>
+    </target>
+
+    <target name="-submodule-init" depends="-submodule-present" unless="nbfx.submodule.present">
         <exec executable="git" dir="${basedir}" failonerror="true">
             <arg value="submodule"/>
             <arg value="update"/>
             <arg value="--init"/>
         </exec>
+    </target>
+
+    <target name="submodule" depends="-submodule-init"
+            description="Check out the pinned netbeans revision (initialises the submodule if needed)">
         <exec executable="git" dir="${nbfx.sub.dir}" failonerror="true">
             <arg value="checkout"/>
             <arg value="--quiet"/>
@@ -257,21 +267,31 @@ nbfx-java/</echo>
     </target>
 
     <target name="update-upstream"
-            description="Bump the submodule revision and re-apply/verify the patches (-Dnbfx.submodule.commit)">
+            description="Bump the submodule revision and re-apply/verify the patches (set -Dnbfx.submodule.commit)">
         <exec executable="git" dir="${nbfx.sub.dir}" failonerror="true">
             <arg value="fetch"/>
             <arg value="origin"/>
+        </exec>
+        <!-- discard the previously applied patches + generated cluster.properties so the new
+             revision can be checked out cleanly; untracked build outputs are kept -->
+        <exec executable="git" dir="${nbfx.sub.dir}" failonerror="true">
+            <arg value="reset"/>
+            <arg value="--hard"/>
         </exec>
         <exec executable="git" dir="${nbfx.sub.dir}" failonerror="true">
             <arg value="checkout"/>
             <arg value="--quiet"/>
             <arg value="${nbfx.submodule.commit}"/>
         </exec>
+        <delete quiet="true">
+            <fileset dir="${nbfx.build.dir}" includes="patches-*.stamp"/>
+        </delete>
         <nbfx-unoverlay-one cluster="nbfx-platform"/>
         <nbfx-unoverlay-one cluster="nbfx-ide"/>
         <nbfx-unoverlay-one cluster="nbfx-java"/>
         <antcall target="patches-check"/>
         <antcall target="bootstrap"/>
+        <echo message="[nbfx] upstream bumped to ${nbfx.submodule.commit}; update nbfx.properties + the submodule gitlink and commit"/>
     </target>
 
     <target name="resync-source"

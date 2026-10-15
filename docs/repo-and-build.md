@@ -137,8 +137,11 @@ Because the direct upstream dependency is a moving target, the model is:
 - **Regenerate** the own cluster config at every build (it is never committed), so upstream changes to
   `nbbuild/cluster.properties` are picked up automatically.
 
-`update-upstream` performs: fetch → checkout the new revision → tear down the overlay → `patches-check`
-→ `bootstrap`.
+`update-upstream` performs: fetch → `reset --hard` (discard the applied patches + generated
+`cluster.properties`) → checkout the new revision → drop the patch stamps → tear down the overlay →
+`patches-check` → `bootstrap`. Afterwards update `nbfx.submodule.commit` in `nbfx.properties` and the
+submodule gitlink, and commit. `submodule` only runs `git submodule update --init` when the submodule
+is not yet initialised, so re-running it never clobbers the applied patches.
 
 The **nbfx sources themselves** originated in `gluon-netbeans-fx` and keep evolving there.
 `ant resync-source` fetches `nbfx.source.remote`/`nbfx.source.branch` (configure the remote once with
