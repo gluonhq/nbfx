@@ -19,39 +19,55 @@
 package com.gluonhq.netbeans.nbfx.ui;
 
 import com.gluonhq.netbeans.nbfx.api.progress.FxProgress;
-import com.gluonhq.netbeans.nbfx.ui.shell.ProgressStatusElement;
+import java.util.concurrent.atomic.AtomicReference;
+import org.netbeans.api.progress.ProgressHandle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The launcher's {@link FxProgress}: forwards the progress slot to the main window's
- * {@link ProgressStatusElement}. The main window binds the element while starting up; before that,
- * progress requests are ignored.
+ * The launcher's {@link FxProgress}: it is a thin adapter over the standard progress API, so the
+ * nbfx-notified activity (a project load, a build) becomes an ordinary system task shown by the FX
+ * progress UI in the status line and in the running-tasks popup. Only one activity uses the slot at
+ * a time: a new {@link #start} renames the running one, and {@link #finish} ends it.
  *
  * @since 1.0
  */
 @ServiceProvider(service = FxProgress.class)
 public final class FxProgressImpl implements FxProgress {
 
-    private volatile ProgressStatusElement element;
-
-    /** Binds the main window's progress element. Called once while the window is being built. */
-    void bind(ProgressStatusElement element) {
-        this.element = element;
-    }
+    private final AtomicReference<ProgressHandle> handle = new AtomicReference<>();
+    private final AtomicReference<Runnable> cancel = new AtomicReference<>();
 
     @Override
     public void start(String message, Runnable onCancel) {
-        ProgressStatusElement target = element;
-        if (target != null) {
-            target.show(message, onCancel);
+        cancel.set(onCancel);
+        ProgressHandle current = handle.get();
+        if (current != null) {
+            current.setDisplayName(message);
+            return;
+        }
+        ProgressHandle created = ProgressHandle.createSystemHandle(message, this::doCancel);
+        if (handle.compareAndSet(null, created)) {
+            created.start();
+        } else {
+            created.finish();
         }
     }
 
     @Override
     public void finish() {
-        ProgressStatusElement target = element;
-        if (target != null) {
-            target.hide();
+        cancel.set(null);
+        ProgressHandle current = handle.getAndSet(null);
+        if (current != null) {
+            current.finish();
         }
+    }
+
+    private boolean doCancel() {
+        Runnable action = cancel.get();
+        if (action != null) {
+            action.run();
+            return true;
+        }
+        return false;
     }
 }
