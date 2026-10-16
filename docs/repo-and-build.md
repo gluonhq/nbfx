@@ -113,7 +113,6 @@ ant build          # build the 'nbfx' cluster config
 ant run            # launch the FX app on the lean cluster set
 ant check-purity   # source/deps/bundled-class/packaging guardrails
 ant update-upstream -Dnbfx.submodule.commit=<sha>
-ant resync-source  # pull new nbfx sources from the source repo
 ant clean
 ```
 
@@ -126,6 +125,10 @@ ant -Dcluster.config=nbfx -Dclusters.list.file="$PWD/../../build/cluster.propert
 
 `ant help` lists all targets; `ant print-config` prints the effective configuration. Any property can
 be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
+
+`build` and `run` depend on `bootstrap`, so they re-run the overlay first: edits in the outer
+`nbfx-platform/`, `nbfx-ide/` and `nbfx-java/` directories are synced into `netbeans/` automatically on
+every build.
 
 ## 6. Upstream changes
 
@@ -143,18 +146,9 @@ Because the direct upstream dependency is a moving target, the model is:
 submodule gitlink, and commit. `submodule` only runs `git submodule update --init` when the submodule
 is not yet initialised, so re-running it never clobbers the applied patches.
 
-The **nbfx sources themselves** originated in `gluon-netbeans-fx` and keep evolving there.
-`ant resync-source` fetches `nbfx.source.remote`/`nbfx.source.branch` (configure the remote once with
-`git remote add source https://github.com/gluonhq/netbeans`) and tree-syncs the `nbfx-platform/`,
-`nbfx-ide/` and `nbfx-java/` clusters (they carry no repo-specific edits). `docs/MVP.md` and
-`check-purity.xml` **do** carry repo-specific edits (the repo/build integration and the dist-dir
-change), so the target does not overwrite them; merge the upstream delta manually with:
-
-```sh
-git diff <old-source-commit> source/netbeansfx-sep26 -- docs/MVP.md check-purity.xml | git apply --3way
-```
-
-then update `nbfx.source.commit` in `nbfx.properties`, review and commit.
+The nbfx sources themselves now live only in this repository (migrated with history from
+`gluon-netbeans-fx`; provenance is recorded in `nbfx.properties`). There is no separate upstream to
+sync from — only the `netbeans` submodule pin is updated over time.
 
 ## 7. Verification
 

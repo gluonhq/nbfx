@@ -19,7 +19,7 @@ index c3b347bdbc..4b4c980d11 100644
 +        <mapper type="glob" from="*" to="*.dir"/>
 +    </resolvelist>
 +    <dirset id="tryme.clusters.set" dir="${netbeans.dest.dir}" includes="${tryme.clusters.dirs}"/>
-+    <pathconvert property="tryme.clusters" refid="tryme.clusters.set" pathsep=":"/>
++    <pathconvert property="tryme.clusters" refid="tryme.clusters.set" pathsep="${path.separator}"/>
      <property name="tryme.jdkhome" value="${nbjdk.home}"/>
      <property name="tryme.debug.args" value="" />
      <property environment="env"/>
