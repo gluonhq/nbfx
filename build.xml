@@ -176,6 +176,10 @@
              cluster, as in the nbfx source configuration (remove the module + its line ending so
              the backslash-continued property stays valid) -->
         <replace file="${nbfx.cluster.file}" token="core.windows,\&#10;" value=""/>
+        <!-- pure-JavaFX: the Swing progress UI (progress.ui) is replaced by the nbfx FX
+             progress worker (com.gluonhq.netbeans.nbfx.progress); drop it from the platform cluster
+             so only the FX environment/worker is registered. -->
+        <replace file="${nbfx.cluster.file}" token="progress.ui,\&#10;" value=""/>
         <concat destfile="${nbfx.cluster.file}" append="true" fixlastline="yes">
             <fileset file="${nbfx.fragment}"/>
         </concat>
