@@ -2,6 +2,9 @@ package com.gluonhq.netbeans.nbfx.progress;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
@@ -38,6 +41,9 @@ import org.openide.util.NbBundle;
  * model of the running tasks, rendered by {@link FxProgressElement} in the status line and by an
  * all-tasks popup. Reuses the NetBeans {@link org.netbeans.modules.progress.spi.Controller}/
  * {@link TaskModel} for the task bookkeeping.
+ * <p>
+ * Events arrive on the controller's own thread; they are queued and applied in a single
+ * {@code Platform.runLater} batch, so a burst of progress updates coalesces into one JavaFX pass.
  */
 public final class FxProgressWorker implements ProgressUIWorkerWithModel {
 
@@ -49,11 +55,15 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
     private final ReadOnlyDoubleWrapper progress = new ReadOnlyDoubleWrapper(-1);
     private final ReadOnlyIntegerWrapper count = new ReadOnlyIntegerWrapper(0);
 
+    private final Queue<ProgressEvent> pending = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean drainScheduled = new AtomicBoolean();
+
     private TaskModel model;
     private Popup popup;
     private Node anchor;
 
-    private FxProgressWorker() {
+    /** Package-private for tests; production code uses {@link #getInstance()}. */
+    FxProgressWorker() {
     }
 
     public static FxProgressWorker getInstance() {
@@ -92,29 +102,50 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
 
     @Override
     public void showPopup() {
-        Platform.runLater(this::showPopupFx);
+        runOnFx(this::showPopupFx);
     }
 
     @Override
     public void processProgressEvent(ProgressEvent event) {
-        Platform.runLater(() -> apply(event));
+        pending.add(event);
+        if (drainScheduled.compareAndSet(false, true)) {
+            runOnFx(this::drain);
+        }
     }
 
     @Override
     public void processSelectedProgressEvent(ProgressEvent event) {
-        Platform.runLater(() -> {
-            Task task = byHandle.get(event.getSource());
-            if (task != null) {
-                active.set(task);
-                progress.set(task.getProgress());
-            }
-        });
+        runOnFx(() -> select(byHandle.get(event.getSource())));
+    }
+
+    /** Makes {@code task} the one shown in the status line. */
+    public void select(Task task) {
+        if (task == null) {
+            return;
+        }
+        active.set(task);
+        progress.set(task.getProgress());
     }
 
     /** Cancels {@code task} when the underlying handle allows it. */
     public void cancel(Task task) {
         if (task.handle().isAllowCancel()) {
             task.handle().requestCancel();
+        }
+    }
+
+    /** Opens the task's linked output when the underlying handle provides a view action. */
+    public void view(Task task) {
+        if (task.handle().isAllowView()) {
+            task.handle().requestView();
+        }
+    }
+
+    private void drain() {
+        drainScheduled.set(false);
+        ProgressEvent event;
+        while ((event = pending.poll()) != null) {
+            apply(event);
         }
     }
 
@@ -136,7 +167,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
                     tasks.remove(task);
                 }
                 if (active.get() != null && active.get().handle() == handle) {
-                    active.set(tasks.isEmpty() ? null : tasks.get(tasks.size() - 1));
+                    active.set(nextActive());
                 }
                 refresh();
             }
@@ -151,6 +182,17 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             }
         }
         count.set(tasks.size());
+    }
+
+    /** The task to fall back to when the active one finishes: the last user task, else the last one. */
+    private Task nextActive() {
+        Task last = null;
+        for (Task task : tasks) {
+            if (!task.isSystemTask()) {
+                last = task;
+            }
+        }
+        return last != null ? last : (tasks.isEmpty() ? null : tasks.get(tasks.size() - 1));
     }
 
     private void refresh() {
@@ -171,6 +213,10 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         if (popup == null) {
             popup = createPopup();
         }
+        if (popup.isShowing()) {
+            popup.hide();
+            return;
+        }
         Bounds bounds = anchor.localToScreen(anchor.getBoundsInLocal());
         if (bounds == null) {
             return;
@@ -183,7 +229,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         title.setStyle("-fx-font-weight: bold;");
 
         ListView<Task> list = new ListView<>(tasks);
-        list.setPrefWidth(360);
+        list.setPrefWidth(380);
         list.setPrefHeight(200);
         list.setCellFactory(view -> new TaskCell(this));
 
@@ -195,6 +241,19 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         p.setAutoHide(true);
         p.getContent().add(content);
         return p;
+    }
+
+    private static void runOnFx(Runnable action) {
+        try {
+            if (Platform.isFxApplicationThread()) {
+                action.run();
+            } else {
+                Platform.runLater(action);
+            }
+        } catch (IllegalStateException ex) {
+            // The JavaFX toolkit is not running (headless tests): apply inline.
+            action.run();
+        }
     }
 
     /** One running task, shown in the status line and in the popup. */
@@ -232,6 +291,15 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             return handle.isAllowCancel();
         }
 
+        public boolean isViewable() {
+            return handle.isAllowView();
+        }
+
+        /** A task not triggered by an explicit user action (NetBeans' "system" task). */
+        public boolean isSystemTask() {
+            return !handle.isUserInitialized();
+        }
+
         void update(String name, String detail, double progress) {
             if (name != null) {
                 this.name.set(name);
@@ -241,13 +309,14 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         }
     }
 
-    /** A popup row: name + detail, a progress bar and a cancel button. */
+    /** A popup row: name + detail, a progress bar, a View and a Cancel button. */
     private static final class TaskCell extends ListCell<Task> {
 
         private final FxProgressWorker worker;
         private final Label name = new Label();
         private final Label detail = new Label();
         private final ProgressBar bar = new ProgressBar();
+        private final Button view = new Button();
         private final Button cancel = new Button();
         private final HBox root;
 
@@ -255,14 +324,26 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             this.worker = worker;
             name.setStyle("-fx-font-weight: bold;");
             detail.getStyleClass().add("progress-detail");
-            bar.setPrefWidth(120);
+            bar.setPrefWidth(110);
+            view.setText(NbBundle.getMessage(FxProgressWorker.class, "Progress.view"));
             cancel.setText(NbBundle.getMessage(FxProgressWorker.class, "Progress.cancel"));
 
             VBox texts = new VBox(name, detail);
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
-            root = new HBox(8, texts, spacer, bar, cancel);
+            root = new HBox(8, texts, spacer, bar, view, cancel);
             root.setAlignment(Pos.CENTER_LEFT);
+
+            view.setOnAction(event -> {
+                if (getItem() != null) {
+                    worker.view(getItem());
+                }
+            });
+            cancel.setOnAction(event -> {
+                if (getItem() != null) {
+                    worker.cancel(getItem());
+                }
+            });
         }
 
         @Override
@@ -272,11 +353,16 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
                 setGraphic(null);
                 return;
             }
+            name.textProperty().unbind();
+            detail.textProperty().unbind();
             name.textProperty().bind(task.nameProperty());
             detail.textProperty().bind(task.detailProperty());
+            detail.setStyle(task.isSystemTask() ? "-fx-opacity: 0.7;" : "");
             bar.setProgress(task.getProgress());
+            view.setVisible(task.isViewable());
+            view.setManaged(task.isViewable());
             cancel.setVisible(task.isCancellable());
-            cancel.setOnAction(event -> worker.cancel(task));
+            cancel.setManaged(task.isCancellable());
             setGraphic(root);
         }
     }
