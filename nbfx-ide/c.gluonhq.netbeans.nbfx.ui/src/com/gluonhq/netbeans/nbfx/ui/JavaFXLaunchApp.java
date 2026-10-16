@@ -47,7 +47,6 @@ import com.gluonhq.netbeans.nbfx.api.file.FileSelectionContext;
 import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectIconProvider;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectRegistry;
-import com.gluonhq.netbeans.nbfx.api.progress.FxProgress;
 import com.gluonhq.netbeans.nbfx.api.view.ViewManager;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import com.gluonhq.netbeans.nbfx.api.view.ActiveComponent;
@@ -1098,11 +1097,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         return null;
     }
 
-    /** The status bar progress service, or {@code null} if not registered. */
-    private static FxProgress progress() {
-        return Lookup.getDefault().lookup(FxProgress.class);
-    }
-
     /** Marks a navigator reveal as in progress (or finished), so panes do not steal focus back. */
     private void setNavigatorRevealInProgress(boolean inProgress) {
         WindowEnvironmentImpl environment = windowEnvironment();
@@ -1259,8 +1253,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             provider.restoreExpandedPaths(rootFileObject, expandedPaths);
             provider.restoreSelectedPath(rootFileObject, selectedPath);
         }
-        loads.begin(path, projectDir);
-        updateLoadingProgress();
+        loads.begin(path, projectDir, () -> cancelProjectLoading(path));
         // Opening the registry is what makes the views build the tree (they observe it).
         projectRegistry.open(rootFileObject);
     }
@@ -1279,34 +1272,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     }
 
     /**
-     * Shows the status bar's progress for the projects being loaded, or hides it once none is
-     * loading. Projects load in parallel, so a single one is reported by name and its cancel button
-     * cancels that load; when several are loading at once, naming any one of them would be
-     * arbitrary, so they are reported together and cancelling cancels all of them. The background
-     * scan that follows is reported by the progress API itself, so it needs no watcher here.
-     */
-    private void updateLoadingProgress() {
-        FxProgress progress = progress();
-        if (progress == null) {
-            return;
-        }
-        File current = loads.current();
-        if (current == null) {
-            progress.finish();
-            return;
-        }
-        int loading = loads.size();
-        if (loading > 1) {
-            progress.start(NbBundle.getMessage(JavaFXLaunchApp.class,
-                    "StatusBar.openingProjects", loading), this::cancelAllProjectLoading);
-            return;
-        }
-        String path = loads.currentPath();
-        progress.start(NbBundle.getMessage(JavaFXLaunchApp.class,
-                "StatusBar.openingProject", current.getName()), () -> cancelProjectLoading(path));
-    }
-
-    /**
      * Cancels the loading of the project at {@code path}, if it is still loading, and drops the
      * partially built tree it left in the navigator views. Every other project is untouched.
      */
@@ -1322,7 +1287,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             projectRegistry.close(project);
         }
         loads.end(path);
-        updateLoadingProgress();
         // A cancelled load never reports back, so the session must stop waiting for it: the projects
         // that did load still get their editors and their arrangement back.
         sessionProjectSettled(path);
@@ -1343,7 +1307,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     private void onProjectLoaded(FileObject rootFileObject) {
         String path = OpenProject.pathOf(rootFileObject);
         loads.end(path);
-        updateLoadingProgress();
         OpenProject project = projectRegistry.find(path);
         if (project == null) {
             // Closed while it was still loading: nothing to record.

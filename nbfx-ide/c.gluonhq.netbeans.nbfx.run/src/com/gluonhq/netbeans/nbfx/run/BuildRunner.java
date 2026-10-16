@@ -18,7 +18,6 @@
  */
 package com.gluonhq.netbeans.nbfx.run;
 
-import com.gluonhq.netbeans.nbfx.api.progress.FxProgress;
 import com.gluonhq.netbeans.nbfx.output.FxConsole;
 import com.gluonhq.netbeans.nbfx.output.FxOutput;
 import com.gluonhq.netbeans.nbfx.project.ui.api.BuildActionProvider;
@@ -30,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.netbeans.api.progress.ProgressHandle;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
@@ -38,6 +38,9 @@ import org.openide.util.NbBundle;
  * {@link BuildActionProvider} to run the command in-process (streaming to the Fx console); when the
  * provider does not support in-process execution, it falls back to the CLI runner. Shared by the
  * Build menu command and the navigator context menu.
+ * <p>
+ * The running build is reported as an ordinary cancellable system task through the progress API, so
+ * the status line and the running-tasks popup show it without any bespoke UI.
  *
  * @since 1.0
  */
@@ -61,14 +64,37 @@ public final class BuildRunner {
         console.clear();
         console.show();
 
-        FxProgress progress = Lookup.getDefault().lookup(FxProgress.class);
+        AtomicReference<Runnable> cancelAction = new AtomicReference<>();
+        ProgressHandle handle = ProgressHandle.createSystemHandle(consoleName, () -> {
+            Runnable cancel = cancelAction.get();
+            if (cancel == null) {
+                return false;
+            }
+            cancel.run();
+            return true;
+        });
+        BuildProgress progress = new BuildProgress() {
+            @Override
+            public void start(String displayName, Runnable cancel) {
+                if (cancel != null) {
+                    cancelAction.set(cancel);
+                }
+                handle.setDisplayName(displayName);
+            }
+
+            @Override
+            public void finish() {
+                handle.finish();
+            }
+        };
+        handle.start();
+
         BuildActionProvider provider = BuildActions.providerFor(dir);
         LOG.info(() -> "Build " + command + " in " + dir + " via "
                 + (provider == null ? "CLI" : provider.getClass().getName()));
         if (provider != null) {
             try {
-                BuildExecution execution = provider.start(dir, command,
-                        output(console), progress(progress, consoleName));
+                BuildExecution execution = provider.start(dir, command, output(console), progress);
                 if (execution != null) {
                     return;
                 }
@@ -82,7 +108,7 @@ public final class BuildRunner {
     }
 
     /** The CLI fallback: detect the tool from marker files and run it as a process. */
-    private static void runCli(Path dir, String command, String consoleName, FxConsole console, FxProgress progress) {
+    private static void runCli(Path dir, String command, String consoleName, FxConsole console, BuildProgress progress) {
         List<String> commandLine = BuildTool.detect(dir).commandLine(dir, command);
         if (commandLine == null) {
             BuildActionProvider provider = BuildActions.providerFor(dir);
@@ -92,23 +118,18 @@ public final class BuildRunner {
         }
         if (commandLine == null) {
             console.append(NbBundle.getMessage(BuildRunner.class, "BuildCommand.noTool") + "\n");
+            progress.finish();
             return;
         }
         AtomicReference<Process> process = new AtomicReference<>();
-        if (progress != null) {
-            progress.start(consoleName, () -> {
-                Process running = process.get();
-                if (running != null) {
-                    running.destroy();
-                }
-            });
-        }
-        List<String> line = commandLine;
-        ProcessRunner.run(line, dir, console, process::set, () -> {
-            if (progress != null) {
-                progress.finish();
+        progress.start(consoleName, () -> {
+            Process running = process.get();
+            if (running != null) {
+                running.destroy();
             }
         });
+        List<String> line = commandLine;
+        ProcessRunner.run(line, dir, console, process::set, progress::finish);
     }
 
     private static BuildOutput output(FxConsole console) {
@@ -126,24 +147,6 @@ public final class BuildRunner {
             @Override
             public void append(String text) {
                 console.append(text);
-            }
-        };
-    }
-
-    private static BuildProgress progress(FxProgress progress, String name) {
-        return new BuildProgress() {
-            @Override
-            public void start(String displayName, Runnable cancel) {
-                if (progress != null) {
-                    progress.start(displayName, cancel);
-                }
-            }
-
-            @Override
-            public void finish() {
-                if (progress != null) {
-                    progress.finish();
-                }
             }
         };
     }
