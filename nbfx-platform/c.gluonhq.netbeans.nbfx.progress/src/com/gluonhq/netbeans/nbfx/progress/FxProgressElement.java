@@ -3,6 +3,9 @@ package com.gluonhq.netbeans.nbfx.progress;
 import com.gluonhq.netbeans.nbfx.annotations.FxStatusAlignment;
 import com.gluonhq.netbeans.nbfx.annotations.FxStatusRegistration;
 import com.gluonhq.netbeans.nbfx.statusbar.FxStatusElement;
+import javafx.beans.binding.Bindings;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -26,22 +29,31 @@ public final class FxProgressElement implements FxStatusElement {
     private final Button cancel = new Button();
     private final HBox node;
 
+    private static final StringProperty NO_TASK = new SimpleStringProperty("");
+
     /** Creates the element. Must be called on the JavaFX Application Thread. */
     public FxProgressElement() {
         bar.setPrefWidth(120);
+        bar.getStyleClass().add("status-bar-progress");
         taskCount.setOnAction(event -> worker.showPopup());
         cancel.setText(NbBundle.getMessage(FxProgressElement.class, "Progress.cancel"));
+        cancel.getStyleClass().add("status-bar-cancel");
         cancel.setOnAction(event -> {
             FxProgressWorker.Task active = worker.activeTaskProperty().get();
             if (active != null) {
                 worker.cancel(active);
             }
         });
-        worker.setAnchor(taskCount);
 
-        label.setText("");
-        worker.activeTaskProperty().addListener((obs, old, task) -> updateActive(task));
-        updateActive(worker.activeTaskProperty().get());
+        label.textProperty().bind(worker.activeTaskProperty().flatMap(
+                task -> task == null ? NO_TASK : task.nameProperty()));
+        cancel.visibleProperty().bind(Bindings.createBooleanBinding(
+                () -> {
+                    FxProgressWorker.Task task = worker.activeTaskProperty().get();
+                    return task != null && task.isCancellable();
+                },
+                worker.activeTaskProperty()));
+        cancel.managedProperty().bind(cancel.visibleProperty());
 
         bar.progressProperty().bind(worker.progressProperty());
         taskCount.textProperty().bind(worker.taskCountProperty().asString());
@@ -49,30 +61,16 @@ public final class FxProgressElement implements FxStatusElement {
         taskCount.managedProperty().bind(taskCount.visibleProperty());
 
         node = new HBox(6, bar, label, taskCount, cancel);
+        node.getStyleClass().add("status-bar-progress-group");
         node.setAlignment(Pos.CENTER_LEFT);
         node.visibleProperty().bind(worker.taskCountProperty().greaterThan(0));
         node.managedProperty().bind(node.visibleProperty());
-    }
-
-    private void updateActive(FxProgressWorker.Task task) {
-        label.setText(task == null ? "" : task.nameProperty().get());
-        cancel.setVisible(task != null && task.isCancellable());
-        cancel.setManaged(cancel.isVisible());
+        worker.setAnchor(node);
     }
 
     @Override
     public String getId() {
         return "progress";
-    }
-
-    @Override
-    public FxStatusAlignment alignment() {
-        return FxStatusAlignment.LEFT;
-    }
-
-    @Override
-    public int position() {
-        return 100;
     }
 
     @Override

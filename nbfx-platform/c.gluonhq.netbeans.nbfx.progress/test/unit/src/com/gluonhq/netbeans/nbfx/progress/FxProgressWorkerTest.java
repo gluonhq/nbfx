@@ -109,6 +109,25 @@ public class FxProgressWorkerTest {
         });
     }
 
+    @Test
+    public void progressWithoutStartCreatesTheTask() {
+        onFx(() -> {
+            FxProgressWorker worker = new FxProgressWorker();
+            InternalHandle handle = new InternalHandle("Indexing", null, true) {
+            };
+
+            // NetBeans sends Progress/Switch/Silent events for handles that never sent a Start
+            // (progress.ui StatusLineComponent materialises the task); the update must not be lost.
+            worker.processProgressEvent(new ProgressEvent(handle, "n files", 50, 0.25, -1, false));
+            assertEquals(1, worker.taskCountProperty().get());
+            Task task = worker.activeTaskProperty().get();
+            assertNotNull(task);
+            assertEquals("n files", task.detailProperty().get());
+            assertEquals(0.25, worker.progressProperty().get(), 1e-9);
+            return null;
+        });
+    }
+
     private static <T> T onFx(Callable<T> action) {
         if (Platform.isFxApplicationThread()) {
             try {

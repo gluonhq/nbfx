@@ -125,6 +125,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     private final BooleanBinding projectOpen = Bindings.isNotEmpty(projectRegistry.getOpenProjects());
     /** The projects whose trees are still loading; several can load at once. */
     private final ProjectLoads loads = new ProjectLoads();
+    /** The task reported while projects load; separate from builds, which own their own task. */
+    private FxProgress.Handle loadProgress;
     /** Moves the selection between open projects, from the Window menu and its shortcuts. */
     private final ProjectSwitcher projectSwitcher = new ProjectSwitcher(projectRegistry, this::revealProject);
     /** Watches the open projects' root folders, so one that is gone from disk does not stay open. */
@@ -1292,18 +1294,29 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         }
         File current = loads.current();
         if (current == null) {
-            progress.finish();
+            if (loadProgress != null) {
+                loadProgress.finish();
+                loadProgress = null;
+            }
             return;
         }
         int loading = loads.size();
-        if (loading > 1) {
-            progress.start(NbBundle.getMessage(JavaFXLaunchApp.class,
-                    "StatusBar.openingProjects", loading), this::cancelAllProjectLoading);
-            return;
+        String message = loading > 1
+                ? NbBundle.getMessage(JavaFXLaunchApp.class, "StatusBar.openingProjects", loading)
+                : NbBundle.getMessage(JavaFXLaunchApp.class, "StatusBar.openingProject", current.getName());
+        // Stable callback: when the number of loading projects changes, cancel the right set.
+        Runnable cancel = () -> {
+            if (loads.size() > 1) {
+                cancelAllProjectLoading();
+            } else {
+                cancelProjectLoading(loads.currentPath());
+            }
+        };
+        if (loadProgress == null) {
+            loadProgress = progress.start(message, cancel);
+        } else {
+            loadProgress.setMessage(message);
         }
-        String path = loads.currentPath();
-        progress.start(NbBundle.getMessage(JavaFXLaunchApp.class,
-                "StatusBar.openingProject", current.getName()), () -> cancelProjectLoading(path));
     }
 
     /**

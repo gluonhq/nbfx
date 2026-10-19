@@ -19,55 +19,54 @@
 package com.gluonhq.netbeans.nbfx.ui;
 
 import com.gluonhq.netbeans.nbfx.api.progress.FxProgress;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.netbeans.api.progress.ProgressHandle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The launcher's {@link FxProgress}: it is a thin adapter over the standard progress API, so the
- * nbfx-notified activity (a project load, a build) becomes an ordinary system task shown by the FX
- * progress UI in the status line and in the running-tasks popup. Only one activity uses the slot at
- * a time: a new {@link #start} renames the running one, and {@link #finish} ends it.
+ * The launcher's {@link FxProgress}: a thin adapter over the standard progress API, so every
+ * nbfx-notified activity (a project load, a build) becomes an ordinary task shown by the FX
+ * progress UI in the status line and in the running-tasks popup. Each {@link #start} creates an
+ * independent task with its own cancel action; concurrent activities no longer share a slot.
  *
  * @since 1.0
  */
 @ServiceProvider(service = FxProgress.class)
 public final class FxProgressImpl implements FxProgress {
 
-    private final AtomicReference<ProgressHandle> handle = new AtomicReference<>();
-    private final AtomicReference<Runnable> cancel = new AtomicReference<>();
-
     @Override
-    public void start(String message, Runnable onCancel) {
-        cancel.set(onCancel);
-        ProgressHandle current = handle.get();
-        if (current != null) {
-            current.setDisplayName(message);
-            return;
-        }
-        ProgressHandle created = ProgressHandle.createSystemHandle(message, this::doCancel);
-        if (handle.compareAndSet(null, created)) {
-            created.start();
-        } else {
-            created.finish();
-        }
+    public Handle start(String message, Runnable onCancel) {
+        ProgressHandle handle = ProgressHandle.createSystemHandle(message,
+                onCancel == null ? null : () -> {
+                    onCancel.run();
+                    return true;
+                });
+        handle.start();
+        return new HandleImpl(handle);
     }
 
-    @Override
-    public void finish() {
-        cancel.set(null);
-        ProgressHandle current = handle.getAndSet(null);
-        if (current != null) {
-            current.finish();
-        }
-    }
+    /** One real progress handle; {@link #finish()} is idempotent. */
+    private static final class HandleImpl implements Handle {
 
-    private boolean doCancel() {
-        Runnable action = cancel.get();
-        if (action != null) {
-            action.run();
-            return true;
+        private final ProgressHandle handle;
+        private final AtomicBoolean finished = new AtomicBoolean();
+
+        HandleImpl(ProgressHandle handle) {
+            this.handle = handle;
         }
-        return false;
+
+        @Override
+        public void setMessage(String message) {
+            if (!finished.get()) {
+                handle.setDisplayName(message);
+            }
+        }
+
+        @Override
+        public void finish() {
+            if (finished.compareAndSet(false, true)) {
+                handle.finish();
+            }
+        }
     }
 }

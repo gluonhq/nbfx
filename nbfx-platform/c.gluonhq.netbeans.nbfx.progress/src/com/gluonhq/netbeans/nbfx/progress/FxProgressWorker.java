@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.ReadOnlyDoubleWrapper;
@@ -56,9 +57,9 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
     private final ReadOnlyIntegerWrapper count = new ReadOnlyIntegerWrapper(0);
 
     private final Queue<ProgressEvent> pending = new ConcurrentLinkedQueue<>();
+    private final AtomicReference<InternalHandle> pendingSelection = new AtomicReference<>();
     private final AtomicBoolean drainScheduled = new AtomicBoolean();
 
-    private TaskModel model;
     private Popup popup;
     private Node anchor;
 
@@ -97,7 +98,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
 
     @Override
     public void setModel(TaskModel model) {
-        this.model = model;
+        // The worker keeps its own JavaFX model; the controller's TaskModel is not read here.
     }
 
     @Override
@@ -115,7 +116,12 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
 
     @Override
     public void processSelectedProgressEvent(ProgressEvent event) {
-        runOnFx(() -> select(byHandle.get(event.getSource())));
+        // Apply the selection in the same drain as the events: a Start event that creates the
+        // task may still be queued, and selecting immediately would lose the selection.
+        pendingSelection.set(event.getSource());
+        if (drainScheduled.compareAndSet(false, true)) {
+            runOnFx(this::drain);
+        }
     }
 
     /** Makes {@code task} the one shown in the status line. */
@@ -147,6 +153,10 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         while ((event = pending.poll()) != null) {
             apply(event);
         }
+        InternalHandle selected = pendingSelection.getAndSet(null);
+        if (selected != null) {
+            select(byHandle.get(selected));
+        }
     }
 
     private void apply(ProgressEvent event) {
@@ -173,15 +183,21 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             }
             default -> {
                 Task task = byHandle.get(handle);
-                if (task != null) {
-                    task.update(displayName(event, handle), event.getMessage(), event.getPercentageDone());
-                    if (active.get() == task) {
-                        progress.set(task.getProgress());
-                    }
+                if (task == null) {
+                    // NetBeans sends Progress/Switch/Silent events for handles that had no Start
+                    // (see progress.ui StatusLineComponent); materialise the task instead of
+                    // dropping the update.
+                    task = new Task(handle, displayName(event, handle), event.getMessage());
+                    byHandle.put(handle, task);
+                    tasks.add(task);
                 }
+                task.update(displayName(event, handle), event.getMessage(), event.getPercentageDone());
+                if (active.get() == null) {
+                    active.set(task);
+                }
+                refresh();
             }
         }
-        count.set(tasks.size());
     }
 
     /** The task to fall back to when the active one finishes: the last user task, else the last one. */
@@ -218,10 +234,13 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             return;
         }
         Bounds bounds = anchor.localToScreen(anchor.getBoundsInLocal());
-        if (bounds == null) {
+        if (bounds == null || bounds.getWidth() <= 0) {
             return;
         }
-        popup.show(anchor, bounds.getMinX(), bounds.getMinY() - popup.getHeight());
+        // Popup#getHeight() is 0 before the first show; show at the anchor and move above it once
+        // the popup has been laid out.
+        popup.show(anchor, bounds.getMinX(), bounds.getMinY());
+        popup.setY(bounds.getMinY() - popup.getHeight());
     }
 
     private Popup createPopup() {
@@ -287,6 +306,11 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             return progress.get();
         }
 
+        /** The task's progress in [0,1], or {@code -1} for an indeterminate task. */
+        public ReadOnlyDoubleProperty progressProperty() {
+            return progress;
+        }
+
         public boolean isCancellable() {
             return handle.isAllowCancel();
         }
@@ -349,6 +373,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         @Override
         protected void updateItem(Task task, boolean empty) {
             super.updateItem(task, empty);
+            bar.progressProperty().unbind();
             if (empty || task == null) {
                 setGraphic(null);
                 return;
@@ -358,7 +383,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             name.textProperty().bind(task.nameProperty());
             detail.textProperty().bind(task.detailProperty());
             detail.setStyle(task.isSystemTask() ? "-fx-opacity: 0.7;" : "");
-            bar.setProgress(task.getProgress());
+            bar.progressProperty().bind(task.progressProperty());
             view.setVisible(task.isViewable());
             view.setManaged(task.isViewable());
             cancel.setVisible(task.isCancellable());
