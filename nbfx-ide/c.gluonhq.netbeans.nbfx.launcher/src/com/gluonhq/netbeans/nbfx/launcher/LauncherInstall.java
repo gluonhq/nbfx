@@ -52,6 +52,9 @@ public class LauncherInstall extends ModuleInstall {
      * {@link #validate()} runs while the modules are being prepared, before {@code NbInstaller} fires
      * the {@code @OnStart} tasks and before any other module code runs. The class is
      * resolved by name to avoid the dependency on openide.nodes.
+     * <p>
+     * The Swing warm-up task that first exposed the race is additionally removed from
+     * {@code Modules/UIReady} by this module's {@code META-INF/namedservices} file.
      */
     private static void initializeNodeClass() {
         ModuleInfo nodes = Modules.getDefault().findCodeNameBase("org.openide.nodes"); // NOI18N
