@@ -1157,20 +1157,6 @@ root from the selected project/file/document.
   follows the active component's lookup) — see §22.7. It was the prerequisite for reworking the
   Structure/members reactivity and for the §21.1 de-SPI; also the substrate for future view
   sub-views (code/history/preview).
-- **Start-up deadlock with a Swing warm-up (fixed).** `ant tryme` sometimes froze while the modules
-  loaded. The thread dump showed a class-initialization deadlock: `core.ui`'s
-  `ContextMenuWarmUpTask` (an `@OnShowing` runnable, `Modules/UIReady`) ran on the AWT thread -
-  without `core.windows`, `WindowManager.invokeWhenUIReady` falls back to `EventQueue.invokeLater`
-  as soon as the modules load - and created an `AbstractNode`, whose initialization needs its
-  superclass `Node`; at the same time the start-up thread (`project.libraries`' `LibrariesModule`)
-  was initializing `DataObject` → `Node`, whose `Node.EMPTY = new AbstractNode(...)` needs
-  `AbstractNode`. Each thread held one class's initialization and waited for the other's; the
-  start-up `main` thread and `lsp.client` were queued behind `DataObject`. The launcher now ships
-  `META-INF/namedservices/Modules/UIReady/java.lang.Runnable` with
-  `#-org.netbeans.core.ui.warmup.ContextMenuWarmUpTask`, which `MetaInfServicesLookup` honours
-  whatever the load order, so the task never runs; it only primed Swing popup menus the JavaFX
-  shell does not use. The other `core.ui` warm-ups (`MenuWarmUpTask`, `DnDWarmUpTask`,
-  `DiagnosticTask`, path `WarmUp`) run off the AWT thread after start-up and were left alone.
 
 ---
 
