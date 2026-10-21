@@ -18,9 +18,14 @@
  */
 package com.gluonhq.netbeans.nbfx.launcher;
 
+import com.gluonhq.netbeans.nbfx.ui.Budget;
 import com.gluonhq.netbeans.nbfx.ui.JavaFXLaunchApp;
+import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
+import javafx.application.Platform;
 import org.netbeans.core.startup.RunLevel;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -46,9 +51,42 @@ public final class FxGuiRunLevel implements RunLevel {
 
     @Override
     public void run() {
+        if (Boolean.getBoolean("nbfx.test")) {
+            // Headless tests start and drive the toolkit themselves.
+            LOG.fine("nbfx.test is set; not launching the application");
+            return;
+        }
+        Budget.mark("platformReady");
         LOG.info("NetBeans Platform loaded, launching JavaFX...");
         Thread thread = new Thread(() -> Application.launch(JavaFXLaunchApp.class), "nbfx-javafx-launcher");
         thread.setDaemon(true);
         thread.start();
+
+        String scenario = System.getenv("NBFX_SCENARIO");
+        if (scenario != null && !scenario.isBlank()) {
+            try {
+                JavaFXLaunchApp.usable().get(60, TimeUnit.SECONDS);
+                int status = ScenarioRunner.run(Path.of(scenario));
+                Platform.exit();
+                System.exit(status);
+            } catch (Exception ex) {
+                LOG.log(Level.WARNING, "The scenario failed", ex);
+                Platform.exit();
+                System.exit(1);
+            }
+        }
+
+        String budgetFile = System.getenv("NBFX_BUDGET");
+        if (budgetFile != null && !budgetFile.isBlank()) {
+            try {
+                JavaFXLaunchApp.usable().get(60, TimeUnit.SECONDS);
+                Budget.write(Path.of(budgetFile));
+                LOG.info("Wrote the startup budget to " + budgetFile);
+            } catch (Exception ex) {
+                LOG.log(Level.WARNING, "Could not write the startup budget", ex);
+            } finally {
+                Platform.exit();
+            }
+        }
     }
 }
