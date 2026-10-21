@@ -17,9 +17,9 @@ import java.util.Optional;
  *
  * @since 1.0
  */
-public record FxArea(String id, String displayName, DockLocation location, double weight) {
+public record ViewArea(String id, String displayName, DockLocation location, double weight) {
 
-    public FxArea {
+    public ViewArea {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(location, "location");
@@ -29,32 +29,32 @@ public record FxArea(String id, String displayName, DockLocation location, doubl
     }
 
     /** The editor area: the center of the window, where the editors live. */
-    public static final FxArea EDITOR = new FxArea("editor", "Editor", DockLocation.CENTER, 1.0d);
+    public static final ViewArea EDITOR = new ViewArea("editor", "Editor", DockLocation.CENTER, 1.0d);
 
     /** The explorer area: the left pane, home of the project and file navigators. */
-    public static final FxArea EXPLORER = new FxArea("explorer", "Explorer", DockLocation.LEFT, 0.3d);
+    public static final ViewArea EXPLORER = new ViewArea("explorer", "Explorer", DockLocation.LEFT, 0.3d);
 
     /** The navigator area: below the explorer, home of the Structure and context views. */
-    public static final FxArea NAVIGATOR = new FxArea("navigator", "Navigator", DockLocation.LEFT_BOTTOM, 0.5d);
+    public static final ViewArea NAVIGATOR = new ViewArea("navigator", "Navigator", DockLocation.LEFT_BOTTOM, 0.5d);
 
     /** The properties area: along the right of the window, beside the editors. */
-    public static final FxArea PROPERTIES = new FxArea("properties", "Properties", DockLocation.RIGHT, 0.3d);
+    public static final ViewArea PROPERTIES = new ViewArea("properties", "Properties", DockLocation.RIGHT, 0.3d);
 
     /** The output area: below the editors, home of Output, Search and Git views. */
-    public static final FxArea OUTPUT = new FxArea("output", "Output", DockLocation.CENTER_BOTTOM, 0.3d);
+    public static final ViewArea OUTPUT = new ViewArea("output", "Output", DockLocation.CENTER_BOTTOM, 0.3d);
 
     /** The default areas, in the order the Swing modes put them. */
-    public static List<FxArea> defaults() {
+    public static List<ViewArea> defaults() {
         return List.of(EDITOR, EXPLORER, NAVIGATOR, PROPERTIES, OUTPUT);
     }
 
     /** The default area for a {@code location}, or empty for {@link DockLocation#BOTTOM} (no mode). */
-    public static Optional<FxArea> defaultFor(DockLocation location) {
+    public static Optional<ViewArea> defaultFor(DockLocation location) {
         return defaults().stream().filter(area -> area.location() == location).findFirst();
     }
 
     /** Looks the area up by id, case-insensitively. */
-    public static Optional<FxArea> lookUp(String id) {
+    public static Optional<ViewArea> lookUp(String id) {
         return defaults().stream().filter(area -> area.id().equalsIgnoreCase(id)).findFirst();
     }
 }

@@ -26,7 +26,7 @@ package com.gluonhq.netbeans.nbfx.api;
  *
  * @since 1.0
  */
-public interface FxApplicationMenu {
+public interface ApplicationMenu {
 
     /**
      * Registers the platform's application-menu handlers, invoking {@code openPreferences} and

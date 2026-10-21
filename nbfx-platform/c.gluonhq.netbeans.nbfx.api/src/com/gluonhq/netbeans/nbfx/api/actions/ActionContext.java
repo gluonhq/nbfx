@@ -19,10 +19,10 @@ import org.openide.util.Lookup;
  * are resolved on demand by per-domain <em>facades</em> (for example {@code ProjectContext} in
  * {@code nbfx.project.context}), so the context stays generic and everything is resolved dynamically.
  */
-public abstract class FxActionContext extends Lookup {
+public abstract class ActionContext extends Lookup {
 
     /** Protected constructor for the implementation. */
-    protected FxActionContext() {
+    protected ActionContext() {
     }
 
     /**
@@ -31,7 +31,7 @@ public abstract class FxActionContext extends Lookup {
      *
      * @return the context, or {@code null}
      */
-    public static FxActionContext getDefault() {
-        return Lookup.getDefault().lookup(FxActionContext.class);
+    public static ActionContext getDefault() {
+        return Lookup.getDefault().lookup(ActionContext.class);
     }
 }

@@ -4,7 +4,7 @@ import com.gluonhq.netbeans.nbfx.api.actions.ActionLayerReader;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionRegistry;
 import com.gluonhq.netbeans.nbfx.api.actions.Command;
 import com.gluonhq.netbeans.nbfx.api.actions.EditorContextMenuIds;
-import com.gluonhq.netbeans.nbfx.api.actions.FxActionRef;
+import com.gluonhq.netbeans.nbfx.api.actions.ActionRef;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -101,13 +101,13 @@ final class EditorContextMenu {
         record Entry(int position, boolean separatorBefore, MenuItem item) {
         }
         List<Entry> entries = new ArrayList<>();
-        for (FxActionRef ref : ActionLayerReader.read(folder)) {
+        for (ActionRef ref : ActionLayerReader.read(folder)) {
             Command command = registry.find(ref.actionId()).orElse(null);
             if (command != null) {
                 entries.add(new Entry(ref.position(), ref.separatorBefore(), itemFor(command)));
             }
         }
-        for (ActionLayerReader.FxSubmenu submenu : ActionLayerReader.readSubmenus(folder)) {
+        for (ActionLayerReader.Submenu submenu : ActionLayerReader.readSubmenus(folder)) {
             List<MenuItem> children = build(submenu.folder(), registry);
             if (!children.isEmpty()) {
                 Menu nested = new Menu(submenu.displayName());

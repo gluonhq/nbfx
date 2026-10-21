@@ -20,7 +20,7 @@ package com.gluonhq.netbeans.nbfx.windows;
 
 import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
 import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration;
-import com.gluonhq.netbeans.nbfx.api.view.FxArea;
+import com.gluonhq.netbeans.nbfx.api.view.ViewArea;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import java.io.IOException;
 import java.util.List;
@@ -61,10 +61,10 @@ public class ViewRegistryTest {
                 registrations.stream().map(ViewSpec::id).toList());
         assertEquals(ViewLocation.LEFT, registrations.get(0).location());
         assertTrue(registrations.get(0).navigator());
-        assertEquals(FxArea.EXPLORER, registrations.get(0).area());
+        assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertEquals("Zeta", registrations.get(1).displayName());
         assertEquals(ViewLocation.RIGHT, registrations.get(1).location());
-        assertEquals(FxArea.PROPERTIES, registrations.get(1).area());
+        assertEquals(ViewArea.PROPERTIES, registrations.get(1).area());
         assertFalse(registrations.get(1).navigator());
     }
 
@@ -78,7 +78,7 @@ public class ViewRegistryTest {
 
         ViewSpec registration = ViewRegistry.read(folder, List.of(view("v"))).get(0);
 
-        assertEquals(FxArea.OUTPUT, registration.area());
+        assertEquals(ViewArea.OUTPUT, registration.area());
         assertTrue(registration.openAtStartup());
         assertEquals(ViewRegistration.PersistenceType.ONLY_OPENED, registration.persistenceType());
     }
@@ -92,7 +92,7 @@ public class ViewRegistryTest {
         assertEquals("v", registrations.get(0).id());
         assertEquals("v", registrations.get(0).displayName());
         assertEquals(ViewLocation.LEFT, registrations.get(0).location());
-        assertEquals(FxArea.EXPLORER, registrations.get(0).area());
+        assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertFalse(registrations.get(0).openAtStartup());
         assertEquals(ViewRegistration.PersistenceType.ALWAYS, registrations.get(0).persistenceType());
     }

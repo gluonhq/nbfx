@@ -21,7 +21,7 @@ package com.gluonhq.netbeans.nbfx.windows;
 import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
 import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
 import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration.PersistenceType;
-import com.gluonhq.netbeans.nbfx.api.view.FxArea;
+import com.gluonhq.netbeans.nbfx.api.view.ViewArea;
 import com.gluonhq.netbeans.nbfx.api.view.DockLocation;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import java.util.ArrayList;
@@ -89,7 +89,7 @@ public final class ViewRegistry {
             ViewLocation location = locationAttribute(file, view.getDefaultLocation());
             int position = intAttribute(file, "position", Integer.MAX_VALUE);
             boolean navigator = booleanAttribute(file, "navigator");
-            FxArea area = areaAttribute(file, location);
+            ViewArea area = areaAttribute(file, location);
             boolean openAtStartup = booleanAttribute(file, "openAtStartup");
             PersistenceType persistenceType = persistenceAttribute(file);
             registrations.add(new ViewSpec(id, displayName, iconName, location, position,
@@ -137,13 +137,13 @@ public final class ViewRegistry {
 
     /**
      * The window area of the view: its declared {@code area} attribute resolved as an
-     * {@link FxArea}, or the area the {@code location} docks into by default. Empty areas (never
+     * {@link ViewArea}, or the area the {@code location} docks into by default. Empty areas (never
      * declared) and unknown area ids fall back to the location's default area.
      */
-    static FxArea areaAttribute(FileObject file, ViewLocation location) {
+    static ViewArea areaAttribute(FileObject file, ViewLocation location) {
         Object value = file == null ? null : file.getAttribute("area");
         if (value instanceof String id && !id.isBlank()) {
-            return FxArea.lookUp(id).orElseGet(() -> defaultArea(location));
+            return ViewArea.lookUp(id).orElseGet(() -> defaultArea(location));
         }
         return defaultArea(location);
     }
@@ -161,13 +161,13 @@ public final class ViewRegistry {
     }
 
     /** The default window area a location is docked into, mirroring the Swing modes. */
-    static FxArea defaultArea(ViewLocation location) {
+    static ViewArea defaultArea(ViewLocation location) {
         return switch (location) {
-            case LEFT -> FxArea.EXPLORER;
-            case LEFT_BOTTOM -> FxArea.NAVIGATOR;
-            case CENTER -> FxArea.EDITOR;
-            case CENTER_BOTTOM, BOTTOM -> FxArea.OUTPUT;
-            case RIGHT -> FxArea.PROPERTIES;
+            case LEFT -> ViewArea.EXPLORER;
+            case LEFT_BOTTOM -> ViewArea.NAVIGATOR;
+            case CENTER -> ViewArea.EDITOR;
+            case CENTER_BOTTOM, BOTTOM -> ViewArea.OUTPUT;
+            case RIGHT -> ViewArea.PROPERTIES;
             case DETACHED -> throw new IllegalArgumentException("No default area for " + location);
         };
     }

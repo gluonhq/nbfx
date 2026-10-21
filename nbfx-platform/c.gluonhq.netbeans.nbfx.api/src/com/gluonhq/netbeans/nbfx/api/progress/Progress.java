@@ -30,7 +30,7 @@ package com.gluonhq.netbeans.nbfx.api.progress;
  *
  * @since 1.0
  */
-public interface FxProgress {
+public interface Progress {
 
     /**
      * Starts a task and returns its handle. The task stays visible until

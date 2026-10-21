@@ -19,7 +19,7 @@
 package com.gluonhq.netbeans.nbfx.windows;
 
 import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration.PersistenceType;
-import com.gluonhq.netbeans.nbfx.api.view.FxArea;
+import com.gluonhq.netbeans.nbfx.api.view.ViewArea;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -48,7 +48,7 @@ import org.openide.util.lookup.ServiceProvider;
  * local folders:
  * <ul>
  *   <li>the <b>layer defaults</b> derived from the view registrations ({@link ViewRegistry}): the
- *       {@linkplain FxArea#defaults() areas}, their default tab order and the start-up tabs
+ *       {@linkplain ViewArea#defaults() areas}, their default tab order and the start-up tabs
  *       ({@code openAtStartup} / {@code navigator}); and</li>
  *   <li>the <b>persisted state</b> ({@link ViewStateStore}): what the user moved, opened, closed,
  *       detached and resized last session. When present it overrides the layer defaults per area;
@@ -239,7 +239,7 @@ public final class FxWindowSystem {
     /** The layer-derived defaults: the areas in default order with their start-up tabs. */
     private List<AreaState> defaultAreas() {
         Map<String, List<ViewSpec>> byArea = new LinkedHashMap<>();
-        for (FxArea area : FxArea.defaults()) {
+        for (ViewArea area : ViewArea.defaults()) {
             byArea.put(area.id(), new ArrayList<>());
         }
         for (ViewSpec registration : discovered) {

@@ -20,7 +20,7 @@ package com.gluonhq.netbeans.nbfx.windows;
 
 import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
 import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration.PersistenceType;
-import com.gluonhq.netbeans.nbfx.api.view.FxArea;
+import com.gluonhq.netbeans.nbfx.api.view.ViewArea;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import java.util.Objects;
 
@@ -42,7 +42,7 @@ import java.util.Objects;
  * @since 1.0
  */
 public record ViewSpec(String id, String displayName, String iconName,
-        ViewLocation location, int position, boolean navigator, FxArea area,
+        ViewLocation location, int position, boolean navigator, ViewArea area,
         boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
 
     public ViewSpec {

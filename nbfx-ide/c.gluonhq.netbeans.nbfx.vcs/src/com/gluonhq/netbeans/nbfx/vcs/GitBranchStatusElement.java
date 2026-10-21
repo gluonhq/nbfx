@@ -20,7 +20,7 @@ package com.gluonhq.netbeans.nbfx.vcs;
 
 import com.gluonhq.netbeans.nbfx.annotations.StatusAlignment;
 import com.gluonhq.netbeans.nbfx.annotations.StatusRegistration;
-import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
+import com.gluonhq.netbeans.nbfx.api.actions.ActionContext;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
 import com.gluonhq.netbeans.nbfx.project.context.ProjectContext;
@@ -41,7 +41,7 @@ import org.openide.util.RequestProcessor;
 /**
  * Status-bar element showing the current Git branch of the project in the global action context.
  * <p>
- * It follows {@link FxActionContext} (through the {@link ProjectContext} facade) rather than the
+ * It follows {@link ActionContext} (through the {@link ProjectContext} facade) rather than the
  * project registry directly, so the branch always reflects the current selection - the file picked
  * in a navigator view, the active editor document, or the selected project - and queries git on a
  * background thread.
@@ -60,7 +60,7 @@ public final class GitBranchStatusElement implements FxStatusElement {
         label.getStyleClass().add("status-bar-vcs");
         label.setVisible(false);
         label.setManaged(false);
-        FxActionContext context = FxActionContext.getDefault();
+        ActionContext context = ActionContext.getDefault();
         if (context != null) {
             for (Class<?> type : List.of(FileObject.class, EditorDocument.class, OpenProject.class)) {
                 Lookup.Result<?> result = context.lookupResult(type);

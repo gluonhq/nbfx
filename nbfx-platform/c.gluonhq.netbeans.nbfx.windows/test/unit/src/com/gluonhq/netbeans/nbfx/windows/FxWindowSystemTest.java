@@ -20,7 +20,7 @@ package com.gluonhq.netbeans.nbfx.windows;
 
 import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
 import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration.PersistenceType;
-import com.gluonhq.netbeans.nbfx.api.view.FxArea;
+import com.gluonhq.netbeans.nbfx.api.view.ViewArea;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import java.util.List;
 import java.util.Map;
@@ -104,9 +104,9 @@ public class FxWindowSystemTest {
     @Test
     public void firstLoadAppliesLayerDefaults() {
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER),
-                reg("beta", ViewLocation.LEFT, 20, false, false, FxArea.EXPLORER),
-                reg("zeta", ViewLocation.CENTER, 5, true, true, FxArea.EDITOR));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER),
+                reg("beta", ViewLocation.LEFT, 20, false, false, ViewArea.EXPLORER),
+                reg("zeta", ViewLocation.CENTER, 5, true, true, ViewArea.EDITOR));
         RecordingSink sink = new RecordingSink();
         FxWindowSystem windowSystem = new FxWindowSystem(regs, newStore("firstLoad"), sink);
 
@@ -114,7 +114,7 @@ public class FxWindowSystemTest {
         windowSystem.load();
 
         WindowState applied = sink.applied.get(0);
-        assertEquals(FxArea.defaults().size(), applied.areas().size());
+        assertEquals(ViewArea.defaults().size(), applied.areas().size());
         assertEquals(List.of("alpha"), viewsOf(applied, "explorer"));
         assertEquals(List.of("zeta"), viewsOf(applied, "editor"));
         assertEquals(List.of(), viewsOf(applied, "output"));
@@ -126,8 +126,8 @@ public class FxWindowSystemTest {
         ViewStateStore store = newStore("persistedOverrides");
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER),
-                reg("beta", ViewLocation.LEFT, 20, false, false, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER),
+                reg("beta", ViewLocation.LEFT, 20, false, false, ViewArea.EXPLORER));
         store.save(new WindowState(List.of(AreaState.docked("explorer", List.of("beta", "alpha"), "beta")),
                 5, 6, 1200, 800, true, Map.of()));
 
@@ -148,8 +148,8 @@ public class FxWindowSystemTest {
                 List.of("ghost", "beta"), "ghost")), Double.NaN, Double.NaN, 0, 0, false, Map.of()));
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER),
-                reg("beta", ViewLocation.LEFT, 20, false, false, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER),
+                reg("beta", ViewLocation.LEFT, 20, false, false, ViewArea.EXPLORER));
 
         initAndLoad(new FxWindowSystem(regs, store, sink));
 
@@ -165,12 +165,12 @@ public class FxWindowSystemTest {
                 Double.NaN, Double.NaN, 0, 0, false, Map.of()));
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER));
 
         initAndLoad(new FxWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
-        assertEquals(FxArea.defaults().size(), applied.areas().size());
+        assertEquals(ViewArea.defaults().size(), applied.areas().size());
         assertNull(area(applied, "ghostArea"));
     }
 
@@ -182,8 +182,8 @@ public class FxWindowSystemTest {
                 Map.of("hidden", "payload", "alpha", "expanded")));
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("hidden", ViewLocation.LEFT, 5, true, false, FxArea.EXPLORER, PersistenceType.NEVER),
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER));
+                reg("hidden", ViewLocation.LEFT, 5, true, false, ViewArea.EXPLORER, PersistenceType.NEVER),
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER));
 
         initAndLoad(new FxWindowSystem(regs, store, sink));
 
@@ -197,7 +197,7 @@ public class FxWindowSystemTest {
         ViewStateStore store = newStore("roundtrip");
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER));
         FxWindowSystem first = new FxWindowSystem(regs, store, sink);
         first.init();
         first.load();
@@ -222,7 +222,7 @@ public class FxWindowSystemTest {
         store.save(new WindowState(List.of(), 0, 0, 0, 0, false, Map.of()));
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER));
 
         initAndLoad(new FxWindowSystem(regs, store, sink));
 
@@ -239,8 +239,8 @@ public class FxWindowSystemTest {
                 Double.NaN, Double.NaN, 0, 0, false, Map.of()));
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
-                reg("alpha", ViewLocation.LEFT, 10, true, true, FxArea.EXPLORER),
-                reg("beta", ViewLocation.LEFT, 20, false, false, FxArea.EXPLORER));
+                reg("alpha", ViewLocation.LEFT, 10, true, true, ViewArea.EXPLORER),
+                reg("beta", ViewLocation.LEFT, 20, false, false, ViewArea.EXPLORER));
         FxWindowSystem windowSystem = new FxWindowSystem(regs, store, sink);
         initAndLoad(windowSystem);
         assertEquals(List.of("beta"), viewsOf(sink.applied.get(0), "explorer"));
@@ -293,12 +293,12 @@ public class FxWindowSystemTest {
     }
 
     private static ViewSpec reg(String id, ViewLocation location, int position,
-            boolean openAtStartup, boolean navigator, FxArea area) {
+            boolean openAtStartup, boolean navigator, ViewArea area) {
         return reg(id, location, position, openAtStartup, navigator, area, PersistenceType.ALWAYS);
     }
 
     private static ViewSpec reg(String id, ViewLocation location, int position,
-            boolean openAtStartup, boolean navigator, FxArea area, PersistenceType persistenceType) {
+            boolean openAtStartup, boolean navigator, ViewArea area, PersistenceType persistenceType) {
         return new ViewSpec(id, id, "", location, position, navigator, area,
                 openAtStartup, persistenceType, new ViewProvider() {
                     @Override
