@@ -63,6 +63,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -95,6 +96,14 @@ import org.openide.util.NbBundle;
 public class JavaFXLaunchApp extends Application implements WindowSink {
 
     private final static Logger LOG = Logger.getLogger(JavaFXLaunchApp.class.getName());
+
+    /** Completed once the shell is shown; the budget run waits for it. */
+    private static final CompletableFuture<Void> USABLE = new CompletableFuture<>();
+
+    /** Completed when the shell is shown (for the startup budget). */
+    public static CompletableFuture<Void> usable() {
+        return USABLE;
+    }
 
     private Stage stage;
     /** The window system driving the main-window lifecycle; {@code null} when none is registered. */
@@ -152,6 +161,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
 
     @Override
     public void start(Stage stage) {
+        Budget.mark("fxStart");
         this.stage = stage;
         instance = this;
         // Resolve the navigator views up front (the ViewProviders registered as navigators).
@@ -318,6 +328,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             stage.show();
         }
 
+        Budget.mark("usable");
+        USABLE.complete(null);
         Platform.runLater(this::restoreSessionProjects);
     }
 
