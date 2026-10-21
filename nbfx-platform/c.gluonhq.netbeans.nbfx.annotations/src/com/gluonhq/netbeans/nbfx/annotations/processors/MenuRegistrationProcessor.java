@@ -18,9 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxToolbarRegistration;
-import com.gluonhq.netbeans.nbfx.annotations.FxToolbarRegistrations;
+import com.gluonhq.netbeans.nbfx.annotations.MenuRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.MenuRegistrations;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -32,20 +31,20 @@ import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entry for {@link FxToolbarRegistration}: the
- * {@code NbFx/Toolbars/<id>} folder with its {@code position} (and optional display name), so the
- * window can build the set and order of tool bars from the layer.
+ * Generates the layer entry for {@link MenuRegistration}: the {@code NbFx/<path>/<id>} folder
+ * with its {@code position} (and optional display name and separator), so the window can build the
+ * set and order of menus - and of the submenus of any surface - from the layer.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxToolbarRegistrationProcessor extends LayerGeneratingProcessor {
+public class MenuRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         return Set.of(
-                FxToolbarRegistration.class.getCanonicalName(),
-                FxToolbarRegistrations.class.getCanonicalName());
+                MenuRegistration.class.getCanonicalName(),
+                MenuRegistrations.class.getCanonicalName());
     }
 
     @Override
@@ -54,16 +53,16 @@ public class FxToolbarRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxToolbarRegistration.class)) {
-            FxToolbarRegistration registration = element.getAnnotation(FxToolbarRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(MenuRegistration.class)) {
+            MenuRegistration registration = element.getAnnotation(MenuRegistration.class);
             if (registration != null) {
                 register(element, registration);
             }
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxToolbarRegistrations.class)) {
-            FxToolbarRegistrations registrations = element.getAnnotation(FxToolbarRegistrations.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(MenuRegistrations.class)) {
+            MenuRegistrations registrations = element.getAnnotation(MenuRegistrations.class);
             if (registrations != null) {
-                for (FxToolbarRegistration registration : registrations.value()) {
+                for (MenuRegistration registration : registrations.value()) {
                     register(element, registration);
                 }
             }
@@ -71,12 +70,15 @@ public class FxToolbarRegistrationProcessor extends LayerGeneratingProcessor {
         return true;
     }
 
-    private void register(Element element, FxToolbarRegistration registration)
+    private void register(Element element, MenuRegistration registration)
             throws LayerGenerationException {
-        File folder = layer(element).folder(FxLayer.TOOLBARS + "/" + registration.id());
+        File folder = layer(element).folder("NbFx/" + registration.path() + "/" + registration.id());
         folder.intvalue("position", registration.position());
         if (!registration.displayName().isEmpty()) {
-            folder.stringvalue("displayName", registration.displayName());
+            folder.bundlevalue("displayName", registration.displayName());
+        }
+        if (registration.separatorBefore()) {
+            folder.boolvalue("separatorBefore", true);
         }
         folder.write();
     }

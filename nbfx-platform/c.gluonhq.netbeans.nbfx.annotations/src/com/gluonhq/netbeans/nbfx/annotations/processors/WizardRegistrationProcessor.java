@@ -18,33 +18,30 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxPropertyEditorRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
+import com.gluonhq.netbeans.nbfx.annotations.WizardRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.MirroredTypeException;
-import javax.lang.model.type.TypeMirror;
 import org.openide.filesystems.annotations.LayerBuilder.File;
 import org.openide.filesystems.annotations.LayerGeneratingProcessor;
 import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entry for {@link FxPropertyEditorRegistration}:
- * {@code NbFx/PropertyEditors/<valueType>.instance} with the handled value type as an attribute.
+ * Generates the layer entry for {@link WizardRegistration}:
+ * {@code NbFx/Wizards/<id>.instance} with the wizard's metadata.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxPropertyEditorRegistrationProcessor extends LayerGeneratingProcessor {
+public class WizardRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(FxPropertyEditorRegistration.class.getCanonicalName());
+        return Set.of(WizardRegistration.class.getCanonicalName());
     }
 
     @Override
@@ -53,36 +50,18 @@ public class FxPropertyEditorRegistrationProcessor extends LayerGeneratingProces
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxPropertyEditorRegistration.class)) {
-            FxPropertyEditorRegistration registration = element.getAnnotation(FxPropertyEditorRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(WizardRegistration.class)) {
+            WizardRegistration registration = element.getAnnotation(WizardRegistration.class);
             if (registration == null) {
                 continue;
             }
-            String valueType = valueTypeOf(registration);
-            String fileName = valueType.replace('.', '-').replace('$', '-');
-            File file = layer(element).instanceFile(FxLayer.PROPERTY_EDITORS, fileName, (Class<?>) null);
-            file.stringvalue("valueType", valueType);
+            File file = layer(element).instanceFile(LayerPaths.WIZARDS, registration.id(), (Class<?>) null);
+            file.stringvalue("displayName", registration.displayName());
+            file.stringvalue("iconName", registration.iconName());
+            file.stringvalue("category", registration.category());
             file.intvalue("position", registration.position());
-            file.boolvalue("inline", registration.inline());
             file.write();
         }
         return true;
-    }
-
-    /**
-     * The canonical name of the handled value type. The type may not be loadable by the processor,
-     * in which case {@link MirroredTypeException} carries the {@link TypeMirror} to read the name
-     * from.
-     */
-    private static String valueTypeOf(FxPropertyEditorRegistration registration) {
-        try {
-            return registration.valueType().getCanonicalName();
-        } catch (MirroredTypeException ex) {
-            TypeMirror mirror = ex.getTypeMirror();
-            if (mirror instanceof DeclaredType declared) {
-                return declared.asElement().toString();
-            }
-            return mirror.toString();
-        }
     }
 }

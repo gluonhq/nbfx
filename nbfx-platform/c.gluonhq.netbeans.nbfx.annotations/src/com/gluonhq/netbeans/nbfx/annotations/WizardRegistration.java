@@ -24,14 +24,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Container for repeated {@link FxToolbarRegistration} annotations.
+ * Registers a JavaFX wizard.
+ * <p>
+ * The annotated class must be public, must have a public no-argument constructor and must implement
+ * the nbfx wizard SPI. It is published in the generated layer under
+ * {@code NbFx/Wizards/<id>.instance}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxToolbarRegistrations {
+public @interface WizardRegistration {
 
-    /** The repeated registrations. */
-    FxToolbarRegistration[] value();
+    /** The stable identifier of the wizard. */
+    String id();
+
+    /** The display name of the wizard; may be a {@code #key} bundle reference. */
+    String displayName();
+
+    /** The name of the icon resource shown for the wizard, or an empty string for none. */
+    String iconName() default "";
+
+    /** The category the wizard belongs to, for example {@code "Project"} or {@code "File"}. */
+    String category() default "";
+
+    /** The position of the wizard relative to the others in the same category. */
+    int position() default Integer.MAX_VALUE;
 }

@@ -19,19 +19,31 @@
 package com.gluonhq.netbeans.nbfx.annotations;
 
 import java.lang.annotation.ElementType;
+import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Container for repeated {@link FxMenuRegistration} annotations.
+ * Declares a tool bar, so the window can build the set and order of its tool bars from the layer.
+ * <p>
+ * The folder {@code NbFx/Toolbars/<id>} is created with the declared {@code position} (and optional
+ * display name); the tool bar's buttons are the {@link ActionReference}s whose {@code path} is
+ * {@code Toolbars/<id>}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxMenuRegistrations {
+@Repeatable(ToolbarRegistrations.class)
+public @interface ToolbarRegistration {
 
-    /** The repeated registrations. */
-    FxMenuRegistration[] value();
+    /** The tool bar id, matching the {@code Toolbars/<id>} folder of its references. */
+    String id();
+
+    /** The tool bar's display name, shown in the View ▸ Toolbars submenu; may be a bundle key. */
+    String displayName() default "";
+
+    /** The position of the tool bar among the others, from left to right. */
+    int position() default Integer.MAX_VALUE;
 }

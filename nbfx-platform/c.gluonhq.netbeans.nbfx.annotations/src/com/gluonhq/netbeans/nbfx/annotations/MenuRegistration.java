@@ -29,7 +29,7 @@ import java.lang.annotation.Target;
  * top-level menu of the menu bar, or a submenu of any menu surface.
  * <p>
  * The folder {@code NbFx/<path>/<id>} is created with the declared {@code position} (and optional
- * display name); the menu's items are the {@link FxActionReference}s whose {@code path} is
+ * display name); the menu's items are the {@link ActionReference}s whose {@code path} is
  * {@code <path>/<id>}. With the default {@code path}, {@code Menus}, this is a top-level menu
  * ({@code NbFx/Menus/<id>}); with {@code path = "Menus/Navigate"} it is a submenu of the Navigate
  * menu, with {@code path = "ContextMenus/Editor"} a submenu of the editor's context menu, the way
@@ -39,8 +39,8 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-@Repeatable(FxMenuRegistrations.class)
-public @interface FxMenuRegistration {
+@Repeatable(MenuRegistrations.class)
+public @interface MenuRegistration {
 
     /** The menu id, matching the {@code <path>/<id>} folder of its references. */
     String id();

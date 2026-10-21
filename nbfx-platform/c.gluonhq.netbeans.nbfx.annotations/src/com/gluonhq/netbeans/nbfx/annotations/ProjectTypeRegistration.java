@@ -24,30 +24,27 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers an empty top-level JavaFX options category that only groups sub-panels, placed on a
- * package (typically {@code package-info.java}).
+ * Registers a JavaFX project type provider.
  * <p>
- * The category folder is created in the generated layer under {@code NbFx/Options/<id>}; its
- * sub-panels are declared with {@link FxOptionsSubRegistration}.
+ * The annotated class must be public, must have a public no-argument constructor and must implement
+ * the nbfx project provider SPI. It is published in the generated layer under
+ * {@code NbFx/Projects/<id>.instance}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.PACKAGE)
-public @interface FxOptionsContainerRegistration {
+@Target(ElementType.TYPE)
+public @interface ProjectTypeRegistration {
 
-    /** The stable identifier of the category. */
+    /** The stable identifier of the project type, for example {@code "maven"} or {@code "gradle"}. */
     String id();
 
-    /** The display name of the category; may be a {@code #key} bundle reference. */
-    String categoryName();
+    /** The display name of the project type; may be a {@code #key} bundle reference. */
+    String displayName();
 
-    /** The name of the icon resource shown for the category, or an empty string for none. */
+    /** The name of the icon resource shown for the project type, or an empty string for none. */
     String iconName() default "";
 
-    /** Comma-separated keywords for the options Quick Search. */
-    String keywords() default "";
-
-    /** The position of the category relative to the other categories. */
+    /** The position of the provider relative to the other providers when several can open a folder. */
     int position() default Integer.MAX_VALUE;
 }

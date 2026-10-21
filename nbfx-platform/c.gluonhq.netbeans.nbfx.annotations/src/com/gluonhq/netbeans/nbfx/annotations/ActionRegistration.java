@@ -19,31 +19,37 @@
 package com.gluonhq.netbeans.nbfx.annotations;
 
 import java.lang.annotation.ElementType;
-import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Declares a tool bar, so the window can build the set and order of its tool bars from the layer.
+ * Registers a JavaFX action implemented by the annotated class.
  * <p>
- * The folder {@code NbFx/Toolbars/<id>} is created with the declared {@code position} (and optional
- * display name); the tool bar's buttons are the {@link FxActionReference}s whose {@code path} is
- * {@code Toolbars/<id>}.
+ * The annotated class must be public, must have a public no-argument constructor and should be an
+ * action body that the JavaFX frontend can run (for example a {@link java.lang.Runnable}). It is
+ * published in the generated layer under {@code NbFx/Actions/<id>.instance} together with its
+ * display metadata, and can then be referenced from menus, tool bars and context menus with
+ * {@link ActionReference}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-@Repeatable(FxToolbarRegistrations.class)
-public @interface FxToolbarRegistration {
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface ActionRegistration {
 
-    /** The tool bar id, matching the {@code Toolbars/<id>} folder of its references. */
+    /** The stable identifier of the action, unique across the application. */
     String id();
 
-    /** The tool bar's display name, shown in the View ▸ Toolbars submenu; may be a bundle key. */
+    /** The display name shown for the action; may be a {@code #key} bundle reference. */
     String displayName() default "";
 
-    /** The position of the tool bar among the others, from left to right. */
+    /** The name of the icon resource shown for the action, or an empty string for none. */
+    String iconName() default "";
+
+    /** The keyboard accelerator, in the form {@code "Shortcut+S"} or {@code "Ctrl+Shift+F"}; empty for none. */
+    String accelerator() default "";
+
+    /** The position of the action relative to other actions registered in the same folder. */
     int position() default Integer.MAX_VALUE;
 }

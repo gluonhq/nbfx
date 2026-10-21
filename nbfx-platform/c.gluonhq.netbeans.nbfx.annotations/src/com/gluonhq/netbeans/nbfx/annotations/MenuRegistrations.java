@@ -24,14 +24,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Container for repeated {@link FxActionReference} annotations.
+ * Container for repeated {@link MenuRegistration} annotations.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.TYPE, ElementType.METHOD})
-public @interface FxActionReferences {
+@Target(ElementType.TYPE)
+public @interface MenuRegistrations {
 
-    /** The repeated references. */
-    FxActionReference[] value();
+    /** The repeated registrations. */
+    MenuRegistration[] value();
 }

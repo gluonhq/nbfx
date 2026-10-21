@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxPropertyEditorRegistration {
+public @interface PropertyEditorRegistration {
 
     /** The value type handled by the editor, for example {@code String.class} or {@code Color.class}. */
     Class<?> valueType();

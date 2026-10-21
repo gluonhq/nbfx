@@ -52,8 +52,8 @@ import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_SEARCH_RESU
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.SELECT_USAGES;
 import static com.gluonhq.netbeans.nbfx.api.actions.ActionIds.UNDO;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxActionReference;
-import com.gluonhq.netbeans.nbfx.annotations.FxMenuRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.ActionReference;
+import com.gluonhq.netbeans.nbfx.annotations.MenuRegistration;
 
 /**
  * Declares the application shell's menus and their entries in the layer, so the window is assembled
@@ -65,51 +65,51 @@ import com.gluonhq.netbeans.nbfx.annotations.FxMenuRegistration;
  *
  * @since 1.0
  */
-@FxMenuRegistration(id = "File", position = 10)
-@FxMenuRegistration(id = "Edit", position = 20)
-@FxMenuRegistration(id = "View", position = 30)
-@FxMenuRegistration(id = "Navigate", position = 40)
-@FxMenuRegistration(id = "Tools", position = 60)
-@FxMenuRegistration(id = "Window", position = 70)
-@FxMenuRegistration(id = "Window/IDE Tools", displayName = "IDE Tools", position = 100)
-@FxMenuRegistration(id = "Help", position = 90)
-@FxActionReference(id = NEW_PROJECT, path = "Menus/File", position = 10)
-@FxActionReference(id = NEW_FILE, path = "Menus/File", position = 15)
-@FxActionReference(id = OPEN_PROJECT, path = "Menus/File", position = 20)
-@FxActionReference(id = MenuRegistrations.OPEN_RECENT, path = "Menus/File", position = 30)
-@FxActionReference(id = CLOSE_PROJECT, path = "Menus/File", position = 40)
-@FxActionReference(id = CLOSE_ALL_PROJECTS, path = "Menus/File", position = 50)
-@FxActionReference(id = SAVE, path = "Menus/File", position = 60, separatorBefore = true)
-@FxActionReference(id = SAVE_ALL, path = "Menus/File", position = 70)
-@FxActionReference(id = SELECT_PROJECTS, path = "Menus/Window", position = 10)
-@FxActionReference(id = SELECT_FILES, path = "Menus/Window", position = 20)
-@FxActionReference(id = SELECT_EDITOR, path = "Menus/Window", position = 5)
-@FxActionReference(id = SELECT_USAGES, path = "Menus/Window", position = 30)
-@FxActionReference(id = SELECT_SEARCH_RESULTS, path = "Menus/Window", position = 40)
-@FxActionReference(id = MenuRegistrations.CONFIGURE_WINDOW, path = "Menus/Window", position = 60, separatorBefore = true)
-@FxActionReference(id = RESET_WINDOWS, path = "Menus/Window", position = 70)
-@FxActionReference(id = CLOSE_DOCUMENT, path = "Menus/Window", position = 80, separatorBefore = true)
-@FxActionReference(id = CLOSE_ALL_DOCUMENTS, path = "Menus/Window", position = 90)
-@FxActionReference(id = CLOSE_OTHER_DOCUMENTS, path = "Menus/Window", position = 100)
-@FxActionReference(id = NEXT_PROJECT, path = "Menus/Window", position = 110, separatorBefore = true)
-@FxActionReference(id = PREVIOUS_PROJECT, path = "Menus/Window", position = 120)
-@FxActionReference(id = SELECT_IN_PROJECTS, path = "ContextMenus/Editor", position = 120, separatorBefore = true)
-@FxActionReference(id = SELECT_IN_PROJECTS, path = "Menus/Navigate", position = 70, separatorBefore = true)
-@FxActionReference(id = SELECT_IN_FILES, path = "Menus/Navigate", position = 80)
-@FxActionReference(id = UNDO, path = "Menus/Edit", position = 10)
-@FxActionReference(id = REDO, path = "Menus/Edit", position = 20)
-@FxActionReference(id = CUT, path = "Menus/Edit", position = 30, separatorBefore = true)
-@FxActionReference(id = COPY, path = "Menus/Edit", position = 40)
-@FxActionReference(id = PASTE, path = "Menus/Edit", position = 50)
-@FxActionReference(id = FIND_SELECTION, path = "Menus/Edit", position = 60, separatorBefore = true)
-@FxActionReference(id = FIND_NEXT, path = "Menus/Edit", position = 70)
-@FxActionReference(id = FIND_PREVIOUS, path = "Menus/Edit", position = 80)
-@FxActionReference(id = FIND, path = "Menus/Edit", position = 90, separatorBefore = true)
-@FxActionReference(id = REPLACE, path = "Menus/Edit", position = 100)
-@FxActionReference(id = FIND_IN_PROJECTS, path = "Menus/Edit", position = 110)
-@FxActionReference(id = REPLACE_IN_PROJECTS, path = "Menus/Edit", position = 120)
-@FxActionReference(id = FIND_USAGES, path = "Menus/Edit", position = 130, separatorBefore = true)
-public final class MenuRegistrations {
+@MenuRegistration(id = "File", position = 10)
+@MenuRegistration(id = "Edit", position = 20)
+@MenuRegistration(id = "View", position = 30)
+@MenuRegistration(id = "Navigate", position = 40)
+@MenuRegistration(id = "Tools", position = 60)
+@MenuRegistration(id = "Window", position = 70)
+@MenuRegistration(id = "Window/IDE Tools", displayName = "IDE Tools", position = 100)
+@MenuRegistration(id = "Help", position = 90)
+@ActionReference(id = NEW_PROJECT, path = "Menus/File", position = 10)
+@ActionReference(id = NEW_FILE, path = "Menus/File", position = 15)
+@ActionReference(id = OPEN_PROJECT, path = "Menus/File", position = 20)
+@ActionReference(id = Menus.OPEN_RECENT, path = "Menus/File", position = 30)
+@ActionReference(id = CLOSE_PROJECT, path = "Menus/File", position = 40)
+@ActionReference(id = CLOSE_ALL_PROJECTS, path = "Menus/File", position = 50)
+@ActionReference(id = SAVE, path = "Menus/File", position = 60, separatorBefore = true)
+@ActionReference(id = SAVE_ALL, path = "Menus/File", position = 70)
+@ActionReference(id = SELECT_PROJECTS, path = "Menus/Window", position = 10)
+@ActionReference(id = SELECT_FILES, path = "Menus/Window", position = 20)
+@ActionReference(id = SELECT_EDITOR, path = "Menus/Window", position = 5)
+@ActionReference(id = SELECT_USAGES, path = "Menus/Window", position = 30)
+@ActionReference(id = SELECT_SEARCH_RESULTS, path = "Menus/Window", position = 40)
+@ActionReference(id = Menus.CONFIGURE_WINDOW, path = "Menus/Window", position = 60, separatorBefore = true)
+@ActionReference(id = RESET_WINDOWS, path = "Menus/Window", position = 70)
+@ActionReference(id = CLOSE_DOCUMENT, path = "Menus/Window", position = 80, separatorBefore = true)
+@ActionReference(id = CLOSE_ALL_DOCUMENTS, path = "Menus/Window", position = 90)
+@ActionReference(id = CLOSE_OTHER_DOCUMENTS, path = "Menus/Window", position = 100)
+@ActionReference(id = NEXT_PROJECT, path = "Menus/Window", position = 110, separatorBefore = true)
+@ActionReference(id = PREVIOUS_PROJECT, path = "Menus/Window", position = 120)
+@ActionReference(id = SELECT_IN_PROJECTS, path = "ContextMenus/Editor", position = 120, separatorBefore = true)
+@ActionReference(id = SELECT_IN_PROJECTS, path = "Menus/Navigate", position = 70, separatorBefore = true)
+@ActionReference(id = SELECT_IN_FILES, path = "Menus/Navigate", position = 80)
+@ActionReference(id = UNDO, path = "Menus/Edit", position = 10)
+@ActionReference(id = REDO, path = "Menus/Edit", position = 20)
+@ActionReference(id = CUT, path = "Menus/Edit", position = 30, separatorBefore = true)
+@ActionReference(id = COPY, path = "Menus/Edit", position = 40)
+@ActionReference(id = PASTE, path = "Menus/Edit", position = 50)
+@ActionReference(id = FIND_SELECTION, path = "Menus/Edit", position = 60, separatorBefore = true)
+@ActionReference(id = FIND_NEXT, path = "Menus/Edit", position = 70)
+@ActionReference(id = FIND_PREVIOUS, path = "Menus/Edit", position = 80)
+@ActionReference(id = FIND, path = "Menus/Edit", position = 90, separatorBefore = true)
+@ActionReference(id = REPLACE, path = "Menus/Edit", position = 100)
+@ActionReference(id = FIND_IN_PROJECTS, path = "Menus/Edit", position = 110)
+@ActionReference(id = REPLACE_IN_PROJECTS, path = "Menus/Edit", position = 120)
+@ActionReference(id = FIND_USAGES, path = "Menus/Edit", position = 130, separatorBefore = true)
+public final class Menus {
 
     /** Placeholder id for the Recent Projects submenu, which the window builds dynamically. */
     public static final String OPEN_RECENT = "openRecent";
@@ -117,6 +117,6 @@ public final class MenuRegistrations {
     /** Placeholder id for the Configure Window submenu, which the window builds dynamically. */
     public static final String CONFIGURE_WINDOW = "configureWindow";
 
-    private MenuRegistrations() {
+    private Menus() {
     }
 }

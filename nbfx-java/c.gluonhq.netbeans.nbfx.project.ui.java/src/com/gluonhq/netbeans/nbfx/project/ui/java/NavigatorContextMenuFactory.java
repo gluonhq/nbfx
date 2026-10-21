@@ -161,7 +161,7 @@ final class NavigatorContextMenuFactory<T> {
     /**
      * Adds the layer-registered {@code ContextMenus/Navigator} action references that apply to
      * {@code fo}'s content type (mime), so modules can extend the navigator node menu declaratively
-     * with {@code @FxActionReference(path = "ContextMenus/Navigator", mimeType = "...")}.
+     * with {@code @ActionReference(path = "ContextMenus/Navigator", mimeType = "...")}.
      */
     private static void addNavigatorLayerItems(ContextMenu menu, FileObject fo) {
         List<FxActionRef> refs = ActionLayerReader.readForMime("NbFx/ContextMenus/Navigator", fo.getMIMEType());

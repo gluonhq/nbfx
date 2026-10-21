@@ -30,17 +30,17 @@ import java.lang.annotation.Target;
  * The reference is emitted into the generated layer under {@code NbFx/<path>/<id>.ref}, where
  * {@code path} is one of {@code Menus/<menu>}, {@code Toolbars/<bar>} or
  * {@code ContextMenus/<context>}. The action itself is supplied either by an
- * {@link FxActionRegistration} on the same element or by an action id published by an action
+ * {@link ActionRegistration} on the same element or by an action id published by an action
  * provider.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target({ElementType.TYPE, ElementType.METHOD})
-@Repeatable(FxActionReferences.class)
-public @interface FxActionReference {
+@Repeatable(ActionReferences.class)
+public @interface ActionReference {
 
-    /** The id of the action to reference (see {@link FxActionRegistration#id()}). */
+    /** The id of the action to reference (see {@link ActionRegistration#id()}). */
     String id();
 
     /** The UI surface path, for example {@code "Menus/File"} or {@code "Toolbars/Editor"}. */

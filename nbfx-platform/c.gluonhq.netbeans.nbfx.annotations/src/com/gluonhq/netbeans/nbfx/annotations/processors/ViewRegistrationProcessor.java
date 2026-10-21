@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxViewRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
+import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -31,17 +31,17 @@ import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entry for {@link FxViewRegistration}:
+ * Generates the layer entry for {@link ViewRegistration}:
  * {@code NbFx/Views/<id>.instance} with the view's metadata.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxViewRegistrationProcessor extends LayerGeneratingProcessor {
+public class ViewRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(FxViewRegistration.class.getCanonicalName());
+        return Set.of(ViewRegistration.class.getCanonicalName());
     }
 
     @Override
@@ -50,8 +50,8 @@ public class FxViewRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxViewRegistration.class)) {
-            FxViewRegistration registration = element.getAnnotation(FxViewRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(ViewRegistration.class)) {
+            ViewRegistration registration = element.getAnnotation(ViewRegistration.class);
             if (registration == null) {
                 continue;
             }
@@ -59,7 +59,7 @@ public class FxViewRegistrationProcessor extends LayerGeneratingProcessor {
             if (id.isEmpty() && element instanceof TypeElement type) {
                 id = processingEnv.getElementUtils().getBinaryName(type).toString();
             }
-            File file = layer(element).instanceFile(FxLayer.VIEWS, id, (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.VIEWS, id, (Class<?>) null);
             file.bundlevalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("location", registration.location().name());

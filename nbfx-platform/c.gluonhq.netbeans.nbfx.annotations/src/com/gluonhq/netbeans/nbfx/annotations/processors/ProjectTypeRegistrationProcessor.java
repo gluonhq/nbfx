@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxStatusRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
+import com.gluonhq.netbeans.nbfx.annotations.ProjectTypeRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -31,17 +31,17 @@ import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entry for {@link FxStatusRegistration}:
- * {@code NbFx/Status/<id>.instance} with the element's alignment and position.
+ * Generates the layer entry for {@link ProjectTypeRegistration}:
+ * {@code NbFx/Projects/<id>.instance} with the provider's metadata.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxStatusRegistrationProcessor extends LayerGeneratingProcessor {
+public class ProjectTypeRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(FxStatusRegistration.class.getCanonicalName());
+        return Set.of(ProjectTypeRegistration.class.getCanonicalName());
     }
 
     @Override
@@ -50,13 +50,14 @@ public class FxStatusRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxStatusRegistration.class)) {
-            FxStatusRegistration registration = element.getAnnotation(FxStatusRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(ProjectTypeRegistration.class)) {
+            ProjectTypeRegistration registration = element.getAnnotation(ProjectTypeRegistration.class);
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(FxLayer.STATUS, registration.id(), (Class<?>) null);
-            file.stringvalue("alignment", registration.alignment().name());
+            File file = layer(element).instanceFile(LayerPaths.PROJECTS, registration.id(), (Class<?>) null);
+            file.stringvalue("displayName", registration.displayName());
+            file.stringvalue("iconName", registration.iconName());
             file.intvalue("position", registration.position());
             file.write();
         }

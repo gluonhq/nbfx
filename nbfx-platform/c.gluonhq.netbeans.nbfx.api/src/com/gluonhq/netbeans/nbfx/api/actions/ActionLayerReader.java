@@ -18,7 +18,7 @@
  */
 package com.gluonhq.netbeans.nbfx.api.actions;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -36,8 +36,8 @@ import org.openide.filesystems.FileUtil;
  */
 public final class ActionLayerReader {
 
-    private static final String REF_EXT = FxLayer.REF_SUFFIX.startsWith(".")
-            ? FxLayer.REF_SUFFIX.substring(1) : FxLayer.REF_SUFFIX;
+    private static final String REF_EXT = LayerPaths.REF_SUFFIX.startsWith(".")
+            ? LayerPaths.REF_SUFFIX.substring(1) : LayerPaths.REF_SUFFIX;
 
     private ActionLayerReader() {
     }

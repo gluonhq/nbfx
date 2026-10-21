@@ -22,8 +22,8 @@ import org.openide.util.Lookup;
 
 /**
  * The context menu of a code editor, built each time it opens from the {@code NbFx/ContextMenus/Editor}
- * layer folder - the references modules declare with {@code @FxActionReference}, and the submenus
- * they declare with {@code @FxMenuRegistration(path = "ContextMenus/Editor")}, such as Navigate -
+ * layer folder - the references modules declare with {@code @ActionReference}, and the submenus
+ * they declare with {@code @MenuRegistration(path = "ContextMenus/Editor")}, such as Navigate -
  * resolved against the {@link ActionRegistry}, so the items reflect the current enablement; the ids
  * of {@link EditorContextMenuIds} are the fallback of a layer without entries. Opening the menu
  * focuses the editor first, making it the active document the commands act on.

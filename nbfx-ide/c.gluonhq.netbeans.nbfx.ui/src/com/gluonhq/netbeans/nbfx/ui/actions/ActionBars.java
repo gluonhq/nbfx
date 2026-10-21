@@ -6,7 +6,7 @@ import com.gluonhq.netbeans.nbfx.ui.session.AppState;
 import com.gluonhq.netbeans.nbfx.ui.session.DocumentCloser;
 import com.gluonhq.netbeans.nbfx.ui.shell.TabContextMenu;
 import com.gluonhq.netbeans.nbfx.ui.shell.ToolBarContainer;
-import com.gluonhq.netbeans.nbfx.menus.MenuRegistrations;
+import com.gluonhq.netbeans.nbfx.menus.Menus;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionLayerReader;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionRegistry;
@@ -230,7 +230,7 @@ public final class ActionBars {
      * file of the globally active editor in the Projects / Files view; Select in Projects is also
      * in the editor's context menu, the right-clicked editor being the active one, as opening the
      * menu focuses it. The menu entries themselves are declared in the layer by
-     * {@link MenuRegistrations}. Their shortcuts (Shift+Shortcut+1 / +2) are bound by the windows
+     * {@link Menus}. Their shortcuts (Shift+Shortcut+1 / +2) are bound by the windows
      * themselves, so they also work in detached windows; the commands carry them for the menus to
      * show.
      */
@@ -403,7 +403,7 @@ public final class ActionBars {
         List<FxActionRef> refs = ActionLayerReader.read("NbFx/Menus/File");
         if (!refs.isEmpty()) {
             for (FxActionRef ref : refs) {
-                if (MenuRegistrations.OPEN_RECENT.equals(ref.actionId())) {
+                if (Menus.OPEN_RECENT.equals(ref.actionId())) {
                     fileMenu.getItems().add(recentMenu);
                     continue;
                 }
@@ -487,7 +487,7 @@ public final class ActionBars {
         List<FxActionRef> refs = ActionLayerReader.read("NbFx/Menus/Window");
         if (!refs.isEmpty()) {
             for (FxActionRef ref : refs) {
-                if (MenuRegistrations.CONFIGURE_WINDOW.equals(ref.actionId())) {
+                if (Menus.CONFIGURE_WINDOW.equals(ref.actionId())) {
                     addSeparatorIfNeeded(windowMenu, ref);
                     windowMenu.getItems().add(TabContextMenu.createConfigureWindowMenu());
                     continue;
@@ -530,7 +530,7 @@ public final class ActionBars {
     /**
      * Appends the submenus declared as subfolders of {@code layerPath} (for example
      * {@code NbFx/Menus/Window/IDE Tools}) to {@code parent}, in position order. A submenu's display
-     * name and position come from the folder attributes written by {@code @FxMenuRegistration}.
+     * name and position come from the folder attributes written by {@code @MenuRegistration}.
      */
     private void addSubmenus(Menu parent, String layerPath, ObservableValue<EditorDocument> scope) {
         FileObject folder = FileUtil.getConfigFile(layerPath);

@@ -18,10 +18,10 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxOptionsContainerRegistration;
-import com.gluonhq.netbeans.nbfx.annotations.FxOptionsRegistration;
-import com.gluonhq.netbeans.nbfx.annotations.FxOptionsSubRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
+import com.gluonhq.netbeans.nbfx.annotations.OptionsContainerRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.OptionsRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.OptionsSubRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -41,14 +41,14 @@ import org.openide.util.lookup.ServiceProvider;
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxOptionsRegistrationProcessor extends LayerGeneratingProcessor {
+public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         return Set.of(
-                FxOptionsRegistration.class.getCanonicalName(),
-                FxOptionsSubRegistration.class.getCanonicalName(),
-                FxOptionsContainerRegistration.class.getCanonicalName());
+                OptionsRegistration.class.getCanonicalName(),
+                OptionsSubRegistration.class.getCanonicalName(),
+                OptionsContainerRegistration.class.getCanonicalName());
     }
 
     @Override
@@ -57,12 +57,12 @@ public class FxOptionsRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxOptionsRegistration.class)) {
-            FxOptionsRegistration registration = element.getAnnotation(FxOptionsRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(OptionsRegistration.class)) {
+            OptionsRegistration registration = element.getAnnotation(OptionsRegistration.class);
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(FxLayer.OPTIONS, registration.id(), (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.OPTIONS, registration.id(), (Class<?>) null);
             file.stringvalue("displayName", registration.categoryName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("keywords", registration.keywords());
@@ -70,25 +70,25 @@ public class FxOptionsRegistrationProcessor extends LayerGeneratingProcessor {
             file.boolvalue("container", false);
             file.write();
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxOptionsSubRegistration.class)) {
-            FxOptionsSubRegistration registration = element.getAnnotation(FxOptionsSubRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(OptionsSubRegistration.class)) {
+            OptionsSubRegistration registration = element.getAnnotation(OptionsSubRegistration.class);
             if (registration == null) {
                 continue;
             }
             File file = layer(element).instanceFile(
-                    FxLayer.OPTIONS + "/" + registration.location(), registration.id(), (Class<?>) null);
+                    LayerPaths.OPTIONS + "/" + registration.location(), registration.id(), (Class<?>) null);
             file.stringvalue("displayName", registration.displayName());
             file.stringvalue("keywords", registration.keywords());
             file.intvalue("position", registration.position());
             file.boolvalue("sub", true);
             file.write();
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxOptionsContainerRegistration.class)) {
-            FxOptionsContainerRegistration registration = element.getAnnotation(FxOptionsContainerRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(OptionsContainerRegistration.class)) {
+            OptionsContainerRegistration registration = element.getAnnotation(OptionsContainerRegistration.class);
             if (registration == null) {
                 continue;
             }
-            File folder = layer(element).folder(FxLayer.OPTIONS + "/" + registration.id());
+            File folder = layer(element).folder(LayerPaths.OPTIONS + "/" + registration.id());
             folder.stringvalue("displayName", registration.categoryName());
             folder.stringvalue("iconName", registration.iconName());
             folder.stringvalue("keywords", registration.keywords());

@@ -16,28 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.gluonhq.netbeans.nbfx.options;
-
-import java.util.Objects;
+package com.gluonhq.netbeans.nbfx.annotations;
 
 /**
- * A registered options panel: the metadata declared with
- * {@link com.gluonhq.netbeans.nbfx.annotations.FxOptionsRegistration} plus the panel itself.
+ * The horizontal slot of a status bar element.
  *
- * @param id          the panel id (the layer file's base name)
- * @param displayName the display name
- * @param category    the category
- * @param position    the position among the panels
- * @param panel       the panel
  * @since 1.0
  */
-public record OptionsRegistration(String id, String displayName, String category, int position,
-        FxOptionsPanel panel) {
+public enum StatusAlignment {
 
-    public OptionsRegistration {
-        Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(displayName, "displayName");
-        Objects.requireNonNull(category, "category");
-        Objects.requireNonNull(panel, "panel");
-    }
+    /** The left slot, aligned to the start of the status bar. */
+    LEFT,
+
+    /** The centre slot. */
+    CENTER,
+
+    /** The right slot, aligned to the end of the status bar. */
+    RIGHT
 }

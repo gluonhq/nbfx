@@ -18,15 +18,15 @@
  */
 package com.gluonhq.netbeans.nbfx.windows;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxViewLocation;
-import com.gluonhq.netbeans.nbfx.annotations.FxViewRegistration.FxPersistenceType;
+import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
+import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration.PersistenceType;
 import com.gluonhq.netbeans.nbfx.api.view.FxArea;
 import com.gluonhq.netbeans.nbfx.api.view.ViewProvider;
 import java.util.Objects;
 
 /**
  * A registered view: the metadata declared with
- * {@link com.gluonhq.netbeans.nbfx.annotations.FxViewRegistration} plus the view itself.
+ * {@link com.gluonhq.netbeans.nbfx.annotations.ViewRegistration} plus the view itself.
  *
  * @param id               the view id (the layer file's base name)
  * @param displayName      the tab title
@@ -41,11 +41,11 @@ import java.util.Objects;
  * @param view             the view
  * @since 1.0
  */
-public record ViewRegistration(String id, String displayName, String iconName,
-        FxViewLocation location, int position, boolean navigator, FxArea area,
-        boolean openAtStartup, FxPersistenceType persistenceType, ViewProvider view) {
+public record ViewSpec(String id, String displayName, String iconName,
+        ViewLocation location, int position, boolean navigator, FxArea area,
+        boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
 
-    public ViewRegistration {
+    public ViewSpec {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(iconName, "iconName");

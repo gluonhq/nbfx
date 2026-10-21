@@ -27,7 +27,7 @@ package com.gluonhq.netbeans.nbfx.annotations;
  *
  * @since 1.0
  */
-public final class FxLayer {
+public final class LayerPaths {
 
     /** Registered action instances, by id. */
     public static final String ACTIONS = "NbFx/Actions";
@@ -62,6 +62,6 @@ public final class FxLayer {
     /** The file-name suffix used for action references in the menu/tool bar folders. */
     public static final String REF_SUFFIX = ".ref";
 
-    private FxLayer() {
+    private LayerPaths() {
     }
 }

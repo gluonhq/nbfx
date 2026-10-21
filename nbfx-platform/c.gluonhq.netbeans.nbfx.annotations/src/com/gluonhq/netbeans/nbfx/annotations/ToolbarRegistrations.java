@@ -18,31 +18,20 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
 /**
- * The default docking location of a JavaFX view.
+ * Container for repeated {@link ToolbarRegistration} annotations.
  *
  * @since 1.0
  */
-public enum FxViewLocation {
+@Retention(RetentionPolicy.SOURCE)
+@Target(ElementType.TYPE)
+public @interface ToolbarRegistrations {
 
-    /** Docked in the navigator column on the left. */
-    LEFT,
-
-    /** Docked left, below the other left-docked views. */
-    LEFT_BOTTOM,
-
-    /** The central editor area. */
-    CENTER,
-
-    /** The central area, below the editors. */
-    CENTER_BOTTOM,
-
-    /** Docked at the bottom, full width. */
-    BOTTOM,
-
-    /** Docked on the right. */
-    RIGHT,
-
-    /** Not docked; shown in its own window when first opened. */
-    DETACHED
+    /** The repeated registrations. */
+    ToolbarRegistration[] value();
 }

@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
-import com.gluonhq.netbeans.nbfx.annotations.FxWizardRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
+import com.gluonhq.netbeans.nbfx.annotations.StatusRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -31,17 +31,17 @@ import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entry for {@link FxWizardRegistration}:
- * {@code NbFx/Wizards/<id>.instance} with the wizard's metadata.
+ * Generates the layer entry for {@link StatusRegistration}:
+ * {@code NbFx/Status/<id>.instance} with the element's alignment and position.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxWizardRegistrationProcessor extends LayerGeneratingProcessor {
+public class StatusRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Set.of(FxWizardRegistration.class.getCanonicalName());
+        return Set.of(StatusRegistration.class.getCanonicalName());
     }
 
     @Override
@@ -50,15 +50,13 @@ public class FxWizardRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxWizardRegistration.class)) {
-            FxWizardRegistration registration = element.getAnnotation(FxWizardRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(StatusRegistration.class)) {
+            StatusRegistration registration = element.getAnnotation(StatusRegistration.class);
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(FxLayer.WIZARDS, registration.id(), (Class<?>) null);
-            file.stringvalue("displayName", registration.displayName());
-            file.stringvalue("iconName", registration.iconName());
-            file.stringvalue("category", registration.category());
+            File file = layer(element).instanceFile(LayerPaths.STATUS, registration.id(), (Class<?>) null);
+            file.stringvalue("alignment", registration.alignment().name());
             file.intvalue("position", registration.position());
             file.write();
         }

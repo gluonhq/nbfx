@@ -16,30 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package com.gluonhq.netbeans.nbfx.wizard;
+package com.gluonhq.netbeans.nbfx.options;
 
 import java.util.Objects;
 
 /**
- * A registered wizard: the metadata declared with
- * {@link com.gluonhq.netbeans.nbfx.annotations.FxWizardRegistration} plus the wizard itself.
+ * A registered options panel: the metadata declared with
+ * {@link com.gluonhq.netbeans.nbfx.annotations.OptionsRegistration} plus the panel itself.
  *
- * @param id          the wizard id (the layer file's base name)
- * @param displayName the dialog title
- * @param iconName    the icon resource name, or an empty string
- * @param category    the wizard's category
- * @param position    the position among the wizards of the same category
- * @param wizard      the wizard
+ * @param id          the panel id (the layer file's base name)
+ * @param displayName the display name
+ * @param category    the category
+ * @param position    the position among the panels
+ * @param panel       the panel
  * @since 1.0
  */
-public record WizardRegistration(String id, String displayName, String iconName, String category,
-        int position, FxWizard wizard) {
+public record OptionsPanelEntry(String id, String displayName, String category, int position,
+        FxOptionsPanel panel) {
 
-    public WizardRegistration {
+    public OptionsPanelEntry {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
-        Objects.requireNonNull(iconName, "iconName");
         Objects.requireNonNull(category, "category");
-        Objects.requireNonNull(wizard, "wizard");
+        Objects.requireNonNull(panel, "panel");
     }
 }

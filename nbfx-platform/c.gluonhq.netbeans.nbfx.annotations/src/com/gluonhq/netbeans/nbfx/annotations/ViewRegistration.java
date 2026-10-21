@@ -34,7 +34,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxViewRegistration {
+public @interface ViewRegistration {
 
     /**
      * The stable identifier of the view, used to persist and restore its tab. Defaults to the
@@ -50,7 +50,7 @@ public @interface FxViewRegistration {
     String iconName() default "";
 
     /** Where the view is docked the first time it is shown. */
-    FxViewLocation location() default FxViewLocation.LEFT;
+    ViewLocation location() default ViewLocation.LEFT;
 
     /** The position of the view relative to the other views in the same location. */
     int position() default Integer.MAX_VALUE;
@@ -68,14 +68,14 @@ public @interface FxViewRegistration {
     boolean openAtStartup() default false;
 
     /** How the view's tab and its state survive restarts, mirroring the Swing persistence types. */
-    FxPersistenceType persistenceType() default FxPersistenceType.ALWAYS;
+    PersistenceType persistenceType() default PersistenceType.ALWAYS;
 
     /**
      * The persistence behaviour of a view's tab.
      *
      * @since 1.0
      */
-    enum FxPersistenceType {
+    enum PersistenceType {
         /** The tab and its state are restored across every restart. */
         ALWAYS,
         /** The tab is never persisted; it closes with the session. */

@@ -24,24 +24,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers a JavaFX status bar element.
+ * Registers a top-level JavaFX options category.
  * <p>
  * The annotated class must be public, must have a public no-argument constructor and must implement
- * the nbfx status element SPI. It is published in the generated layer under
- * {@code NbFx/Status/<id>.instance} together with its alignment and position.
+ * the nbfx options panel SPI. It is published in the generated layer under
+ * {@code NbFx/Options/<id>.instance}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxStatusRegistration {
+public @interface OptionsRegistration {
 
-    /** The stable identifier of the status element, unique across the application. */
+    /** The stable identifier of the category, used to open it programmatically. */
     String id();
 
-    /** The horizontal slot the element occupies. */
-    FxStatusAlignment alignment() default FxStatusAlignment.LEFT;
+    /** The display name of the category; may be a {@code #key} bundle reference. */
+    String categoryName();
 
-    /** The position of the element relative to the other elements in the same slot. */
-    int position() default 0;
+    /** The name of the icon resource shown for the category, or an empty string for none. */
+    String iconName() default "";
+
+    /** Comma-separated keywords for the options Quick Search. */
+    String keywords() default "";
+
+    /** The position of the category relative to the other categories. */
+    int position() default Integer.MAX_VALUE;
 }

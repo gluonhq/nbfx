@@ -15,7 +15,7 @@ import com.gluonhq.netbeans.nbfx.ui.session.CloseConfirmation;
 import com.gluonhq.netbeans.nbfx.ui.session.DocumentCloser;
 import com.gluonhq.netbeans.nbfx.ui.session.SessionRestorer;
 import com.gluonhq.netbeans.nbfx.docking.DockArea;
-import com.gluonhq.netbeans.nbfx.annotations.FxStatusAlignment;
+import com.gluonhq.netbeans.nbfx.annotations.StatusAlignment;
 import com.gluonhq.netbeans.nbfx.ui.shell.CaretStatusElement;
 import com.gluonhq.netbeans.nbfx.ui.shell.Docking;
 import com.gluonhq.netbeans.nbfx.ui.shell.LineSeparatorStatusElement;
@@ -32,7 +32,7 @@ import com.gluonhq.netbeans.nbfx.windows.FxWindowSystem;
 import com.gluonhq.netbeans.nbfx.windows.WindowEnvironment;
 import com.gluonhq.netbeans.nbfx.windows.WindowSink;
 import com.gluonhq.netbeans.nbfx.windows.WindowState;
-import com.gluonhq.netbeans.nbfx.windows.ViewRegistration;
+import com.gluonhq.netbeans.nbfx.windows.ViewSpec;
 import com.gluonhq.netbeans.nbfx.windows.ViewRegistry;
 
 import com.gluonhq.netbeans.nbfx.api.ContentManager;
@@ -214,9 +214,9 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         caretElement = new CaretStatusElement();
         lineSeparatorElement = new LineSeparatorStatusElement();
         statusBar = new FxStatusBar(StatusElementRegistry.discover(List.of(
-                new StatusElement("project", FxStatusAlignment.LEFT, 0, projectElement),
-                new StatusElement("caret", FxStatusAlignment.RIGHT, 10, caretElement),
-                new StatusElement("line-separator", FxStatusAlignment.RIGHT, 20, lineSeparatorElement))));
+                new StatusElement("project", StatusAlignment.LEFT, 0, projectElement),
+                new StatusElement("caret", StatusAlignment.RIGHT, 10, caretElement),
+                new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
         borderPane.setBottom(statusBar);
 
         // The selected project follows the navigator selection (handled by the navigator itself) and,
@@ -548,7 +548,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         // view reachable even when no project is ever opened.
         AppState.Layout layout = sessionRestorer.startupLayout();
         // On the first run there is no persisted layout, so the order and the set of navigators come
-        // from the layer (position and navigator flag declared with @FxViewRegistration); afterwards
+        // from the layer (position and navigator flag declared with @ViewRegistration); afterwards
         // the persisted order, which the user arranged, wins.
         List<String> order = navigatorIdsOf(layout);
         if (layout.isEmpty()) {
@@ -590,12 +590,12 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
 
     /**
      * The ids of the navigators registered in the layer, in declared position order, so the first
-     * run docks them where {@code @FxViewRegistration} says. Views that are not navigators, and
+     * run docks them where {@code @ViewRegistration} says. Views that are not navigators, and
      * navigators not declared in the layer, are not included.
      */
     private static List<String> registeredNavigatorIds() {
         List<String> ids = new ArrayList<>();
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             if (registration.navigator()) {
                 ids.add(registration.id());
             }
@@ -641,7 +641,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 return view;
             }
         }
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             if (registration.id().equals(viewId)) {
                 return registration.view();
             }
@@ -659,13 +659,13 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
 
     /** Providers ordered by {@code order} (persisted ids); unknown providers keep their natural order at the end. */
     /**
-     * The navigator views: the {@link ViewProvider}s whose {@code @FxViewRegistration} marks them as
+     * The navigator views: the {@link ViewProvider}s whose {@code @ViewRegistration} marks them as
      * navigators, ordered by their declared position. Resolved from the global {@code Lookup} - the
      * same service instances their tabs are built from.
      */
     private static List<ViewProvider> navigatorViews() {
         Map<String, Integer> positions = new HashMap<>();
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             if (registration.navigator()) {
                 positions.put(registration.id(), registration.position());
             }
@@ -916,7 +916,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     }
 
     /**
-     * Docks every view registered to {@linkplain ViewRegistration#openAtStartup() open at start-up}
+     * Docks every view registered to {@linkplain ViewSpec#openAtStartup() open at start-up}
      * that has no tab yet at its default location, the way the Navigator is part of NetBeans' default
      * layout. A view that already has a tab, wherever it is, is left alone. The view shown is the one
      * published in the Lookup (see {@link #viewById}), as everywhere else, so a command of the view's
@@ -927,7 +927,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         if (manager == null) {
             return;
         }
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             ViewProvider view = registration.openAtStartup() ? viewById(registration.id()) : null;
             if (view != null && !manager.isShowing(view)) {
                 manager.show(view);
@@ -954,7 +954,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         if (manager == null) {
             return;
         }
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             ViewProvider view = registration.openAtStartup() && !introduced.contains(registration.id())
                     ? viewById(registration.id()) : null;
             if (view != null && !manager.isShowing(view)) {
@@ -968,7 +968,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     /** The ids of the non-navigator views registered to open at start-up, in registration order. */
     private static Set<String> defaultViewIds() {
         Set<String> ids = new LinkedHashSet<>();
-        for (ViewRegistration registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : ViewRegistry.discover()) {
             if (registration.openAtStartup() && !registration.navigator()) {
                 ids.add(registration.id());
             }

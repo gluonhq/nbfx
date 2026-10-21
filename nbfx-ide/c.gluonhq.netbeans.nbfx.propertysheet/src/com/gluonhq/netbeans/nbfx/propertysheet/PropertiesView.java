@@ -1,8 +1,8 @@
 package com.gluonhq.netbeans.nbfx.propertysheet;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxActionReference;
-import com.gluonhq.netbeans.nbfx.annotations.FxViewLocation;
-import com.gluonhq.netbeans.nbfx.annotations.FxViewRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.ActionReference;
+import com.gluonhq.netbeans.nbfx.annotations.ViewLocation;
+import com.gluonhq.netbeans.nbfx.annotations.ViewRegistration;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
@@ -27,9 +27,9 @@ import org.openide.util.lookup.ServiceProvider;
  * {@code Window &gt; IDE Tools &gt; Properties} action or a file's context menu.
  */
 @ServiceProvider(service = ViewProvider.class)
-@FxViewRegistration(id = PropertiesView.ID, displayName = "Properties",
-        location = FxViewLocation.RIGHT, position = 100)
-@FxActionReference(id = ActionIds.SELECT_PROPERTIES, path = "Menus/Window/IDE Tools", position = 10)
+@ViewRegistration(id = PropertiesView.ID, displayName = "Properties",
+        location = ViewLocation.RIGHT, position = 100)
+@ActionReference(id = ActionIds.SELECT_PROPERTIES, path = "Menus/Window/IDE Tools", position = 10)
 public final class PropertiesView implements ViewProvider {
 
     /** The stable id of the view. */

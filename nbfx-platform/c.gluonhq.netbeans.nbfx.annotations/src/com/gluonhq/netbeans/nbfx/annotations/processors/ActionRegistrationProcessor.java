@@ -18,10 +18,10 @@
  */
 package com.gluonhq.netbeans.nbfx.annotations.processors;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxActionReference;
-import com.gluonhq.netbeans.nbfx.annotations.FxActionReferences;
-import com.gluonhq.netbeans.nbfx.annotations.FxActionRegistration;
-import com.gluonhq.netbeans.nbfx.annotations.FxLayer;
+import com.gluonhq.netbeans.nbfx.annotations.ActionReference;
+import com.gluonhq.netbeans.nbfx.annotations.ActionReferences;
+import com.gluonhq.netbeans.nbfx.annotations.ActionRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.LayerPaths;
 import java.util.Set;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -33,21 +33,21 @@ import org.openide.filesystems.annotations.LayerGenerationException;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Generates the layer entries for {@link FxActionRegistration} and {@link FxActionReference}:
+ * Generates the layer entries for {@link ActionRegistration} and {@link ActionReference}:
  * an action instance under {@code NbFx/Actions/<id>.instance} and one
  * {@code NbFx/<path>/<id>.ref} reference per declared UI surface.
  *
  * @since 1.0
  */
 @ServiceProvider(service = Processor.class)
-public class FxActionRegistrationProcessor extends LayerGeneratingProcessor {
+public class ActionRegistrationProcessor extends LayerGeneratingProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
         return Set.of(
-                FxActionRegistration.class.getCanonicalName(),
-                FxActionReference.class.getCanonicalName(),
-                FxActionReferences.class.getCanonicalName());
+                ActionRegistration.class.getCanonicalName(),
+                ActionReference.class.getCanonicalName(),
+                ActionReferences.class.getCanonicalName());
     }
 
     @Override
@@ -56,22 +56,22 @@ public class FxActionRegistrationProcessor extends LayerGeneratingProcessor {
         if (roundEnv.processingOver()) {
             return false;
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxActionRegistration.class)) {
-            FxActionRegistration registration = element.getAnnotation(FxActionRegistration.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(ActionRegistration.class)) {
+            ActionRegistration registration = element.getAnnotation(ActionRegistration.class);
             if (registration != null) {
                 registerAction(element, registration);
             }
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxActionReference.class)) {
-            FxActionReference reference = element.getAnnotation(FxActionReference.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(ActionReference.class)) {
+            ActionReference reference = element.getAnnotation(ActionReference.class);
             if (reference != null) {
                 registerReference(element, reference);
             }
         }
-        for (Element element : roundEnv.getElementsAnnotatedWith(FxActionReferences.class)) {
-            FxActionReferences references = element.getAnnotation(FxActionReferences.class);
+        for (Element element : roundEnv.getElementsAnnotatedWith(ActionReferences.class)) {
+            ActionReferences references = element.getAnnotation(ActionReferences.class);
             if (references != null) {
-                for (FxActionReference reference : references.value()) {
+                for (ActionReference reference : references.value()) {
                     registerReference(element, reference);
                 }
             }
@@ -79,9 +79,9 @@ public class FxActionRegistrationProcessor extends LayerGeneratingProcessor {
         return true;
     }
 
-    private void registerAction(Element element, FxActionRegistration registration)
+    private void registerAction(Element element, ActionRegistration registration)
             throws LayerGenerationException {
-        File file = layer(element).instanceFile(FxLayer.ACTIONS, registration.id(), (Class<?>) null);
+        File file = layer(element).instanceFile(LayerPaths.ACTIONS, registration.id(), (Class<?>) null);
         file.stringvalue("displayName", registration.displayName());
         file.stringvalue("iconName", registration.iconName());
         file.stringvalue("accelerator", registration.accelerator());
@@ -89,9 +89,9 @@ public class FxActionRegistrationProcessor extends LayerGeneratingProcessor {
         file.write();
     }
 
-    private void registerReference(Element element, FxActionReference reference)
+    private void registerReference(Element element, ActionReference reference)
             throws LayerGenerationException {
-        String path = "NbFx/" + reference.path() + "/" + reference.id() + FxLayer.REF_SUFFIX;
+        String path = "NbFx/" + reference.path() + "/" + reference.id() + LayerPaths.REF_SUFFIX;
         org.openide.filesystems.annotations.LayerBuilder.File file = layer(element).file(path);
         file.stringvalue("actionId", reference.id())
                 .intvalue("position", reference.position())

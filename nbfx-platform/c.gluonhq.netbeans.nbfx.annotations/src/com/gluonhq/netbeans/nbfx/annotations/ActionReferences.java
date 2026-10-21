@@ -24,30 +24,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers a sub-panel inside a top-level JavaFX options category (a tab in the category).
- * <p>
- * The annotated class must be public, must have a public no-argument constructor and must implement
- * the nbfx options panel SPI. It is published in the generated layer under
- * {@code NbFx/Options/<location>/<id>.instance}.
+ * Container for repeated {@link ActionReference} annotations.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target(ElementType.TYPE)
-public @interface FxOptionsSubRegistration {
+@Target({ElementType.TYPE, ElementType.METHOD})
+public @interface ActionReferences {
 
-    /** The stable identifier of the sub-panel. */
-    String id();
-
-    /** The id of the top-level category this sub-panel belongs to (see {@link FxOptionsRegistration#id()}). */
-    String location();
-
-    /** The display name of the sub-panel; may be a {@code #key} bundle reference. */
-    String displayName();
-
-    /** Comma-separated keywords for the options Quick Search. */
-    String keywords() default "";
-
-    /** The position of the sub-panel relative to its siblings. */
-    int position() default Integer.MAX_VALUE;
+    /** The repeated references. */
+    ActionReference[] value();
 }

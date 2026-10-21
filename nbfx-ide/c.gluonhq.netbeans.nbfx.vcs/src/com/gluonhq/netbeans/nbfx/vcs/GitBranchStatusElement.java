@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.vcs;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxStatusAlignment;
-import com.gluonhq.netbeans.nbfx.annotations.FxStatusRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.StatusAlignment;
+import com.gluonhq.netbeans.nbfx.annotations.StatusRegistration;
 import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 import com.gluonhq.netbeans.nbfx.api.project.OpenProject;
@@ -46,7 +46,7 @@ import org.openide.util.RequestProcessor;
  * in a navigator view, the active editor document, or the selected project - and queries git on a
  * background thread.
  */
-@FxStatusRegistration(id = "vcs.branch", alignment = FxStatusAlignment.RIGHT, position = 100)
+@StatusRegistration(id = "vcs.branch", alignment = StatusAlignment.RIGHT, position = 100)
 public final class GitBranchStatusElement implements FxStatusElement {
 
     private static final RequestProcessor RP = new RequestProcessor("nbfx-git-branch", 1, true, true);

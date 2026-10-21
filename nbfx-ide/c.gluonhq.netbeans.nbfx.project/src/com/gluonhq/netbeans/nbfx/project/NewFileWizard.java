@@ -18,7 +18,7 @@
  */
 package com.gluonhq.netbeans.nbfx.project;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxWizardRegistration;
+import com.gluonhq.netbeans.nbfx.annotations.WizardRegistration;
 import com.gluonhq.netbeans.nbfx.api.ContentManager;
 import com.gluonhq.netbeans.nbfx.api.ErrorReporter;
 import com.gluonhq.netbeans.nbfx.api.actions.FxActionContext;
@@ -51,7 +51,7 @@ import org.openide.util.NbBundle;
  *
  * @since 1.0
  */
-@FxWizardRegistration(id = NewFileWizard.ID, displayName = "Java Class",
+@WizardRegistration(id = NewFileWizard.ID, displayName = "Java Class",
         category = "File", position = 10)
 public final class NewFileWizard implements FxWizard {
 

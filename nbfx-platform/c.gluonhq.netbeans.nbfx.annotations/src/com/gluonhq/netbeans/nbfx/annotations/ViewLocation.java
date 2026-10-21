@@ -19,18 +19,30 @@
 package com.gluonhq.netbeans.nbfx.annotations;
 
 /**
- * The horizontal slot of a status bar element.
+ * The default docking location of a JavaFX view.
  *
  * @since 1.0
  */
-public enum FxStatusAlignment {
+public enum ViewLocation {
 
-    /** The left slot, aligned to the start of the status bar. */
+    /** Docked in the navigator column on the left. */
     LEFT,
 
-    /** The centre slot. */
+    /** Docked left, below the other left-docked views. */
+    LEFT_BOTTOM,
+
+    /** The central editor area. */
     CENTER,
 
-    /** The right slot, aligned to the end of the status bar. */
-    RIGHT
+    /** The central area, below the editors. */
+    CENTER_BOTTOM,
+
+    /** Docked at the bottom, full width. */
+    BOTTOM,
+
+    /** Docked on the right. */
+    RIGHT,
+
+    /** Not docked; shown in its own window when first opened. */
+    DETACHED
 }

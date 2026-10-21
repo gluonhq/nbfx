@@ -24,32 +24,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers a JavaFX action implemented by the annotated class.
+ * Registers an empty top-level JavaFX options category that only groups sub-panels, placed on a
+ * package (typically {@code package-info.java}).
  * <p>
- * The annotated class must be public, must have a public no-argument constructor and should be an
- * action body that the JavaFX frontend can run (for example a {@link java.lang.Runnable}). It is
- * published in the generated layer under {@code NbFx/Actions/<id>.instance} together with its
- * display metadata, and can then be referenced from menus, tool bars and context menus with
- * {@link FxActionReference}.
+ * The category folder is created in the generated layer under {@code NbFx/Options/<id>}; its
+ * sub-panels are declared with {@link OptionsSubRegistration}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.TYPE, ElementType.METHOD})
-public @interface FxActionRegistration {
+@Target(ElementType.PACKAGE)
+public @interface OptionsContainerRegistration {
 
-    /** The stable identifier of the action, unique across the application. */
+    /** The stable identifier of the category. */
     String id();
 
-    /** The display name shown for the action; may be a {@code #key} bundle reference. */
-    String displayName() default "";
+    /** The display name of the category; may be a {@code #key} bundle reference. */
+    String categoryName();
 
-    /** The name of the icon resource shown for the action, or an empty string for none. */
+    /** The name of the icon resource shown for the category, or an empty string for none. */
     String iconName() default "";
 
-    /** The keyboard accelerator, in the form {@code "Shortcut+S"} or {@code "Ctrl+Shift+F"}; empty for none. */
-    String accelerator() default "";
+    /** Comma-separated keywords for the options Quick Search. */
+    String keywords() default "";
 
-    /** The position of the action relative to other actions registered in the same folder. */
+    /** The position of the category relative to the other categories. */
     int position() default Integer.MAX_VALUE;
 }

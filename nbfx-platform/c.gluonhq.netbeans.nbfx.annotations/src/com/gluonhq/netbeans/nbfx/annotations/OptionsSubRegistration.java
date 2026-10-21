@@ -24,30 +24,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Registers a JavaFX wizard.
+ * Registers a sub-panel inside a top-level JavaFX options category (a tab in the category).
  * <p>
  * The annotated class must be public, must have a public no-argument constructor and must implement
- * the nbfx wizard SPI. It is published in the generated layer under
- * {@code NbFx/Wizards/<id>.instance}.
+ * the nbfx options panel SPI. It is published in the generated layer under
+ * {@code NbFx/Options/<location>/<id>.instance}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
 @Target(ElementType.TYPE)
-public @interface FxWizardRegistration {
+public @interface OptionsSubRegistration {
 
-    /** The stable identifier of the wizard. */
+    /** The stable identifier of the sub-panel. */
     String id();
 
-    /** The display name of the wizard; may be a {@code #key} bundle reference. */
+    /** The id of the top-level category this sub-panel belongs to (see {@link OptionsRegistration#id()}). */
+    String location();
+
+    /** The display name of the sub-panel; may be a {@code #key} bundle reference. */
     String displayName();
 
-    /** The name of the icon resource shown for the wizard, or an empty string for none. */
-    String iconName() default "";
+    /** Comma-separated keywords for the options Quick Search. */
+    String keywords() default "";
 
-    /** The category the wizard belongs to, for example {@code "Project"} or {@code "File"}. */
-    String category() default "";
-
-    /** The position of the wizard relative to the others in the same category. */
+    /** The position of the sub-panel relative to its siblings. */
     int position() default Integer.MAX_VALUE;
 }
