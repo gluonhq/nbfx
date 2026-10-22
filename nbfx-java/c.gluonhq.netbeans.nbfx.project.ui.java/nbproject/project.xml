@@ -14,14 +14,6 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>com.gluonhq.netbeans.nbfx.file.actions</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
@@ -153,6 +145,42 @@
                     <run-dependency>
                         <specification-version>9.43</specification-version>
                     </run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.project</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.file</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.editor</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.actions</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.views</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.api.dialogs</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
             </module-dependencies>
             <public-packages>

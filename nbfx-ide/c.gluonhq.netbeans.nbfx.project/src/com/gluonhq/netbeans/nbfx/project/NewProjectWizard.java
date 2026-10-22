@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.project;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxWizardRegistration;
-import com.gluonhq.netbeans.nbfx.api.ErrorReporter;
+import com.gluonhq.netbeans.nbfx.annotations.WizardRegistration;
+import com.gluonhq.netbeans.nbfx.api.dialogs.ErrorReporter;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectRegistry;
 import com.gluonhq.netbeans.nbfx.wizard.FxWizard;
 import com.gluonhq.netbeans.nbfx.wizard.FxWizardPanel;
@@ -49,7 +49,7 @@ import org.openide.util.NbBundle;
  *
  * @since 1.0
  */
-@FxWizardRegistration(id = NewProjectWizard.ID, displayName = "Java with Maven",
+@WizardRegistration(id = NewProjectWizard.ID, displayName = "Java with Maven",
         category = "Project", position = 10)
 public final class NewProjectWizard implements FxWizard {
 

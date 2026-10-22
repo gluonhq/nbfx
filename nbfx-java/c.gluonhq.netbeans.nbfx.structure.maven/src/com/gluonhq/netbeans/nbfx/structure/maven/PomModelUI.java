@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.structure.maven;
 
-import com.gluonhq.netbeans.nbfx.api.Cancellation;
-import com.gluonhq.netbeans.nbfx.api.ContentManager;
+import com.gluonhq.netbeans.nbfx.api.progress.Cancellation;
+import com.gluonhq.netbeans.nbfx.api.editor.ContentManager;
 import com.gluonhq.netbeans.nbfx.structure.BackgroundScans;
 import com.gluonhq.netbeans.nbfx.structure.NavigatorButtons;
 import com.gluonhq.netbeans.nbfx.structure.NavigatorIcons;

@@ -1,7 +1,7 @@
 package com.gluonhq.netbeans.nbfx.findusages.actions;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxActionReference;
-import com.gluonhq.netbeans.nbfx.api.ErrorReporter;
+import com.gluonhq.netbeans.nbfx.annotations.ActionReference;
+import com.gluonhq.netbeans.nbfx.api.dialogs.ErrorReporter;
 import com.gluonhq.netbeans.nbfx.api.actions.AbstractCommand;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
@@ -27,7 +27,7 @@ import org.openide.util.NbBundle;
  * Java file. Its code editor context menu entry ({@code NbFx/ContextMenus/Editor/findUsages.ref}) is
  * registered here.
  */
-@FxActionReference(id = ActionIds.FIND_USAGES, path = "ContextMenus/Editor", position = 140, separatorBefore = true)
+@ActionReference(id = ActionIds.FIND_USAGES, path = "ContextMenus/Editor", position = 140, separatorBefore = true)
 final class FindUsagesCommand extends AbstractCommand {
 
     private static final Logger LOG = Logger.getLogger(FindUsagesCommand.class.getName());

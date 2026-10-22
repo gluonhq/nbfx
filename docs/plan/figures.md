@@ -6,15 +6,15 @@ Every number the plan states is derived here from the tree. Regenerate with
 
 | Figure | Value |
 |---|---|
-| nbfx modules | 43 |
+| nbfx modules | 51 |
 | nbfx source files | 582 |
-| modules exporting packages (`<public-packages>`) | 31 |
-| of those, subtree exports (`<subpackages>`) | 23 |
-| modules with `arch.xml` | 10 |
-| modules with `apichanges.xml` | 10 |
+| modules exporting packages (`<public-packages>`) | 39 |
+| of those, subtree exports (`<subpackages>`) | 22 |
+| modules with `arch.xml` | 18 |
+| modules with `apichanges.xml` | 9 |
 | distinct `OpenIDE-Module-Specification-Version` values | 1: 1.0 |
-| public `Fx*` types (total) | 60 |
-| public `Fx*` types in exporting modules | 56 |
+| public `Fx*` types (total) | 28 |
+| public `Fx*` types in exporting modules | 24 |
 | files constructing TreeView/TreeTableView/TableView/ListView | 24 |
 | files mentioning a TreeView/TreeTableView/TableView/ListView | 32 |
 | `.subscribe(` call sites | 134 |
@@ -23,9 +23,9 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files importing `org.netbeans.api.java.source` | 43 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 62 |
 | files using `NbBundle` | 152 |
-| `Bundle.properties` files | 59 |
+| `Bundle.properties` files | 58 |
 | test files | 32 |
-| modules with tests | 22 of 43 |
+| modules with tests | 24 of 51 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
 | upstream modules depending on `org.openide.nodes` | 388 |

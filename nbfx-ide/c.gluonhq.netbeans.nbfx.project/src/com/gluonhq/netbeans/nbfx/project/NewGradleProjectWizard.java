@@ -18,8 +18,8 @@
  */
 package com.gluonhq.netbeans.nbfx.project;
 
-import com.gluonhq.netbeans.nbfx.annotations.FxWizardRegistration;
-import com.gluonhq.netbeans.nbfx.api.ErrorReporter;
+import com.gluonhq.netbeans.nbfx.annotations.WizardRegistration;
+import com.gluonhq.netbeans.nbfx.api.dialogs.ErrorReporter;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectRegistry;
 import com.gluonhq.netbeans.nbfx.wizard.FxWizard;
 import com.gluonhq.netbeans.nbfx.wizard.FxWizardPanel;
@@ -49,7 +49,7 @@ import org.openide.util.NbBundle;
  *
  * @since 1.0
  */
-@FxWizardRegistration(id = NewGradleProjectWizard.ID, displayName = "Java with Gradle",
+@WizardRegistration(id = NewGradleProjectWizard.ID, displayName = "Java with Gradle",
         category = "Project", position = 20)
 public final class NewGradleProjectWizard implements FxWizard {
 
