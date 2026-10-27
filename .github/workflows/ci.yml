@@ -31,14 +31,16 @@ jobs:
           submodules: recursive
 
       # Apache NetBeans fetches external binaries (jhall, RAT, sigtest, junit, ...)
-      # from netbeans.osuosl.org. Cache them like upstream instead of downloading
-      # on every run; the netbeans/ prefix follows the submodule layout here.
-      - name: Cache external binaries
-        uses: actions/cache@v6
+      # from netbeans.osuosl.org. Restore the newest cache for this binaries-list
+      # revision; the run id forces a restore-key lookup so a later save can use
+      # a content-addressed key instead of being blocked by an earlier partial key.
+      - name: Restore external binary cache
+        uses: actions/cache/restore@v6
         with:
           path: ~/.hgexternalcache
-          key: ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}
-          restore-keys: ${{ runner.os }}-
+          key: ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}-
 
       # The platform's only non-Maven external binary. The OSUOSL mirror is not
       # reachable from GitHub runners here, but Maven Central hosts the identical
@@ -74,6 +76,28 @@ jobs:
           # endpoint. DownloadBinaries still verifies each file's SHA-1.
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ bootstrap
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
+
+      # Save even if the build failed: DownloadBinaries only writes complete,
+      # hash-verified files, so the inventory is always a valid cache seed. The
+      # content fingerprint makes a later run save a fuller cache instead of
+      # being blocked by an immutable partial key.
+      - name: Fingerprint external binary cache
+        id: external-cache-key
+        if: always()
+        run: |
+          cache="${HOME}/.hgexternalcache"
+          if [ -d "${cache}" ] && [ -n "$(find "${cache}" -type f -print -quit)" ]; then
+            fingerprint=$(cd "${cache}" && find . -type f -printf '%P %s\n' | sort | sha256sum | cut -d' ' -f1)
+            echo "key=${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}-${fingerprint}" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Save external binary cache
+        if: always() && steps.external-cache-key.outputs.key != ''
+        continue-on-error: true
+        uses: actions/cache/save@v6
+        with:
+          path: ~/.hgexternalcache
+          key: ${{ steps.external-cache-key.outputs.key }}
 
       - name: Guards
         run: |
