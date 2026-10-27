@@ -21,7 +21,10 @@ jobs:
     env:
       # netbeans.osuosl.org has an AAAA record, but GitHub runners have no
       # usable IPv6 route; without this Java tries IPv6 first and times out.
-      ANT_OPTS: -Djava.net.preferIPv4Stack=true
+      # The download task's own timeout is 15 s, which is too short here.
+      ANT_OPTS: >-
+        -Djava.net.preferIPv4Stack=true
+        -DdownloadBinaries.connectTimeoutMs=60000
     steps:
       - name: Checkout (with the NetBeans submodule)
         uses: actions/checkout@v7
@@ -68,10 +71,8 @@ jobs:
 
       - name: Bootstrap and build the nbfx clusters
         run: |
-          # HTTPS to OSUOSL is unreachable from GitHub runners; fall back to its
-          # HTTP endpoint. DownloadBinaries still verifies each file's SHA-1.
-          ant -Dbinaries.server='https://netbeans.osuosl.org/binaries/ http://netbeans.osuosl.org/binaries/' bootstrap
-          ant -Dbinaries.server='https://netbeans.osuosl.org/binaries/ http://netbeans.osuosl.org/binaries/' build
+          ant bootstrap
+          ant build
 
       - name: Guards
         run: |
