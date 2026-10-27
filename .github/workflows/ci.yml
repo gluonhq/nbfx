@@ -104,18 +104,6 @@ jobs:
           ant check-purity
           ant -f check-purity.xml check-figures
 
-      - name: Diagnose figures
-        if: failure()
-        run: |
-          cp docs/plan/figures.md /tmp/figures-before.md
-          java docs/plan/tools/Counts.java || true
-          echo '--- figures diff ---'
-          diff -u /tmp/figures-before.md docs/plan/figures.md || true
-          echo "root tracked: $(git ls-files | wc -l)"
-          echo "netbeans tracked: $(git -C netbeans ls-files | wc -l)"
-          echo "root git: $(git rev-parse --show-toplevel 2>&1)"
-          echo "netbeans git: $(git -C netbeans rev-parse --show-toplevel 2>&1)"
-
       - name: Scenario test (headless glass)
         run: |
           cd netbeans/nbbuild
