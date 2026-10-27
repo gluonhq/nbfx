@@ -18,6 +18,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      # netbeans.osuosl.org has an AAAA record, but GitHub runners have no
+      # usable IPv6 route; without this Java tries IPv6 first and times out.
+      ANT_OPTS: -Djava.net.preferIPv4Stack=true
     steps:
       - name: Checkout (with the NetBeans submodule)
         uses: actions/checkout@v7
