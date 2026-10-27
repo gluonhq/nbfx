@@ -35,6 +35,9 @@ public final class Counts {
     private static final String JAVA_SOURCE = "org.netbeans.api.java.source";
 
     private static Path root;
+    /** Tracked files in the repository and in the NetBeans submodule, or null when git is unavailable. */
+    private static Set<Path> tracked;
+    private static Set<Path> trackedNetbeans;
 
     /** Swing-typed upstream API/SPI modules (the Appendix H offender list). */
     private static final List<String> offenders = new ArrayList<>();
@@ -52,6 +55,8 @@ public final class Counts {
                 System.exit(2);
             }
         }
+        tracked = gitTracked(root);
+        trackedNetbeans = Files.isDirectory(root.resolve("netbeans")) ? gitTracked(root.resolve("netbeans")) : null;
         Path out = root.resolve("docs/plan/figures.md");
         String text = render();
         if (check) {
@@ -323,6 +328,7 @@ public final class Counts {
         try (Stream<Path> walk = Files.walk(dir)) {
             walk.filter(p -> p.getFileName().toString().endsWith(".java"))
                 .filter(Files::isRegularFile)
+                .filter(Counts::isTracked)
                 .forEach(files::add);
         }
         files.sort(Path::compareTo);
@@ -365,6 +371,7 @@ public final class Counts {
                     try (Stream<Path> walk = Files.walk(dir)) {
                         walk.filter(p -> p.getFileName().toString().matches(globToRegex(suffix)))
                             .filter(Files::isRegularFile)
+                            .filter(Counts::isTracked)
                             .forEach(next::add);
                     }
                 }
@@ -407,6 +414,42 @@ public final class Counts {
             count++;
         }
         return count;
+    }
+
+    /** True if {@code file} is tracked by git in its repository, or if git is unavailable. */
+    private static boolean isTracked(Path file) {
+        Path absolute = file.toAbsolutePath().normalize();
+        Path netbeans = root.resolve("netbeans").toAbsolutePath().normalize();
+        Set<Path> set = trackedNetbeans != null && absolute.startsWith(netbeans) ? trackedNetbeans : tracked;
+        return set == null || set.isEmpty() || set.contains(absolute);
+    }
+
+    /** The files tracked by git in {@code repo}, or null if git cannot be used there. */
+    private static Set<Path> gitTracked(Path repo) {
+        if (!Files.exists(repo.resolve(".git"))) {
+            return null;
+        }
+        try {
+            Process process = new ProcessBuilder("git", "-C", repo.toString(), "ls-files", "-z")
+                    .redirectError(ProcessBuilder.Redirect.DISCARD)
+                    .start();
+            byte[] output = process.getInputStream().readAllBytes();
+            if (process.waitFor() != 0) {
+                return null;
+            }
+            Set<Path> files = new TreeSet<>();
+            for (String relative : new String(output, StandardCharsets.UTF_8).split("\0")) {
+                if (!relative.isEmpty()) {
+                    files.add(repo.resolve(relative).toAbsolutePath().normalize());
+                }
+            }
+            return files;
+        } catch (IOException ex) {
+            return null;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return null;
+        }
     }
 
     private static String read(Path path) {
