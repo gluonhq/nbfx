@@ -34,6 +34,22 @@ jobs:
           key: ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}
           restore-keys: ${{ runner.os }}-
 
+      # The platform's only non-Maven external binary. The OSUOSL mirror is not
+      # reachable from GitHub runners here, but Maven Central hosts the identical
+      # JavaHelp 2.0.05 jar (same SHA-1 as platform/javahelp/external/binaries-list).
+      # This seeds an empty cache; later runs skip the download via the cache.
+      - name: Seed jhall external binary
+        run: |
+          cache="${HOME}/.hgexternalcache"
+          jhall="${cache}/CA70822C47A67FC3A11670270567C2D01566DAE1-jhall-2.0_05.jar"
+          mkdir -p "$cache"
+          if [ ! -f "$jhall" ]; then
+            curl --fail --location --retry 5 --retry-all-errors \
+              --output "$jhall" \
+              https://repo.maven.apache.org/maven2/javax/help/javahelp/2.0.05/javahelp-2.0.05.jar
+          fi
+          echo "ca70822c47a67fc3a11670270567c2d01566dae1  ${jhall}" | sha1sum -c -
+
       - name: JDK 25
         uses: actions/setup-java@v6
         with:
