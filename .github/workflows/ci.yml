@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -22,6 +23,16 @@ jobs:
         uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      # Apache NetBeans fetches external binaries (jhall, RAT, sigtest, junit, ...)
+      # from netbeans.osuosl.org. Cache them like upstream instead of downloading
+      # on every run; the netbeans/ prefix follows the submodule layout here.
+      - name: Cache external binaries
+        uses: actions/cache@v6
+        with:
+          path: ~/.hgexternalcache
+          key: ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}
+          restore-keys: ${{ runner.os }}-
 
       - name: JDK 25
         uses: actions/setup-java@v6
