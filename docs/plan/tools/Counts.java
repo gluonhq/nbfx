@@ -254,6 +254,7 @@ public final class Counts {
                         clusterModules + " / " + clusterSwingFree + " / " + clusterJava + " / " + clusterSwing});
             }
             if (!offenders.isEmpty()) {
+                offenders.sort(String::compareTo);
                 rows.add(new String[]{"upstream `api*`/`spi*` modules with Swing files (the offender list)",
                         offenders.size() + ": " + String.join(", ", offenders)});
             }
