@@ -68,8 +68,10 @@ jobs:
 
       - name: Bootstrap and build the nbfx clusters
         run: |
-          ant bootstrap
-          ant build
+          # HTTPS to OSUOSL is unreachable from GitHub runners; fall back to its
+          # HTTP endpoint. DownloadBinaries still verifies each file's SHA-1.
+          ant -Dbinaries.server='https://netbeans.osuosl.org/binaries/ http://netbeans.osuosl.org/binaries/' bootstrap
+          ant -Dbinaries.server='https://netbeans.osuosl.org/binaries/ http://netbeans.osuosl.org/binaries/' build
 
       - name: Guards
         run: |
