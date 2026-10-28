@@ -11,8 +11,14 @@ public final class BaselineGuard {
         Set<String> releases = new TreeSet<>();
         try (DirectoryStream<Path> clusters = Files.newDirectoryStream(root, "nbfx-*")) {
             for (Path cluster : clusters) {
+                if (!Files.isDirectory(cluster)) {
+                    continue;
+                }
                 try (DirectoryStream<Path> modules = Files.newDirectoryStream(cluster)) {
                     for (Path module : modules) {
+                        if (!Files.isDirectory(module)) {
+                            continue;
+                        }
                         Path props = module.resolve("nbproject/project.properties");
                         if (Files.exists(props)) {
                             for (String line : Files.readAllLines(props)) {

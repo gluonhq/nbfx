@@ -10,6 +10,9 @@ public final class LoggingGuard {
         List<String> errors = new ArrayList<>();
         try (DirectoryStream<Path> clusters = Files.newDirectoryStream(root, "nbfx-*")) {
             for (Path cluster : clusters) {
+                if (!Files.isDirectory(cluster)) {
+                    continue;
+                }
                 try (Stream<Path> files = Files.walk(cluster)) {
                     for (Path f : (Iterable<Path>) files.filter(Files::isRegularFile)
                             .filter(p -> p.toString().endsWith(".java"))
