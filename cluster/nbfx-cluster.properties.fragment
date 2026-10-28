@@ -31,6 +31,7 @@ nb.cluster.nbfx-api.depends=\
         nb.cluster.platform,\
         nb.cluster.nbfx-libs
 nb.cluster.nbfx-api=\
+        c.gluonhq.netbeans.nbfx.annotations,\
         c.gluonhq.netbeans.nbfx.api.actions,\
         c.gluonhq.netbeans.nbfx.api.dialogs,\
         c.gluonhq.netbeans.nbfx.api.editor,\
@@ -49,7 +50,6 @@ nb.cluster.nbfx-platform.depends=\
         nb.cluster.nbfx-api
 nb.cluster.nbfx-platform=\
         c.gluonhq.netbeans.nbfx.actions,\
-        c.gluonhq.netbeans.nbfx.annotations,\
         c.gluonhq.netbeans.nbfx.context,\
         c.gluonhq.netbeans.nbfx.docking,\
         c.gluonhq.netbeans.nbfx.platform.macos,\
