@@ -89,8 +89,12 @@ public final class JavaSourceContext extends SourceContext {
             return null;
         }
         if (javaSource == null) {
+            InMemorySourceFactory factory = inMemorySourceFactory();
+            if (factory == null) {
+                return null;
+            }
             try {
-                inMemoryFo = inMemorySourceFactory().create(fileObject(), source);
+                inMemoryFo = factory.copy(fileObject(), source);
                 javaSource = JavaSource.create(cpInfo, inMemoryFo);
             } catch (IOException ex) {
                 LOG.log(Level.WARNING, "Could not create in-memory JavaSource", ex);
@@ -172,7 +176,7 @@ public final class JavaSourceContext extends SourceContext {
     private static InMemorySourceFactory inMemorySourceFactory() {
         InMemorySourceFactory factory = Lookup.getDefault().lookup(InMemorySourceFactory.class);
         if (factory == null) {
-            throw new IllegalStateException("No InMemorySourceFactory available");
+            LOG.warning("No InMemorySourceFactory available; semantic analysis is disabled");
         }
         return factory;
     }

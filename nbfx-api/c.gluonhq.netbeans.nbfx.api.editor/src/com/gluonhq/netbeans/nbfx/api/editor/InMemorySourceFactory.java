@@ -13,10 +13,4 @@ public interface InMemorySourceFactory {
      * A memory {@link FileObject} named and placed like {@code original}, holding {@code text}.
      */
     FileObject copy(FileObject original, String text) throws IOException;
-
-    /**
-     * An in-memory {@link FileObject} mirroring {@code original}'s source-root layout, holding
-     * {@code text}.
-     */
-    FileObject create(FileObject original, String text) throws IOException;
 }
