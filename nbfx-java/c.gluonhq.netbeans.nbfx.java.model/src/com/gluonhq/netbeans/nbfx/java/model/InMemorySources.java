@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.openide.filesystems.FileObject;
+import com.gluonhq.netbeans.nbfx.api.editor.InMemorySourceFactory;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
 
@@ -12,9 +13,12 @@ import org.openide.filesystems.FileUtil;
  * In-memory copies of source files carrying the text of an open editor instead of the content on
  * disk, so javac analyses see unsaved edits. Centralised here so the three former copies stay in sync.
  */
-public final class InMemorySources {
+import org.openide.util.lookup.ServiceProvider;
 
-    private InMemorySources() {
+@ServiceProvider(service = InMemorySourceFactory.class)
+public final class InMemorySources implements com.gluonhq.netbeans.nbfx.api.editor.InMemorySourceFactory {
+
+    public InMemorySources() {
     }
 
     /**
@@ -48,7 +52,7 @@ public final class InMemorySources {
      * Creates an in-memory {@link FileObject} for the given {@code source} that mirrors the
      * project's source-root layout around {@code fileObject}, including the module-info descriptor.
      */
-    public static FileObject create(FileObject fileObject, String source) throws IOException {
+    public static FileObject createFileObject(FileObject fileObject, String source) throws IOException {
         FileSystem memoryFileSystem = FileUtil.createMemoryFileSystem();
         FileObject memoryRoot = memoryFileSystem.getRoot();
         if ("module-info".equals(fileObject.getName())) {
@@ -88,4 +92,14 @@ public final class InMemorySources {
         }
         return file;
     }
+    @Override
+    public FileObject copy(FileObject original, String text) throws IOException {
+        return InMemorySources.copyOf(original, text);
+    }
+
+    @Override
+    public FileObject create(FileObject original, String text) throws IOException {
+        return InMemorySources.createFileObject(original, text);
+    }
+
 }
