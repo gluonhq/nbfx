@@ -23,7 +23,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files importing `org.netbeans.api.java.source` | 43 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 62 |
 | files using `NbBundle` | 152 |
-| `Bundle.properties` files | 58 |
+| `Bundle.properties` files | 57 |
 | test files | 33 |
 | modules with tests | 25 of 51 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
