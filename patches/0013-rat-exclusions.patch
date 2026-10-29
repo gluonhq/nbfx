@@ -7,10 +7,10 @@ index 34b8e86d44..0cf7769ab0 100644
  ###### GitHub Issue tooling
  .github/**
 +
-+# NetBeansFX modules ported from github.com/gluonhq/NetBeansFX (Gluon sources, no ASF headers)
-+nbfx-libs/**
++# NetBeansFX modules
 +nbfx-api/**
-+nbfx-platform/**
 +nbfx-ide/**
 +nbfx-java/**
++nbfx-libs/**
++nbfx-platform/**
 \ No newline at end of file
