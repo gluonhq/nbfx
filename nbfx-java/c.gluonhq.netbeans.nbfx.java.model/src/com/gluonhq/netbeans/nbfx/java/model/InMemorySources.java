@@ -22,7 +22,7 @@ public final class InMemorySources {
      * system, holding {@code text}. Mirrors the file's place under its source root (package folders,
      * and the root's {@code module-info.java} for module context).
      */
-    public static FileObject copy(FileObject original, String text) throws IOException {
+    public static FileObject copyOf(FileObject original, String text) throws IOException {
         FileSystem memory = FileUtil.createMemoryFileSystem();
         FileObject root = memory.getRoot();
         if ("module-info".equals(original.getName())) {

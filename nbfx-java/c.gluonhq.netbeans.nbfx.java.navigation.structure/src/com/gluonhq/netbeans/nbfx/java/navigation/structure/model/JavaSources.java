@@ -39,7 +39,7 @@ record JavaSources(ClasspathInfo classpath, JavaSource source) {
     /** The compilation of {@code text} as the content of {@code file}, or {@code null} when none can be made. */
     static JavaSources of(FileObject file, String text) throws IOException {
         ClasspathInfo classpath = ClasspathInfo.create(file);
-        JavaSource source = JavaSource.create(classpath, InMemorySources.copy(file, text));
+        JavaSource source = JavaSource.create(classpath, InMemorySources.copyOf(file, text));
         return source == null ? null : new JavaSources(classpath, source);
     }
 

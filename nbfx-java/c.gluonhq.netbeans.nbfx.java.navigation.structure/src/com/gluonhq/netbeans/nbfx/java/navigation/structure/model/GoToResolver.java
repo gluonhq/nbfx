@@ -263,7 +263,7 @@ public final class GoToResolver {
     private static int findInFile(FileObject file, String text, Implementation implementation) throws IOException {
         JavaSource source = text == null
                 ? JavaSource.forFileObject(file)
-                : JavaSource.create(ClasspathInfo.create(file), InMemorySources.copy(file, text));
+                : JavaSource.create(ClasspathInfo.create(file), InMemorySources.copyOf(file, text));
         if (source == null) {
             return -1;
         }

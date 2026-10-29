@@ -148,7 +148,7 @@ public final class MembersScanner {
             boolean atName) throws IOException {
         JavaSource source = text == null
                 ? JavaSource.forFileObject(file)
-                : JavaSource.create(ClasspathInfo.create(file), InMemorySources.copy(file, text));
+                : JavaSource.create(ClasspathInfo.create(file), InMemorySources.copyOf(file, text));
         if (source == null) {
             return -1;
         }

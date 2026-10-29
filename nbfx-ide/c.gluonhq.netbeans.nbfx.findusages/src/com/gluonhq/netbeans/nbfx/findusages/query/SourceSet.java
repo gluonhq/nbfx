@@ -246,7 +246,7 @@ public final class SourceSet {
             FileObject compiled = file;
             String open = openTextOf(file);
             if (open != null) {
-                compiled = InMemorySources.copy(file, open);
+                compiled = InMemorySources.copyOf(file, open);
             }
             originals.put(compiled, file);
             byRoot.computeIfAbsent(rootOf(file), r -> new ArrayList<>()).add(compiled);
