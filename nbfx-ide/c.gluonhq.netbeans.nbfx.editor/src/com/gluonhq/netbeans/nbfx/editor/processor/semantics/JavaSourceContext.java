@@ -15,6 +15,7 @@ import org.netbeans.api.lexer.InputAttributes;
 import org.netbeans.api.lexer.Language;
 import org.netbeans.api.lexer.TokenHierarchy;
 import org.openide.filesystems.FileObject;
+import com.gluonhq.netbeans.nbfx.java.model.InMemorySources;
 
 /**
  * A {@link SourceContext} for Java sources that adds the semantic artifacts on top of
@@ -88,7 +89,7 @@ public final class JavaSourceContext extends SourceContext {
         }
         if (javaSource == null) {
             try {
-                inMemoryFo = InMemoryFileSystem.createFileObject(fileObject(), source);
+                inMemoryFo = InMemorySources.create(fileObject(), source);
                 javaSource = JavaSource.create(cpInfo, inMemoryFo);
             } catch (IOException ex) {
                 LOG.log(Level.WARNING, "Could not create in-memory JavaSource", ex);
