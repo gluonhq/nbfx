@@ -47,7 +47,8 @@ nb.cluster.nbfx-api=\
 nb.cluster.nbfx-platform.dir=nbfx-platform
 nb.cluster.nbfx-platform.depends=\
         nb.cluster.platform,\
-        nb.cluster.nbfx-api
+        nb.cluster.nbfx-api,\
+        nb.cluster.ide
 nb.cluster.nbfx-platform=\
         c.gluonhq.netbeans.nbfx.platform.actions,\
         c.gluonhq.netbeans.nbfx.platform.editor,\
