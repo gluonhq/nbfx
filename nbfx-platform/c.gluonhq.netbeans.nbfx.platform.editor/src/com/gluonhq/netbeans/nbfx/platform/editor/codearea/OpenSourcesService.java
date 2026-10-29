@@ -7,7 +7,7 @@ import org.openide.util.lookup.ServiceProvider;
 
 /** Publishes the open {@link EditorBuffer}s' text; see {@link OpenSources}. */
 @ServiceProvider(service = OpenSources.class)
-public final class OpenSourcesImpl implements OpenSources {
+public final class OpenSourcesService implements OpenSources {
 
     @Override
     public Set<FileObject> modifiedFiles() {

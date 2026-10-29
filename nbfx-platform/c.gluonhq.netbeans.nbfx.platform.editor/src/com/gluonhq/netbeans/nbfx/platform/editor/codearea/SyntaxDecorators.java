@@ -23,26 +23,11 @@ public final class SyntaxDecorators {
      */
     public static BaseSyntaxDecorator forFile(FileObject fo) {
         String ext = Objects.requireNonNull(fo).getExt().toLowerCase();
-        String className = switch (ext) {
-            case "css" -> "com.gluonhq.netbeans.nbfx.ide.editor.css.codearea.CssSyntaxDecorator";
-            case "xml", "fxml" -> "com.gluonhq.netbeans.nbfx.ide.editor.xml.codearea.XmlSyntaxDecorator";
-            default -> "com.gluonhq.netbeans.nbfx.java.editor.codearea.JavaSyntaxDecorator";
-        };
-        String moduleCodeName = switch (ext) {
-            case "css" -> "com.gluonhq.netbeans.nbfx.ide.editor.css";
-            case "xml", "fxml" -> "com.gluonhq.netbeans.nbfx.ide.editor.xml";
-            default -> "com.gluonhq.netbeans.nbfx.java.editor";
-        };
-        try {
-            org.openide.modules.ModuleInfo module =
-                    org.openide.modules.Modules.getDefault().findCodeNameBase(moduleCodeName);
-            if (module == null || !module.isEnabled()) {
-                throw new IllegalStateException("Language module not enabled: " + moduleCodeName);
+        for (SyntaxDecoratorFactory factory : org.openide.util.Lookup.getDefault().lookupAll(SyntaxDecoratorFactory.class)) {
+            if (factory.supports(ext)) {
+                return factory.create(fo);
             }
-            Class<?> type = module.getClassLoader().loadClass(className);
-            return (BaseSyntaxDecorator) type.getConstructor(FileObject.class).newInstance(fo);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Missing language decorator: " + className, ex);
         }
+        throw new IllegalStateException("No syntax decorator for ." + ext);
     }
 }

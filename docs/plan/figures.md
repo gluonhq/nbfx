@@ -9,7 +9,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | nbfx modules | 54 |
 | nbfx source files | 585 |
 | modules exporting packages (`<public-packages>`) | 44 |
-| of those, subtree exports (`<subpackages>`) | 27 |
+| of those, subtree exports (`<subpackages>`) | 26 |
 | modules with `arch.xml` | 19 |
 | modules with `apichanges.xml` | 9 |
 | distinct `OpenIDE-Module-Specification-Version` values | 1: 1.0 |
@@ -21,7 +21,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files mentioning `dispose()` | 22 |
 | modules importing `org.netbeans.api.java.source` | 4: c.gluonhq.netbeans.nbfx.findusages, c.gluonhq.netbeans.nbfx.java.editor, c.gluonhq.netbeans.nbfx.java.navigation, c.gluonhq.netbeans.nbfx.java.navigation.structure |
 | files importing `org.netbeans.api.java.source` | 43 |
-| files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 61 |
+| files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 60 |
 | files using `NbBundle` | 152 |
 | `Bundle.properties` files | 60 |
 | test files | 33 |

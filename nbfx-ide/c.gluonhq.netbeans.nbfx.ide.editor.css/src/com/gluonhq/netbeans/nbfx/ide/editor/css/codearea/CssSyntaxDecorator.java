@@ -4,7 +4,6 @@ import com.gluonhq.netbeans.nbfx.platform.editor.codearea.BaseSyntaxDecorator;
 import com.gluonhq.netbeans.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
 import com.gluonhq.netbeans.nbfx.ide.editor.css.processor.lex.CssLexDecorationProcessor;
 import com.gluonhq.netbeans.nbfx.platform.editor.processor.semantics.SourceContext;
-import org.netbeans.api.java.lexer.JavaTokenId;
 import org.openide.filesystems.FileObject;
 
 /**
@@ -20,6 +19,6 @@ public class CssSyntaxDecorator extends BaseSyntaxDecorator {
 
     @Override
     protected BaseLexDecorationProcessor getLexProcessor(FileObject fo) {
-        return new CssLexDecorationProcessor(new SourceContext(fo, JavaTokenId.language()));
+        return new CssLexDecorationProcessor(new SourceContext(fo, null));
     }
 }

@@ -14,49 +14,6 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>org.netbeans.api.java</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.101</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.api.java.classpath</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.88</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.libs.javacapi</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>8.58.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.modules.java.lexer</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.70</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.modules.java.source.base</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>2.85.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>org.netbeans.modules.lexer</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
@@ -72,14 +29,6 @@
                     <run-dependency>
                         <release-version>1</release-version>
                         <specification-version>1.77</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.modules.xml.lexer</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.64</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>
@@ -146,7 +95,13 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.editor</subpackages>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.breadcrumbs</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.codearea</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.completion</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.decoration</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor.lex</package>
+                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor.semantics</package>
             </public-packages>
         </data>
     </configuration>

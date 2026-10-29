@@ -5,7 +5,7 @@ import com.gluonhq.netbeans.nbfx.api.completion.CompletionItem;
 import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
 import com.gluonhq.netbeans.nbfx.api.completion.CompletionProvider;
 import com.gluonhq.netbeans.nbfx.platform.editor.processor.SourceUtils;
-import com.gluonhq.netbeans.nbfx.platform.editor.completion.support.JavaImportUtils;
+
 import com.sun.jfx.incubator.scene.control.richtext.CaretInfo;
 import com.sun.jfx.incubator.scene.control.richtext.RichTextAreaSkinHelper;
 import com.sun.jfx.incubator.scene.control.richtext.VFlow;
@@ -471,13 +471,16 @@ public final class CompletionController {
             return;
         }
         String source = SourceUtils.getFullText(model);
-        JavaImportUtils.computeImport(source, item.qualifiedName()).ifPresent(edit -> {
-            int caretOffset = SourceUtils.toGlobalOffset(model, codeArea.getCaretPosition());
-            TextPos at = SourceUtils.toTextPos(model, edit.offset());
-            codeArea.replaceText(at, at, edit.text());
-            int shifted = edit.offset() <= caretOffset ? caretOffset + edit.text().length() : caretOffset;
-            codeArea.select(SourceUtils.toTextPos(model, shifted));
-        });
+        CompletionImportSupport support = Lookup.getDefault().lookup(CompletionImportSupport.class);
+        if (support != null) {
+            support.computeImport(source, item.qualifiedName()).ifPresent(edit -> {
+                int caretOffset = SourceUtils.toGlobalOffset(model, codeArea.getCaretPosition());
+                TextPos at = SourceUtils.toTextPos(model, edit.offset());
+                codeArea.replaceText(at, at, edit.text());
+                int shifted = edit.offset() <= caretOffset ? caretOffset + edit.text().length() : caretOffset;
+                codeArea.select(SourceUtils.toTextPos(model, shifted));
+            });
+        }
     }
 
     /**

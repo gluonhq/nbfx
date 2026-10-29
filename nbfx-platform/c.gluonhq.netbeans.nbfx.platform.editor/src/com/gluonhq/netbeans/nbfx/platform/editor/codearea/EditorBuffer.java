@@ -49,11 +49,11 @@ final class EditorBuffer {
 
     /**
      * The open buffers by file; a buffer leaves when its last editor detaches. Mutated on the FX
-     * thread, read from any thread by {@link OpenSourcesImpl}.
+     * thread, read from any thread by {@link OpenSourcesService}.
      */
     private static final Map<FileObject, EditorBuffer> OPEN = new ConcurrentHashMap<>();
 
-    /** The open files whose content differs from disk, for {@link OpenSourcesImpl}; any thread. */
+    /** The open files whose content differs from disk, for {@link OpenSourcesService}; any thread. */
     static Set<FileObject> modifiedFiles() {
         Set<FileObject> files = new HashSet<>();
         OPEN.forEach((file, buffer) -> {
@@ -98,7 +98,7 @@ final class EditorBuffer {
 
     /**
      * The current text with {@code '\n'} line breaks and the dirty flag, as of the last change, for
-     * readers on other threads ({@link OpenSourcesImpl}).
+     * readers on other threads ({@link OpenSourcesService}).
      */
     private volatile String snapshot = "";
     private volatile boolean modifiedSnapshot;

@@ -9,7 +9,7 @@ import java.util.Optional;
  * Helpers shared by the language-specific breadcrumb scanners: the caret-to-element
  * descent and the label condensing rules.
  */
-final public class BreadcrumbsElements {
+public final class BreadcrumbsElements {
 
     /** Labels longer than this are truncated with an ellipsis. */
     static final int MAX_LABEL_LENGTH = 40;

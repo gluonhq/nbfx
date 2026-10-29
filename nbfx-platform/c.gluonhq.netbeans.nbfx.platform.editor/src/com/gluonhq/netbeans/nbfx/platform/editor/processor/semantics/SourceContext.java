@@ -37,7 +37,7 @@ public class SourceContext {
      */
     public SourceContext(FileObject fileObject, Language<?> language) {
         this.fileObject = fileObject;
-        this.language = Objects.requireNonNull(language);
+        this.language = language;
     }
 
     public FileObject fileObject() {
@@ -100,6 +100,9 @@ public class SourceContext {
      */
     public synchronized TokenHierarchy<?> hierarchy() {
         requireSource();
+        if (language == null) {
+            return null;
+        }
         if (hierarchy == null) {
             hierarchy = createHierarchy(source, language);
         }

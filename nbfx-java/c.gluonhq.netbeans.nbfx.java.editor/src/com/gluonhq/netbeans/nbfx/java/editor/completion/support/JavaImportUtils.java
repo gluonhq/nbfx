@@ -1,4 +1,4 @@
-package com.gluonhq.netbeans.nbfx.platform.editor.completion.support;
+package com.gluonhq.netbeans.nbfx.java.editor.completion.support;
 
 import java.util.ArrayList;
 import java.util.List;
