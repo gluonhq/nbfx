@@ -50,7 +50,6 @@ nb.cluster.nbfx-platform.depends=\
         nb.cluster.nbfx-api
 nb.cluster.nbfx-platform=\
         c.gluonhq.netbeans.nbfx.platform.actions,\
-        c.gluonhq.netbeans.nbfx.platform.editor,\
         c.gluonhq.netbeans.nbfx.platform.macos,\
         c.gluonhq.netbeans.nbfx.platform.menus,\
         c.gluonhq.netbeans.nbfx.platform.options,\
@@ -67,12 +66,11 @@ nb.cluster.nbfx-ide.depends=\
         nb.cluster.ide,\
         nb.cluster.java
 nb.cluster.nbfx-ide=\
+        c.gluonhq.netbeans.nbfx.editor,\
         c.gluonhq.netbeans.nbfx.editor.actions,\
         c.gluonhq.netbeans.nbfx.findusages,\
         c.gluonhq.netbeans.nbfx.ide.build,\
         c.gluonhq.netbeans.nbfx.ide.debug,\
-        c.gluonhq.netbeans.nbfx.ide.editor.css,\
-        c.gluonhq.netbeans.nbfx.ide.editor.xml,\
         c.gluonhq.netbeans.nbfx.ide.file,\
         c.gluonhq.netbeans.nbfx.ide.plugins,\
         c.gluonhq.netbeans.nbfx.ide.project.actions,\
@@ -99,7 +97,6 @@ nb.cluster.nbfx-java.depends=\
         nb.cluster.apisupport
 nb.cluster.nbfx-java=\
         c.gluonhq.netbeans.nbfx.java.build.ant,\
-        c.gluonhq.netbeans.nbfx.java.editor,\
         c.gluonhq.netbeans.nbfx.java.gradle,\
         c.gluonhq.netbeans.nbfx.java.gradle.structure,\
         c.gluonhq.netbeans.nbfx.java.j2seproject,\
