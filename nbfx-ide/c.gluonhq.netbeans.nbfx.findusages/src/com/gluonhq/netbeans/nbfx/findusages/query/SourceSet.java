@@ -22,8 +22,9 @@ import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.classpath.GlobalPathRegistry;
 import org.netbeans.api.java.source.ClasspathInfo;
 import org.netbeans.api.java.source.CompilationInfo;
+import com.gluonhq.netbeans.nbfx.findusages.query.MemorySources;
 import org.netbeans.api.java.source.JavaSource;
-import com.gluonhq.netbeans.nbfx.java.model.InMemorySources;
+
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
@@ -246,7 +247,7 @@ public final class SourceSet {
             FileObject compiled = file;
             String open = openTextOf(file);
             if (open != null) {
-                compiled = InMemorySources.copyOf(file, open);
+                compiled = MemorySources.copyOf(file, open);
             }
             originals.put(compiled, file);
             byRoot.computeIfAbsent(rootOf(file), r -> new ArrayList<>()).add(compiled);
