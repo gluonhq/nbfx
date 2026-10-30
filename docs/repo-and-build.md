@@ -124,9 +124,9 @@ hooks.
 
 | Patch | File | Change |
 |---|---|---|
-| `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>com.gluonhq.netbeans.nbfx.launcher</friend>` (RunLevel SPI) |
-| `0002-friend-maven` | `java/maven/nbproject/project.xml` | `<friend>` for `com.gluonhq.netbeans.nbfx.project.ui.maven` and `com.gluonhq.netbeans.nbfx.structure.maven` |
-| `0003-friend-maven-embedder` | `java/maven.embedder/nbproject/project.xml` | `<friend>` for `com.gluonhq.netbeans.nbfx.project.ui.maven` and `com.gluonhq.netbeans.nbfx.structure.maven` |
+| `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>org.netbeans.modules.nbfx.launcher</friend>` (RunLevel SPI) |
+| `0002-friend-maven` | `java/maven/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
+| `0003-friend-maven-embedder` | `java/maven.embedder/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
 | `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-api`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` |
 | `0011-tryme-clusters` | `nbbuild/build.xml` | `tryme` passes `--clusters` from `clusters.config.nbfx.list` + JMS flags |
 | `0012-ignored-binaries` | `nbbuild/antsrc/…/extlibs/ignored-binaries` | allow the bundled JavaFX jars **and native libs** |
@@ -208,7 +208,7 @@ A submodule clone that stopped with `Filename too long` is incomplete and has to
 After one full build, rebuild only the module you changed:
 
 ```sh
-ant module -Dmodule=nbfx-platform/c.gluonhq.netbeans.nbfx.progress   # seconds; jar goes to the dist
+ant module -Dmodule=nbfx-platform/nbfx.platform.progress   # seconds; jar goes to the dist
 ant run
 ```
 
@@ -269,7 +269,7 @@ apache/netbeans directly (shallow) instead of initialising the submodule.
 
 ## 9. Known constraints
 
-- **Bundled JavaFX runtime.** `nbfx-libs/c.gluonhq.netbeans.nbfx.libs.javafx` bundles JavaFX, but
+- **Bundled JavaFX runtime.** `nbfx-libs/libs.nbfx.javafx` bundles JavaFX, but
   nothing of it is in git. `ant javafx-fetch` (part of `bootstrap`) downloads the OpenJFX SDK pinned in
   `javafx-sdk.properties` (version + SHA-256 per platform) into `~/.hgexternalcache` and unpacks it into
   the module's git-ignored `release/`: `modules/ext/*.jar`, the natives flat in `modules/lib/`, the
@@ -277,7 +277,7 @@ apache/netbeans directly (shallow) instead of initialising the submodule.
   Linux x64), or `-Dnbfx.javafx.platform=<id>`. The `0012` patch keeps these files out of the
   external-binaries licence check. The release zip carries all four platforms: [release-binaries.md](release-binaries.md).
 - **`libs.javafx` cluster placement.** Several modules reference
-  `../../nbfx-libs/c.gluonhq.netbeans.nbfx.libs.javafx/release/modules/lib` via
+  `../../nbfx-libs/libs.nbfx.javafx/release/modules/lib` via
   `test-unit-sys-prop.java.library.path`, so `libs.javafx` lives in the `nbfx-libs` cluster.
 - **Compatibility.** The nbfx sources were forward-ported from the `gluon-netbeans-fx` base; a bump to a
   newer NetBeans revision may require source fixes in addition to patch rebasing.

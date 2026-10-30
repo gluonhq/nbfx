@@ -57,14 +57,14 @@ clusters (build order, dependencies downward only):
 
   nbfx-libs      bundled external libraries            (jline, async-profiler, javafx, jgit, jacoco, jna)
       │
-  nbfx-api       published + shared APIs (T1/T2-FX/M)  com.gluonhq.netbeans.nbfx.api.*
+  nbfx-api       published + shared APIs (T1/T2-FX/M)  org.netbeans.modules.nbfx.api.*
       │
-  nbfx-platform  shell + platform services             com.gluonhq.netbeans.nbfx.platform.*
+  nbfx-platform  shell + platform services             org.netbeans.modules.nbfx.platform.*
       │
-  nbfx-ide       IDE building blocks                   com.gluonhq.netbeans.nbfx.ide.*
+  nbfx-ide       IDE building blocks                   org.netbeans.modules.nbfx.ide.*
       │
-  nbfx-java      Java/JVM usage                        com.gluonhq.netbeans.nbfx.java.*
-  nbfx-javafx    JavaFX usage                          com.gluonhq.netbeans.nbfx.javafx.*
+  nbfx-java      Java/JVM usage                        org.netbeans.modules.nbfx.java.*
+  nbfx-javafx    JavaFX usage                          org.netbeans.modules.nbfx.javafx.*
 ```
 
 **Rules.**
@@ -94,15 +94,19 @@ clusters (build order, dependencies downward only):
 ### 3.1 Modules
 
 ```
-com.gluonhq.netbeans.nbfx.api.<capability>            published/shared API        (cluster nbfx-api)
-com.gluonhq.netbeans.nbfx.platform.<capability>       platform implementation     (cluster nbfx-platform)
-com.gluonhq.netbeans.nbfx.ide.<capability>            IDE implementation          (cluster nbfx-ide)
-com.gluonhq.netbeans.nbfx.java.<capability>           Java/JVM usage              (cluster nbfx-java)
-com.gluonhq.netbeans.nbfx.javafx.<capability>         JavaFX usage                (cluster nbfx-javafx)
-com.gluonhq.netbeans.nbfx.libs.<library>              bundled external library    (cluster nbfx-libs)
+org.netbeans.modules.nbfx.api.<capability>            published/shared API        (cluster nbfx-api)
+org.netbeans.modules.nbfx.platform.<capability>       platform implementation     (cluster nbfx-platform)
+org.netbeans.modules.nbfx.ide.<capability>            IDE implementation          (cluster nbfx-ide)
+org.netbeans.modules.nbfx.java.<capability>           Java/JVM usage              (cluster nbfx-java)
+org.netbeans.modules.nbfx.javafx.<capability>         JavaFX usage                (cluster nbfx-javafx)
+org.netbeans.libs.nbfx.<library>                      bundled external library    (cluster nbfx-libs)
 ```
 
-- **Package == module code-name** (NetBeans convention); no extra package prefixes.
+- Module code names are `org.netbeans.modules.nbfx.<module>`; module directories are `nbfx.<module>`.
+  **Package == module code-name** no longer holds: API packages are `org.netbeans.api.nbfx.*`, SPI packages
+  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. The package
+  move lands in `refactor/namespace-packages`; until then the Java packages remain the existing
+  `com.gluonhq.netbeans.nbfx.*` names.
 - A module that must expose a model to headless code but a UI elsewhere is split:
   `…ide.<capability>` (UI) + `…api.<capability>` (model). A module never mixes a public model with FX UI.
 - `<capability>` is a noun: `actions`, `views`, `status`, `dialogs`, `options`, `settings`, `progress`,
@@ -371,7 +375,7 @@ that needs it starts ([Appendix G](appendix/G-licences-and-notices.md) rule 6).
 | `nbfx.ui` | `platform.shell` |
 | `nbfx.launcher` | `platform.launcher` |
 | `nbfx.macos` | `platform.macos` |
-| `nbfx.libs.javafx` | `libs.javafx` |
+| `libs.nbfx.javafx` | `libs.javafx` |
 | `nbfx.propertysheet` | `platform.nodes` (FX sheet) + `api.property` (editor SPI) + `api.nodes` (model) |
 | `nbfx.project` (wizards) | `ide.project.ui` |
 | `nbfx.project.ui`, `nbfx.project.actions` | `ide.project.ui`, `ide.project.actions` |
@@ -575,6 +579,7 @@ workstreams only the stated dependencies do.**
 | W0 walking skeleton | the scenario (open → edit → build → run → output → commit) runs on a J2SE project; budget baseline recorded |
 | W1 containment/naming/split | `check-java-source` green with the 4-module allowlist; no `Fx*` in an exported package; all consumers compile after `api-split`; layer contract test green; `check-jars` scans five clusters |
 | W1.5 full test gate | `ant test` discovers every nbfx test module; all unit tests and the headless scenario pass on `main`; the full suite is a required CI check; no hardcoded module list |
+| W1.6 namespace alignment | all module code names are under `org.netbeans.modules.nbfx.*` / `org.netbeans.libs.nbfx.*`; directories use `nbfx.` (libraries `libs.nbfx.`); API packages are `org.netbeans.api.nbfx.*`; implementation packages are `org.netbeans.modules.nbfx.*`; no live `com.gluonhq` module directory remains |
 | W2 governance | every governed module has `arch.xml` + `apichanges` + a `sigtest` target; spec-version guard green; exemption register has owners and dates; the language conformance fixture passes |
 | W3 platform services | each service documents its thread, disposal and lease tests; index-on-open with progress and cancellation |
 | W4 IDE core | the M1 scenario (open/edit/search/find/commit/run-tests) on a J2SE project; every explorer panel renders through `api.nodes` |
@@ -632,6 +637,14 @@ target that discovers every module with tests and runs `test-unit`; replace CI's
 that target; upload the module JUnit XML on failure; keep the headless scenario as a separate gate. Acceptance:
 the suite is green on `main`, the full run is a required check, and neither the CI job nor the local loop uses
 a hand-maintained module list.
+
+**W1.6 — Namespace alignment (before W2).** `refactor/namespace-modules` (**PR #71**, pending merge):
+rename module directories to `nbfx.<module>` and code names to `org.netbeans.modules.nbfx.<module>`, with
+the bundled library at `org.netbeans.libs.nbfx.javafx` / `libs.nbfx.javafx`; packages stay unchanged.
+`refactor/namespace-packages` follows: API packages to `org.netbeans.api.nbfx.*`, SPI packages to
+`org.netbeans.spi.nbfx.*`, implementation packages to `org.netbeans.modules.nbfx.*`, and processors to
+non-exported `org.netbeans.modules.nbfx.api.*` packages. Acceptance: full tests and scenario green, no live
+`com.gluonhq` module directory, module graph/build/patches guards green.
 
 **W2 — API governance.** `feature/api-governance`: `arch.xml`/`apichanges`/signature tests for every
 T1/T2-FX/M module, the version baseline (1.0 + bump rule) and the spec-version guard; the audit/guard
