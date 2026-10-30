@@ -1,18 +1,17 @@
 package com.gluonhq.netbeans.nbfx.ide.usages.ui;
 
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageHighlighter;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
-import org.netbeans.api.java.lexer.JavaTokenId;
-import org.netbeans.api.lexer.Token;
-import org.netbeans.api.lexer.TokenHierarchy;
-import org.netbeans.api.lexer.TokenSequence;
+import org.openide.filesystems.FileObject;
+import org.openide.util.Lookup;
 
 /**
  * Splits the line of a usage into styled {@link Run}s: the line number, then the line's text
- * coloured by the Java lexer (keywords, strings, comments; style classes {@code usage-keyword},
+ * coloured by the registered {@link UsageHighlighter} (if any; style classes {@code usage-keyword},
  * {@code usage-string}, {@code usage-comment}) with the occurrence in bold
  * ({@code usage-occurrence}), as NetBeans' Find Usages window shows it. The runs are plain data:
  * {@link UsageTreeCell} draws them with the text nodes it reuses from row to row.
@@ -28,9 +27,6 @@ final class UsageLineRenderer {
      */
     record Run(String text, String styleClass, boolean occurrence) {
     }
-
-    /** Identifiers the lexer does not know as keywords but the editor colours as such. */
-    private static final Set<String> CONTEXTUAL_KEYWORDS = Set.of("sealed", "permits", "record", "yield");
 
     private UsageLineRenderer() {
     }
@@ -52,47 +48,36 @@ final class UsageLineRenderer {
         addText(flow, usage.line() + ": ", "usage-line-number", false);
 
         // A usage inside a block comment: the line alone would not lex as a comment.
-        if (usage.inComment()) {
+        if (usage.kind() == UsageKind.COMMENT) {
             addText(flow, line.substring(lead, from), "usage-comment", false);
             addText(flow, line.substring(from, to), "usage-comment", true);
             addText(flow, line.substring(to, trail), "usage-comment", false);
             return flow;
         }
-        // Only Java lines are lexed; a style sheet's line is plain text with its occurrence marked.
-        if (!"java".equalsIgnoreCase(usage.file().getExt())) {
+
+        List<UsageHighlighter.StyleRange> ranges = styles(usage.file(), line);
+        if (ranges.isEmpty()) {
             addText(flow, line.substring(lead, from), "usage-text", false);
             addText(flow, line.substring(from, to), "usage-text", true);
             addText(flow, line.substring(to, trail), "usage-text", false);
             return flow;
         }
 
-        // Split at every token boundary and at the occurrence's, so each run has one style.
+        // Split at every style boundary and at the occurrence's, so each run has one style.
         TreeSet<Integer> cuts = new TreeSet<>(List.of(lead, from, to, trail));
-        List<int[]> tokens = new ArrayList<>();
-        List<String> styles = new ArrayList<>();
-        TokenSequence<JavaTokenId> sequence = TokenHierarchy.create(line, JavaTokenId.language()).tokenSequence(JavaTokenId.language());
-        if (sequence != null) {
-            sequence.moveStart();
-            while (sequence.moveNext()) {
-                Token<JavaTokenId> token = sequence.token();
-                int start = sequence.offset();
-                int end = start + token.length();
-                String style = styleOf(token);
-                if (style != null && end > lead && start < trail) {
-                    tokens.add(new int[] {start, end});
-                    styles.add(style);
-                    cuts.add(clamp(start, lead, trail));
-                    cuts.add(clamp(end, lead, trail));
-                }
+        for (UsageHighlighter.StyleRange range : ranges) {
+            if (range.end() > lead && range.start() < trail) {
+                cuts.add(clamp(range.start(), lead, trail));
+                cuts.add(clamp(range.end(), lead, trail));
             }
         }
         Integer previous = null;
         for (int cut : cuts) {
             if (previous != null && cut > previous) {
                 String style = "usage-text";
-                for (int i = 0; i < tokens.size(); i++) {
-                    if (tokens.get(i)[0] <= previous && tokens.get(i)[1] >= cut) {
-                        style = styles.get(i);
+                for (UsageHighlighter.StyleRange range : ranges) {
+                    if (range.start() <= previous && range.end() >= cut) {
+                        style = styleClass(range.style());
                         break;
                     }
                 }
@@ -103,17 +88,21 @@ final class UsageLineRenderer {
         return flow;
     }
 
-    private static String styleOf(Token<JavaTokenId> token) {
-        JavaTokenId id = token.id();
-        if (id == JavaTokenId.IDENTIFIER) {
-            return CONTEXTUAL_KEYWORDS.contains(token.text().toString()) ? "usage-keyword" : null;
+    private static List<UsageHighlighter.StyleRange> styles(FileObject file, String line) {
+        for (UsageHighlighter highlighter : Lookup.getDefault().lookupAll(UsageHighlighter.class)) {
+            if (highlighter.handles(file)) {
+                return highlighter.styles(file, line);
+            }
         }
-        return switch (id.primaryCategory()) {
-            case "keyword", "keyword-directive" -> "usage-keyword";
-            case "string", "character" -> "usage-string";
-            case "comment" -> "usage-comment";
-            case "literal" -> "usage-keyword";
-            default -> null;
+        return List.of();
+    }
+
+    private static String styleClass(UsageHighlighter.Style style) {
+        return switch (style) {
+            case KEYWORD, LITERAL -> "usage-keyword";
+            case STRING -> "usage-string";
+            case COMMENT -> "usage-comment";
+            case TEXT -> "usage-text";
         };
     }
 

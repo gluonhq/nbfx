@@ -2,23 +2,19 @@ package com.gluonhq.netbeans.nbfx.ide.usages.ui;
 
 import com.gluonhq.netbeans.nbfx.api.elements.ElementIcons;
 import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
-import com.gluonhq.netbeans.nbfx.api.elements.SourceModifiers;
-import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.file.FileIconProvider;
 import com.gluonhq.netbeans.nbfx.api.icons.ToolIcons;
 import com.gluonhq.netbeans.nbfx.api.project.ProjectIconProvider;
-import com.gluonhq.netbeans.nbfx.api.usages.Access;
+import com.gluonhq.netbeans.nbfx.api.usages.EnclosingElement;
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
 import java.net.URL;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import javafx.scene.Node;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.Modifier;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 
@@ -51,36 +47,26 @@ final class UsagesIcons {
     }
 
     /**
-     * The result marker of a usage: comment, import, or read / write / read-write access for Java;
-     * the plain orange marker NetBeans' CSS refactoring uses for anything else.
+     * The result marker of a usage: comment, import, a variable access, or a plain reference; the
+     * category comes from the language provider, not from the file extension.
      */
     static String usageIconName(Usage usage) {
-        if (!"java".equalsIgnoreCase(usage.file().getExt())) {
-            return "found_item_orange";
-        }
-        if (usage.inComment()) {
-            return "found_item_comment";
-        }
-        if (usage.inImport()) {
-            return "found_item_import";
-        }
-        Access access = usage.access();
-        if (access == Access.WRITE) {
-            return "found_item_write";
-        }
-        if (access == Access.READ_WRITE) {
-            return "found_item_readwrite";
-        }
-        return "found_item_read";
+        return switch (usage.kind()) {
+            case COMMENT -> "found_item_comment";
+            case IMPORT -> "found_item_import";
+            case WRITE -> "found_item_write";
+            case READ_WRITE -> "found_item_readwrite";
+            case READ, REFERENCE -> "found_item_read";
+            case OTHER -> "found_item_orange";
+        };
     }
 
     /** The element glyph of a type / method / field / variable, or {@code null} for kinds without one. */
-    static ImageView elementIcon(ElementKind kind, Set<Modifier> modifiers) {
-        SourceElementKind sourceKind = sourceKind(kind);
-        if (sourceKind == null) {
+    static ImageView elementIcon(EnclosingElement element) {
+        if (element.kind() == SourceElementKind.OTHER) {
             return null;
         }
-        return ElementIcons.iconViewFor(sourceKind, typeKind(kind), SourceModifiers.toModifierBits(modifiers));
+        return ElementIcons.iconViewFor(element.kind(), element.typeKind(), element.modifiers());
     }
 
     static ImageView packageIcon() {
@@ -107,34 +93,6 @@ final class UsagesIcons {
         }
         FileIconProvider provider = Lookup.getDefault().lookup(FileIconProvider.class);
         return provider == null ? null : provider.createIcon(file);
-    }
-
-    private static SourceElementKind sourceKind(ElementKind kind) {
-        if (kind == null) {
-            return null;
-        }
-        return switch (kind) {
-            case CLASS, INTERFACE, ENUM, RECORD, ANNOTATION_TYPE -> SourceElementKind.TYPE;
-            case METHOD, CONSTRUCTOR -> SourceElementKind.METHOD;
-            case FIELD, ENUM_CONSTANT, RECORD_COMPONENT -> SourceElementKind.FIELD;
-            case PACKAGE -> SourceElementKind.PACKAGE;
-            case MODULE -> SourceElementKind.MODULE;
-            case LOCAL_VARIABLE, PARAMETER, RESOURCE_VARIABLE, EXCEPTION_PARAMETER, BINDING_VARIABLE,
-                 TYPE_PARAMETER -> SourceElementKind.VARIABLE;
-            default -> null;
-        };
-    }
-
-    private static SourceTypeKind typeKind(ElementKind kind) {
-        return switch (kind) {
-            case CLASS -> SourceTypeKind.CLASS;
-            case INTERFACE -> SourceTypeKind.INTERFACE;
-            case ENUM -> SourceTypeKind.ENUM;
-            case RECORD -> SourceTypeKind.RECORD;
-            case ANNOTATION_TYPE -> SourceTypeKind.ANNOTATION;
-            case CONSTRUCTOR -> SourceTypeKind.CONSTRUCTOR;
-            default -> SourceTypeKind.OTHER;
-        };
     }
 
     /** This module's markers from {@code icons/}, the tool bar glyphs from the shared {@link ToolIcons}. */

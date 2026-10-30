@@ -14,14 +14,12 @@ import org.openide.filesystems.FileObject;
  * @param lineStart  offset of the first non-blank character of that line, where {@link #lineText}
  *                   begins - so {@code start - lineStart} is the occurrence's column in it
  * @param lineText   the trimmed text of the line (of the lines, when the occurrence spans several)
- * @param access     how a variable is touched, {@code null} for anything that is not a variable
- * @param inImport   the occurrence is in an import statement
- * @param inComment  the occurrence is the name mentioned in a comment
+ * @param kind       what the occurrence is: a reference, a variable access, an import, a comment, ...
  * @param inTestRoot the file lives under a test source root
  * @param context    where the occurrence lives
  */
 public record Usage(FileObject file, int start, int end, int line, int lineStart, String lineText,
-        Access access, boolean inImport, boolean inComment, boolean inTestRoot, UsageContext context) {
+        UsageKind kind, boolean inTestRoot, UsageContext context) {
 
     /** The occurrence's text as it appears in {@link #lineText}, when the span lies within it. */
     public String occurrence() {

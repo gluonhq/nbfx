@@ -1,7 +1,7 @@
 package com.gluonhq.netbeans.nbfx.ide.usages.ui;
 
-import com.gluonhq.netbeans.nbfx.api.usages.Access;
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -34,20 +34,13 @@ final class UsageFilters implements Predicate<Usage>, Observable {
         }
 
         static Kind of(Usage usage) {
-            if (usage.inComment()) {
-                return COMMENT;
-            }
-            if (usage.inImport()) {
-                return IMPORT;
-            }
-            Access access = usage.access();
-            if (access == Access.WRITE) {
-                return WRITE;
-            }
-            if (access == Access.READ_WRITE) {
-                return READ_WRITE;
-            }
-            return READ;
+            return switch (usage.kind()) {
+                case WRITE -> WRITE;
+                case READ_WRITE -> READ_WRITE;
+                case IMPORT -> IMPORT;
+                case COMMENT -> COMMENT;
+                default -> READ;
+            };
         }
     }
 
@@ -65,7 +58,7 @@ final class UsageFilters implements Predicate<Usage>, Observable {
         }
 
         static Root of(Usage usage) {
-            return usage.inTestRoot() ? TEST : SOURCE;
+            return usage.context().test() ? TEST : SOURCE;
         }
     }
 

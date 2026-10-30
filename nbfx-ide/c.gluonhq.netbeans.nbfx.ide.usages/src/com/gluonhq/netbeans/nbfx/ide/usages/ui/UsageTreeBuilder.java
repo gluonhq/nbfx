@@ -70,7 +70,7 @@ final class UsageTreeBuilder {
         for (EnclosingElement element : context.enclosing()) {
             group = group.child("el:" + element.kind() + ":" + element.name(),
                     () -> UsageNode.group(Kind.ELEMENT, element.name(),
-                            () -> UsagesIcons.elementIcon(element.kind(), element.modifiers())));
+                            () -> UsagesIcons.elementIcon(element)));
         }
         return group;
     }

@@ -71,8 +71,8 @@ public final class UsagesTarget implements SearchTarget {
      *
      * @return the target, or {@code null} when there is no searchable element at the caret
      */
-    public static UsagesTarget at(FileObject file, int offset, SourceSet sources) throws IOException {
-        JavaSource javaSource = sources.javaSourceOf(file);
+    public static UsagesTarget at(FileObject file, int offset, UsageSources sources) throws IOException {
+        JavaSource javaSource = JavaSources.javaSourceOf(sources, file);
         if (javaSource == null) {
             return null;
         }
@@ -81,7 +81,7 @@ public final class UsagesTarget implements SearchTarget {
             if (info.toPhase(JavaSource.Phase.RESOLVED).compareTo(JavaSource.Phase.RESOLVED) < 0) {
                 return;
             }
-            result.set(resolveAt(file, offset, info, SourceSet.textOffset(info, offset)));
+            result.set(resolveAt(file, offset, info, JavaText.textOffset(info, offset)));
         }, true);
         return result.get();
     }
@@ -92,8 +92,8 @@ public final class UsagesTarget implements SearchTarget {
      *
      * @return the target, or {@code null} when the file declares no type
      */
-    public static UsagesTarget topLevelTypeOf(FileObject file, SourceSet sources) throws IOException {
-        JavaSource javaSource = sources.javaSourceOf(file);
+    public static UsagesTarget topLevelTypeOf(FileObject file, UsageSources sources) throws IOException {
+        JavaSource javaSource = JavaSources.javaSourceOf(sources, file);
         if (javaSource == null) {
             return null;
         }
@@ -116,7 +116,7 @@ public final class UsagesTarget implements SearchTarget {
             }
             int[] span = info.getTreeUtilities().findNameSpan(type);
             int offset = span != null ? span[0] : (int) info.getTrees().getSourcePositions().getStartPosition(unit, type);
-            result.set(resolveAt(file, SourceSet.editorOffset(info.getText(), offset), info, offset));
+            result.set(resolveAt(file, JavaText.editorOffset(info.getText(), offset), info, offset));
         }, true);
         return result.get();
     }
@@ -255,10 +255,7 @@ public final class UsagesTarget implements SearchTarget {
 
     @Override
     public Search newSearch(UsageSources sources, boolean searchComments) {
-        if (!(sources instanceof SourceSet javaSources)) {
-            throw new IllegalArgumentException("Java usages need a Java source set");
-        }
-        return new JavaSearch(this, javaSources, searchComments);
+        return new JavaSearch(this, sources, searchComments);
     }
 
     @Override

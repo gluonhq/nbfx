@@ -1,6 +1,8 @@
 package com.gluonhq.netbeans.nbfx.ide.usages.query;
 
 import com.gluonhq.netbeans.nbfx.api.progress.Cancellation;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageContext;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageSources;
 import com.gluonhq.netbeans.nbfx.api.usages.SearchTarget;
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
@@ -82,7 +84,7 @@ final class CssSearch implements SearchTarget.Search {
         if (occurrences.isEmpty()) {
             return List.of();
         }
-        FileContext context = FileContext.ofResource(file, sources.rootOf(file));
+        UsageContext context = sources.contextOf(file, List.of());
         List<Usage> usages = new ArrayList<>(occurrences.size());
         for (Symbol symbol : occurrences) {
             usages.add(usage(text, symbol, context));
@@ -90,7 +92,7 @@ final class CssSearch implements SearchTarget.Search {
         return usages;
     }
 
-    private static Usage usage(String text, Symbol symbol, FileContext context) {
+    private static Usage usage(String text, Symbol symbol, UsageContext context) {
         int lineStart = text.lastIndexOf('\n', symbol.start() - 1) + 1;
         int lineEnd = text.indexOf('\n', symbol.end());
         lineEnd = lineEnd < 0 ? text.length() : lineEnd;
@@ -107,7 +109,7 @@ final class CssSearch implements SearchTarget.Search {
         }
         String lineText = text.substring(textStart, lineEnd).stripTrailing();
         return new Usage(context.file(), symbol.start(), symbol.end(), line, textStart, lineText,
-                null, false, false, context.inTestRoot(), context.context(List.of()));
+                UsageKind.OTHER, context.test(), context);
     }
 
     /**

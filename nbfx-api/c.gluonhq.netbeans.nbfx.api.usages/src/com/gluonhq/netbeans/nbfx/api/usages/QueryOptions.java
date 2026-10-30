@@ -1,9 +1,9 @@
 package com.gluonhq.netbeans.nbfx.api.usages;
 
 /**
- * How a query searches: whether the target's name is also looked for in comments (Java only) and
- * which files are searched - NetBeans' Find Usages dialog offers these two, among more; the query
- * tab offers them in a small menu instead.
+ * How a query searches: whether the target's name is also looked for in comments and which files
+ * are searched - NetBeans' Find Usages dialog offers these two, among more; the query tab offers
+ * them in a small menu instead. Whether comments can name a target is up to its language provider.
  *
  * @param searchComments look for the simple name in comments too
  * @param scope          the files searched

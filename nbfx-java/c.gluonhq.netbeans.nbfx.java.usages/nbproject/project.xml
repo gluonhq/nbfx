@@ -6,37 +6,12 @@
             <code-name-base>com.gluonhq.netbeans.nbfx.java.usages</code-name-base>
             <module-dependencies>
                 <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.annotations</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.libs.javafx</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>1.0</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>org.netbeans.api.java</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>
                         <release-version>1</release-version>
                         <specification-version>1.101</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.netbeans.api.java.classpath</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.88</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>
@@ -57,15 +32,6 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>org.netbeans.modules.java.project</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.106</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>org.netbeans.modules.java.source.base</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
@@ -83,28 +49,11 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>org.netbeans.modules.projectapi</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <release-version>1</release-version>
-                        <specification-version>1.106</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>org.openide.filesystems</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>
                         <specification-version>9.47</specification-version>
-                    </run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>org.openide.modules</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency>
-                        <specification-version>7.82</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>
@@ -124,19 +73,7 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api.project</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
-                </dependency>
-                <dependency>
                     <code-name-base>com.gluonhq.netbeans.nbfx.api.elements</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api.file</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
@@ -154,33 +91,13 @@
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api.actions</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api.views</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
-                </dependency>
-                <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.api.dialogs</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
-                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
-                </dependency>
-                            <dependency>
                     <code-name-base>com.gluonhq.netbeans.nbfx.api.usages</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
-                            <dependency>
-                    <code-name-base>com.gluonhq.netbeans.nbfx.ide.usages</code-name-base>
-                    <build-prerequisite/>
-                    <compile-dependency/>
+                <dependency>
+                    <code-name-base>com.gluonhq.netbeans.nbfx.java.model</code-name-base>
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
             </module-dependencies>

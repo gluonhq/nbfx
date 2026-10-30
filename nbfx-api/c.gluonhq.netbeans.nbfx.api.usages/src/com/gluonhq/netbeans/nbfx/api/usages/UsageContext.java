@@ -12,14 +12,15 @@ import org.openide.filesystems.FileObject;
  *                       parent when the file belongs to no open project
  * @param projectName    the project's display name
  * @param sourceRoot     the source root the file lives under; {@code null} when it has none
- * @param sourceRootName the root's label: its path relative to the project ({@code src/main/java})
+ * @param sourceRootName the root's label, as the project UI shows it
  * @param packageName    the file's package, empty for the unnamed package
  * @param file           the file, always the one on disk (never an in-memory substitute)
  * @param enclosing      the declarations around the usage, outermost first; empty for a usage at
  *                       the top level of the file (an import)
+ * @param test           the file lives under a test source root
  */
 public record UsageContext(FileObject projectRoot, String projectName, FileObject sourceRoot, String sourceRootName,
-        String packageName, FileObject file, List<EnclosingElement> enclosing) {
+        String packageName, FileObject file, List<EnclosingElement> enclosing, boolean test) {
 
     public UsageContext {
         enclosing = List.copyOf(enclosing);

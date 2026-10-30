@@ -8,10 +8,9 @@ import java.util.function.DoubleConsumer;
 import org.openide.filesystems.FileObject;
 
 /**
- * What a {@link UsagesQuery} looks for, whatever the language: a Java element ({@link UsagesTarget})
- * or a CSS selector / colour ({@link CssTarget}). A target knows where it was picked - file and
- * editor offset, enough to resolve it again after a restart - how it is named, and how to
- * {@link #newSearch search} for its usages.
+ * What a query looks for, whatever the language: a Java element or a CSS selector / colour. A
+ * target knows where it was picked - file and editor offset, enough to resolve it again after a
+ * restart - how it is named, and how to {@link #newSearch search} for its usages.
  */
 public interface SearchTarget {
 

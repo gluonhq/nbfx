@@ -1,10 +1,14 @@
 package com.gluonhq.netbeans.nbfx.java.usages.query;
 
+import com.gluonhq.netbeans.nbfx.api.elements.SourceElementKind;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceModifiers;
+import com.gluonhq.netbeans.nbfx.api.elements.SourceTypeKind;
 import com.gluonhq.netbeans.nbfx.api.progress.Cancellation;
-import com.gluonhq.netbeans.nbfx.api.usages.Access;
 import com.gluonhq.netbeans.nbfx.api.usages.EnclosingElement;
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageContext;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
+import com.gluonhq.netbeans.nbfx.api.usages.UsageSources;
 import com.sun.source.tree.AssignmentTree;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.ClassTree;
@@ -40,12 +44,12 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import org.netbeans.api.java.lexer.JavaTokenId;
-import com.gluonhq.netbeans.nbfx.ide.usages.query.FileContext;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.TreeUtilities;
 import org.netbeans.api.lexer.Token;
 import org.netbeans.api.lexer.TokenHierarchy;
 import org.netbeans.api.lexer.TokenSequence;
+import org.openide.filesystems.FileObject;
 
 /**
  * Finds the usages of one element in one compilation unit: a {@link TreePathScanner} that resolves
@@ -68,7 +72,8 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
     private final CompilationController info;
     private final Element target;
     private final Cancellation cancellation;
-    private final FileContext fileContext;
+    private final UsageSources sources;
+    private final FileObject original;
     private final boolean searchComments;
     private final List<ExecutableElement> methods = new ArrayList<>();
     private final List<Usage> usages = new ArrayList<>();
@@ -79,14 +84,16 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
     /**
      * @param info           a compilation at phase RESOLVED
      * @param target         the element, resolved in {@code info}
-     * @param fileContext    where the file lives, shared by all its usages
+     * @param sources        the source set, for the context of each usage
+     * @param original       the on-disk file {@code info} compiles
      * @param searchComments whether to report the name mentioned in comments
      */
-    UsageScanner(CompilationController info, Element target, FileContext fileContext, boolean searchComments,
-            Cancellation cancellation) {
+    UsageScanner(CompilationController info, Element target, UsageSources sources, FileObject original,
+            boolean searchComments, Cancellation cancellation) {
         this.info = info;
         this.target = target;
-        this.fileContext = fileContext;
+        this.sources = sources;
+        this.original = original;
         this.searchComments = searchComments;
         this.cancellation = cancellation;
         this.trees = info.getTrees();
@@ -235,7 +242,7 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
         return members.hasNext() ? null : member;
     }
 
-    private Access accessOf(TreePath path, Tree tree, Element element) {
+    private UsageKind accessOf(TreePath path, Tree tree, Element element) {
         TypeMirror type = info.getTypes().erasure(element.asType());
         if (type.getKind() == TypeKind.ERROR) {
             // an unresolved type is a subtype of everything to javac
@@ -254,7 +261,7 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
                 && info.getTypes().isSubtype(type, info.getTypes().erasure(supertype.asType()));
     }
 
-    private Access collectionAccess(TreePath path) {
+    private UsageKind collectionAccess(TreePath path) {
         TreePath parent = path.getParentPath();
         if (parent == null || parent.getLeaf().getKind() != Tree.Kind.MEMBER_SELECT) {
             return null;
@@ -265,39 +272,39 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
         }
         String name = member.getSimpleName().toString();
         if (WRITE_METHODS.contains(name)) {
-            return Access.WRITE;
+            return UsageKind.WRITE;
         }
         if (READ_METHODS.contains(name)) {
-            return Access.READ;
+            return UsageKind.READ;
         }
         if (READ_WRITE_METHODS.contains(name)) {
-            return Access.READ_WRITE;
+            return UsageKind.READ_WRITE;
         }
         return null;
     }
 
-    private Access variableAccess(TreePath path, Tree tree) {
+    private UsageKind variableAccess(TreePath path, Tree tree) {
         TreePath parent = path.getParentPath();
         if (parent == null) {
-            return Access.READ;
+            return UsageKind.READ;
         }
         Tree parentTree = parent.getLeaf();
         if (target.asType().getKind() == TypeKind.ARRAY && parentTree.getKind() == Tree.Kind.ARRAY_ACCESS) {
             tree = parentTree;
             parent = parent.getParentPath();
             if (parent == null) {
-                return Access.READ;
+                return UsageKind.READ;
             }
             parentTree = parent.getLeaf();
         }
         return switch (parentTree.getKind()) {
-            case POSTFIX_INCREMENT, POSTFIX_DECREMENT, PREFIX_INCREMENT, PREFIX_DECREMENT -> Access.READ_WRITE;
-            case ASSIGNMENT -> ((AssignmentTree) parentTree).getVariable().equals(tree) ? Access.WRITE : Access.READ;
+            case POSTFIX_INCREMENT, POSTFIX_DECREMENT, PREFIX_INCREMENT, PREFIX_DECREMENT -> UsageKind.READ_WRITE;
+            case ASSIGNMENT -> ((AssignmentTree) parentTree).getVariable().equals(tree) ? UsageKind.WRITE : UsageKind.READ;
             case MULTIPLY_ASSIGNMENT, DIVIDE_ASSIGNMENT, REMAINDER_ASSIGNMENT, PLUS_ASSIGNMENT, MINUS_ASSIGNMENT,
                  LEFT_SHIFT_ASSIGNMENT, RIGHT_SHIFT_ASSIGNMENT, UNSIGNED_RIGHT_SHIFT_ASSIGNMENT,
                  AND_ASSIGNMENT, XOR_ASSIGNMENT, OR_ASSIGNMENT ->
-                    ((CompoundAssignmentTree) parentTree).getVariable().equals(tree) ? Access.READ_WRITE : Access.READ;
-            default -> Access.READ;
+                    ((CompoundAssignmentTree) parentTree).getVariable().equals(tree) ? UsageKind.READ_WRITE : UsageKind.READ;
+            default -> UsageKind.READ;
         };
     }
 
@@ -323,13 +330,13 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
                 if (words.next().equals(name)) {
                     int start = tokens.offset() + words.match().start();
                     int end = tokens.offset() + words.match().end();
-                    usages.add(usage(start, end, null, false, true, List.of()));
+                    usages.add(usage(start, end, UsageKind.COMMENT, false, true, List.of()));
                 }
             }
         }
     }
 
-    private void addUsage(TreePath path, Access access) {
+    private void addUsage(TreePath path, UsageKind kind) {
         CompilationUnitTree unit = path.getCompilationUnit();
         SourcePositions positions = trees.getSourcePositions();
         Tree tree = path.getLeaf();
@@ -409,10 +416,10 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
         if (start < 0) {
             return;
         }
-        usages.add(usage(start, end, access, inImport, false, enclosingOf(path)));
+        usages.add(usage(start, end, kind, inImport, false, enclosingOf(path)));
     }
 
-    private Usage usage(int start, int end, Access access, boolean inImport, boolean inComment,
+    private Usage usage(int start, int end, UsageKind kind, boolean inImport, boolean inComment,
             List<EnclosingElement> enclosing) {
         LineMap lineMap = info.getCompilationUnit().getLineMap();
         long line = lineMap.getLineNumber(start);
@@ -428,11 +435,12 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
             textStart++;
         }
         String lineText = text.substring(textStart, Math.max(textStart, lineEnd)).stripTrailing();
-        UsageContext context = fileContext.context(enclosing);
-        return new Usage(fileContext.file(),
-                SourceSet.editorOffset(text, start), SourceSet.editorOffset(text, end), (int) line,
-                SourceSet.editorOffset(text, textStart), lineText,
-                access, inImport, inComment, fileContext.inTestRoot(), context);
+        UsageContext context = sources.contextOf(original, enclosing);
+        UsageKind usageKind = inImport ? UsageKind.IMPORT : kind == null ? UsageKind.REFERENCE : kind;
+        return new Usage(original,
+                JavaText.editorOffset(text, start), JavaText.editorOffset(text, end), (int) line,
+                JavaText.editorOffset(text, textStart), lineText,
+                usageKind, context.test(), context);
     }
 
     /** The declarations around {@code path}, outermost first: types, methods, constructors, fields, initializers. */
@@ -451,8 +459,8 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
             }
             if (kind == Tree.Kind.BLOCK) {
                 boolean isStatic = ((BlockTree) leaf).isStatic();
-                result.add(0, new EnclosingElement(isStatic ? ElementKind.STATIC_INIT : ElementKind.INSTANCE_INIT,
-                        isStatic ? "<static init>" : "<init>", Set.of()));
+                result.add(0, new EnclosingElement(SourceElementKind.OTHER, SourceTypeKind.OTHER,
+                        isStatic ? "<static init>" : "<init>", 0));
                 continue;
             }
             Element element = trees.getElement(current);
@@ -463,9 +471,24 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
             if (name.isEmpty()) {
                 name = anonymousName(current);
             }
-            result.add(0, new EnclosingElement(element.getKind(), name, Set.copyOf(element.getModifiers())));
+            result.add(0, new EnclosingElement(sourceKind(element.getKind()),
+                    SourceTypeKind.from(element.getKind().name()), name,
+                    SourceModifiers.toModifierBits(element.getModifiers())));
         }
         return result;
+    }
+
+    private static SourceElementKind sourceKind(ElementKind kind) {
+        return switch (kind) {
+            case CLASS, INTERFACE, ENUM, RECORD, ANNOTATION_TYPE -> SourceElementKind.TYPE;
+            case METHOD, CONSTRUCTOR -> SourceElementKind.METHOD;
+            case FIELD, ENUM_CONSTANT, RECORD_COMPONENT -> SourceElementKind.FIELD;
+            case PACKAGE -> SourceElementKind.PACKAGE;
+            case MODULE -> SourceElementKind.MODULE;
+            case LOCAL_VARIABLE, PARAMETER, RESOURCE_VARIABLE, EXCEPTION_PARAMETER, BINDING_VARIABLE,
+                 TYPE_PARAMETER -> SourceElementKind.VARIABLE;
+            default -> SourceElementKind.OTHER;
+        };
     }
 
     private String anonymousName(TreePath classPath) {
