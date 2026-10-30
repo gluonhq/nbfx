@@ -48,7 +48,7 @@ public final class JavaSourceContext extends SourceContext {
 
     public JavaSourceContext(FileObject fileObject) {
         super(Objects.requireNonNull(fileObject), JavaTokenId.language());
-        this.cpInfo = sourceAnalysis().classpath(fileObject, false);
+        this.cpInfo = newClasspath(fileObject);
         this.lexerAttributes = createLexerAttributes(fileObject);
     }
 
@@ -63,7 +63,7 @@ public final class JavaSourceContext extends SourceContext {
      * ClasspathInfo captured empty or partial classpaths and would keep them forever.
      */
     public synchronized void refreshClasspath() {
-        cpInfo = sourceAnalysis().classpath(fileObject(), true);
+        cpInfo = newClasspath(fileObject());
         clearArtifacts();
     }
 
@@ -172,6 +172,11 @@ public final class JavaSourceContext extends SourceContext {
             throw new IOException("Exception while running semantic task: ", ex);
         }
         return true;
+    }
+
+    private static ClasspathInfo newClasspath(FileObject file) {
+        SourceAnalysis analysis = sourceAnalysis();
+        return analysis == null ? ClasspathInfo.create(file) : analysis.classpath(file);
     }
 
     private static SourceAnalysis sourceAnalysis() {
