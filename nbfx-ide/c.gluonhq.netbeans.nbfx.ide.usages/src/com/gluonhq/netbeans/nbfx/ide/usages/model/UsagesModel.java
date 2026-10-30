@@ -42,14 +42,41 @@ public final class UsagesModel {
 
     /**
      * Resolves the element at {@code offset} of {@code file} (in the editor's {@code '\n'}-counted
-     * offsets) in the background - a Java element, or a class / id selector or colour when
-     * {@code file} is a style sheet - and, when there is one, starts a query for it over the
-     * sources of all open projects and adds it to {@link #getQueries()}.
+     * offsets) in the background through the language's {@link UsagesProvider} and, when there is
+     * one, starts a query for it over the sources of all open projects and adds it to
+     * {@link #getQueries()}.
      *
      * @return the new query, or {@code null} when there is no searchable element at the caret
      */
     public CompletableFuture<UsagesQuery> findUsages(FileObject file, int offset) {
         return findUsages(file, offset, defaultOptions);
+    }
+
+    /** Whether a {@link UsagesProvider} handles {@code file}. */
+    public boolean handles(FileObject file) {
+        return file != null && providerFor(file) != null;
+    }
+
+    /** Whether a provider can search the top-level element of {@code file}. */
+    public boolean handlesTopLevel(FileObject file) {
+        if (file == null) {
+            return false;
+        }
+        for (UsagesProvider provider : Lookup.getDefault().lookupAll(UsagesProvider.class)) {
+            if (provider.handlesTopLevel(file)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static UsagesProvider providerFor(FileObject file) {
+        for (UsagesProvider provider : Lookup.getDefault().lookupAll(UsagesProvider.class)) {
+            if (provider.handles(file)) {
+                return provider;
+            }
+        }
+        return null;
     }
 
     /** {@link #findUsages(FileObject, int)} with the given options rather than the {@link #getDefaultOptions() defaults}. */
@@ -58,21 +85,13 @@ public final class UsagesModel {
     }
 
     private static SearchTarget targetAt(FileObject file, int offset, UsageSources sources) throws IOException {
-        for (UsagesProvider provider : Lookup.getDefault().lookupAll(UsagesProvider.class)) {
-            if (provider.handles(file)) {
-                return provider.targetAt(file, offset, sources);
-            }
-        }
-        return null;
+        UsagesProvider provider = providerFor(file);
+        return provider == null ? null : provider.targetAt(file, offset, sources);
     }
 
     private static SearchTarget topLevelTarget(FileObject file, UsageSources sources) throws IOException {
-        for (UsagesProvider provider : Lookup.getDefault().lookupAll(UsagesProvider.class)) {
-            if (provider.handles(file)) {
-                return provider.topLevelTarget(file, sources);
-            }
-        }
-        return null;
+        UsagesProvider provider = providerFor(file);
+        return provider == null ? null : provider.topLevelTarget(file, sources);
     }
 
     /**

@@ -1,4 +1,4 @@
-package com.gluonhq.netbeans.nbfx.ide.usages.query;
+package com.gluonhq.netbeans.nbfx.ide.editor.css.usages;
 
 import com.gluonhq.netbeans.nbfx.api.css.CssTokens;
 import com.gluonhq.netbeans.nbfx.api.css.CssTokens.Token;
@@ -21,7 +21,7 @@ import javafx.scene.paint.Color;
  * plain words there naming one of JavaFX's {@link Color} constants ({@code white},
  * {@code transparent}), which NetBeans does not know. The text is read through {@link CssTokens}.
  */
-final class CssScanner {
+final class CssUsageScanner {
 
     /** The kinds of symbol Find Usages can be started on in a style sheet. */
     enum Kind {
@@ -61,7 +61,7 @@ final class CssScanner {
         }
     }
 
-    private CssScanner() {
+    private CssUsageScanner() {
     }
 
     /** A prefixed word waiting for its run's delimiter to tell whether it is a selector or a value. */

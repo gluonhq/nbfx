@@ -1,4 +1,4 @@
-package com.gluonhq.netbeans.nbfx.ide.usages.query;
+package com.gluonhq.netbeans.nbfx.ide.editor.css.usages;
 
 import com.gluonhq.netbeans.nbfx.api.progress.Cancellation;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageContext;
@@ -6,7 +6,7 @@ import com.gluonhq.netbeans.nbfx.api.usages.UsageKind;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageSources;
 import com.gluonhq.netbeans.nbfx.api.usages.SearchTarget;
 import com.gluonhq.netbeans.nbfx.api.usages.Usage;
-import com.gluonhq.netbeans.nbfx.ide.usages.query.CssScanner.Symbol;
+import com.gluonhq.netbeans.nbfx.ide.editor.css.usages.CssUsageScanner.Symbol;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -34,7 +34,7 @@ final class CssSearch implements SearchTarget.Search {
     @Override
     public boolean targetExists() throws IOException {
         return target.getFile().isValid()
-                && !target.occurrencesIn(CssScanner.scan(textOf(sources, target.getFile()))).isEmpty();
+                && !target.occurrencesIn(CssUsageScanner.scan(textOf(sources, target.getFile()))).isEmpty();
     }
 
     @Override
@@ -80,7 +80,7 @@ final class CssSearch implements SearchTarget.Search {
 
     private List<Usage> scan(FileObject file) throws IOException {
         String text = textOf(sources, file);
-        List<Symbol> occurrences = target.occurrencesIn(CssScanner.scan(text));
+        List<Symbol> occurrences = target.occurrencesIn(CssUsageScanner.scan(text));
         if (occurrences.isEmpty()) {
             return List.of();
         }

@@ -27,10 +27,9 @@ import org.openide.util.RequestProcessor;
 
 /**
  * One Find Usages run: resolves nothing itself - it is given a {@link SearchTarget} - and, on a
- * background thread, drives the target's {@link SearchTarget.Search search} (javac-confirmed
- * occurrences for a Java element, a selector scan of the style sheets for a CSS one). Results and
- * state are published on the JavaFX thread (or directly when no toolkit runs, as in tests), so the
- * view can bind to them while the query runs.
+ * background thread, drives the target's {@link SearchTarget.Search search}. Results and state are
+ * published on the JavaFX thread (or directly when no toolkit runs, as in tests), so the view can
+ * bind to them while the query runs.
  * <p>
  * {@link #cancel()} stops the run and keeps what was found; {@link #refresh()} runs it again over
  * the current sources, reporting when the element no longer exists, as NetBeans does;

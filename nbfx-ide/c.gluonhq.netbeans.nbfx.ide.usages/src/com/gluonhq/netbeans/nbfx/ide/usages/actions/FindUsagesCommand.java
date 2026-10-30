@@ -6,7 +6,6 @@ import com.gluonhq.netbeans.nbfx.api.actions.AbstractCommand;
 import com.gluonhq.netbeans.nbfx.api.actions.ActionIds;
 import com.gluonhq.netbeans.nbfx.api.editor.EditorDocument;
 import com.gluonhq.netbeans.nbfx.ide.usages.model.UsagesModel;
-import com.gluonhq.netbeans.nbfx.ide.usages.query.CssTarget;
 import com.gluonhq.netbeans.nbfx.ide.usages.query.UsagesQuery;
 import com.gluonhq.netbeans.nbfx.ide.usages.ui.UsagesViewProvider;
 import java.util.concurrent.CompletableFuture;
@@ -22,10 +21,10 @@ import org.openide.filesystems.FileObject;
 import org.openide.util.NbBundle;
 
 /**
- * Edit ▸ Find Usages (Ctrl+F7): finds the usages of the element at the caret of the active Java
- * document, then shows them in a new tab of the Usages view. Enabled while the active document is a
- * Java file. Its code editor context menu entry ({@code NbFx/ContextMenus/Editor/findUsages.ref}) is
- * registered here.
+ * Edit ▸ Find Usages (Ctrl+F7): finds the usages of the element at the caret of the active
+ * document, then shows them in a new tab of the Usages view. Enabled while a usages provider
+ * handles the active file. Its code editor context menu entry
+ * ({@code NbFx/ContextMenus/Editor/findUsages.ref}) is registered here.
  */
 @ActionReference(id = ActionIds.FIND_USAGES, path = "ContextMenus/Editor", position = 140, separatorBefore = true)
 final class FindUsagesCommand extends AbstractCommand {
@@ -45,10 +44,10 @@ final class FindUsagesCommand extends AbstractCommand {
         this.subscription = activeDocument.subscribe(doc -> setDisabled(!isSearchable(doc)));
     }
 
-    /** Whether Find Usages can start from {@code document}: a Java source or a style sheet. */
-    static boolean isSearchable(EditorDocument document) {
+    /** Whether a usages provider handles {@code document}'s file. */
+    private boolean isSearchable(EditorDocument document) {
         FileObject file = document == null ? null : document.getFileObject();
-        return file != null && ("java".equalsIgnoreCase(file.getExt()) || CssTarget.isStyleSheet(file));
+        return model.handles(file);
     }
 
     @Override
@@ -58,8 +57,8 @@ final class FindUsagesCommand extends AbstractCommand {
             return;
         }
         FileObject file = document.getFileObject();
-        String noTarget = CssTarget.isStyleSheet(file) ? "ERR_NoCssElementAtCaret" : "ERR_NoElementAtCaret";
-        show(model.findUsages(file, document.getCaretOffset()), NbBundle.getMessage(FindUsagesCommand.class, noTarget));
+        show(model.findUsages(file, document.getCaretOffset()),
+                NbBundle.getMessage(FindUsagesCommand.class, "ERR_NoElementAtCaret"));
     }
 
     /**

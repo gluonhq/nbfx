@@ -10,5 +10,13 @@ public interface UsagesProvider {
 
     SearchTarget targetAt(FileObject file, int offset, UsageSources sources) throws IOException;
 
+    /**
+     * Whether {@link #topLevelTarget} can resolve a target for {@code file}. A provider that has no
+     * top-level element to search, such as a style sheet, leaves this false.
+     */
+    default boolean handlesTopLevel(FileObject file) {
+        return false;
+    }
+
     SearchTarget topLevelTarget(FileObject file, UsageSources sources) throws IOException;
 }

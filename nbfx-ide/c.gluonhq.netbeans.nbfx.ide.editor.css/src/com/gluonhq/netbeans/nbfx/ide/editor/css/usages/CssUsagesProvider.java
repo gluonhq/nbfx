@@ -1,4 +1,4 @@
-package com.gluonhq.netbeans.nbfx.ide.usages.query;
+package com.gluonhq.netbeans.nbfx.ide.editor.css.usages;
 
 import com.gluonhq.netbeans.nbfx.api.usages.SearchTarget;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageSources;

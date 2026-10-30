@@ -8,9 +8,9 @@ import java.util.function.DoubleConsumer;
 import org.openide.filesystems.FileObject;
 
 /**
- * What a query looks for, whatever the language: a Java element or a CSS selector / colour. A
- * target knows where it was picked - file and editor offset, enough to resolve it again after a
- * restart - how it is named, and how to {@link #newSearch search} for its usages.
+ * What a query looks for, whatever the language. A target knows where it was picked - file and
+ * editor offset, enough to resolve it again after a restart - how it is named, and how to
+ * {@link #newSearch search} for its usages.
  */
 public interface SearchTarget {
 
@@ -28,7 +28,8 @@ public interface SearchTarget {
 
     /**
      * Whether the usages found can be told apart by kind (read / write / import / comment) and by
-     * root (sources / tests), so the view offers its filters; CSS occurrences have no such categories.
+     * root (sources / tests), so the view offers its filters. Targets without such categories
+     * return false.
      */
     boolean isFilterable();
 

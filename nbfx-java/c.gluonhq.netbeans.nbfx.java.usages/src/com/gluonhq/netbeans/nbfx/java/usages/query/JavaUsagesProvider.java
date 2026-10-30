@@ -21,6 +21,11 @@ public final class JavaUsagesProvider implements UsagesProvider {
     }
 
     @Override
+    public boolean handlesTopLevel(FileObject file) {
+        return handles(file);
+    }
+
+    @Override
     public SearchTarget topLevelTarget(FileObject file, UsageSources sources) throws IOException {
         return UsagesTarget.topLevelTypeOf(file, sources);
     }

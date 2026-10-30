@@ -1,9 +1,9 @@
-package com.gluonhq.netbeans.nbfx.ide.usages.query;
+package com.gluonhq.netbeans.nbfx.ide.editor.css.usages;
 
 import com.gluonhq.netbeans.nbfx.api.usages.SearchTarget;
 import com.gluonhq.netbeans.nbfx.api.usages.UsageSources;
-import com.gluonhq.netbeans.nbfx.ide.usages.query.CssScanner.Kind;
-import com.gluonhq.netbeans.nbfx.ide.usages.query.CssScanner.Symbol;
+import com.gluonhq.netbeans.nbfx.ide.editor.css.usages.CssUsageScanner.Kind;
+import com.gluonhq.netbeans.nbfx.ide.editor.css.usages.CssUsageScanner.Symbol;
 import java.io.IOException;
 import java.util.List;
 import org.openide.filesystems.FileObject;
@@ -13,9 +13,9 @@ import org.openide.filesystems.FileObject;
  * as NetBeans' {@code CssRefactoringInfo} knows (its resource references are not ported), or one of
  * JavaFX's colour names, which it does not.
  * Occurrences are found by scanning every style sheet under the sources' roots with the
- * {@link CssScanner}; nothing else than CSS is searched.
+ * {@link CssUsageScanner}; nothing else than CSS is searched.
  */
-public final class CssTarget implements SearchTarget {
+final class CssTarget implements SearchTarget {
 
     private final FileObject file;
     private final int offset;
@@ -35,13 +35,13 @@ public final class CssTarget implements SearchTarget {
      *
      * @return the target, or {@code null} when the caret is not on a class, id or colour
      */
-    public static CssTarget at(FileObject file, int offset, UsageSources sources) throws IOException {
-        Symbol symbol = CssScanner.at(CssScanner.scan(CssSearch.textOf(sources, file)), offset);
+    static CssTarget at(FileObject file, int offset, UsageSources sources) throws IOException {
+        Symbol symbol = CssUsageScanner.at(CssUsageScanner.scan(CssSearch.textOf(sources, file)), offset);
         return symbol == null ? null : new CssTarget(file, offset, symbol.kind(), symbol.name());
     }
 
     /** Whether {@code file} is a style sheet a target can be picked in. */
-    public static boolean isStyleSheet(FileObject file) {
+    static boolean isStyleSheet(FileObject file) {
         return file != null && "css".equalsIgnoreCase(file.getExt());
     }
 
@@ -53,11 +53,6 @@ public final class CssTarget implements SearchTarget {
     @Override
     public int getOffset() {
         return offset;
-    }
-
-    /** Whether this is a class selector, an id selector or a colour. */
-    public String getKindName() {
-        return kind.name();
     }
 
     /** The symbol as written, prefix included: {@code .button}, {@code #root}, {@code #ff8800}, {@code white}. */
