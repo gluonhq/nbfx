@@ -516,7 +516,7 @@ If a date is missed, cut in this order; each cut is a plan change, not a silent 
    J2SE", the original JavaFX-cluster scope).
 Not cuttable: the walking skeleton, the guards, the API split, the editor core, the J2SE project type.
 
-### 10.3 Test kit (decided here, implemented in W2)
+### 10.3 Test kit and test gate (implemented before W2)
 
 - **FX headless**: **glass headless** (`-Dglass.platform=Headless -Dprism.order=sw`), already used by
   `nbfx.api`, `docking`, `progress` and `windows`; no test opens a real window in CI. Monocle is not bundled
@@ -528,14 +528,22 @@ Not cuttable: the walking skeleton, the guards, the API split, the editor core, 
   a test-only module); platform modules keep service tests. `<test-dependency>` may cross layers, is never a
   run dependency and the test artefact is not shipped; the graph guard treats test edges separately. If
   scenarios multiply, move them to a test-only `nbfx-qa` cluster.
-- **Harness**: NetBeans `nbjunit` (already used: 33 test files today) + `nbbuild` `sigtest` targets for the
+- **Harness**: NetBeans `nbjunit` (`figures.md`: 42 test files today) + `nbbuild` `sigtest` targets for the
   governed API modules.
+- **All unit tests are a PR gate.** `ant test` discovers every module under `nbfx-*/*` and runs its
+  `test-unit` target. Modules without `test/unit/src` no-op, so the gate has no hand-maintained module list
+  that can drift when a module is renamed. `-Dtest.modules=nbfx-api/*` narrows the run for the local loop.
+  CI runs all of them on every PR and on `main`; a failure uploads the module JUnit XML.
+- **Scenario is part of the suite.** The headless `ScenarioTest` lives in the launcher module and is one of
+  the `test-unit` runs; it proves the module system, layer, launcher and fixture project still work together.
+  CI does not repeat it in a second step.
 - **Required test types**: unit (model, `M` modules), contract (threading per SPI, layer writer/reader), leak
   (open/close, Appendix E.2), budget (startup/usable/first completion, `check-budget`), smoke
-  (walking skeleton, W0). Baseline to beat: **33 test files, zero signature tests, zero FX tests** — state
+  (walking skeleton, W0). Baseline to beat: **42 test files, zero signature tests, zero FX tests** — state
   the number in the W2 acceptance.
 - **Fast loop**: `nbfx.overlay=symlink` and `ant module -Dmodule=<cluster>/<module>` (PR #8) build one module in
-  seconds; CI and the W0 smoke test use the same targets, so the loop and the gate cannot diverge.
+  seconds; `ant test -Dtest.modules=<cluster>/*` runs its tests. CI and the local loop use the same targets,
+  so the loop and the gate cannot diverge.
 
 ### 10.4 Owners and capacity
 
@@ -566,6 +574,7 @@ workstreams only the stated dependencies do.**
 |---|---|
 | W0 walking skeleton | the scenario (open → edit → build → run → output → commit) runs on a J2SE project; budget baseline recorded |
 | W1 containment/naming/split | `check-java-source` green with the 4-module allowlist; no `Fx*` in an exported package; all consumers compile after `api-split`; layer contract test green; `check-jars` scans five clusters |
+| W1.5 full test gate | `ant test` discovers every nbfx test module; all unit tests and the headless scenario pass on `main`; the full suite is a required CI check; no hardcoded module list |
 | W2 governance | every governed module has `arch.xml` + `apichanges` + a `sigtest` target; spec-version guard green; exemption register has owners and dates; the language conformance fixture passes |
 | W3 platform services | each service documents its thread, disposal and lease tests; index-on-open with progress and cancellation |
 | W4 IDE core | the M1 scenario (open/edit/search/find/commit/run-tests) on a J2SE project; every explorer panel renders through `api.nodes` |
@@ -592,8 +601,8 @@ docking, windows, menus, statusbar, output, editor, project.context, api) — **
    clean status. Headless: `-Dglass.platform=Headless -Dprism.order=sw`.
 3. **Budget** — a `--budget` mode on the launcher records startup→usable, open, first editor, build; median of
    5; commit the baseline; `check-budget` compares.
-4. **CI** — Linux, JDK 25: `ant bootstrap`, `ant build`, `check-purity`, `Counts --check`, the scenario and
-   the touched-module tests; PR template and required check.
+4. **CI** — Linux, JDK 25: `ant bootstrap`, `ant build`, `ant test` (all nbfx unit tests),
+   `check-purity`, `Counts --check` and the scenario; PR template and required check.
 5. **Close** — green from a clean checkout, `docs/w0-scenario.md`, a §18 row.
 
 Acceptance: the scenario runs headless from a clean checkout, the budget numbers are recorded, and everything
@@ -617,6 +626,12 @@ scans cover five clusters. `nbfx-javafx` is deferred until its first module land
 topological order: elements/file/project → editor → actions/views → root last; no shims) →
 `refactor/objects-not-statics` (services with lifecycles; typed contracts; no `Lookup.forPath` per call).
 The writer/reader layer contract test landed in PR #33.
+
+**W1.5 — Full test gate (before W2).** `ci/all-unit-tests` (**PR #70**, pending merge): add the root `ant test`
+target that discovers every module with tests and runs `test-unit`; replace CI's seven-module API loop with
+that target; upload the module JUnit XML on failure; keep the headless scenario as a separate gate. Acceptance:
+the suite is green on `main`, the full run is a required check, and neither the CI job nor the local loop uses
+a hand-maintained module list.
 
 **W2 — API governance.** `feature/api-governance`: `arch.xml`/`apichanges`/signature tests for every
 T1/T2-FX/M module, the version baseline (1.0 + bump rule) and the spec-version guard; the audit/guard
@@ -657,9 +672,11 @@ budget, CI), `refactor/swing-retirement` (execute the retirement matrix of
 `feature/plugin-api` (contract docs, sample plugin, trust), `feature/plugin-quickstart` (the skeleton plugin,
 its NBM build and a view + a command — [Appendix E.6.1](appendix/E-contracts.md)).
 
-**W12 — CI.** `feature/ci`: one workflow running, in order, `ant -f check-purity.xml check-purity`,
-`check-figures`, the cluster build and the W0 smoke test, and publishing the freeze baseline. Acceptance: red on
-a planted violation, green on the current tree — without it "green trunk" is an assertion (§9).
+**W12 — CI.** `feature/ci`: one workflow running, in order, the cluster build, **all nbfx unit tests**
+(`ant test`), `check-purity`, `check-figures`, the headless W0 scenario and publishing the freeze baseline.
+The all-tests gate landed before W2 so a namespace or module rename cannot hide a broken module test. Acceptance:
+red on a planted violation or failing test, green on the current tree — without it "green trunk" is an
+assertion (§9).
 
 **W10 — Packaging and distribution.** `feature/packaging`: the app image built from `nbbuild/netbeans` (M0),
 then OS bundles/installers (M4) carrying the `libs.*` natives and the licences

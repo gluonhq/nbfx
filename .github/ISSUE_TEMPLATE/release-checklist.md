@@ -30,7 +30,7 @@ NetBeans revision (`nbfx.submodule.commit`): ...
 
 ### Prepare
 - [ ] `nbfx.version` set in `nbfx.properties`
-- [ ] `main` green: `ant bootstrap build`, `ant check-purity`, `ant rat`
+- [ ] `main` green: `ant bootstrap build`, `ant test`, `ant check-purity`, `ant rat`
 - [ ] `release/release-notes.md` up to date
 - [ ] Release manager's key is in `KEYS` and on the keyservers
 
