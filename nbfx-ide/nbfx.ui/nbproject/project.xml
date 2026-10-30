@@ -193,7 +193,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ui</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ui</subpackages>
             </public-packages>
         </data>
     </configuration>

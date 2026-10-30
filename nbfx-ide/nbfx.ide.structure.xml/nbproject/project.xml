@@ -110,7 +110,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.ide.structure.xml</package>
+                <package>org.netbeans.modules.nbfx.ide.structure.xml</package>
             </public-packages>
         </data>
     </configuration>

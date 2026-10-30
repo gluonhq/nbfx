@@ -196,7 +196,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.java.navigation</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.java.navigation</subpackages>
             </public-packages>
         </data>
     </configuration>

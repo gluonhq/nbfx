@@ -60,7 +60,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.project.ui.api</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.project.ui.api</subpackages>
             </public-packages>
         </data>
     </configuration>

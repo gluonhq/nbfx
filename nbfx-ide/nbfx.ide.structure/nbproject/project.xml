@@ -97,7 +97,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.structure</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.structure</subpackages>
             </public-packages>
         </data>
     </configuration>

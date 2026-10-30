@@ -152,7 +152,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.java.maven.structure</package>
+                <package>org.netbeans.modules.nbfx.java.maven.structure</package>
             </public-packages>
         </data>
     </configuration>

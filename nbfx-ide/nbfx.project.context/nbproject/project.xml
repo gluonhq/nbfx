@@ -96,7 +96,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.project.context</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.project.context</subpackages>
             </public-packages>
         </data>
     </configuration>

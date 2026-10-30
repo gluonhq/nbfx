@@ -129,13 +129,13 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.breadcrumbs</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.codearea</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.completion</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.decoration</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor.lex</package>
-                <package>com.gluonhq.netbeans.nbfx.platform.editor.processor.semantics</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.breadcrumbs</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.codearea</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.completion</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.decoration</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.processor</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.processor.lex</package>
+                <package>org.netbeans.modules.nbfx.platform.editor.processor.semantics</package>
             </public-packages>
         </data>
     </configuration>

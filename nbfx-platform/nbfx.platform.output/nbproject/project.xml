@@ -77,7 +77,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.output</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.platform.output</subpackages>
             </public-packages>
         </data>
     </configuration>

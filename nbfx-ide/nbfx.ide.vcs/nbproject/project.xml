@@ -111,7 +111,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.vcs</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.vcs</subpackages>
             </public-packages>
         </data>
     </configuration>

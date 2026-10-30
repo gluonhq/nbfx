@@ -41,9 +41,9 @@
                 discover the views registered under <code>NbFx/Views</code> by
                 <code>@ViewRegistration</code>. The API is under development until the MVP freeze.
             </description>
-            <class package="com.gluonhq.netbeans.nbfx.platform.workspace" name="WindowEnvironment"/>
-            <class package="com.gluonhq.netbeans.nbfx.platform.workspace" name="ViewSpec"/>
-            <class package="com.gluonhq.netbeans.nbfx.platform.workspace" name="ViewRegistry"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="WindowEnvironment"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewSpec"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewRegistry"/>
         </change>
     </changes>
     <htmlcontents>

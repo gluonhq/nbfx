@@ -34,10 +34,10 @@
             <author login="sven"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>Pure-FX property sheet model and editors. Under development until the MVP freeze.</description>
-            <class package="com.gluonhq.netbeans.nbfx.propertysheet" name="FxProperty"/>
-            <class package="com.gluonhq.netbeans.nbfx.propertysheet" name="FxPropertySet"/>
-            <class package="com.gluonhq.netbeans.nbfx.propertysheet" name="FxPropertiesProvider"/>
-            <class package="com.gluonhq.netbeans.nbfx.propertysheet" name="FxPropertyEditor"/>
+            <class package="org.netbeans.modules.nbfx.propertysheet" name="FxProperty"/>
+            <class package="org.netbeans.modules.nbfx.propertysheet" name="FxPropertySet"/>
+            <class package="org.netbeans.modules.nbfx.propertysheet" name="FxPropertiesProvider"/>
+            <class package="org.netbeans.modules.nbfx.propertysheet" name="FxPropertyEditor"/>
         </change>
     </changes>
     <htmlcontents>

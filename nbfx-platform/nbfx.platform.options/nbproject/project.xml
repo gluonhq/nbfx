@@ -96,7 +96,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.options</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.platform.options</subpackages>
             </public-packages>
         </data>
     </configuration>

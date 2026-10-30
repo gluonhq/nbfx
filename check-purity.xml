@@ -155,6 +155,17 @@
         <echo message="[purity] naming violations: ${naming.violations}"/>
     </target>
 
+    <target name="check-namespace">
+        <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="namespace.result">
+            <arg value="nbfx-tests/tools/NamespaceGuard.java"/>
+            <arg value="${basedir}"/>
+        </exec>
+        <condition property="namespace.violations" value="1" else="0">
+            <not><equals arg1="${namespace.result}" arg2="0"/></not>
+        </condition>
+        <echo message="[purity] namespace violations: ${namespace.violations}"/>
+    </target>
+
     <target name="check-baseline">
         <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="baseline.result">
             <arg value="nbfx-tests/tools/BaselineGuard.java"/><arg value="${basedir}"/>
@@ -179,8 +190,8 @@
         <echo message="[purity] language violations: ${languages.violations}"/>
     </target>
 
-    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-baseline,check-logging,check-languages,check-dependencies,check-jars,check-packaging">
-        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
+    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-namespace,check-baseline,check-logging,check-languages,check-dependencies,check-jars,check-packaging">
+        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${namespace.violations} namespace, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
             <condition>
                 <and>
                     <equals arg1="${nbfx.purity.strict}" arg2="true"/>
@@ -191,6 +202,7 @@
                         <not><equals arg1="${languages.violations}" arg2="0"/></not>
                         <not><equals arg1="${dep.violations}" arg2="0"/></not>
                         <not><equals arg1="${naming.violations}" arg2="0"/></not>
+                        <not><equals arg1="${namespace.violations}" arg2="0"/></not>
                         <not><equals arg1="${jar.violations}" arg2="0"/></not>
                         <not><equals arg1="${packaging.violations}" arg2="0"/></not>
                     </or>

@@ -33,7 +33,7 @@
   <answer id="arch-what">
     <p>
       The <b>nbfx Options API</b> provides the pure-JavaFX Options dialog: the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/options/FxOptionsPanel.html">FxOptionsPanel</a> SPI,
+      <a href="@TOP@/org/netbeans/modules/nbfx/options/FxOptionsPanel.html">FxOptionsPanel</a> SPI,
       the registry that discovers panels from the layer, and the dialog that runs them.
     </p>
   </answer>
@@ -63,7 +63,7 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>com.gluonhq.netbeans.nbfx.platform.options</code> is public.</p>
+    <p>Only <code>org.netbeans.modules.nbfx.platform.options</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">

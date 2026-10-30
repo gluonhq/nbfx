@@ -34,10 +34,10 @@
             <author login="sven"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>Open project-kind SPI for the navigator. Under development until the MVP freeze.</description>
-            <class package="com.gluonhq.netbeans.nbfx.project.ui.api" name="ProjectKindProvider"/>
-            <class package="com.gluonhq.netbeans.nbfx.project.ui.api" name="ProjectKinds"/>
-            <class package="com.gluonhq.netbeans.nbfx.project.ui.api" name="ProjectFile"/>
-            <class package="com.gluonhq.netbeans.nbfx.project.ui.api" name="ProjectLibrary"/>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="ProjectKindProvider"/>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="ProjectKinds"/>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="ProjectFile"/>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="ProjectLibrary"/>
         </change>
     </changes>
     <htmlcontents>

@@ -113,7 +113,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.java.gradle.api</package>
+                <package>org.netbeans.modules.nbfx.java.gradle.api</package>
             </public-packages>
         </data>
     </configuration>

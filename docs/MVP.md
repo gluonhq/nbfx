@@ -1079,7 +1079,7 @@ root from the selected project/file/document.
   the persisted state and on load the **persisted overrides the layer**, stale modes/components whose
   declaring module vanished are pruned, corrupt `.settings` falls back to the module file, and
   `save()` writes only the local folder. M9.0 mirrors this: `ViewStateStore` (NbPreferences
-  `com/gluonhq/netbeans/nbfx/window`) = local folder; `FxWindowSystem.defaultState()` (areas from
+  `org/netbeans/modules/nbfx/window`) = local folder; `FxWindowSystem.defaultState()` (areas from
   `FxArea.defaults()`, view order/start-up tabs from `ViewRegistry` + `openAtStartup`/`navigator`,
   `NEVER` views never attached) = module folder; merge prunes stale area ids + uninstalled/N-EVER
   views; corrupt/absent → defaults. `AppState`/`SessionRestorer` are NOT rehoused (they own the

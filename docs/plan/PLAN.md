@@ -104,9 +104,9 @@ org.netbeans.libs.nbfx.<library>                      bundled external library  
 
 - Module code names are `org.netbeans.modules.nbfx.<module>`; module directories are `nbfx.<module>`.
   **Package == module code-name** no longer holds: API packages are `org.netbeans.api.nbfx.*`, SPI packages
-  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. The package
-  move lands in `refactor/namespace-packages`; until then the Java packages remain the existing
-  `com.gluonhq.netbeans.nbfx.*` names.
+  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. Library
+  directories use `libs.nbfx.<library>` because `nbbuild` derives the directory from the
+  `org.netbeans.libs.*` code name.
 - A module that must expose a model to headless code but a UI elsewhere is split:
   `…ide.<capability>` (UI) + `…api.<capability>` (model). A module never mixes a public model with FX UI.
 - `<capability>` is a noun: `actions`, `views`, `status`, `dialogs`, `options`, `settings`, `progress`,
@@ -448,10 +448,10 @@ launcher's `--add-exports` list is empty today and lives in one file.
 
 ## 9. Guardrails (structural, in the build)
 
-The rule is [Appendix A](appendix/A-toolkit-policy.md); this is the implementation. **Status is honest**: ten
-checks exist today (`check-purity.xml` has `check-sources`, `check-java-source`, `check-naming`,
-`check-dependencies`, `check-jars`, `check-packaging`, `check-figures`, `check-budget`, `check-baseline`,
-`check-logging`), the rest are `pending` with the step that lands them — a pending check is
+The rule is [Appendix A](appendix/A-toolkit-policy.md); this is the implementation. **Status is honest**:
+eleven checks exist today (`check-purity.xml` has `check-sources`, `check-java-source`, `check-naming`,
+`check-namespace`, `check-dependencies`, `check-jars`, `check-packaging`, `check-figures`, `check-budget`,
+`check-baseline`, `check-logging`), the rest are `pending` with the step that lands them — a pending check is
 not a guardrail until `feature/ci` runs it (§11 W0/W12).
 
 | Target | Status | Mechanism | Fails when |
@@ -465,6 +465,7 @@ not a guardrail until `feature/ci` runs it (§11 W0/W12).
 | `check-languages` | **exists** (W1) | `LanguageGuard` rejects concrete `java`/`css`/`xml`/`fxml` branches in `platform.editor`; providers are language-scoped through `SyntaxDecoratorFactory`, and unknown extensions get a plain-text decorator (Appendix I.3/I.4) | an `if (java)` in the core, or an unknown language falling back to Java |
 | `check-api` | pending (W2) | exported set ⊆ `arch.xml` set; dependant spec versions exist | a subtree export, a missing `arch.xml` `<api>` entry |
 | `check-naming` | **exists** (W1) | no `Fx*`/`Impl`/`Object`-factory in public API; `LayerPaths` is the only shared constants class | a forbidden public name |
+| `check-namespace` | **exists** (W1.6) | `NamespaceGuard` enforces module code names, directories and API/SPI/implementation package roots | an old `com.gluonhq` module directory, a non-namespaced package, or an implementation package exported from an `api.*` module |
 | `check-baseline` | **exists** (W1) | one `javac.release`; no `javafx.web`; one `--add-exports` file (§8.1) | a drifting JDK/FX/class-file baseline |
 | `check-i18n` | pending (W4) | every user-visible string is an `NbBundle` key in `Bundle.properties` | a missing key, a hardcoded string |
 | `check-logging` | **exists** (W1) | no `System.out`/`printStackTrace`; `Logger` named after the module | a stray print |
@@ -606,8 +607,8 @@ docking, windows, menus, statusbar, output, editor, project.context, api) — **
    clean status. Headless: `-Dglass.platform=Headless -Dprism.order=sw`.
 3. **Budget** — a `--budget` mode on the launcher records startup→usable, open, first editor, build; median of
    5; commit the baseline; `check-budget` compares.
-4. **CI** — Linux, JDK 25: `ant bootstrap`, `ant build`, `ant test` (all nbfx unit tests),
-   `check-purity`, `Counts --check` and the scenario; PR template and required check.
+4. **CI** — Linux, JDK 25: `ant bootstrap`, `ant build`, `ant test` (all nbfx unit tests,
+   including the headless scenario), `check-purity` and `Counts --check`; PR template and required check.
 5. **Close** — green from a clean checkout, `docs/w0-scenario.md`, a §18 row.
 
 Acceptance: the scenario runs headless from a clean checkout, the budget numbers are recorded, and everything
@@ -641,10 +642,11 @@ a hand-maintained module list.
 **W1.6 — Namespace alignment (before W2).** `refactor/namespace-modules` (**PR #71**, pending merge):
 rename module directories to `nbfx.<module>` and code names to `org.netbeans.modules.nbfx.<module>`, with
 the bundled library at `org.netbeans.libs.nbfx.javafx` / `libs.nbfx.javafx`; packages stay unchanged.
-`refactor/namespace-packages` follows: API packages to `org.netbeans.api.nbfx.*`, SPI packages to
-`org.netbeans.spi.nbfx.*`, implementation packages to `org.netbeans.modules.nbfx.*`, and processors to
-non-exported `org.netbeans.modules.nbfx.api.*` packages. Acceptance: full tests and scenario green, no live
-`com.gluonhq` module directory, module graph/build/patches guards green.
+`refactor/namespace-packages` (**PR #72**, pending merge) follows: API packages to
+`org.netbeans.api.nbfx.*`, SPI packages to `org.netbeans.spi.nbfx.*`, implementation packages to
+`org.netbeans.modules.nbfx.*`, and processors to non-exported `org.netbeans.modules.nbfx.api.*` packages;
+`check-namespace` enforces the contract. Acceptance: full tests and scenario green, no live `com.gluonhq`
+module directory, module graph/build/patches guards green.
 
 **W2 — API governance.** `feature/api-governance`: `arch.xml`/`apichanges`/signature tests for every
 T1/T2-FX/M module, the version baseline (1.0 + bump rule) and the spec-version guard; the audit/guard
@@ -686,7 +688,7 @@ budget, CI), `refactor/swing-retirement` (execute the retirement matrix of
 its NBM build and a view + a command — [Appendix E.6.1](appendix/E-contracts.md)).
 
 **W12 — CI.** `feature/ci`: one workflow running, in order, the cluster build, **all nbfx unit tests**
-(`ant test`), `check-purity`, `check-figures`, the headless W0 scenario and publishing the freeze baseline.
+(`ant test`, including the headless W0 scenario), `check-purity`, `check-figures` and publishing the freeze baseline.
 The all-tests gate landed before W2 so a namespace or module rename cannot hide a broken module test. Acceptance:
 red on a planted violation or failing test, green on the current tree — without it "green trunk" is an
 assertion (§9).

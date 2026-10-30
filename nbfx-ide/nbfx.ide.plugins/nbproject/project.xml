@@ -74,7 +74,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.plugins</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.plugins</subpackages>
             </public-packages>
         </data>
     </configuration>

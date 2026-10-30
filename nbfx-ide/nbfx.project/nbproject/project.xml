@@ -119,7 +119,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.project</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.project</subpackages>
             </public-packages>
         </data>
     </configuration>

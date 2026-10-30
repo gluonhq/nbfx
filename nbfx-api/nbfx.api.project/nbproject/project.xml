@@ -68,7 +68,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.project</package>
+                <package>org.netbeans.api.nbfx.project</package>
             </public-packages>
         </data>
     </configuration>

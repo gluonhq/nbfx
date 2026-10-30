@@ -79,7 +79,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.wizard</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.platform.wizard</subpackages>
             </public-packages>
         </data>
     </configuration>

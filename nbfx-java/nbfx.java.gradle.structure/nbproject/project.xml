@@ -129,7 +129,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.java.gradle.structure</package>
+                <package>org.netbeans.modules.nbfx.java.gradle.structure</package>
             </public-packages>
         </data>
     </configuration>

@@ -129,7 +129,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.java.model</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.java.model</subpackages>
             </public-packages>
         </data>
     </configuration>
