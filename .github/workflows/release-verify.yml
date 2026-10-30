@@ -20,6 +20,7 @@
 #   - every .asc against KEYS, every .sha512, the licence files and Rat (ant release-verify)
 #   - the source release is exactly `git archive` of the tag, rebuilt here on a clean runner
 #   - the unpacked source release builds (fetching the pinned NetBeans revision)
+#   - the binary starts on each platform it ships for: the shell is shown with native glass
 #
 # The checks run with the tooling (release/release.xml) and the KEYS of the default branch, so a fix
 # to the tooling does not need a new tag; the tag is only the source the tarball is compared with.
@@ -51,6 +52,11 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      artefacts: ${{ steps.artefacts.outcome }}
+      reproducible: ${{ steps.reproducible.outcome }}
+      build: ${{ steps.build.outcome }}
     steps:
       - name: Version
         id: version
@@ -113,13 +119,100 @@ jobs:
       - uses: ./.github/actions/save-build-cache
         if: always()
 
-      - name: Report on the release checklist issue
-        if: always()
+  # Starts the binary on each platform with an empty userdir and native glass. NBFX_BUDGET makes
+  # the application write its startup marks once the shell is shown and then exit
+  # (docs/w0-budget-baseline.md), so a written file with a "usable" mark means it came up.
+  # Not covered: the macOS quarantine path of a zip downloaded through a browser (RELEASING.md §3).
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: macOS aarch64, os: macos-latest, launcher: bin/netbeans }
+          - { platform: macOS x64, os: macos-15-intel, launcher: bin/netbeans }
+          - { platform: Windows x64, os: windows-latest, launcher: bin/netbeans64.exe }
+          - { platform: Linux x64, os: ubuntu-latest, launcher: bin/netbeans, xvfb: true }
+    name: Binary starts (${{ matrix.platform }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download the binary
+        run: |
+          release=$(gh api --paginate "repos/$GH_REPO/releases" --jq ".[] | select(.tag_name == \"$TAG\") | .id" | head -1)
+          [ -n "$release" ] || { echo "::error::no release (or draft) for $TAG"; exit 1; }
+          id=$(gh api --paginate "repos/$GH_REPO/releases/$release/assets" \
+                 --jq '.[] | select(.name | test("^nbfx-.*-bin\\.zip$")) | .id' | head -1)
+          [ -n "$id" ] || { echo "::error::the release $TAG has no nbfx-*-bin.zip"; exit 1; }
+          gh api -H "Accept: application/octet-stream" "repos/$GH_REPO/releases/assets/$id" > "$RUNNER_TEMP/bin.zip"
+          mkdir "$RUNNER_TEMP/dist"
+          unzip -q "$RUNNER_TEMP/bin.zip" -d "$RUNNER_TEMP/dist"
+
+      - name: JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: oracle
+          java-version: '25'
+
+      - name: Start with an empty userdir
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-          ARTEFACTS: ${{ steps.artefacts.outcome }}
-          REPRODUCIBLE: ${{ steps.reproducible.outcome }}
-          BUILD: ${{ steps.build.outcome }}
+          LAUNCHER: ${{ matrix.launcher }}
+          XVFB: ${{ matrix.xvfb }}
+        run: |
+          # the launcher takes native paths; bash on Windows sees /d/a/... ones
+          native() { if command -v cygpath > /dev/null; then cygpath -w "$1"; else echo "$1"; fi; }
+          dist=$(echo "$RUNNER_TEMP"/dist/nbfx-*)
+          userdir="$RUNNER_TEMP/userdir"
+          budget="$RUNNER_TEMP/budget.json"
+          export NBFX_BUDGET=$(native "$budget")
+          wrap=(); [ "$XVFB" = true ] && wrap=(xvfb-run --auto-servernum)
+          "${wrap[@]}" "$dist/$LAUNCHER" --jdkhome "$(native "$JAVA_HOME")" --userdir "$(native "$userdir")" &
+          pid=$!
+          # budget mode exits by itself once the shell is shown; the loop is only the timeout
+          for _ in $(seq 300); do
+            kill -0 "$pid" 2> /dev/null || break
+            sleep 1
+          done
+          if kill -0 "$pid" 2> /dev/null; then
+            echo "::error::the application did not exit within 5 minutes"
+            kill "$pid" || true
+          fi
+          wait "$pid" || echo "launcher exit status $?"
+          log="$userdir/var/log/messages.log"
+          mkdir -p "$RUNNER_TEMP/smoke" && cp "$log" "$budget" "$RUNNER_TEMP/smoke/" 2> /dev/null || true
+          status=0
+          [ -f "$log" ] || { echo "::error::no $log: the platform did not start"; status=1; }
+          grep -q '"usable"' "$budget" 2> /dev/null \
+            || { echo "::error::no 'usable' mark in $budget: the shell was not shown"; status=1; }
+          if [ -f "$log" ] && grep -nE 'was needed and not found|NoClassDefFoundError|UnsatisfiedLinkError|Graphics Device initialization failed|Error initializing QuantumRenderer|No toolkit found' "$log"; then
+            echo "::error::messages.log reports missing modules, classes or natives"
+            status=1
+          fi
+          [ -f "$budget" ] && cat "$budget"
+          exit $status
+
+      - name: Keep messages.log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ matrix.os }}
+          path: ${{ runner.temp }}/smoke
+          if-no-files-found: ignore
+
+  report:
+    needs: [verify, smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report on the release checklist issue
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+          ARTEFACTS: ${{ needs.verify.outputs.artefacts }}
+          REPRODUCIBLE: ${{ needs.verify.outputs.reproducible }}
+          BUILD: ${{ needs.verify.outputs.build }}
+          SMOKE: ${{ needs.smoke.result }}
           RUN: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           title="Release nbfx $VERSION"
@@ -138,5 +231,6 @@ jobs:
           | signatures against \`KEYS\`, checksums, licence files, Rat (\`ant release-verify\`) | $(mark "$ARTEFACTS") |
           | source release is \`git archive\` of the tag | $(mark "$REPRODUCIBLE") |
           | source release builds (\`ant build\`) | $(mark "$BUILD") |
+          | binary starts with native glass on macOS aarch64/x64, Windows x64, Linux x64 | $(mark "$SMOKE") |
           EOF
           )"
