@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
@@ -72,10 +74,10 @@ public class JavaNavigationCommandsProvider implements CommandsProvider {
                 return Optional.of(new GoToCommand(kind, activeDocument));
             }
         }
-        if (ActionIds.INSPECT_MEMBERS.equals(id)) {
+        if (IdeActionIds.INSPECT_MEMBERS.equals(id)) {
             return Optional.of(new InspectMembersCommand(activeDocument, true));
         }
-        if (ActionIds.INSPECT_FILE_MEMBERS.equals(id)) {
+        if (IdeActionIds.INSPECT_FILE_MEMBERS.equals(id)) {
             return Optional.of(new InspectMembersCommand(activeDocument, false));
         }
         return Optional.empty();

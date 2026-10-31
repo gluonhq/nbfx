@@ -18,12 +18,14 @@
  */
 package org.netbeans.modules.nbfx.ide.project.actions;
 
-import static org.netbeans.api.nbfx.actions.ActionIds.BUILD;
-import static org.netbeans.api.nbfx.actions.ActionIds.CLEAN;
-import static org.netbeans.api.nbfx.actions.ActionIds.CLEAN_BUILD;
-import static org.netbeans.api.nbfx.actions.ActionIds.JAVADOC;
-import static org.netbeans.api.nbfx.actions.ActionIds.RUN;
-import static org.netbeans.api.nbfx.actions.ActionIds.TEST;
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.BUILD;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLEAN;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLEAN_BUILD;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.JAVADOC;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.RUN;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.TEST;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.MenuRegistration;

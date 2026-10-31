@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
@@ -39,7 +41,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = GitStatusViewProvider.ID, displayName = "Versioning",
         location = ViewLocation.LEFT_BOTTOM, position = 10)
-@ActionReference(id = ActionIds.SELECT_GIT, path = "Menus/Window", position = 56)
+@ActionReference(id = IdeActionIds.SELECT_GIT, path = "Menus/Window", position = 56)
 public final class GitStatusViewProvider implements ViewProvider {
 
     /** The stable id of the view, used by the layout persistence and the view manager. */

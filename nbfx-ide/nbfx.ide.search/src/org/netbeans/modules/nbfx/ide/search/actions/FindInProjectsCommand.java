@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.search.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
@@ -64,7 +66,7 @@ final class FindInProjectsCommand extends AbstractCommand {
 
     /** @param replace {@code true} for Replace in Projects */
     FindInProjectsCommand(FindModel model, boolean replace) {
-        super(replace ? ActionIds.REPLACE_IN_PROJECTS : ActionIds.FIND_IN_PROJECTS,
+        super(replace ? IdeActionIds.REPLACE_IN_PROJECTS : IdeActionIds.FIND_IN_PROJECTS,
                 NbBundle.getMessage(FindInProjectsCommand.class,
                         replace ? "CTL_ReplaceInProjectsCommand" : "CTL_FindInProjectsCommand"),
                 replace ? REPLACE_SHORTCUT : SHORTCUT, false);
@@ -84,7 +86,7 @@ final class FindInProjectsCommand extends AbstractCommand {
     static void openFor(List<FileObject> folders) {
         ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
         if (registry != null) {
-            registry.find(ActionIds.FIND_IN_PROJECTS)
+            registry.find(IdeActionIds.FIND_IN_PROJECTS)
                     .filter(FindInProjectsCommand.class::isInstance)
                     .map(FindInProjectsCommand.class::cast)
                     .ifPresent(command -> command.open(folders));

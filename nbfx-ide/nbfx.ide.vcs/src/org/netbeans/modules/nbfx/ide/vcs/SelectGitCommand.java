@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.openide.util.NbBundle;
@@ -26,7 +28,7 @@ import org.openide.util.NbBundle;
 final class SelectGitCommand extends AbstractCommand {
 
     SelectGitCommand() {
-        super(ActionIds.SELECT_GIT,
+        super(IdeActionIds.SELECT_GIT,
                 NbBundle.getMessage(SelectGitCommand.class, "CTL_SelectGitCommand"), null, false);
     }
 
