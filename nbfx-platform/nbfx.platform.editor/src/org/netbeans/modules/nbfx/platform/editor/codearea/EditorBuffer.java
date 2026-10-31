@@ -127,12 +127,6 @@ final class EditorBuffer {
      */
     private String savedText;
 
-    /**
-     * The project this file belongs to. Resolved on demand and then kept, so that the document
-     * keeps naming its project while it is being closed with it.
-     */
-    volatile String projectPath;
-
     /** Reacts to edits: dirty flag and background analysis. Removed with the last editor. */
     private final StyledTextModel.Listener editListener = this::onChange;
 

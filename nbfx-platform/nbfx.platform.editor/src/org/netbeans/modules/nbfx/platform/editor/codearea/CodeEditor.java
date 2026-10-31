@@ -283,16 +283,6 @@ public class CodeEditor implements EditorDocument {
     }
 
     @Override
-    public String getProjectPath() {
-        String resolved = buffer.projectPath;
-        if (resolved == null) {
-            resolved = EditorDocument.super.getProjectPath();
-            buffer.projectPath = resolved;
-        }
-        return resolved;
-    }
-
-    @Override
     public String getTitle() {
         return buffer.fileObject.getNameExt();
     }

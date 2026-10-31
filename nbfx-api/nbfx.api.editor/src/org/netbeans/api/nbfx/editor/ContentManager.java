@@ -19,7 +19,6 @@
 package org.netbeans.api.nbfx.editor;
 
 import org.netbeans.api.nbfx.file.FileIconProvider;
-import org.netbeans.api.nbfx.project.OpenProject;
 
 import java.util.List;
 import javafx.beans.value.ObservableValue;
@@ -55,30 +54,8 @@ public interface ContentManager {
      */
     void closeAll();
 
-    /**
-     * Closes only the editor tabs of the files belonging to the project rooted at {@code projectPath},
-     * across all windows (main and detached), unregistering their documents.
-     * <p>
-     * Documents keep the project they were opened in ({@link EditorDocument#getProjectPath()}), so
-     * this works whether the project is still open or has already been closed.
-     *
-     * @param projectPath the {@link OpenProject#getPath() path} of the project whose files are
-     *                    closed
-     */
-    void closeFiles(String projectPath);
-
     /** The documents currently open in the main pane, in tab order. */
     List<EditorDocument> getMainPaneDocuments();
-
-    /**
-     * The documents of the project rooted at {@code projectPath} that are open in any pane (main or
-     * detached), in pane and tab order.
-     *
-     * @param projectPath the {@link OpenProject#getPath() path} of a project; {@code null} selects
-     *                    the documents that belong to no open project
-     * @return an immutable snapshot of the matching documents
-     */
-    List<EditorDocument> documentsOf(String projectPath);
 
     /**
      * The main pane's active (selected) document as an observable value, for driving the main
