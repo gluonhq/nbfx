@@ -23,6 +23,7 @@ import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 
 import java.util.List;
 
@@ -59,7 +60,7 @@ class SaveProjectCommand extends SaveDocumentsCommand {
     @Override
     protected List<EditorDocument> scope() {
         String path = projectPath.getValue();
-        return path == null ? List.of() : context().documentsOf(path);
+        return path == null ? List.of() : ProjectEditorScope.documentsOf(path);
     }
 
     /**

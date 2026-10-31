@@ -18,13 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.query;
 
-import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.OpenSources;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.api.nbfx.project.ProjectSourceRoots;
 import org.netbeans.api.nbfx.project.SourceRoot;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.api.nbfx.usages.EnclosingElement;
 import org.netbeans.api.nbfx.usages.QueryOptions;
 import org.netbeans.api.nbfx.usages.UsageContext;
@@ -127,11 +127,7 @@ final class DefaultUsageSources implements UsageSources {
 
     private static Set<FileObject> openFiles() {
         Set<FileObject> result = new LinkedHashSet<>();
-        ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
         ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
-        if (contentManager == null) {
-            return result;
-        }
         List<String> projectPaths = new ArrayList<>();
         if (registry != null) {
             for (OpenProject project : registry.getOpenProjects()) {
@@ -140,7 +136,7 @@ final class DefaultUsageSources implements UsageSources {
         }
         projectPaths.add(null);
         for (String path : projectPaths) {
-            for (EditorDocument document : contentManager.documentsOf(path)) {
+            for (EditorDocument document : ProjectEditorScope.documentsOf(path)) {
                 if (document.getFileObject() != null) {
                     result.add(document.getFileObject());
                 }

@@ -107,6 +107,7 @@ nb.cluster.nbfx-ide=\
         nbfx.ide.structure.xml,\
         nbfx.ide.usages,\
         nbfx.ide.vcs,\
+        nbfx.ide.workbench,\
         nbfx.launcher,\
         nbfx.project,\
         nbfx.project.context,\

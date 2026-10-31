@@ -18,10 +18,10 @@
  */
 package org.netbeans.modules.nbfx.ide.search.query;
 
-import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -138,24 +138,21 @@ public sealed interface SearchScope {
             roots = List.copyOf(roots);
         }
 
-        /** The documents the {@link ContentManager} in the Lookup has open, in pane and tab order. */
+        /** The documents the editor context in the Lookup has open, in pane and tab order. */
         public static OpenFiles current() {
             Set<FileObject> files = new LinkedHashSet<>();
-            ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
             ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
-            if (contentManager != null) {
-                List<String> projectPaths = new ArrayList<>();
-                if (registry != null) {
-                    for (OpenProject project : registry.getOpenProjects()) {
-                        projectPaths.add(project.getPath());
-                    }
+            List<String> projectPaths = new ArrayList<>();
+            if (registry != null) {
+                for (OpenProject project : registry.getOpenProjects()) {
+                    projectPaths.add(project.getPath());
                 }
-                projectPaths.add(null);
-                for (String path : projectPaths) {
-                    for (EditorDocument document : contentManager.documentsOf(path)) {
-                        if (document.getFileObject() != null) {
-                            files.add(document.getFileObject());
-                        }
+            }
+            projectPaths.add(null);
+            for (String path : projectPaths) {
+                for (EditorDocument document : ProjectEditorScope.documentsOf(path)) {
+                    if (document.getFileObject() != null) {
+                        files.add(document.getFileObject());
                     }
                 }
             }

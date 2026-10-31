@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.propertysheet;
 
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import java.util.ArrayList;
 import java.util.List;
 import org.openide.util.NbBundle;
@@ -36,7 +37,7 @@ public final class EditorDocumentPropertiesProvider implements PropertiesProvide
         if (!(context instanceof EditorDocument document)) {
             return List.of();
         }
-        String project = document.getProjectPath();
+        String project = ProjectEditorScope.projectPathOf(document);
         List<Property> properties = new ArrayList<>();
         properties.add(readOnly("title", message("EditorDocumentPropertiesProvider.title"),
                 document.getTitle()));

@@ -18,9 +18,6 @@
  */
 package org.netbeans.api.nbfx.editor;
 
-import org.netbeans.api.nbfx.project.OpenProject;
-import java.util.List;
-import java.util.Objects;
 import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.collections.ObservableList;
 
@@ -42,20 +39,6 @@ public interface EditorContext {
      * @return the open documents, in no particular order
      */
     ObservableList<EditorDocument> getDocuments();
-
-    /**
-     * The open documents belonging to the project rooted at {@code projectPath}, in the order of
-     * {@link #getDocuments()}.
-     *
-     * @param projectPath the {@link OpenProject#getPath() path} of a project; {@code null} selects
-     *                    the documents that belong to no open project
-     * @return an immutable snapshot of the matching documents
-     */
-    default List<EditorDocument> documentsOf(String projectPath) {
-        return getDocuments().stream()
-                .filter(document -> Objects.equals(projectPath, document.getProjectPath()))
-                .toList();
-    }
 
     /**
      * The observable active-document property. UI and actions can bind to it to react to
