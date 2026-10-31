@@ -269,39 +269,39 @@ update centers, pinned SHA-256 for bundled native artifacts, install-time capabi
 The table is the API **catalogue**, not a cluster: each module lives in its domain cluster (§6.6). The
 `nbfx-api` cluster is a transition artifact and is dissolved by `refactor/api-clusters` (W1.7).
 
-| Module | Tier | Contents |
-|---|---|---|
-| `api.actions` | T2-FX | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, `ActionIds` |
-| `api.views` | T2-FX | `ViewProvider`, `ViewManager`, `DockLocation`, `@ViewRegistration`, `ViewLocation`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
-| `api.status` | T2-FX | `StatusElement`, `@StatusRegistration`, `StatusAlignment` |
-| `api.dialogs` | T2-FX | `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` (notification line, toasts) |
-| `api.options` | T2-FX | `OptionsPanelController`, `@OptionsRegistration`/`Container`/`Sub`, `OptionsDisplayer`, `OptionsKeywords` |
-| `api.settings` | M | `Settings`, typed keys, change listeners |
-| `api.progress` | M | `ProgressHandle`, task tree, cancellation |
-| `api.output` | M | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
-| `api.execution` | M | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport` |
-| `api.terminal` | M | `TerminalModel`, `PtyProcess`, `TerminalSession` |
-| `api.language` | M | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`ElementIcons` — the one language registry and the provider scope ([Appendix I](appendix/I-language-soundness.md)) |
-| `api.elements` | T1 → `java.elements` | the **Java** vocabulary (`SourceElementKind`, `SourceTypeKind`, `SourceModifiers`) moves to `java.elements`; only the neutral `ElementRef`/`SourceLocation`/`ElementIcons` stay in `api.language` (no `java.lang.reflect.Modifier` bits in a neutral API) |
-| `api.nodes` | M | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events |
-| `api.property` | T2-FX | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; depends on `api.nodes` (the handle lives there — M never depends on a T2-FX module) |
-| `api.usages` | M | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
-| `api.project` | M | `ProjectModel`, `ProjectRegistry`, `ProjectFactory`, `ProjectFile`/`Directory`/`Library`, `@ProjectTypeRegistration`, `ProjectKindProvider` |
-| `api.build` | M | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
-| `api.project.customizer` | T2-FX | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | `EditorService`, `EditorDocument`, `EditorContext`, annotations (`EditorAnnotation`, `EditorAnnotationProvider`), completion/breadcrumbs SPIs |
-| `api.editor.intelligence` | M | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
-| `api.wizard` | T2-FX | `WizardIterator`, `WizardPanel`, `WizardDescriptor`, `@WizardRegistration` |
-| `api.templates` | M | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
-| `api.search` | T2-FX | `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` |
-| `api.debug` | M | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
-| `api.profile` | M | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
-| `api.tests` | M | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
-| `api.vcs` | M | `VcsProvider`, `VcsStatus`, `VcsHistoryProvider`, `VcsAnnotator` |
-| `api.diff` | M | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
-| `api.tasklist` | M | `TaskProvider`, `Task`, `TaskScope` |
-| `api.plugins` | T1 | plugin metadata, install/update service surface |
-| `api.layer` | T1 | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …); nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
+| Module | Tier | State | Contents |
+|---|---|---|---|
+| `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, `ActionIds` |
+| `api.views` | T2-FX | **landed** | `ViewProvider`, `ViewManager`, `DockLocation`, `@ViewRegistration`, `ViewLocation`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
+| `api.status` | T2-FX | **landed** | `StatusElement`, `@StatusRegistration`, `StatusAlignment` |
+| `api.dialogs` | T2-FX | **landed** | `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` (notification line, toasts) |
+| `api.options` | T2-FX | **landed** | `OptionsPanelController`, `@OptionsRegistration`/`Container`/`Sub`, `OptionsDisplayer`, `OptionsKeywords` |
+| `api.settings` | M | **planned** | `Settings`, typed keys, change listeners |
+| `api.progress` | M | **landed** | `ProgressHandle`, task tree, cancellation |
+| `api.output` | M | **planned** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
+| `api.execution` | M | **planned** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport` |
+| `api.terminal` | M | **planned** | `TerminalModel`, `PtyProcess`, `TerminalSession` |
+| `api.language` | M | **planned** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`ElementIcons` — the one language registry and the provider scope ([Appendix I](appendix/I-language-soundness.md)) |
+| `api.elements` | T1 → `java.elements` | **landed** | the **Java** vocabulary (`SourceElementKind`, `SourceTypeKind`, `SourceModifiers`) moves to `java.elements`; only the neutral `ElementRef`/`SourceLocation`/`ElementIcons` stay in `api.language` (no `java.lang.reflect.Modifier` bits in a neutral API) |
+| `api.nodes` | M | **planned** | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events |
+| `api.property` | T2-FX | **landed** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; depends on `api.nodes` (the handle lives there — M never depends on a T2-FX module) |
+| `api.usages` | M | **landed** | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
+| `api.project` | M | **landed** | `ProjectModel`, `ProjectRegistry`, `ProjectFactory`, `ProjectFile`/`Directory`/`Library`, `@ProjectTypeRegistration`, `ProjectKindProvider` |
+| `api.build` | M | **planned** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
+| `api.project.customizer` | T2-FX | **planned** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
+| `api.editor` | T2-FX | **landed** | `EditorService`, `EditorDocument`, `EditorContext`, annotations (`EditorAnnotation`, `EditorAnnotationProvider`), completion/breadcrumbs SPIs |
+| `api.editor.intelligence` | M | **planned** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
+| `api.wizard` | T2-FX | **landed** | `WizardIterator`, `WizardPanel`, `WizardDescriptor`, `@WizardRegistration` |
+| `api.templates` | M | **planned** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
+| `api.search` | T2-FX | **landed** | `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` |
+| `api.debug` | M | **planned** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
+| `api.profile` | M | **planned** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
+| `api.tests` | M | **planned** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
+| `api.vcs` | M | **planned** | `VcsProvider`, `VcsStatus`, `VcsHistoryProvider`, `VcsAnnotator` |
+| `api.diff` | M | **planned** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
+| `api.tasklist` | M | **planned** | `TaskProvider`, `Task`, `TaskScope` |
+| `api.plugins` | T1 | **planned** | plugin metadata, install/update service surface |
+| `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …); nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
 
 **Rule of creation:** an `api.*` module exists only when a second module (or a plugin) needs it. Start with
 T0/T1 inside the owning module and promote deliberately. The table is the **target catalogue**, not a backlog:
@@ -769,8 +769,9 @@ The writer/reader layer contract test landed in PR #33.
 
 **W1.5 — Full test gate (before W2).** `ci/all-unit-tests` (**landed**, PR #70): the root `ant test` target
 discovers every module with tests and runs `test-unit`; CI uses that target, uploads the module JUnit XML on
-failure, and keeps the headless scenario as a separate gate. Acceptance: the suite is green on `main`, the
-full run is a required check, and neither the CI job nor the local loop uses a hand-maintained module list.
+failure, and runs the headless scenario as part of the same suite. Acceptance: the suite is green on `main`,
+the full run is a required check, and neither the CI job nor the local loop uses a hand-maintained module
+list.
 
 **W1.6 — Namespace alignment (before W2).** `refactor/namespace-modules` (**landed**, PR #71) renamed module
 directories to `nbfx.<module>` and code names to `org.netbeans.modules.nbfx.<module>`, with the bundled
