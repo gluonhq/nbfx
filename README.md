@@ -18,13 +18,19 @@
     under the License.
 
 -->
-# nbfx — a pure-JavaFX IDE frontend on the NetBeans runtime
+# nbfx — a pure-JavaFX IDE and application platform on the NetBeans runtime
 
 This repository hosts the **nbfx** work: a **pure-JavaFX** re-implementation of the NetBeans IDE
 shell. It reuses the headless NetBeans platform/IDE services (project model, parsing, java.source,
 indexing, autoupdate, JPDA, templates, …) and replaces every Swing view/component with a JavaFX one.
 There is no NetBeans Swing window: `core.windows` is dropped from the nbfx clusters and the shell is
 owned by the JavaFX application.
+
+nbfx has two deliverables. The **IDE** is primary. The **platform** is secondary: the JavaFX **AppShell**
+(window system, actions and action context, options, wizards, property sheet, nodes, dialogs, progress,
+output, execution, terminal, quick search, theme, credentials, favorites, templates) on which the IDE is
+built and which downstream projects can use to assemble applications from source or prebuilt modules.
+See [`docs/plan/PLAN.md`](docs/plan/PLAN.md) §1 and §6.6.
 
 **The plan is [`docs/plan/PLAN.md`](docs/plan/PLAN.md)** — vision, layers, naming, API tiers, the module
 catalogue, the roadmap and the workstreams; the durable rules are in
@@ -41,15 +47,21 @@ This repository hosts the nbfx clusters and consumes apache/netbeans as a **git 
 
 ## Clusters
 
-The FX modules are split into three clusters that parallel the NetBeans clusters, so a new FX module
-goes next to the NetBeans module it replaces. Code-name-bases are unchanged; only the cluster/dir
-layout differs. Dependency direction is `platform → ide → java`.
+The FX modules are split into clusters that parallel the NetBeans clusters, so a new FX module goes next
+to the NetBeans module it replaces. Code-name-bases are unchanged; only the cluster/dir layout differs.
+Dependency direction is `libs → platform → ide → java`.
 
 | Cluster | Dir | Contents |
 |---|---|---|
-| `nb.cluster.nbfx-platform` | `nbfx-platform/` | FX replacements for platform-level modules: `annotations`, `lib.javafx`, `api`, `context`, `docking`, `windows`, `statusbar`, `menus`, `macos`, `output`, `options`, `wizard`, `actions`. |
-| `nb.cluster.nbfx-ide` | `nbfx-ide/` | FX replacements for ide-level modules + the app shell: `editor`, `editor.actions`, `file.actions`, `findinprojects`, `findusages`, `propertysheet`, `structure`, `structure.xml`, `structure.css`, `project`, `project.ui`, `project.ui.api`, `project.actions`, `project.context`, `project.customizer`, `plugins`, `vcs`, `debug`, `run`, `ui`, `launcher`. |
-| `nb.cluster.nbfx-java` | `nbfx-java/` | FX replacements for java/extide-level modules: `project.ui.java`, `structure.java`, `structure.maven`, `structure.gradle`, `project.ui.maven`, `project.ui.gradle`, `project.ui.ant`, `build.ant`. |
+| `nb.cluster.nbfx-libs` | `nbfx-libs/` | bundled external libraries (JavaFX today) |
+| `nb.cluster.nbfx-api` | `nbfx-api/` | **transitional** shared API cluster; the target dissolves it into the domain clusters (PLAN §2/§6.6, W1.7) |
+| `nb.cluster.nbfx-platform` | `nbfx-platform/` | AppShell + platform services: shell, workspace, actions, menus, status, options, progress, output, wizard, editor and the platform APIs |
+| `nb.cluster.nbfx-ide` | `nbfx-ide/` | IDE building blocks + IDE contributions to the AppShell (`ide.workbench`) and the IDE APIs |
+| `nb.cluster.nbfx-java` | `nbfx-java/` | Java/JVM usage: project types, build, editor semantics, navigation, usages and the Java APIs |
+
+The **platform deliverable** is `nbfx-libs + nbfx-platform`; the **IDE deliverable** is the platform plus
+`nbfx-ide + nbfx-java`. There is no product or assembly tier: downstream projects combine clusters or
+binary modules as they choose.
 
 ## Releases
 
