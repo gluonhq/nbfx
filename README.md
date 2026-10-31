@@ -66,6 +66,7 @@ cluster configuration and runs the build:
 ```sh
 ant bootstrap      # submodule + upstream patches + cluster config + overlay
 ant build          # build the 'nbfx' cluster config
+ant test           # run every module's unit tests (after `ant build`)
 ant run            # launch the FX app on the lean cluster set
 ant module -Dmodule=<cluster>/<module>   # rebuild one module into the dist (seconds)
 ant check-purity   # forbidden Swing/AWT imports & deps, bundled classes, no core.windows jar
@@ -74,7 +75,15 @@ ant clean
 ```
 
 See [`docs/repo-and-build.md`](docs/repo-and-build.md) for the layout, the upstream patch set and how
-the cluster configuration is generated. Unit tests of a single module:
+the cluster configuration is generated. `ant test` runs the whole unit-test suite; to run one module's
+tests (or one cluster's), filter the target:
+
+```sh
+ant test -Dtest.modules=nbfx-api/*
+ant test -Dtest.modules=nbfx-platform/*
+```
+
+The underlying module command is still:
 
 ```sh
 ant -f netbeans/<cluster-dir>/<module-dir>/build.xml test-unit \

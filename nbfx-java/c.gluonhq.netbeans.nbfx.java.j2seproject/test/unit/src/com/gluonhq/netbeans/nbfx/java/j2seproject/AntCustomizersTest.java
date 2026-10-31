@@ -51,7 +51,9 @@ public class AntCustomizersTest extends NbTestCase {
     }
 
     public void testApisupportPanelsApply() throws Exception {
-        File dir = new File("nbfx-platform/c.gluonhq.netbeans.nbfx.platform.actions");
+        String nbfxSubDir = System.getProperty("nbfx.sub.dir");
+        assertNotNull("nbfx.sub.dir is not set; see project.properties", nbfxSubDir);
+        File dir = new File(nbfxSubDir, "nbfx-platform/c.gluonhq.netbeans.nbfx.platform.actions");
         FileObject root = FileUtil.toFileObject(FileUtil.normalizeFile(dir));
         assertNotNull("project dir not found: " + dir.getAbsolutePath(), root);
         Project project = ProjectManager.getDefault().findProject(root);

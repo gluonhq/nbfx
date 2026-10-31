@@ -610,6 +610,44 @@ metabuild.hash=${nbfx.nbbuild.hash}
     </target>
 
     <!-- ======================================================================== -->
+    <!-- tests                                                                    -->
+    <!-- ======================================================================== -->
+
+    <target name="test" depends="bootstrap"
+            description="Run the unit tests of every nbfx module (-Dtest.modules=nbfx-api/* to filter)">
+        <!-- Use the module build files, not bare directories: a stale empty module directory left
+             in the sync overlay must not be picked up. Modules without test/unit/src no-op in their
+             test-unit target, so this keeps the gate independent of a hand-maintained module list. -->
+        <property name="test.modules" value="nbfx-*/*"/>
+        <property name="nbfx.test.modules.file" location="${nbfx.build.dir}/test-modules.txt"/>
+        <mkdir dir="${nbfx.build.dir}"/>
+        <fileset id="nbfx.test.builds" dir="${nbfx.sub.dir}" includes="${test.modules}/build.xml"/>
+        <pathconvert property="nbfx.test.module.path" refid="nbfx.test.builds" pathsep="${path.separator}">
+            <mapper type="regexp" from="^(.*)[/\\]build\.xml$" to="\1"/>
+        </pathconvert>
+        <pathconvert property="nbfx.test.module.lines" refid="nbfx.test.builds" pathsep="${line.separator}">
+            <mapper type="regexp" from="^(.*)[/\\]build\.xml$" to="\1"/>
+        </pathconvert>
+        <echo file="${nbfx.test.modules.file}" message="${nbfx.test.module.lines}${line.separator}"/>
+        <!-- Remove stale XML so a module that fails before JUnit cannot be mistaken for a pass. -->
+        <delete quiet="true">
+            <fileset dir="${nbfx.sub.dir}" includes="nbfx-*/*/build/test/unit/results/TEST-*.xml"/>
+        </delete>
+        <!-- Continue after a module failure; TestResults checks every module's XML and then fails. -->
+        <subant buildpath="${nbfx.test.module.path}" target="test-unit" failonerror="false" inheritall="false">
+            <property name="netbeans.dest.dir" location="${nbfx.sub.dir}/nbbuild/netbeans"/>
+        </subant>
+        <exec executable="${java.home}/bin/java" failonerror="false" resultproperty="nbfx.test.results.result">
+            <arg value="nbfx-tests/tools/TestResults.java"/>
+            <arg value="${nbfx.test.modules.file}"/>
+        </exec>
+        <condition property="nbfx.test.failed">
+            <not><equals arg1="${nbfx.test.results.result}" arg2="0"/></not>
+        </condition>
+        <fail if="nbfx.test.failed" message="One or more nbfx module tests failed; see the JUnit XML under netbeans/**/build/test/unit/results."/>
+    </target>
+
+    <!-- ======================================================================== -->
     <!-- single module (fast dev loop)                                            -->
     <!-- ======================================================================== -->
 
@@ -718,6 +756,7 @@ nbfx build harness — targets:
 
   bootstrap        submodule + patches + cluster config + JavaFX SDK + overlay
   build            build the '${nbfx.cluster.config}' cluster config
+  test             run the unit tests of every nbfx module (-Dtest.modules=nbfx-api/* to filter)
   run              launch the FX app (lean cluster set)
   module           build one module only: -Dmodule=nbfx-platform/c.gluonhq.netbeans.nbfx.progress
                    (-Dmodule.target=netbeans|clean|test ...); seconds instead of a full build

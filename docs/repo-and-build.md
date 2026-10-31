@@ -147,6 +147,7 @@ already-patched file from the old to the new version of a patch and leaves it un
 ```sh
 ant bootstrap      # submodule + patches + cluster config + overlay
 ant build          # build the 'nbfx' cluster config
+ant test           # run every module's unit tests (after `ant build`)
 ant run            # launch the FX app on the lean cluster set
 ant check-purity   # source/deps/bundled-class/packaging guardrails
 ant update-upstream -Dnbfx.submodule.commit=<sha>
@@ -162,6 +163,14 @@ ant -Dcluster.config=nbfx -Dclusters.list.file="$PWD/../../build/cluster.propert
 
 `ant help` lists all targets; `ant print-config` prints the effective configuration. Any property can
 be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
+
+`ant test` runs the `test-unit` target of every module under `nbfx-*/*`; modules without
+`test/unit/src` are a no-op. It expects an existing distribution (`ant build` once) and uses the same
+headless test properties as the module tests. All modules run even after a failure; `TestResults` then
+checks every module's JUnit XML and fails once at the end, so CI can upload the complete result set.
+Narrow the run for the local loop with `-Dtest.modules=nbfx-api/*` or
+`-Dtest.modules=nbfx-platform/*`. The launcher's headless scenario is part of this suite; CI does not run
+it a second time.
 
 `build` and `run` depend on `bootstrap`, so they re-run the overlay first: edits in the outer
 `nbfx-platform/`, `nbfx-ide/` and `nbfx-java/` directories are synced into `netbeans/` automatically on
@@ -235,6 +244,7 @@ sync from — only the `netbeans` submodule pin is updated over time.
 ## 7. Verification
 
 - `ant bootstrap build` on a clean checkout produces `netbeans/nbbuild/netbeans/nbfx-{platform,ide,java}`.
+- `ant test` runs every module's unit tests and the headless scenario remains green.
 - `ant run` starts the FX app on the lean set; no `core.windows` jar ships in the nbfx clusters.
 - `ant check-purity` reports `0/0/0/0` (sources, deps, bundled classes, packaging).
 - Session/Recent Projects survive (preferences paths are unaffected by the layout).
