@@ -347,7 +347,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators, project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope | new; project-aware editor scope landed in W1.7; the IDE is the AppShell's primary consumer |
+| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators (`NavigatorView`), project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope | new; project-aware editor scope and navigator view landed in W1.7; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
