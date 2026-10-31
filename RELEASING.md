@@ -80,8 +80,8 @@ bookkeeping around that; neither builds a release artefact nor holds a key:
 
 | Workflow | Runs on | Does |
 |---|---|---|
-| *Release draft* (`.github/workflows/release-draft.yml`) | push of a tag `<version>-rcN` or `<version>` | checks the tag (format, matches `nbfx.version`, annotated, signature verifies against `KEYS`; a final tag must be on an RC commit), runs `ant rat`, `ant build` and `ant check-purity` on the tagged commit, creates the **draft** release with the notes from `release/release-notes.md` plus the generated change list, and opens or updates the release checklist issue. For a final tag it copies the files of the RC into the draft. |
-| *Release verify* (`.github/workflows/release-verify.yml`) | publishing a release, or by hand (`gh workflow run release-verify.yml -f tag=<tag>`) | downloads the uploaded files, runs `ant release-verify` on them, checks that the source release is exactly `git archive` of the tag, builds the unpacked source release, and posts the result on the checklist issue. |
+| *Release draft* (`.github/workflows/release-draft.yml`) | push of a tag `<version>-rcN` or `<version>` | checks the tag (format, matches `nbfx.version`, annotated, signature verifies against `KEYS`; a final tag must be on an RC commit), runs `ant rat`, `ant build`, `ant check-purity`, `check-figures` and `ant test` on the tagged commit, creates the **draft** release with the notes from `release/release-notes.md` plus the generated change list, and opens or updates the release checklist issue. For a final tag it copies the files of the RC into the draft. |
+| *Release verify* (`.github/workflows/release-verify.yml`) | publishing a release, or by hand (`gh workflow run release-verify.yml -f tag=<tag>`) | downloads the uploaded files, runs `ant release-verify` on them, checks that the source release is exactly `git archive` of the tag, builds the unpacked source release, starts the binary with native glass and an empty userdir on macOS aarch64, macOS x64, Windows x64 and Linux x64 (it must show the shell, with no missing modules, classes or natives in `messages.log`), and posts the result on the checklist issue. |
 
 The checklist issue (template: *Release checklist*) is opened by *Release draft* for the first RC; tick
 the steps off there.
@@ -89,8 +89,6 @@ the steps off there.
 ### 1. Prepare
 
 - Pick the version and set `nbfx.version` in `nbfx.properties`.
-- Make sure `main` is green: `ant bootstrap build`, `ant check-purity`, `ant rat`.
-  A file that fails `ant rat` usually just lacks its licence header: `ant headers` adds it.
 - Release notes: *Release draft* fills `release/release-notes.md` into the draft and appends GitHub's
   list of merged pull requests since the previous release. Adjust the template beforehand if needed; edit
   the highlights in the draft afterwards.
@@ -104,9 +102,12 @@ git tag -s -a 0.1.0-rc1 -m "nbfx 0.1.0-rc1"
 git push origin 0.1.0-rc1
 ```
 
-Pushing the tag starts *Release draft* (about 10 minutes). When it is green there is a draft pre-release
-`0.1.0-rc1` and a checklist issue *Release nbfx 0.1.0*. A red run usually means the tag is wrong: delete it
-(`git push --delete origin 0.1.0-rc1 && git tag -d 0.1.0-rc1`), fix, and tag again.
+Pushing the tag starts *Release draft*. It checks the tag and runs `ant rat`, `ant build`,
+`ant check-purity`, `check-figures` and `ant test` on the tagged commit; this is the gate, so there is no
+separate "`main` is green" step before tagging. When it is green there is a draft pre-release `0.1.0-rc1`
+and a checklist issue *Release nbfx 0.1.0*. A red run means the tag is wrong or one of those checks fails:
+delete the tag (`git push --delete origin 0.1.0-rc1 && git tag -d 0.1.0-rc1`), fix, and tag again. A file
+that fails `ant rat` usually just lacks its licence header: `ant headers` adds it.
 
 ### 3. Build, sign and verify
 
@@ -126,7 +127,9 @@ This runs, in order:
 `-Dnbfx.release.dryrun=true` skips the tag and clean-tree checks, for a rehearsal.
 
 Then start the binary once on each platform, with an empty userdir (`--userdir`): `bin/netbeans`, or
-`bin\netbeans64.exe` on Windows. Whether the application comes up is the one thing no workflow checks.
+`bin\netbeans64.exe` on Windows. *Release verify* (step 4) also starts it on each platform, but only
+checks that the shell is shown and the log is clean: look at the application yourself, at least on your own
+platform.
 Look for `var/imported` in the userdir and for a `var/log/messages.log` without "was needed and not
 found", `NoClassDefFoundError` or glass/prism errors. macOS x64 can be tried on Apple silicon under
 Rosetta 2 with an x64 JDK 25. On macOS, test a zip downloaded through the browser, not the local file:
