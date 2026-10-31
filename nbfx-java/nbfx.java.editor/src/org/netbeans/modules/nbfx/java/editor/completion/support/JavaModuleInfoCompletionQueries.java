@@ -25,6 +25,7 @@ import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.completion.CompletionProvider;
 import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.nbfx.completion.SimpleCompletionItem;
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.modules.nbfx.java.editor.completion.support.JavaModuleInfoContextUtils.ModuleCompletionContext;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.source.ClassIndex;
@@ -358,13 +359,13 @@ public final class JavaModuleInfoCompletionQueries {
     private static CompletionItem keywordItem(String keyword, String insert) {
         return new SimpleCompletionItem(keyword, insert, keyword, PRIORITY_MODULE_KEYWORD,
                 keyword, BUNDLE.getString("completion.popup.lexer.keyword"),
-                SourceElementKind.KEYWORD, SourceTypeKind.OTHER, 0, false, false);
+                SourceElementKind.KEYWORD, SourceTypeKind.OTHER, ElementModifiers.NONE, false, false);
     }
 
     private static CompletionItem moduleItem(String name, String insert) {
         return new SimpleCompletionItem(name, insert, name, PRIORITY_MODULE,
                 name, BUNDLE.getString("completion.popup.module"),
-                SourceElementKind.MODULE, SourceTypeKind.OTHER, 0, false, false);
+                SourceElementKind.MODULE, SourceTypeKind.OTHER, ElementModifiers.NONE, false, false);
     }
 
     /**
@@ -378,7 +379,7 @@ public final class JavaModuleInfoCompletionQueries {
         String packageName = packageName(fqcn);
         return new SimpleCompletionItem(simpleName, remainderInsert(context, fqcn), simpleName,
                 PRIORITY_SERVICE_TYPE, simpleName, packageName,
-                SourceElementKind.TYPE, SourceTypeKind.from(kindName), 0, false, false);
+                SourceElementKind.TYPE, SourceTypeKind.from(kindName), ElementModifiers.NONE, false, false);
     }
 
     // Anchor-relative insertion helpers

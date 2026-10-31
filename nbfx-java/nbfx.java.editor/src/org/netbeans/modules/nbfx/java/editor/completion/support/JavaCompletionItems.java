@@ -19,10 +19,12 @@
 package org.netbeans.modules.nbfx.java.editor.completion.support;
 
 import org.netbeans.api.nbfx.completion.CompletionItem;
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.nbfx.completion.SimpleCompletionItem;
 import org.netbeans.api.nbfx.java.elements.JavaElementTypes;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -31,7 +33,7 @@ import javax.lang.model.util.Elements;
 import java.lang.reflect.Modifier;
 import java.util.Locale;
 
-import static org.netbeans.api.nbfx.java.elements.SourceModifiers.toModifierBits;
+import static org.netbeans.api.nbfx.java.elements.SourceModifiers.toElementModifiers;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.isDeprecated;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.simpleName;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.simpleTypeName;
@@ -63,14 +65,14 @@ public final class JavaCompletionItems {
     public static CompletionItem lexical(String label, int priority, String rightText,
                                          SourceElementKind kind, SourceTypeKind typeKind) {
         return new SimpleCompletionItem(label, label, label.toLowerCase(Locale.ROOT),
-                priority, label, rightText, kind, typeKind, 0, false, false);
+                priority, label, rightText, kind, typeKind, ElementModifiers.NONE, false, false);
     }
 
     /** Type/identifier item with shared parameters. */
     private static CompletionItem typeItem(String name, int priority, String rightText,
-                                           SourceTypeKind typeKind, int modifierBits,
+                                           SourceTypeKind typeKind, ElementModifiers modifiers,
                                            boolean emphasized, boolean deprecated) {
-        return typeItem(name, priority, rightText, typeKind, modifierBits, emphasized, deprecated, "");
+        return typeItem(name, priority, rightText, typeKind, modifiers, emphasized, deprecated, "");
     }
 
     /**
@@ -78,10 +80,10 @@ public final class JavaCompletionItems {
      * fully-qualified name}, so the editor can add a missing {@code import} when the item is committed.
      */
     private static CompletionItem typeItem(String name, int priority, String rightText,
-                                           SourceTypeKind typeKind, int modifierBits,
+                                           SourceTypeKind typeKind, ElementModifiers modifiers,
                                            boolean emphasized, boolean deprecated, String qualifiedName) {
         return new SimpleCompletionItem(name, name, name, priority,
-                name, rightText, SourceElementKind.TYPE, typeKind, modifierBits,
+                name, rightText, SourceElementKind.TYPE, typeKind, modifiers,
                 emphasized, deprecated, qualifiedName);
     }
 
@@ -93,7 +95,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_SEMANTIC_FIELD, name, prefix),
                 name, simpleTypeName(field.asType().toString()),
                 SourceElementKind.FIELD, SourceTypeKind.OTHER,
-                toModifierBits(field.getModifiers()),
+                toElementModifiers(field.getModifiers()),
                 declared, isDeprecated(elements, field));
     }
 
@@ -108,7 +110,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_SCOPE_LOCAL, name, prefix),
                 name, simpleTypeName(variable.asType().toString()),
                 SourceElementKind.VARIABLE, SourceTypeKind.OTHER,
-                toModifierBits(variable.getModifiers()),
+                toElementModifiers(variable.getModifiers()),
                 true, isDeprecated(elements, variable));
     }
 
@@ -135,7 +137,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_SEMANTIC_METHOD, name, prefix),
                 name + "(" + params + ")", simpleTypeName(method.getReturnType().toString()),
                 SourceElementKind.METHOD, SourceTypeKind.OTHER,
-                toModifierBits(method.getModifiers()),
+                toElementModifiers(method.getModifiers()),
                 declared, isDeprecated(elements, method));
     }
 
@@ -147,7 +149,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_EXPECTED_TYPE, name, prefix),
                 fqcn,
                 SourceTypeKind.from(type.getKind().name()),
-                toModifierBits(type.getModifiers()), true, isDeprecated(elements, type), fqcn);
+                toElementModifiers(type.getModifiers()), true, isDeprecated(elements, type), fqcn);
     }
 
     /** A subtype assignable to an expected type, ranked just below {@link #expectedType}. */
@@ -158,7 +160,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_ASSIGNABLE_SUBTYPE, name, prefix),
                 fqcn,
                 SourceTypeKind.from(candidate.getKind().name()),
-                toModifierBits(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
+                toElementModifiers(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
     }
 
     /** Type whose constructor wraps the expected type (e.g. {@code WeakInvalidationListener(InvalidationListener)}). */
@@ -169,15 +171,15 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_WRAPPER_TYPE, name, prefix),
                 fqcn,
                 SourceTypeKind.CLASS,
-                toModifierBits(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
+                toElementModifiers(candidate.getModifiers()), false, isDeprecated(elements, candidate), fqcn);
     }
 
     /** Convention wrapper ({@code Weak<Name>} sibling of an expected interface). */
     static CompletionItem conventionWrapperType(String name, String prefix, String fqcn,
-                                                int modifierBits, boolean deprecated) {
+                                                ElementModifiers modifiers, boolean deprecated) {
         return typeItem(name,
                 computePriority(PRIORITY_WRAPPER_TYPE, name, prefix),
-                fqcn, SourceTypeKind.CLASS, modifierBits, false, deprecated, fqcn);
+                fqcn, SourceTypeKind.CLASS, modifiers, false, deprecated, fqcn);
     }
 
     /** Type item for import/qualified-path context — typed by runtime class when available.
@@ -194,7 +196,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_IMPORT_TYPE, simpleName, prefix),
                 simpleName, rightText, SourceElementKind.TYPE,
                 runtime != null ? JavaElementTypes.from(runtime) : SourceTypeKind.OTHER,
-                runtime != null ? runtime.getModifiers() : 0,
+                runtime != null ? SourceModifiers.fromBits(runtime.getModifiers()) : ElementModifiers.NONE,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class));
     }
 
@@ -207,7 +209,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(packageName, packageName + ".", packageName,
                 computePriority(PRIORITY_PACKAGE, packageName, prefix),
                 packageName, "",
-                SourceElementKind.PACKAGE, SourceTypeKind.OTHER, 0, false, false);
+                SourceElementKind.PACKAGE, SourceTypeKind.OTHER, ElementModifiers.NONE, false, false);
     }
 
     /** Type item for the {@code new ...} context — typed by runtime class when available. */
@@ -219,7 +221,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_NEW_TYPE, simpleName, prefix),
                 rightText,
                 runtime != null ? JavaElementTypes.from(runtime) : SourceTypeKind.OTHER,
-                runtime != null ? runtime.getModifiers() : 0,
+                runtime != null ? SourceModifiers.fromBits(runtime.getModifiers()) : ElementModifiers.NONE,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class),
                 fqcn);
     }
@@ -233,7 +235,7 @@ public final class JavaCompletionItems {
     static CompletionItem sameFileType(String simpleName, String prefix, SourceTypeKind typeKind) {
         return typeItem(simpleName,
                 computePriority(PRIORITY_IMPORT_TYPE, simpleName, prefix),
-                "", typeKind, 0, false, false);
+                "", typeKind, ElementModifiers.NONE, false, false);
     }
 
     /**
@@ -246,7 +248,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(simpleName, simpleName, simpleName,
                 computePriority(PRIORITY_ANNOTATION_TYPE, simpleName, prefix), simpleName, fqcn,
                 SourceElementKind.TYPE, SourceTypeKind.ANNOTATION,
-                Modifier.PUBLIC, false, false);
+                SourceModifiers.fromBits(Modifier.PUBLIC), false, false);
     }
     /**
      * Annotation-member proposal for the {@code @Foo(|)} popup. Insertion places the
@@ -260,7 +262,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(name, insert, name,
                 computePriority(PRIORITY_ANNOTATION_MEMBER, name, prefix), name, returnType,
                 SourceElementKind.FIELD, SourceTypeKind.OTHER,
-                Modifier.PUBLIC | Modifier.ABSTRACT,
+                SourceModifiers.fromBits(Modifier.PUBLIC | Modifier.ABSTRACT),
                 true, false);
     }
 
@@ -278,7 +280,7 @@ public final class JavaCompletionItems {
                 computePriority(PRIORITY_EXPECTED_TYPE, insert, prefix),
                 insert, enumFqcn,
                 SourceElementKind.FIELD, SourceTypeKind.OTHER,
-                Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL,
+                SourceModifiers.fromBits(Modifier.PUBLIC | Modifier.STATIC | Modifier.FINAL),
                 true, isDeprecated(elements, constant));
     }
 
@@ -287,7 +289,7 @@ public final class JavaCompletionItems {
         int sepPriority = prefix == null || prefix.isBlank() ? 20 : 10;
         return new SimpleCompletionItem("separator", "", "separator",
                 sepPriority, "", "",
-                SourceElementKind.SEPARATOR, SourceTypeKind.OTHER, 0, false, false);
+                SourceElementKind.SEPARATOR, SourceTypeKind.OTHER, ElementModifiers.NONE, false, false);
     }
 
     /**

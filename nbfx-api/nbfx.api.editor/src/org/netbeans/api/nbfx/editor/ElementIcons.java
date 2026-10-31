@@ -18,14 +18,12 @@
  */
 package org.netbeans.api.nbfx.editor;
 
-import java.lang.reflect.Modifier;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.netbeans.api.nbfx.language.ElementModifiers;
-import org.netbeans.api.nbfx.language.ElementModifiers.Visibility;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.language.SourceTypeKind;
 
@@ -65,19 +63,6 @@ public final class ElementIcons {
     }
 
     /**
-     * Returns the (cached) icon for an element from {@link Modifier} bits, or {@code null} when
-     * the kind has no glyph.
-     *
-     * @param kind general semantic category
-     * @param typeKind detailed hint for {@link SourceElementKind#TYPE} elements and constructors
-     * @param modifiers {@link Modifier} bits selecting visibility / static variants
-     * @return shared icon image, or {@code null}
-     */
-    public static Image iconFor(SourceElementKind kind, SourceTypeKind typeKind, int modifiers) {
-        return iconFor(kind, typeKind, fromBits(modifiers));
-    }
-
-    /**
      * Returns a fixed-size {@link ImageView} showing the element's icon, or {@code null}
      * when the kind has no glyph.
      *
@@ -97,19 +82,6 @@ public final class ElementIcons {
         view.setFitHeight(ICON_SIZE);
         view.setPreserveRatio(true);
         return view;
-    }
-
-    /**
-     * Returns a fixed-size {@link ImageView} showing the element's icon from {@link Modifier} bits,
-     * or {@code null} when the kind has no glyph.
-     *
-     * @param kind general semantic category
-     * @param typeKind detailed hint for {@link SourceElementKind#TYPE} elements and constructors
-     * @param modifiers {@link Modifier} bits selecting visibility / static variants
-     * @return new image view, or {@code null}
-     */
-    public static ImageView iconViewFor(SourceElementKind kind, SourceTypeKind typeKind, int modifiers) {
-        return iconViewFor(kind, typeKind, fromBits(modifiers));
     }
 
     /** Maps an element kind / type-kind to the icon file shipped in this package. */
@@ -137,11 +109,6 @@ public final class ElementIcons {
         };
     }
 
-    /** Maps an element kind / type-kind to the icon file from {@link Modifier} bits. */
-    public static String iconNameFor(SourceElementKind kind, SourceTypeKind typeKind, int modifiers) {
-        return iconNameFor(kind, typeKind, fromBits(modifiers));
-    }
-
     /** Builds the field / method / constructor icon name from the neutral modifiers. */
     private static String memberIcon(String base, ElementModifiers modifiers) {
         String accessSuffix = accessSuffix(modifiers);
@@ -162,16 +129,6 @@ public final class ElementIcons {
             case PUBLIC -> "";
             case PACKAGE_PRIVATE -> "_package_private";
         };
-    }
-
-    /** Converts {@link Modifier} bits to the neutral model, for the completion/breadcrumb callers. */
-    private static ElementModifiers fromBits(int bits) {
-        Visibility visibility = Modifier.isPublic(bits) ? Visibility.PUBLIC
-                : Modifier.isProtected(bits) ? Visibility.PROTECTED
-                : Modifier.isPrivate(bits) ? Visibility.PRIVATE
-                : Visibility.PACKAGE_PRIVATE;
-        return new ElementModifiers(visibility, Modifier.isStatic(bits),
-                Modifier.isFinal(bits), Modifier.isAbstract(bits));
     }
 
     private static Image loadIcon(String iconName) {

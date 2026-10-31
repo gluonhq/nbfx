@@ -138,9 +138,10 @@ org.netbeans.libs.nbfx.<library>                      bundled external library  
   module metadata; the cluster is the deliverable/domain boundary.
 - Module code names are `org.netbeans.modules.nbfx.<module>`; module directories are `nbfx.<module>`.
   **Package == module code-name** no longer holds: API packages are `org.netbeans.api.nbfx.*`, SPI packages
-  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. Library
-  directories use `libs.nbfx.<library>` because `nbbuild` derives the directory from the
-  `org.netbeans.libs.*` code name.
+  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. A
+  domain-specific API may add the domain segment, for example `org.netbeans.api.nbfx.java.elements`; it
+  still follows the `org.netbeans.api.nbfx.*` root. Library directories use `libs.nbfx.<library>` because
+  `nbbuild` derives the directory from the `org.netbeans.libs.*` code name.
 - A module that must expose a model to headless code but a UI elsewhere is split:
   `…ide.<capability>` (UI) + `…api.<capability>` (model). A module never mixes a public model with FX UI.
 - `<capability>` is a noun: `actions`, `views`, `status`, `dialogs`, `options`, `settings`, `progress`,

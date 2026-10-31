@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.java.navigation.structure.ui;
 
 import org.netbeans.api.nbfx.editor.ElementIcons;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.BeanPattern;
@@ -68,7 +69,8 @@ public final class NavigatorIcons {
     static Image patternImage(BeanPattern pattern) {
         return switch (pattern.getKind()) {
             case CLASS -> ElementIcons.iconFor(SourceElementKind.TYPE,
-                    pattern.isInterface() ? SourceTypeKind.INTERFACE : SourceTypeKind.CLASS, Modifier.PUBLIC);
+                    pattern.isInterface() ? SourceTypeKind.INTERFACE : SourceTypeKind.CLASS,
+                    SourceModifiers.fromBits(Modifier.PUBLIC));
             case PROPERTY -> image("property" + modeSuffix(pattern.getMode()));
             case INDEXED_PROPERTY -> image("propertyIndexed" + modeSuffix(pattern.getMode()));
             case EVENT_SET -> image(pattern.isUnicast() ? "eventSetUnicast" : "eventSetMulticast");
@@ -86,18 +88,19 @@ public final class NavigatorIcons {
     /** The (shared) image of {@code node}'s element glyph, for a view that is reused; {@code null} for kinds without one. */
     static Image elementImage(MemberNode node) {
         SourceElementKind sourceKind = sourceKind(node.getKind());
-        return sourceKind == null ? null : ElementIcons.iconFor(sourceKind, typeKind(node.getKind()), node.getModifiers());
+        return sourceKind == null ? null : ElementIcons.iconFor(sourceKind, typeKind(node.getKind()),
+                SourceModifiers.fromBits(node.getModifiers()));
     }
 
     /** The element glyph of a {@code kind} with {@code modifiers}, or {@code null} for kinds without one. */
     static Image elementImage(ElementKind kind, int modifiers) {
         SourceElementKind sourceKind = sourceKind(kind);
-        return sourceKind == null ? null : ElementIcons.iconFor(sourceKind, typeKind(kind), modifiers);
+        return sourceKind == null ? null : ElementIcons.iconFor(sourceKind, typeKind(kind), SourceModifiers.fromBits(modifiers));
     }
 
     static ImageView elementIcon(ElementKind kind, int modifiers) {
         SourceElementKind sourceKind = sourceKind(kind);
-        return sourceKind == null ? null : ElementIcons.iconViewFor(sourceKind, typeKind(kind), modifiers);
+        return sourceKind == null ? null : ElementIcons.iconViewFor(sourceKind, typeKind(kind), SourceModifiers.fromBits(modifiers));
     }
 
     private static SourceElementKind sourceKind(ElementKind kind) {

@@ -23,6 +23,7 @@ import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
 
@@ -139,7 +140,7 @@ final class CssBreadcrumbsScanner {
     /** Converts the mutable node tree into the immutable {@code Rules} breadcrumb root. */
     private static List<BreadcrumbElement> toElements(Node sheetRoot) {
         SimpleBreadcrumbElement root = SimpleBreadcrumbElement.root(sheetRoot.label,
-                sheetRoot.start, sheetRoot.end, SourceElementKind.PACKAGE, null, 0);
+                sheetRoot.start, sheetRoot.end, SourceElementKind.PACKAGE, null, ElementModifiers.NONE);
         addChildren(root, sheetRoot);
         return List.of(root);
     }
@@ -147,7 +148,7 @@ final class CssBreadcrumbsScanner {
     private static void addChildren(SimpleBreadcrumbElement parent, Node node) {
         for (Node child : node.children) {
             addChildren(parent.addChild(child.label, child.start, child.end,
-                    SourceElementKind.RULE, null, 0), child);
+                    SourceElementKind.RULE, null, ElementModifiers.NONE), child);
         }
     }
 }

@@ -23,6 +23,7 @@ import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.lexer.Token;
 import org.netbeans.api.lexer.TokenHierarchy;
@@ -179,7 +180,7 @@ final class XmlBreadcrumbsScanner {
         List<BreadcrumbElement> roots = new ArrayList<>();
         for (Node node : documentRoot.children) {
             SimpleBreadcrumbElement root = SimpleBreadcrumbElement.root(node.label(),
-                    node.start, node.end, SourceElementKind.TAG, null, 0);
+                    node.start, node.end, SourceElementKind.TAG, null, ElementModifiers.NONE);
             addChildren(root, node);
             roots.add(root);
         }
@@ -189,7 +190,7 @@ final class XmlBreadcrumbsScanner {
     private static void addChildren(SimpleBreadcrumbElement parent, Node node) {
         for (Node child : node.children) {
             addChildren(parent.addChild(child.label(), child.start, child.end,
-                    SourceElementKind.TAG, null, 0), child);
+                    SourceElementKind.TAG, null, ElementModifiers.NONE), child);
         }
     }
 

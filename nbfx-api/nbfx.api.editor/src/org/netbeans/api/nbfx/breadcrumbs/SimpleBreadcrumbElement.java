@@ -18,6 +18,7 @@
  */
 package org.netbeans.api.nbfx.breadcrumbs;
 
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.language.SourceTypeKind;
 
@@ -42,13 +43,13 @@ public final class SimpleBreadcrumbElement implements BreadcrumbElement {
     private final int endOffset;
     private final SourceElementKind kind;
     private final SourceTypeKind typeKind;
-    private final int modifiers;
+    private final ElementModifiers modifiers;
     private final SimpleBreadcrumbElement parent;
     private final List<BreadcrumbElement> children = new ArrayList<>();
 
     private SimpleBreadcrumbElement(String label, int startOffset, int endOffset,
                                     SourceElementKind kind, SourceTypeKind typeKind,
-                                    int modifiers, SimpleBreadcrumbElement parent) {
+                                    ElementModifiers modifiers, SimpleBreadcrumbElement parent) {
         this.label = Objects.requireNonNull(label, "label must not be null");
         if (startOffset < 0) {
             throw new IllegalArgumentException("startOffset out of bounds: " + startOffset);
@@ -60,7 +61,7 @@ public final class SimpleBreadcrumbElement implements BreadcrumbElement {
         this.endOffset = endOffset;
         this.kind = kind == null ? SourceElementKind.OTHER : kind;
         this.typeKind = typeKind == null ? SourceTypeKind.OTHER : typeKind;
-        this.modifiers = modifiers;
+        this.modifiers = modifiers == null ? ElementModifiers.NONE : modifiers;
         this.parent = parent;
     }
 
@@ -72,12 +73,12 @@ public final class SimpleBreadcrumbElement implements BreadcrumbElement {
      * @param endOffset end offset from document start
      * @param kind semantic category, {@code null} defaults to {@link SourceElementKind#OTHER}
      * @param typeKind type hint, {@code null} defaults to {@link SourceTypeKind#OTHER}
-     * @param modifiers modifier bit mask, compatible with {@link java.lang.reflect.Modifier}
+     * @param modifiers neutral modifiers
      * @return new root element
      */
     public static SimpleBreadcrumbElement root(String label, int startOffset, int endOffset,
                                                SourceElementKind kind, SourceTypeKind typeKind,
-                                               int modifiers) {
+                                               ElementModifiers modifiers) {
         return new SimpleBreadcrumbElement(label, startOffset, endOffset, kind, typeKind, modifiers, null);
     }
 
@@ -89,12 +90,12 @@ public final class SimpleBreadcrumbElement implements BreadcrumbElement {
      * @param endOffset end offset from document start
      * @param kind semantic category, {@code null} defaults to {@link SourceElementKind#OTHER}
      * @param typeKind type hint, {@code null} defaults to {@link SourceTypeKind#OTHER}
-     * @param modifiers modifier bit mask, compatible with {@link java.lang.reflect.Modifier}
+     * @param modifiers neutral modifiers
      * @return the newly created child element
      */
     public SimpleBreadcrumbElement addChild(String label, int startOffset, int endOffset,
                                             SourceElementKind kind, SourceTypeKind typeKind,
-                                            int modifiers) {
+                                            ElementModifiers modifiers) {
         SimpleBreadcrumbElement child =
                 new SimpleBreadcrumbElement(label, startOffset, endOffset, kind, typeKind, modifiers, this);
         children.add(child);
@@ -137,7 +138,7 @@ public final class SimpleBreadcrumbElement implements BreadcrumbElement {
     }
 
     @Override
-    public int modifiers() {
+    public ElementModifiers modifiers() {
         return modifiers;
     }
 
