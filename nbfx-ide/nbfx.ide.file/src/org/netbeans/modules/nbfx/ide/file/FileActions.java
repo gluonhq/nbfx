@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.file;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,16 +58,16 @@ public final class FileActions {
     public FileActions() {
         FileUndoManager undo = FileUndoManager.getDefault();
 
-        copyCommand = new ContextAction(ActionIds.FILE_COPY, message("CTL_FileCopy"), shortcut(KeyCode.C),
+        copyCommand = new ContextAction(IdeActionIds.FILE_COPY, message("CTL_FileCopy"), shortcut(KeyCode.C),
                 FileActions::canCopyCut, FileActions::copy, FileObject.class, ViewProvider.class);
-        cutCommand = new ContextAction(ActionIds.FILE_CUT, message("CTL_FileCut"), shortcut(KeyCode.X),
+        cutCommand = new ContextAction(IdeActionIds.FILE_CUT, message("CTL_FileCut"), shortcut(KeyCode.X),
                 FileActions::canCopyCut, FileActions::cut, FileObject.class, ViewProvider.class);
-        pasteCommand = new ContextAction(ActionIds.FILE_PASTE, message("CTL_FilePaste"), shortcut(KeyCode.V),
+        pasteCommand = new ContextAction(IdeActionIds.FILE_PASTE, message("CTL_FilePaste"), shortcut(KeyCode.V),
                 FileActions::canPaste, FileActions::paste, FileObject.class, ViewProvider.class);
-        undoCommand = RunnableCommand.enabledWhen(ActionIds.FILE_UNDO, message("CTL_FileUndo"),
+        undoCommand = RunnableCommand.enabledWhen(IdeActionIds.FILE_UNDO, message("CTL_FileUndo"),
                 new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN),
                 undo.canUndoProperty(), undo::undo);
-        redoCommand = RunnableCommand.enabledWhen(ActionIds.FILE_REDO, message("CTL_FileRedo"),
+        redoCommand = RunnableCommand.enabledWhen(IdeActionIds.FILE_REDO, message("CTL_FileRedo"),
                 new KeyCodeCombination(KeyCode.Z, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
                 undo.canRedoProperty(), undo::redo);
     }

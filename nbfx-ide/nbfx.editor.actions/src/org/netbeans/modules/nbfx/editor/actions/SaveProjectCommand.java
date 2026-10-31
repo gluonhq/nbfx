@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.editor.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
@@ -50,7 +52,7 @@ class SaveProjectCommand extends SaveDocumentsCommand {
      * @param projectPath the path of the project to save, following the selection
      */
     SaveProjectCommand(EditorContext context, ObservableValue<String> projectPath) {
-        super(ActionIds.SAVE_PROJECT,
+        super(IdeActionIds.SAVE_PROJECT,
                 NbBundle.getMessage(SaveProjectCommand.class, "CTL_SaveProjectCommand"), null, context);
         this.projectPath = projectPath;
         projectPath.addListener((obs, old, now) -> updateDisabled());

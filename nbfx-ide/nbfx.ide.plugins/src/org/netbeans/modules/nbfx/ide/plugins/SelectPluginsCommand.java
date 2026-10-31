@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.plugins;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.openide.util.NbBundle;
@@ -26,7 +28,7 @@ import org.openide.util.NbBundle;
 final class SelectPluginsCommand extends AbstractCommand {
 
     SelectPluginsCommand() {
-        super(ActionIds.SELECT_PLUGINS,
+        super(IdeActionIds.SELECT_PLUGINS,
                 NbBundle.getMessage(SelectPluginsCommand.class, "CTL_SelectPluginsCommand"), null, false);
     }
 

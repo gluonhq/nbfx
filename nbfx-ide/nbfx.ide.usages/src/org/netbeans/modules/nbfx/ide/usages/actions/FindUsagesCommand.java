@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.actions.AbstractCommand;
@@ -44,7 +46,7 @@ import org.openide.util.NbBundle;
  * handles the active file. Its code editor context menu entry
  * ({@code NbFx/ContextMenus/Editor/findUsages.ref}) is registered here.
  */
-@ActionReference(id = ActionIds.FIND_USAGES, path = "ContextMenus/Editor", position = 140, separatorBefore = true)
+@ActionReference(id = IdeActionIds.FIND_USAGES, path = "ContextMenus/Editor", position = 140, separatorBefore = true)
 final class FindUsagesCommand extends AbstractCommand {
 
     private static final Logger LOG = Logger.getLogger(FindUsagesCommand.class.getName());
@@ -55,7 +57,7 @@ final class FindUsagesCommand extends AbstractCommand {
     private final Subscription subscription;
 
     FindUsagesCommand(ObservableValue<EditorDocument> activeDocument, UsagesModel model) {
-        super(ActionIds.FIND_USAGES, NbBundle.getMessage(FindUsagesCommand.class, "CTL_FindUsagesCommand"),
+        super(IdeActionIds.FIND_USAGES, NbBundle.getMessage(FindUsagesCommand.class, "CTL_FindUsagesCommand"),
                 SHORTCUT);
         this.activeDocument = activeDocument;
         this.model = model;

@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.java.navigation;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionLayerReader;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
@@ -274,7 +276,7 @@ final class NavigatorContextMenuFactory<T> {
         item.setOnAction(e -> {
             // Save Project acts on the selected project, so the clicked one is selected first.
             Projects.select(root);
-            runCommand(ActionIds.SAVE_PROJECT);
+            runCommand(IdeActionIds.SAVE_PROJECT);
         });
         return item;
     }
@@ -294,14 +296,14 @@ final class NavigatorContextMenuFactory<T> {
         item.setOnAction(e -> {
             // Close Project acts on the selected project, so the clicked one is selected first.
             Projects.select(root);
-            runCommand(ActionIds.CLOSE_PROJECT);
+            runCommand(IdeActionIds.CLOSE_PROJECT);
         });
         return item;
     }
 
     private static MenuItem closeAllItem() {
         MenuItem item = new MenuItem(message("ContextMenu.closeAll"));
-        item.setOnAction(e -> runCommand(ActionIds.CLOSE_ALL_PROJECTS));
+        item.setOnAction(e -> runCommand(IdeActionIds.CLOSE_ALL_PROJECTS));
         return item;
     }
 
