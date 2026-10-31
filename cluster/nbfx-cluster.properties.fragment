@@ -69,6 +69,7 @@ nb.cluster.nbfx-platform=\
         nbfx.platform.editor,\
         nbfx.platform.macos,\
         nbfx.platform.menus,\
+        nbfx.platform.nodes,\
         nbfx.platform.options,\
         nbfx.platform.output,\
         nbfx.platform.progress,\
@@ -106,7 +107,6 @@ nb.cluster.nbfx-ide=\
         nbfx.project.context,\
         nbfx.project.ui,\
         nbfx.project.ui.api,\
-        nbfx.propertysheet,\
         nbfx.ui
 
 # --- nbfx-java: FX replacements for java/ + extide/ project types -------------

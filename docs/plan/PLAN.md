@@ -325,7 +325,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 | `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | new |
 | `platform.settings` | settings storage UI (preferences browser, export/import) | new |
 | `platform.options` | options window (categories, tabs, search, validity) | replaces `nbfx.options` UI |
-| `platform.nodes` | FX node views + property sheet on `api.nodes`/`api.property` | new (merges `nbfx.nodes.ui` + `nbfx.propertysheet`); the property sheet moves out of `nbfx-ide`; the single construction site of `TreeView`/`TableView` — [Appendix F](appendix/F-node-and-view-migration.md) |
+| `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | landed for the property sheet (moved from `nbfx-ide`); node views still planned; the single construction site of `TreeView`/`TableView` — [Appendix F](appendix/F-node-and-view-migration.md) |
 | `platform.output` | output window view on `api.output` | replaces `nbfx.output` |
 | `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | new |
 | `platform.terminal` | VT/xterm model + FX renderer + tabs | new |
@@ -442,7 +442,7 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Options | `platform.options` + `api.options` | landed |
 | Settings | `platform.settings` + `api.settings` | planned |
 | Wizards | `platform.wizard` + `api.wizard` | landed |
-| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | `nbfx.propertysheet` in `nbfx-ide`; nodes planned |
+| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; nodes planned; IDE project/editor contributors in `ide.workbench` |
 | Dialogs, notifications | `platform.dialogs` + `api.dialogs` | API landed; platform planned |
 | Progress | `platform.progress` + `api.progress` | landed |
 | Output | `platform.output` + `api.output` | platform landed; API planned |
@@ -496,7 +496,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx.launcher` | `platform.launcher` (generic lifecycle) + IDE scenario/contribution module |
 | `nbfx.macos` | `platform.macos` |
 | `libs.nbfx.javafx` | `libs.javafx` |
-| `nbfx.propertysheet` | `platform.nodes` (generic FX sheet) + `api.property` (editor SPI) + `api.nodes` (model); the project-specific `PropertiesView` contributor → `ide.workbench` |
+| `nbfx.propertysheet` | `platform.nodes` (generic FX sheet) + `api.property` (editor SPI) + `api.nodes` (model); project/editor property contributors → `ide.workbench` (landed) |
 | `nbfx.project` (wizards) | `ide.project.ui` |
 | `nbfx.project.ui`, `nbfx.project.actions` | `ide.project.ui`, `ide.project.actions` |
 | `nbfx.project.ui.api` | `api.project` (kind + identity), `api.build` (build/run), UI → `ide.project.ui` |
