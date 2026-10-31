@@ -43,10 +43,11 @@
 
 **Where to start**
 
-1. [`PLAN.md`](PLAN.md) §1–§5 — what nbfx is, the layers, the naming and the API rules.
-2. [`PLAN.md`](PLAN.md) §6 — the module you are looking for (catalogue per cluster).
+1. [`PLAN.md`](PLAN.md) §1–§5 — what nbfx is, the two deliverables, the layers, the naming and the API rules.
+2. [`PLAN.md`](PLAN.md) §6 — the module you are looking for; §6.6 is the AppShell inventory, API placement and the two deliverables.
 3. [`PLAN.md`](PLAN.md) §10–§11 — the milestone you are in and the workstream to pick.
 4. The archived research when you need the NetBeans evidence for a decision.
 
-**Current state.** Milestones and exit criteria are in §10; the workstream branch families are in §11.
-Nothing in `archive/` is part of the plan; when the plan and a document disagree, the plan wins.
+**Current state.** W0, W1, W1.5 and W1.6 are on `main`; the next step is W1.7 (platform boundary and API
+clusters). Milestones and exit criteria are in §10; the workstream branch families are in §11. Nothing in
+`archive/` is part of the plan; when the plan and a document disagree, the plan wins.

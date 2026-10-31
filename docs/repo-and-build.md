@@ -33,9 +33,10 @@ nbfx/
 ├── nbfx-local.properties         # optional local overrides (not committed)
 ├── .gitmodules                   # netbeans submodule
 ├── netbeans/                     # submodule → apache/netbeans @ pinned SHA
-├── nbfx-platform/                # 13 FX modules (platform/ replacements)
-├── nbfx-ide/                     # 19 FX modules (ide/ replacements + app shell)
-├── nbfx-java/                    #  6 FX modules (java/ + extide/ project types)
+├── nbfx-api/                     # transitional API cluster (dissolves into domain clusters, PLAN §6.6)
+├── nbfx-platform/                # AppShell + platform modules
+├── nbfx-ide/                     # IDE modules + IDE contributions to the AppShell
+├── nbfx-java/                    # Java/JVM usage
 ├── cluster/
 │   └── nbfx-cluster.properties.fragment   # nb.cluster.nbfx-* + clusters.config.nbfx.list
 ├── patches/                      # upstream patch set (see §4)
@@ -93,8 +94,10 @@ and vice versa.
    (`-define-cluster-path` builds `cluster.path` from it; packaging targets too). An external
    `-Dclusters.list.file` alone is not sufficient.
 
-The fragment defines the five clusters (dependency direction `nbfx-libs → nbfx-api → nbfx-platform →
-nbfx-ide → nbfx-java`) and the lean `clusters.config.nbfx.list`:
+The fragment currently defines five clusters (dependency direction `nbfx-libs → nbfx-api → nbfx-platform →
+nbfx-ide → nbfx-java`) and the lean `clusters.config.nbfx.list`. The target has no `nbfx-api` cluster: APIs
+live in their domain cluster (PLAN §2/§6.6, `refactor/api-clusters`). This section describes the current
+build until that step lands.
 
 ```
 nb.cluster.nbfx-libs.dir=nbfx-libs           no cluster dependency
@@ -127,7 +130,7 @@ hooks.
 | `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>org.netbeans.modules.nbfx.launcher</friend>` (RunLevel SPI) |
 | `0002-friend-maven` | `java/maven/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
 | `0003-friend-maven-embedder` | `java/maven.embedder/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
-| `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-api`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` |
+| `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-api`, `nbfx-platform`, `nbfx-ide`, `nbfx-java`; drop `nbfx-api` when W1.7 lands |
 | `0011-tryme-clusters` | `nbbuild/build.xml` | `tryme` passes `--clusters` from `clusters.config.nbfx.list` + JMS flags |
 | `0012-ignored-binaries` | `nbbuild/antsrc/…/extlibs/ignored-binaries` | allow the bundled JavaFX jars **and native libs** |
 | `0013-rat-exclusions` | `nbbuild/rat-exclusions.txt` | exclude the nbfx dirs from Rat |
@@ -168,12 +171,12 @@ be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
 `test/unit/src` are a no-op. It expects an existing distribution (`ant build` once) and uses the same
 headless test properties as the module tests. All modules run even after a failure; `TestResults` then
 checks every module's JUnit XML and fails once at the end, so CI can upload the complete result set.
-Narrow the run for the local loop with `-Dtest.modules=nbfx-api/*` or
-`-Dtest.modules=nbfx-platform/*`. The launcher's headless scenario is part of this suite; CI does not run
-it a second time.
+Narrow the run for the local loop with `-Dtest.modules=nbfx-platform/*` or
+`-Dtest.modules=nbfx-ide/*`. The IDE's headless scenario is part of this suite (it moves to the IDE test
+module when the launcher moves to the platform in W1.7); CI does not run it a second time.
 
 `build` and `run` depend on `bootstrap`, so they re-run the overlay first: edits in the outer
-`nbfx-platform/`, `nbfx-ide/` and `nbfx-java/` directories are synced into `netbeans/` automatically on
+`nbfx-*` cluster directories are synced into `netbeans/` automatically on
 every build. `run` does not depend on `build`: it launches whatever is in the dist.
 
 ### Windows
