@@ -98,7 +98,7 @@ public final class NamespaceGuard {
         }
 
         Matcher publicPackages = PUBLIC_PACKAGES.matcher(xml);
-        if (publicPackages.find() && cluster.getFileName().toString().equals("nbfx-api")) {
+        if (publicPackages.find() && moduleName.startsWith("nbfx.api.")) {
             Matcher pkg = PACKAGE_ELEMENT.matcher(publicPackages.group(1));
             while (pkg.find()) {
                 String name = pkg.group(1).trim();
