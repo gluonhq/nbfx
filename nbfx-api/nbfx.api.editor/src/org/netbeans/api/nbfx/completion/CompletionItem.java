@@ -18,8 +18,8 @@
  */
 package org.netbeans.api.nbfx.completion;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 
 /**
  * Describes one completion entry. Implementations should define the content for such entry

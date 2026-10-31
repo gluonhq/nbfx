@@ -20,8 +20,8 @@ package org.netbeans.modules.nbfx.java.navigation.structure.model;
 
 import org.netbeans.modules.nbfx.java.model.InMemorySources;
 import org.netbeans.api.nbfx.editor.OpenSources;
-import org.netbeans.api.nbfx.elements.SourceModifiers;
-import org.netbeans.api.nbfx.elements.SourceLocation;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
+import org.netbeans.api.nbfx.language.SourceLocation;
 import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;

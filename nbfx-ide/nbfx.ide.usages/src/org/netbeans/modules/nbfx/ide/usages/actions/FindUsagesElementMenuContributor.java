@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.ide.usages.actions;
 
 import org.netbeans.api.nbfx.actions.ElementContextMenuContributor;
-import org.netbeans.api.nbfx.elements.SourceLocation;
+import org.netbeans.api.nbfx.language.SourceLocation;
 import org.netbeans.modules.nbfx.ide.usages.model.UsagesModel;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

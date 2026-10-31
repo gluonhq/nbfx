@@ -44,7 +44,7 @@ So a new language (or your own XML/CSS split) edits `platform.editor`. That is t
 |---|---|---|
 | **L1** | the language seam is a `switch` in the core, not an SPI | `SyntaxDecorators.java:20-30`, `EditorBuffer.java:125`; `api.editor` has no decoration SPI |
 | **L2** | provider SPIs carry no language/content-type scope, and registration is global | `api.editor`, `api.completion`, `api.breadcrumbs`, `api.usages`, `api.editor.intelligence` providers have no `LanguageId`; `CompletionController.java:305` does `Lookup.getDefault().lookupAll(CompletionProvider.class)` with no language filter, and the Java providers are plain `@ServiceProvider` (`JavaLexicalCompletionProvider.java:77`, `JavaSemanticCompletionProvider.java:180`) |
-| **L3** | `api.elements` is Java wearing a neutral name, in the platform cluster | `SourceModifiers.toModifierBits` returns `java.lang.reflect.Modifier` bits and matches `javax.lang.model.element.Modifier` by name (`SourceModifiers.java:19-24`); `SourceElementKind`/`SourceTypeKind` encode Java kinds |
+| **L3** | `api.elements` is Java wearing a neutral name, in the platform cluster | `SourceModifiers.toModifierBits` returned `java.lang.reflect.Modifier` bits and matched `javax.lang.model.element.Modifier` by name (`SourceModifiers.java:19-24`); `SourceElementKind`/`SourceTypeKind` encode Java kinds. **Resolved by `refactor/api-elements-split`:** neutral kinds/location/modifiers live in `api.language`, Java conversions in `java.elements`, FX icons in `api.editor`. |
 | **L4** | non-Java capabilities have no home | no `api.servers`/`api.deploy`; `api.build` assumes a build (PHP has none); `libs.*` has no language-runtime policy ([Appendix G](G-licences-and-notices.md)) |
 | **L5** | no structure/navigator SPI | `api.editor.intelligence` lists goto/hierarchy/usages/hints/refactoring/codegen but **no `StructureProvider`**; `ide.structure`/`java.structure` have no published contract, so a language cannot contribute a structure view |
 | **L6** | the usages *request* is Java-hardcoded | `api.usages` has the results (`UsagesProvider`, `UsageResult`, `UsageKind`) but no target; today's request imports `com.sun.source.*`, `javax.lang.model.element.*`, `ElementHandle`, `TreeUtilities` (`nbfx.findusages/query/UsagesTarget.java:3-20`) |
@@ -164,8 +164,9 @@ the headless half of `groovy/groovy.editor` (I.5) is the additional reusable sur
    conformance test: **XML and CSS are modules, and `platform.editor` contains no language branch.**
 2. `feature/language-conformance` (W1/W2): the **fake-language fixture** in CI — the automated proof of the core
    freeze (I.4).
-3. `api.elements` is split per I.3 (Decision 20); the Java vocabulary moves to `java.elements`; handles are
-   language-defined strings; the unknown language falls back to **plain text** (L7).
+3. `api.elements` is split per I.3 (Decision 20): neutral kinds/location/modifiers to `api.language`, Java
+   conversions to `java.elements`, FX icons to `api.editor`; handles are language-defined strings; the
+   unknown language falls back to **plain text** (L7).
 4. Two SPIs are added: `StructureProvider` ([§6.1](../PLAN.md)) and `UsagesTarget` (L5, L6).
 5. Language-scoped registration is normative (I.3, [Appendix E.6.1](E-contracts.md)); the host never does a
    global `lookupAll` on a language provider.

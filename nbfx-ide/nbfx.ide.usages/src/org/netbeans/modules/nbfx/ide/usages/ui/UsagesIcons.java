@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.ui;
 
-import org.netbeans.api.nbfx.elements.ElementIcons;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
+import org.netbeans.api.nbfx.editor.ElementIcons;
+import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.file.FileIconProvider;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.netbeans.api.nbfx.project.ProjectIconProvider;

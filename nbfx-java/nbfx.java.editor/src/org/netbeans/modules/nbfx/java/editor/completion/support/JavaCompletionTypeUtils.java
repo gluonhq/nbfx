@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.editor.completion.support;
 
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.java.source.CompilationController;
 
 import javax.lang.model.element.TypeElement;

@@ -51,8 +51,8 @@ nb.cluster.nbfx-api=\
         nbfx.api.actions,\
         nbfx.api.dialogs,\
         nbfx.api.editor,\
-        nbfx.api.elements,\
         nbfx.api.file,\
+        nbfx.api.language,\
         nbfx.api.layer,\
         nbfx.api.options,\
         nbfx.api.progress,\
@@ -125,6 +125,7 @@ nb.cluster.nbfx-java.depends=\
 nb.cluster.nbfx-java=\
         nbfx.java.build.ant,\
         nbfx.java.editor,\
+        nbfx.java.elements,\
         nbfx.java.gradle,\
         nbfx.java.gradle.structure,\
         nbfx.java.j2seproject,\

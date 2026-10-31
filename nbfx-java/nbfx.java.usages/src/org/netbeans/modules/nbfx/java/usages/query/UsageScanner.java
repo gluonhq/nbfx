@@ -18,9 +18,10 @@
  */
 package org.netbeans.modules.nbfx.java.usages.query;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceModifiers;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.ElementModifiers;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.usages.EnclosingElement;
 import org.netbeans.api.nbfx.usages.Usage;
@@ -478,7 +479,7 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
             if (kind == Tree.Kind.BLOCK) {
                 boolean isStatic = ((BlockTree) leaf).isStatic();
                 result.add(0, new EnclosingElement(SourceElementKind.OTHER, SourceTypeKind.OTHER,
-                        isStatic ? "<static init>" : "<init>", 0));
+                        isStatic ? "<static init>" : "<init>", ElementModifiers.NONE));
                 continue;
             }
             Element element = trees.getElement(current);
@@ -491,7 +492,7 @@ final class UsageScanner extends TreePathScanner<Void, Void> {
             }
             result.add(0, new EnclosingElement(sourceKind(element.getKind()),
                     SourceTypeKind.from(element.getKind().name()), name,
-                    SourceModifiers.toModifierBits(element.getModifiers())));
+                    SourceModifiers.toElementModifiers(element.getModifiers())));
         }
         return result;
     }

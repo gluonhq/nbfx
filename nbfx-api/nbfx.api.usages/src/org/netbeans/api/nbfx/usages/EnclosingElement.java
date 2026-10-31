@@ -18,8 +18,9 @@
  */
 package org.netbeans.api.nbfx.usages;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.ElementModifiers;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 
 /**
  * One declaration enclosing a usage, outermost first in {@link UsageContext#enclosing()}: a type,
@@ -30,7 +31,8 @@ import org.netbeans.api.nbfx.elements.SourceTypeKind;
  *                   {@link SourceTypeKind#OTHER}
  * @param name       the display name: the simple type name, {@code method(ParamType, ...)} for
  *                   executables, the field name
- * @param modifiers  the declaration's modifiers as {@link java.lang.reflect.Modifier} bits, for its icon
+ * @param modifiers  the declaration's neutral modifiers, for its icon
  */
-public record EnclosingElement(SourceElementKind kind, SourceTypeKind typeKind, String name, int modifiers) {
+public record EnclosingElement(SourceElementKind kind, SourceTypeKind typeKind, String name,
+        ElementModifiers modifiers) {
 }

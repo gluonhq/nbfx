@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.java.navigation.structure.model;
 
 import org.netbeans.modules.nbfx.java.model.InMemorySources;
 import org.netbeans.api.nbfx.progress.Cancellation;
-import org.netbeans.api.nbfx.elements.SourceModifiers;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.MemberNode.Segment;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;

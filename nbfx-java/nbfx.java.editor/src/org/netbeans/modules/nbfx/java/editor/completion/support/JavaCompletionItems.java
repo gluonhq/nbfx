@@ -19,9 +19,10 @@
 package org.netbeans.modules.nbfx.java.editor.completion.support;
 
 import org.netbeans.api.nbfx.completion.CompletionItem;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.nbfx.completion.SimpleCompletionItem;
+import org.netbeans.api.nbfx.java.elements.JavaElementTypes;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
@@ -30,7 +31,7 @@ import javax.lang.model.util.Elements;
 import java.lang.reflect.Modifier;
 import java.util.Locale;
 
-import static org.netbeans.api.nbfx.elements.SourceModifiers.toModifierBits;
+import static org.netbeans.api.nbfx.java.elements.SourceModifiers.toModifierBits;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.isDeprecated;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.simpleName;
 import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItemUtils.simpleTypeName;
@@ -192,7 +193,7 @@ public final class JavaCompletionItems {
         return new SimpleCompletionItem(simpleName, insert, simpleName,
                 computePriority(PRIORITY_IMPORT_TYPE, simpleName, prefix),
                 simpleName, rightText, SourceElementKind.TYPE,
-                runtime != null ? SourceTypeKind.from(runtime) : SourceTypeKind.OTHER,
+                runtime != null ? JavaElementTypes.from(runtime) : SourceTypeKind.OTHER,
                 runtime != null ? runtime.getModifiers() : 0,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class));
     }
@@ -217,7 +218,7 @@ public final class JavaCompletionItems {
         return typeItem(simpleName,
                 computePriority(PRIORITY_NEW_TYPE, simpleName, prefix),
                 rightText,
-                runtime != null ? SourceTypeKind.from(runtime) : SourceTypeKind.OTHER,
+                runtime != null ? JavaElementTypes.from(runtime) : SourceTypeKind.OTHER,
                 runtime != null ? runtime.getModifiers() : 0,
                 false, runtime != null && runtime.isAnnotationPresent(Deprecated.class),
                 fqcn);
