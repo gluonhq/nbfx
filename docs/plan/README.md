@@ -48,6 +48,7 @@
 3. [`PLAN.md`](PLAN.md) §10–§11 — the milestone you are in and the workstream to pick.
 4. The archived research when you need the NetBeans evidence for a decision.
 
-**Current state.** W0, W1, W1.5 and W1.6 are on `main`; the next step is W1.7 (platform boundary and API
-clusters). Milestones and exit criteria are in §10; the workstream branch families are in §11. Nothing in
-`archive/` is part of the plan; when the plan and a document disagree, the plan wins.
+**Current state.** W0, W1, W1.5 and W1.6 are on `main`. The W1.7 API slices (element vocabulary, editor
+project neutralization, navigator/action ids, API clusters) are landing; the next step is
+`refactor/appshell-boundary`. Milestones and exit criteria are in §10; the workstream branch families are in
+§11. Nothing in `archive/` is part of the plan; when the plan and a document disagree, the plan wins.

@@ -35,8 +35,8 @@
 <project basedir="." default="check-purity" name="nbfx-purity">
 
     <property name="nbfx.purity.strict" value="false"/>
-    <property name="nbfx.src.pattern" value="nbfx-libs/*/src/**/*.java,nbfx-api/*/src/**/*.java,nbfx-platform/*/src/**/*.java,nbfx-ide/*/src/**/*.java,nbfx-java/*/src/**/*.java"/>
-    <property name="nbfx.deps.pattern" value="nbfx-libs/*/nbproject/project.xml,nbfx-api/*/nbproject/project.xml,nbfx-platform/*/nbproject/project.xml,nbfx-ide/*/nbproject/project.xml,nbfx-java/*/nbproject/project.xml"/>
+    <property name="nbfx.src.pattern" value="nbfx-libs/*/src/**/*.java,nbfx-platform/*/src/**/*.java,nbfx-ide/*/src/**/*.java,nbfx-java/*/src/**/*.java"/>
+    <property name="nbfx.deps.pattern" value="nbfx-libs/*/nbproject/project.xml,nbfx-platform/*/nbproject/project.xml,nbfx-ide/*/nbproject/project.xml,nbfx-java/*/nbproject/project.xml"/>
     <property name="nbfx.jar.pattern" value="org-netbeans-modules-nbfx-*.jar,org-netbeans-libs-nbfx-*.jar"/>
     <property name="nbfx.dist.dir" value="netbeans/nbbuild/netbeans"/>
 
@@ -93,7 +93,7 @@
         <apply executable="${java.home}/bin/jar" outputproperty="nbfx.jar.contents"
                failonerror="false" parallel="false" dir="${basedir}">
             <fileset dir="${nbfx.dist.dir}/nbfx-libs/modules" includes="${nbfx.jar.pattern}"/>
-            <fileset dir="${nbfx.dist.dir}/nbfx-api/modules" includes="${nbfx.jar.pattern}"/>
+
             <fileset dir="${nbfx.dist.dir}/nbfx-platform/modules" includes="${nbfx.jar.pattern}"/>
             <fileset dir="${nbfx.dist.dir}/nbfx-ide/modules" includes="${nbfx.jar.pattern}"/>
             <fileset dir="${nbfx.dist.dir}/nbfx-java/modules" includes="${nbfx.jar.pattern}"/>
@@ -121,7 +121,7 @@
             <fileset dir="${nbfx.dist.dir}">
                 <include name="platform/modules/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-libs/modules/org-netbeans-core-windows*.jar"/>
-                <include name="nbfx-api/modules/org-netbeans-core-windows*.jar"/>
+
                 <include name="nbfx-platform/modules/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-ide/modules/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-java/modules/org-netbeans-core-windows*.jar"/>
@@ -131,7 +131,7 @@
                 <include name="apisupport/modules/org-netbeans-core-windows*.jar"/>
                 <include name="platform/modules/locale/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-libs/modules/locale/org-netbeans-core-windows*.jar"/>
-                <include name="nbfx-api/modules/locale/org-netbeans-core-windows*.jar"/>
+
                 <include name="nbfx-platform/modules/locale/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-ide/modules/locale/org-netbeans-core-windows*.jar"/>
                 <include name="nbfx-java/modules/locale/org-netbeans-core-windows*.jar"/>
@@ -190,8 +190,24 @@
         <echo message="[purity] language violations: ${languages.violations}"/>
     </target>
 
-    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-namespace,check-baseline,check-logging,check-languages,check-dependencies,check-jars,check-packaging">
-        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${namespace.violations} namespace, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
+    <target name="check-layers">
+        <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="layers.result">
+            <arg value="nbfx-tests/tools/LayerGuard.java"/><arg value="${basedir}"/><arg value="--layers"/>
+        </exec>
+        <condition property="layers.violations" value="1" else="0"><not><equals arg1="${layers.result}" arg2="0"/></not></condition>
+        <echo message="[purity] layer violations: ${layers.violations}"/>
+    </target>
+
+    <target name="check-api-isolation">
+        <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="api.result">
+            <arg value="nbfx-tests/tools/LayerGuard.java"/><arg value="${basedir}"/><arg value="--api"/>
+        </exec>
+        <condition property="api.violations" value="1" else="0"><not><equals arg1="${api.result}" arg2="0"/></not></condition>
+        <echo message="[purity] API isolation violations: ${api.violations}"/>
+    </target>
+
+    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-namespace,check-baseline,check-logging,check-languages,check-layers,check-api-isolation,check-dependencies,check-jars,check-packaging">
+        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${namespace.violations} namespace, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${layers.violations} layer, ${api.violations} API isolation, ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
             <condition>
                 <and>
                     <equals arg1="${nbfx.purity.strict}" arg2="true"/>
@@ -200,6 +216,8 @@
                         <not><equals arg1="${baseline.violations}" arg2="0"/></not>
                         <not><equals arg1="${logging.violations}" arg2="0"/></not>
                         <not><equals arg1="${languages.violations}" arg2="0"/></not>
+                        <not><equals arg1="${layers.violations}" arg2="0"/></not>
+                        <not><equals arg1="${api.violations}" arg2="0"/></not>
                         <not><equals arg1="${dep.violations}" arg2="0"/></not>
                         <not><equals arg1="${naming.violations}" arg2="0"/></not>
                         <not><equals arg1="${namespace.violations}" arg2="0"/></not>
