@@ -1067,6 +1067,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #70 | `ci/all-unit-tests` | W1.5 landed |
 | #71, #72 | module and package namespace moves | W1.6 landed |
 
-**Current status:** W0, W1, W1.5 and W1.6 are on `main`. The next step is **W1.7 — platform boundary and API
-clusters**, then W2 governance. The module and source counts are in [`figures.md`](figures.md), not in this
-table.
+**Current status:** W0, W1, W1.5 and W1.6 are on `main`. W1.7 is implemented in the stacked PRs #74–#78
+(element vocabulary, editor project neutralization, navigator/action ids and API clusters); once they merge,
+the next step is **`refactor/appshell-boundary`**. The module and source counts are in
+[`figures.md`](figures.md), not in this table.
