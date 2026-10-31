@@ -271,7 +271,7 @@ The table is the API **catalogue**, not a cluster: each module lives in its doma
 
 | Module | Tier | Contents |
 |---|---|---|
-| `api.actions` | T2-FX | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, `ActionIds` |
+| `api.actions` | T2-FX | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
 | `api.views` | T2-FX | `ViewProvider`, `ViewManager`, `DockLocation`, `@ViewRegistration`, `ViewLocation`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
 | `api.status` | T2-FX | `StatusElement`, `@StatusRegistration`, `StatusAlignment` |
 | `api.dialogs` | T2-FX | `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` (notification line, toasts) |
@@ -317,7 +317,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
 | `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; absorbs the generic context services from `nbfx.ui.context` |
-| `platform.menus` | menu/toolbar/context-menu assembly from the layer | replaces `nbfx.menus` |
+| `platform.menus` | generic menu layout; IDE entries are contributed by `ide.workbench.IdeMenus` | replaces `nbfx.menus` |
 | `platform.status` | status bar + element rendering | replaces `nbfx.statusbar` |
 | `platform.dialogs` | dialog host, notification line, toasts, exception reporting | new (was planned) |
 | `platform.progress` | progress UI (status line, all-tasks popup, task details) | replaces `nbfx.progress` (landed, PR #2 — §18) |
@@ -346,7 +346,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators, project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope | new; project-aware editor scope landed in W1.7; the IDE is the AppShell's primary consumer |
+| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators (`NavigatorView`), project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope, `IdeActionIds` and `IdeMenus` | new; project-aware editor scope, navigator view and IDE action/menu vocabulary landed in W1.7; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
@@ -436,7 +436,7 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; shell in `nbfx.ui` |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | generic parts in `nbfx.ui.context`; must move |
-| Menus, toolbars, context menus | `platform.menus` | landed |
+| Menus, toolbars, context menus | `platform.menus` (generic layout) + `ide.workbench.IdeMenus` (IDE entries) | landed; IDE entries split out in W1.7 |
 | Status bar | `platform.status` + `api.status` | landed |
 | Options | `platform.options` + `api.options` | landed |
 | Settings | `platform.settings` + `api.settings` | planned |
@@ -485,7 +485,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx-api` cluster | **dissolved**: each API module moves to its domain cluster (§6.6); the API tier stays module metadata |
 | `nbfx.actions`, `nbfx.context` | `platform.actions` |
 | `nbfx.docking`, `nbfx.windows` | `platform.workspace` |
-| `nbfx.menus` | `platform.menus` |
+| `nbfx.menus` | `platform.menus` (generic layout) + `ide.workbench.IdeMenus` (IDE entries) |
 | `nbfx.statusbar` | `platform.status` (+ `api.status`) |
 | `nbfx.options` | `platform.options` (+ `api.options`) |
 | `nbfx.output` | `platform.output` (+ `api.output`) |

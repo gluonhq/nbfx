@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.search.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.ActionContext;
@@ -76,7 +78,7 @@ final class FindInSelectionCommand {
         BooleanBinding enabled = Bindings.createBooleanBinding(
                 () -> Boolean.TRUE.equals(focused.getValue()) && hasSelection.get(),
                 focused, hasSelection);
-        return RunnableCommand.enabledWhen(ActionIds.FILE_FIND,
+        return RunnableCommand.enabledWhen(IdeActionIds.FILE_FIND,
                 NbBundle.getMessage(FindInSelectionCommand.class, "CTL_FindInSelectionCommand"), SHORTCUT, enabled,
                 () -> {
                     List<FileObject> folders = action == null ? List.of() : foldersOf(selectionOf(action));

@@ -18,8 +18,6 @@
  */
 package org.netbeans.api.nbfx.view;
 
-import java.util.List;
-import java.util.function.Consumer;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
@@ -43,9 +41,7 @@ import org.openide.util.Lookup;
  * lookup {@link Lookup#EMPTY empty}, in which case the shell keeps the last selection-bearing
  * component's context.
  * <p>
- * A navigator view (a project tree) additionally takes part in the project/session concerns below:
- * the shell stashes pending expansion/selection, asks the view to reveal a file, and follows the
- * project-load callbacks. All of these are no-ops by default, so a regular view ignores them.
+ * Project/navigator concerns live in the IDE-tier {@code NavigatorView}, not in this platform API.
  */
 public interface ViewProvider extends Lookup.Provider {
 
@@ -90,75 +86,6 @@ public interface ViewProvider extends Lookup.Provider {
     /** Where the tab is docked the first time the view is shown. Defaults to {@link DockLocation#LEFT}. */
     default DockLocation getDefaultLocation() {
         return DockLocation.LEFT;
-    }
-
-    // --- Navigator concerns (project trees); no-ops for a regular view -----------------------------
-
-    /**
-     * Reveals {@code file} in this view: expands to it and selects it. Does nothing by default.
-     *
-     * @param file the file to reveal and select
-     */
-    default void revealFile(FileObject file) {
-    }
-
-    /**
-     * Stashes node identifiers to expand for the project rooted at {@code root} once its tree has
-     * (lazily) built, so a session can restore the expansion. Does nothing by default.
-     *
-     * @param root  the project's root folder
-     * @param paths the node identifiers to expand
-     */
-    default void restoreExpandedPaths(FileObject root, List<String> paths) {
-    }
-
-    /**
-     * Stashes the identifier of the node to select for the project rooted at {@code root} once its
-     * tree has (lazily) built, so a session can restore the selection. Does nothing by default.
-     *
-     * @param root the project's root folder
-     * @param path the identifier of the node to select
-     */
-    default void restoreSelectedPath(FileObject root, String path) {
-    }
-
-    /**
-     * The identifiers of the currently expanded nodes of the project rooted at {@code root}.
-     *
-     * @param root the project's root folder
-     * @return the expanded-node identifiers, never {@code null}
-     */
-    default List<String> getExpandedPaths(FileObject root) {
-        return List.of();
-    }
-
-    /**
-     * The identifier of the currently selected node within the project rooted at {@code root}, or
-     * {@code null} when nothing is selected.
-     *
-     * @param root the project's root folder
-     * @return the selected-node identifier, or {@code null}
-     */
-    default String getSelectedPath(FileObject root) {
-        return null;
-    }
-
-    /**
-     * Registers a callback invoked on the FX thread with a project's root once that project's tree
-     * has finished loading. Does nothing by default.
-     *
-     * @param onProjectLoaded the callback to run when a project has loaded
-     */
-    default void setOnProjectLoaded(Consumer<FileObject> onProjectLoaded) {
-    }
-
-    /**
-     * Registers a callback invoked on the FX thread with a project's root when that project could not
-     * be loaded. Does nothing by default.
-     *
-     * @param onProjectLoadFailed the callback to run when a project failed to load
-     */
-    default void setOnProjectLoadFailed(Consumer<FileObject> onProjectLoadFailed) {
     }
 
     /**
