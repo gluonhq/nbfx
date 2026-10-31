@@ -54,7 +54,6 @@ Dependency direction is `libs → platform → ide → java`.
 | Cluster | Dir | Contents |
 |---|---|---|
 | `nb.cluster.nbfx-libs` | `nbfx-libs/` | bundled external libraries (JavaFX today) |
-| `nb.cluster.nbfx-api` | `nbfx-api/` | **transitional** shared API cluster; the target dissolves it into the domain clusters (PLAN §2/§6.6, W1.7) |
 | `nb.cluster.nbfx-platform` | `nbfx-platform/` | AppShell + platform services: shell, workspace, actions, menus, status, options, progress, output, wizard, editor and the platform APIs |
 | `nb.cluster.nbfx-ide` | `nbfx-ide/` | IDE building blocks + IDE contributions to the AppShell (`ide.workbench`) and the IDE APIs |
 | `nb.cluster.nbfx-java` | `nbfx-java/` | Java/JVM usage: project types, build, editor semantics, navigation, usages and the Java APIs |
@@ -91,7 +90,7 @@ the cluster configuration is generated. `ant test` runs the whole unit-test suit
 tests (or one cluster's), filter the target:
 
 ```sh
-ant test -Dtest.modules=nbfx-api/*
+ant test -Dtest.modules=nbfx-platform/*
 ant test -Dtest.modules=nbfx-platform/*
 ```
 

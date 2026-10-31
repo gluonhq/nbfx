@@ -113,11 +113,11 @@ Two rules, both machine-checkable:
    ones that may declare `java.source`; today that is 4 modules — 43 files importing `java.source`, 62
    touching the semantic surface ([`../figures.md`](../figures.md)).
 
-The guard must **check references, not just bundled classes**: `check-jars` (`check-purity.xml:93-116`)
-greps the *file list* of three cluster directories, so a class that imports a JDK `javax.swing` type from
-the platform classloader passes. Use `jdeps` (or a bytecode scan with an explicit allowlist) for
-references, and extend both `check-sources` and `check-jars` to the new cluster directories
-(`nbfx-libs`, `nbfx-api`, `nbfx-javafx`).
+The guard must **check references, not just bundled classes**: `check-jars` (`check-purity.xml`) greps the
+*file list* of the cluster directories, so a class that imports a JDK `javax.swing` type from the platform
+classloader passes. Use `jdeps` (or a bytecode scan with an explicit allowlist) for references, and extend
+both `check-sources` and `check-jars` to the cluster directories (`nbfx-libs`, `nbfx-platform`,
+`nbfx-javafx`).
 
 ## A.6 Exemption register (format)
 
