@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.debug;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ContextSensitiveCommand;
@@ -31,7 +33,7 @@ import org.openide.util.NbBundle;
 final class DebugFileCommand extends ContextSensitiveCommand {
 
     DebugFileCommand() {
-        super(ActionIds.DEBUG_FILE,
+        super(IdeActionIds.DEBUG_FILE,
                 NbBundle.getMessage(DebugFileCommand.class, "CTL_DebugFileCommand"),
                 EditorDocument.class);
     }

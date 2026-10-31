@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.search.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.modules.nbfx.ide.search.ui.SearchViewProvider;
@@ -43,7 +45,7 @@ final class SelectSearchResultsCommand extends AbstractCommand {
     }
 
     SelectSearchResultsCommand() {
-        super(ActionIds.SELECT_SEARCH_RESULTS,
+        super(IdeActionIds.SELECT_SEARCH_RESULTS,
                 NbBundle.getMessage(SelectSearchResultsCommand.class, "CTL_SelectSearchResultsCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT4, KeyCombination.SHORTCUT_DOWN), false);
     }

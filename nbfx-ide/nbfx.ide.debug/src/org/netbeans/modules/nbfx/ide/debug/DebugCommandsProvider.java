@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.debug;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
@@ -39,11 +41,11 @@ public final class DebugCommandsProvider implements CommandsProvider {
     public Collection<Command> createCommands() {
         return List.of(
                 new DebugFileCommand(),
-                new SessionCommand(ActionIds.DEBUG_CONTINUE, message("Debug.continue"), DebugSession::resume),
-                new SessionCommand(ActionIds.DEBUG_STEP_OVER, message("Debug.stepOver"), DebugSession::stepOver),
-                new SessionCommand(ActionIds.DEBUG_STEP_INTO, message("Debug.stepInto"), DebugSession::stepInto),
-                new SessionCommand(ActionIds.DEBUG_STEP_OUT, message("Debug.stepOut"), DebugSession::stepOut),
-                new SessionCommand(ActionIds.DEBUG_STOP, message("Debug.stop"), DebugSession::stop),
+                new SessionCommand(IdeActionIds.DEBUG_CONTINUE, message("Debug.continue"), DebugSession::resume),
+                new SessionCommand(IdeActionIds.DEBUG_STEP_OVER, message("Debug.stepOver"), DebugSession::stepOver),
+                new SessionCommand(IdeActionIds.DEBUG_STEP_INTO, message("Debug.stepInto"), DebugSession::stepInto),
+                new SessionCommand(IdeActionIds.DEBUG_STEP_OUT, message("Debug.stepOut"), DebugSession::stepOut),
+                new SessionCommand(IdeActionIds.DEBUG_STOP, message("Debug.stop"), DebugSession::stop),
                 ToggleBreakpointCommand.create());
     }
 

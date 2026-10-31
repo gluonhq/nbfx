@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ui.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.modules.nbfx.ui.context.EditorContexts;
 import org.netbeans.modules.nbfx.ui.project.ProjectSwitcher;
 import org.netbeans.modules.nbfx.ui.session.AppState;
@@ -107,8 +109,8 @@ public final class ActionBars {
     /** Maps a command id to its icon resource (relative to this class' package). */
     private static final Map<String, String> ICONS = new HashMap<>();
     static {
-        ICONS.put(ActionIds.NEW_PROJECT, "newProject24.png");
-        ICONS.put(ActionIds.OPEN_PROJECT, "openProject24.png");
+        ICONS.put(IdeActionIds.NEW_PROJECT, "newProject24.png");
+        ICONS.put(IdeActionIds.OPEN_PROJECT, "openProject24.png");
         ICONS.put(ActionIds.SAVE, "save.png");
         ICONS.put(ActionIds.SAVE_ALL, "saveAll24.png");
         ICONS.put(ActionIds.CUT, "cut.png");
@@ -117,18 +119,18 @@ public final class ActionBars {
         ICONS.put(ActionIds.FIND, "find.png");
         ICONS.put(ActionIds.UNDO, "undo24.png");
         ICONS.put(ActionIds.REDO, "redo24.png");
-        ICONS.put(ActionIds.SELECT_PROJECTS, "projectTab.png");
-        ICONS.put(ActionIds.SELECT_FILES, "filesTab.png");
+        ICONS.put(IdeActionIds.SELECT_PROJECTS, "projectTab.png");
+        ICONS.put(IdeActionIds.SELECT_FILES, "filesTab.png");
         // NetBeans has no icon for Window > Editor; the Tango text-editor icon (ide/texttools) fills in, 16 px only.
         ICONS.put(ActionIds.SELECT_EDITOR, "editorTab.png");
-        ICONS.put(ActionIds.SELECT_IN_PROJECTS, "projectTab.png");
-        ICONS.put(ActionIds.SELECT_IN_FILES, "filesTab.png");
-        ICONS.put(ActionIds.BUILD, "build.png");
-        ICONS.put(ActionIds.CLEAN_BUILD, "cleanBuild.png");
-        ICONS.put(ActionIds.CLEAN, "clean24.png");
-        ICONS.put(ActionIds.TEST, "test.png");
-        ICONS.put(ActionIds.RUN, "run.png");
-        ICONS.put(ActionIds.DEBUG_FILE, "debug.png");
+        ICONS.put(IdeActionIds.SELECT_IN_PROJECTS, "projectTab.png");
+        ICONS.put(IdeActionIds.SELECT_IN_FILES, "filesTab.png");
+        ICONS.put(IdeActionIds.BUILD, "build.png");
+        ICONS.put(IdeActionIds.CLEAN_BUILD, "cleanBuild.png");
+        ICONS.put(IdeActionIds.CLEAN, "clean24.png");
+        ICONS.put(IdeActionIds.TEST, "test.png");
+        ICONS.put(IdeActionIds.RUN, "run.png");
+        ICONS.put(IdeActionIds.DEBUG_FILE, "debug.png");
     }
 
     private final ActionRegistry registry;
@@ -198,12 +200,12 @@ public final class ActionBars {
             LOG.warning("No ActionRegistry found; project actions will not be available");
             return;
         }
-        registry.register(new RunnableCommand(ActionIds.OPEN_PROJECT, message("CTL_OpenProjectCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.OPEN_PROJECT, message("CTL_OpenProjectCommand"),
                 new KeyCodeCombination(KeyCode.O, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
                 openProject));
-        registry.register(new RunnableCommand(ActionIds.CLOSE_PROJECT, message("CTL_CloseProjectCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.CLOSE_PROJECT, message("CTL_CloseProjectCommand"),
                 null, closeProject, closeDisabled));
-        registry.register(new RunnableCommand(ActionIds.CLOSE_ALL_PROJECTS, message("CTL_CloseAllProjectsCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.CLOSE_ALL_PROJECTS, message("CTL_CloseAllProjectsCommand"),
                 null, closeAllProjects, closeDisabled));
     }
 
@@ -225,9 +227,9 @@ public final class ActionBars {
             LOG.warning("No ActionRegistry found; window actions will not be available");
             return;
         }
-        registry.register(new RunnableCommand(ActionIds.SELECT_PROJECTS, message("CTL_SelectProjectsCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.SELECT_PROJECTS, message("CTL_SelectProjectsCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN), actions.selectProjects()));
-        registry.register(new RunnableCommand(ActionIds.SELECT_FILES, message("CTL_SelectFilesCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.SELECT_FILES, message("CTL_SelectFilesCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.SHORTCUT_DOWN), actions.selectFiles()));
         registry.register(new RunnableCommand(ActionIds.SELECT_EDITOR, message("CTL_SelectEditorCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.SHORTCUT_DOWN), actions.selectEditor()));
@@ -261,14 +263,14 @@ public final class ActionBars {
         ObservableValue<Boolean> disabled = active == null
                 ? new SimpleBooleanProperty(true)
                 : Bindings.createBooleanBinding(() -> active.getValue() == null, active);
-        registry.register(new RunnableCommand(ActionIds.SELECT_IN_PROJECTS, message("CTL_SelectInProjectsCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.SELECT_IN_PROJECTS, message("CTL_SelectInProjectsCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
                     EditorDocument document = active == null ? null : active.getValue();
                     if (document != null) {
                         selectInProjects.accept(document.getFileObject());
                     }
                 }, disabled));
-        registry.register(new RunnableCommand(ActionIds.SELECT_IN_FILES, message("CTL_SelectInFilesCommand"),
+        registry.register(new RunnableCommand(IdeActionIds.SELECT_IN_FILES, message("CTL_SelectInFilesCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
                     EditorDocument document = active == null ? null : active.getValue();
                     if (document != null) {
@@ -291,10 +293,10 @@ public final class ActionBars {
         if (this.registry == null || switcher == null) {
             return;
         }
-        this.registry.register(new RunnableCommand(ActionIds.NEXT_PROJECT, message("CTL_NextProjectCommand"),
+        this.registry.register(new RunnableCommand(IdeActionIds.NEXT_PROJECT, message("CTL_NextProjectCommand"),
                 new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
                 switcher::next, switcher.disabled()));
-        this.registry.register(new RunnableCommand(ActionIds.PREVIOUS_PROJECT, message("CTL_PreviousProjectCommand"),
+        this.registry.register(new RunnableCommand(IdeActionIds.PREVIOUS_PROJECT, message("CTL_PreviousProjectCommand"),
                 new KeyCodeCombination(KeyCode.LEFT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
                 switcher::previous, switcher.disabled()));
     }
@@ -438,11 +440,11 @@ public final class ActionBars {
             return fileMenu;
         }
         addMenuItems(fileMenu,
-                createMenuItem(ActionIds.NEW_PROJECT, mainScope, treeFocused),
-                createMenuItem(ActionIds.OPEN_PROJECT, mainScope, treeFocused),
+                createMenuItem(IdeActionIds.NEW_PROJECT, mainScope, treeFocused),
+                createMenuItem(IdeActionIds.OPEN_PROJECT, mainScope, treeFocused),
                 recentMenu,
-                createMenuItem(ActionIds.CLOSE_PROJECT, mainScope, treeFocused),
-                createMenuItem(ActionIds.CLOSE_ALL_PROJECTS, mainScope, treeFocused),
+                createMenuItem(IdeActionIds.CLOSE_PROJECT, mainScope, treeFocused),
+                createMenuItem(IdeActionIds.CLOSE_ALL_PROJECTS, mainScope, treeFocused),
                 new SeparatorMenuItem(),
                 createMenuItem(ActionIds.SAVE, mainScope, treeFocused),
                 createMenuItem(ActionIds.SAVE_ALL, mainScope, treeFocused));
@@ -519,11 +521,11 @@ public final class ActionBars {
             }
         } else {
             addMenuItems(windowMenu,
-                    createMenuItem(ActionIds.SELECT_PROJECTS, mainScope, null),
-                    createMenuItem(ActionIds.SELECT_FILES, mainScope, null),
+                    createMenuItem(IdeActionIds.SELECT_PROJECTS, mainScope, null),
+                    createMenuItem(IdeActionIds.SELECT_FILES, mainScope, null),
                     createMenuItem(ActionIds.SELECT_EDITOR, mainScope, null),
-                    createOptionalMenuItem(ActionIds.SELECT_USAGES, mainScope),
-                    createOptionalMenuItem(ActionIds.SELECT_SEARCH_RESULTS, mainScope),
+                    createOptionalMenuItem(IdeActionIds.SELECT_USAGES, mainScope),
+                    createOptionalMenuItem(IdeActionIds.SELECT_SEARCH_RESULTS, mainScope),
                     new SeparatorMenuItem(),
                     TabContextMenu.createConfigureWindowMenu(),
                     createMenuItem(ActionIds.RESET_WINDOWS, mainScope, null),
@@ -534,8 +536,8 @@ public final class ActionBars {
             if (projectSwitcher != null) {
                 addMenuItems(windowMenu,
                         new SeparatorMenuItem(),
-                        createMenuItem(ActionIds.NEXT_PROJECT, mainScope, null),
-                        createMenuItem(ActionIds.PREVIOUS_PROJECT, mainScope, null));
+                        createMenuItem(IdeActionIds.NEXT_PROJECT, mainScope, null),
+                        createMenuItem(IdeActionIds.PREVIOUS_PROJECT, mainScope, null));
             }
         }
         addSubmenus(windowMenu, "NbFx/Menus/Window", mainScope);
@@ -696,10 +698,10 @@ public final class ActionBars {
                 // Shortcut+F: the Find bar in the editor, Find in Projects on the selection in the tree
                 createOptionalMenuItem(ActionIds.FIND, scope, preferFile),
                 createOptionalMenuItem(ActionIds.REPLACE, scope),
-                createOptionalMenuItem(ActionIds.FIND_IN_PROJECTS, scope),
-                createOptionalMenuItem(ActionIds.REPLACE_IN_PROJECTS, scope));
+                createOptionalMenuItem(IdeActionIds.FIND_IN_PROJECTS, scope),
+                createOptionalMenuItem(IdeActionIds.REPLACE_IN_PROJECTS, scope));
         addMenuGroup(editMenu,
-                createOptionalMenuItem(ActionIds.FIND_USAGES, scope));
+                createOptionalMenuItem(IdeActionIds.FIND_USAGES, scope));
         return editMenu;
     }
 
@@ -780,8 +782,8 @@ public final class ActionBars {
         if (projectSwitcher != null) {
             addMenuItems(windowMenu,
                     new SeparatorMenuItem(),
-                    createMenuItem(ActionIds.NEXT_PROJECT, scope, null),
-                    createMenuItem(ActionIds.PREVIOUS_PROJECT, scope, null));
+                    createMenuItem(IdeActionIds.NEXT_PROJECT, scope, null),
+                    createMenuItem(IdeActionIds.PREVIOUS_PROJECT, scope, null));
         }
         return windowMenu;
     }
@@ -848,7 +850,7 @@ public final class ActionBars {
         if (bars.isEmpty()) {
             // Fallback while no layer registration is available.
             bars.add(createToolBar("file", mainScope, treeFocused,
-                    List.of(ActionIds.NEW_PROJECT, ActionIds.OPEN_PROJECT, ActionIds.SAVE, ActionIds.SAVE_ALL)));
+                    List.of(IdeActionIds.NEW_PROJECT, IdeActionIds.OPEN_PROJECT, ActionIds.SAVE, ActionIds.SAVE_ALL)));
             bars.add(createToolBar("clipboard", mainScope, treeFocused,
                     List.of(ActionIds.CUT, ActionIds.COPY, ActionIds.PASTE, ActionIds.FIND)));
             bars.add(createToolBar("edit", mainScope, treeFocused,
@@ -1105,12 +1107,12 @@ public final class ActionBars {
     /** Returns the registered file-scoped counterpart of {@code commandId}, or {@code null} if none applies. */
     private Command fileCommandFor(String commandId) {
         String fileId = switch (commandId) {
-            case ActionIds.CUT -> ActionIds.FILE_CUT;
-            case ActionIds.COPY -> ActionIds.FILE_COPY;
-            case ActionIds.PASTE -> ActionIds.FILE_PASTE;
-            case ActionIds.UNDO -> ActionIds.FILE_UNDO;
-            case ActionIds.REDO -> ActionIds.FILE_REDO;
-            case ActionIds.FIND -> ActionIds.FILE_FIND;
+            case ActionIds.CUT -> IdeActionIds.FILE_CUT;
+            case ActionIds.COPY -> IdeActionIds.FILE_COPY;
+            case ActionIds.PASTE -> IdeActionIds.FILE_PASTE;
+            case ActionIds.UNDO -> IdeActionIds.FILE_UNDO;
+            case ActionIds.REDO -> IdeActionIds.FILE_REDO;
+            case ActionIds.FIND -> IdeActionIds.FILE_FIND;
             default -> null;
         };
         return fileId == null ? null : registry.find(fileId).orElse(null);

@@ -18,8 +18,10 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.actions;
 
-import static org.netbeans.api.nbfx.actions.ActionIds.INSPECT_FILE_MEMBERS;
-import static org.netbeans.api.nbfx.actions.ActionIds.INSPECT_MEMBERS;
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.INSPECT_FILE_MEMBERS;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.INSPECT_MEMBERS;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.actions.AbstractCommand;
@@ -56,7 +58,7 @@ final class InspectMembersCommand extends AbstractCommand {
 
     /** @param atCaret the type at the caret ({@code true}) or the file's main type */
     InspectMembersCommand(ObservableValue<EditorDocument> activeDocument, boolean atCaret) {
-        super(atCaret ? ActionIds.INSPECT_MEMBERS : ActionIds.INSPECT_FILE_MEMBERS,
+        super(atCaret ? IdeActionIds.INSPECT_MEMBERS : IdeActionIds.INSPECT_FILE_MEMBERS,
                 NbBundle.getMessage(InspectMembersCommand.class,
                         atCaret ? "CTL_InspectMembersCommand" : "CTL_InspectFileMembersCommand"),
                 atCaret ? MEMBERS_SHORTCUT : FILE_MEMBERS_SHORTCUT);
