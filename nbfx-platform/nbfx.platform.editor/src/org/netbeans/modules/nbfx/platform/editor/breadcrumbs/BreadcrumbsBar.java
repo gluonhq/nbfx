@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.editor.breadcrumbs;
 
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
-import org.netbeans.api.nbfx.elements.ElementIcons;
+import org.netbeans.api.nbfx.editor.ElementIcons;
 import javafx.geometry.Bounds;
 import javafx.scene.Node;
 import javafx.scene.control.Button;

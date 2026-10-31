@@ -23,8 +23,8 @@ import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
 import org.netbeans.api.nbfx.progress.Cancellation;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.modules.nbfx.java.editor.processor.semantics.JavaSourceContext;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.CaseTree;
@@ -69,7 +69,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.netbeans.api.nbfx.elements.SourceModifiers.toModifierBits;
+import static org.netbeans.api.nbfx.java.elements.SourceModifiers.toModifierBits;
 
 /**
  * Builds the breadcrumb tree of a Java source file, following the shapes produced by the

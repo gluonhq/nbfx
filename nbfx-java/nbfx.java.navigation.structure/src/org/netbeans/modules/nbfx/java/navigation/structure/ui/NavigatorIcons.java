@@ -18,9 +18,9 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.ui;
 
-import org.netbeans.api.nbfx.elements.ElementIcons;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.editor.ElementIcons;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.BeanPattern;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.MemberNode;
 import java.lang.reflect.Modifier;

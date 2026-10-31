@@ -42,7 +42,7 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>org.netbeans.modules.nbfx.api.elements</code-name-base>
+                    <code-name-base>org.netbeans.modules.nbfx.api.language</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>

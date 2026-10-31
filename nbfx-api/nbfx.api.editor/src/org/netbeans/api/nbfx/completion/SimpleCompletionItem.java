@@ -18,8 +18,8 @@
  */
 package org.netbeans.api.nbfx.completion;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 
 import java.util.Objects;
 
