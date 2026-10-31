@@ -1068,6 +1068,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #71, #72 | module and package namespace moves | W1.6 landed |
 
 **Current status:** W0, W1, W1.5 and W1.6 are on `main`. W1.7 is implemented in the stacked PRs #74–#76 and #78
-(element vocabulary, editor project neutralization, navigator/action ids and API clusters); once they merge,
-the next step is **`refactor/appshell-boundary`**. The module and source counts are in
-[`figures.md`](figures.md), not in this table.
+(element vocabulary, editor project neutralization, navigator/action ids and API clusters). The AppShell
+boundary has started with the property sheet in `platform.nodes` (#81); next is the shell/launcher move
+(`refactor/appshell-boundary`). The module and source counts are in [`figures.md`](figures.md), not in this
+table.
