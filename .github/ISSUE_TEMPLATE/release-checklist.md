@@ -30,12 +30,11 @@ NetBeans revision (`nbfx.submodule.commit`): ...
 
 ### Prepare
 - [ ] `nbfx.version` set in `nbfx.properties`
-- [ ] `main` green: `ant bootstrap build`, `ant test`, `ant check-purity`, `ant rat`
 - [ ] `release/release-notes.md` up to date
 - [ ] Release manager's key is in `KEYS` and on the keyservers
 
 ### Release candidate (repeat per RC)
-- [ ] Signed tag `<version>-rcN` pushed; *Release draft* green
+- [ ] Signed tag `<version>-rcN` pushed; *Release draft* green (`ant rat`, `ant build`, `ant check-purity`, `ant test` on the tag)
 - [ ] `ant release -Dnbfx.rc=rcN -Dnbfx.gpg.key=...` green
 - [ ] Binary starts on each platform with an empty userdir (RELEASING.md §3)
   - [ ] macOS aarch64

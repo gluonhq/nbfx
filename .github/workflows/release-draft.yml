@@ -113,7 +113,22 @@ jobs:
         run: ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
 
       - name: ant check-purity
-        run: ant check-purity
+        run: |
+          ant check-purity
+          ant -f check-purity.xml check-figures
+
+      # as ci.yml, but on the tagged commit itself rather than trusted from main
+      - name: ant test
+        timeout-minutes: 25
+        run: ant test
+
+      - name: Upload unit-test results
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: unit-test-results
+          path: netbeans/**/build/test/unit/results/TEST-*.xml
+          if-no-files-found: ignore
 
       - uses: ./.github/actions/save-build-cache
         if: always()
