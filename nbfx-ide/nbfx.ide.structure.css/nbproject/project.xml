@@ -93,7 +93,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.ide.structure.css</package>
+                <package>org.netbeans.modules.nbfx.ide.structure.css</package>
             </public-packages>
         </data>
     </configuration>

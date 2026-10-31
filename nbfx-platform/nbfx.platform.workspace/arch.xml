@@ -34,7 +34,7 @@
     <p>
       The <b>nbfx Windows API</b> defines the contract between the JavaFX window system and the
       application host: the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/windows/WindowEnvironment.html">WindowEnvironment</a>
+      <a href="@TOP@/org/netbeans/modules/nbfx/windows/WindowEnvironment.html">WindowEnvironment</a>
       SPI, registered in the global Lookup by the host.
     </p>
   </answer>
@@ -66,7 +66,7 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>com.gluonhq.netbeans.nbfx.platform.workspace</code> is public.</p>
+    <p>Only <code>org.netbeans.modules.nbfx.platform.workspace</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">

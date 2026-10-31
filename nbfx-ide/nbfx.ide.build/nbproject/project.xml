@@ -104,7 +104,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.build</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.build</subpackages>
             </public-packages>
         </data>
     </configuration>

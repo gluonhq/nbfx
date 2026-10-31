@@ -500,7 +500,7 @@ nbfx-java
              names a no-op class (release/launcher), which must be on the startup classpath (the
              import runs before the module system): core/*.jar of every cluster is. Using the
              same path on every OS means a test on macOS/Linux covers the Windows launcher too. -->
-        <property name="nbfx.dist.importclass" value="com.gluonhq.netbeans.nbfx.startup.NoImport"/>
+        <property name="nbfx.dist.importclass" value="org.netbeans.modules.nbfx.startup.NoImport"/>
         <property name="nbfx.dist.noimport.classes" location="${nbfx.build.dir}/noimport/classes"/>
         <delete dir="${nbfx.dist.noimport.classes}" quiet="true"/>
         <mkdir dir="${nbfx.dist.noimport.classes}"/>

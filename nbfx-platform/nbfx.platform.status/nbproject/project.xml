@@ -85,7 +85,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.status</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.platform.status</subpackages>
             </public-packages>
         </data>
     </configuration>

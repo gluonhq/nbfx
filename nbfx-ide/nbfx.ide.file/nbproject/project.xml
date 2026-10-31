@@ -109,7 +109,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.ide.file</package>
+                <package>org.netbeans.modules.nbfx.ide.file</package>
             </public-packages>
         </data>
     </configuration>

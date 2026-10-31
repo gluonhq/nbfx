@@ -33,8 +33,8 @@
   <answer id="arch-what">
     <p>
       The <b>nbfx Wizard API</b> provides the pure-JavaFX wizard framework: the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/wizard/FxWizard.html">FxWizard</a> and
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/wizard/FxWizardPanel.html">FxWizardPanel</a> SPI, the
+      <a href="@TOP@/org/netbeans/modules/nbfx/wizard/FxWizard.html">FxWizard</a> and
+      <a href="@TOP@/org/netbeans/modules/nbfx/wizard/FxWizardPanel.html">FxWizardPanel</a> SPI, the
       registry that discovers wizards from the layer, and the dialog that runs them.
     </p>
   </answer>
@@ -63,7 +63,7 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>com.gluonhq.netbeans.nbfx.platform.wizard</code> is public.</p>
+    <p>Only <code>org.netbeans.modules.nbfx.platform.wizard</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">

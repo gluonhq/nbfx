@@ -94,7 +94,7 @@
                 </dependency>
             </module-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.editor.xml</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.editor.xml</subpackages>
             </public-packages>
         </data>
     </configuration>

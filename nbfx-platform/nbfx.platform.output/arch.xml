@@ -33,8 +33,8 @@
   <answer id="arch-what">
     <p>
       The <b>nbfx Output API</b> provides the pure-JavaFX output consoles: the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/output/FxOutput.html">FxOutput</a> service and the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/output/FxConsole.html">FxConsole</a> handles, shown by
+      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxOutput.html">FxOutput</a> service and the
+      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxConsole.html">FxConsole</a> handles, shown by
       the Output view.
     </p>
   </answer>
@@ -64,7 +64,7 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>com.gluonhq.netbeans.nbfx.platform.output</code> is public.</p>
+    <p>Only <code>org.netbeans.modules.nbfx.platform.output</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">

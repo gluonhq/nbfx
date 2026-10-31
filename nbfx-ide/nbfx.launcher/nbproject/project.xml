@@ -195,7 +195,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.launcher</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.launcher</subpackages>
             </public-packages>
         </data>
     </configuration>

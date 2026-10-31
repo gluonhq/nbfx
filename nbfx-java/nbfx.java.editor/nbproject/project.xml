@@ -157,7 +157,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.java.editor</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.java.editor</subpackages>
             </public-packages>
         </data>
     </configuration>

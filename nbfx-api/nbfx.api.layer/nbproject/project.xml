@@ -26,7 +26,7 @@
             <code-name-base>org.netbeans.modules.nbfx.api.layer</code-name-base>
             <module-dependencies/>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.layer</package>
+                <package>org.netbeans.api.nbfx.layer</package>
             </public-packages>
         </data>
     </configuration>

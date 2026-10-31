@@ -34,8 +34,8 @@
             <author login="sven"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>Registerable project-properties categories. Under development until the MVP freeze.</description>
-            <class package="com.gluonhq.netbeans.nbfx.ide.project.customizer" name="FxProjectCustomizerPanel"/>
-            <class package="com.gluonhq.netbeans.nbfx.ide.project.customizer" name="FxProjectCustomizers"/>
+            <class package="org.netbeans.modules.nbfx.ide.project.customizer" name="FxProjectCustomizerPanel"/>
+            <class package="org.netbeans.modules.nbfx.ide.project.customizer" name="FxProjectCustomizers"/>
         </change>
     </changes>
     <htmlcontents>

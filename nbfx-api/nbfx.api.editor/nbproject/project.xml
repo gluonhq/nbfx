@@ -74,10 +74,10 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.editor</package>
-                <package>com.gluonhq.netbeans.nbfx.api.breadcrumbs</package>
-                <package>com.gluonhq.netbeans.nbfx.api.completion</package>
-                <package>com.gluonhq.netbeans.nbfx.api.css</package>
+                <package>org.netbeans.api.nbfx.editor</package>
+                <package>org.netbeans.api.nbfx.breadcrumbs</package>
+                <package>org.netbeans.api.nbfx.completion</package>
+                <package>org.netbeans.api.nbfx.css</package>
             </public-packages>
         </data>
     </configuration>

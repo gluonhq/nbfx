@@ -33,9 +33,9 @@
   <answer id="arch-what">
     <p>
       The <b>nbfx Status Bar API</b> defines the pure-JavaFX status bar contract: the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/statusbar/FxStatusElement.html">FxStatusElement</a>
+      <a href="@TOP@/org/netbeans/modules/nbfx/statusbar/FxStatusElement.html">FxStatusElement</a>
       SPI, the registry that discovers elements from the layer, and the
-      <a href="@TOP@/com/gluonhq/netbeans/nbfx/statusbar/FxStatusBar.html">FxStatusBar</a> component
+      <a href="@TOP@/org/netbeans/modules/nbfx/statusbar/FxStatusBar.html">FxStatusBar</a> component
       that lays them out.
     </p>
   </answer>
@@ -67,7 +67,7 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>com.gluonhq.netbeans.nbfx.platform.status</code> is public.</p>
+    <p>Only <code>org.netbeans.modules.nbfx.platform.status</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">

@@ -67,7 +67,7 @@
 
   <answer id="deploy-packages">
     <p>
-      Only <code>com.gluonhq.netbeans.nbfx.api.wizard</code> is public. The processor implementation
+      Only <code>org.netbeans.api.nbfx.wizard</code> is public. The processor implementation
       is an implementation detail and is not exported.
     </p>
   </answer>

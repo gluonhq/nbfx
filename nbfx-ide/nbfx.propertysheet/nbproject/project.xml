@@ -114,7 +114,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.propertysheet</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.propertysheet</subpackages>
             </public-packages>
         </data>
     </configuration>

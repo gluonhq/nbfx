@@ -26,7 +26,7 @@
             <code-name-base>org.netbeans.modules.nbfx.api.search</code-name-base>
             <module-dependencies/>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.search</package>
+                <package>org.netbeans.api.nbfx.search</package>
             </public-packages>
         </data>
     </configuration>

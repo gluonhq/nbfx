@@ -97,7 +97,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.platform.workspace</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.platform.workspace</subpackages>
             </public-packages>
         </data>
     </configuration>

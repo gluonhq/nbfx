@@ -28,7 +28,7 @@
                 <dependency><code-name-base>org.netbeans.libs.nbfx.javafx</code-name-base><build-prerequisite/><compile-dependency/><run-dependency><specification-version>1.0</specification-version></run-dependency></dependency>
             </module-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.dialogs</package>
+                <package>org.netbeans.api.nbfx.dialogs</package>
             </public-packages>
         </data>
     </configuration>

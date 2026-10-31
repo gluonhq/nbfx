@@ -51,7 +51,7 @@
                     <test-dependency><code-name-base>org.netbeans.modules.nbjunit</code-name-base><recursive/><compile-dependency/></test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages><package>com.gluonhq.netbeans.nbfx.api.options</package></public-packages>
+            <public-packages><package>org.netbeans.api.nbfx.options</package></public-packages>
         </data>
     </configuration>
 </project>

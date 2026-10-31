@@ -115,7 +115,7 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <subpackages>com.gluonhq.netbeans.nbfx.ide.editor.css</subpackages>
+                <subpackages>org.netbeans.modules.nbfx.ide.editor.css</subpackages>
             </public-packages>
         </data>
     </configuration>

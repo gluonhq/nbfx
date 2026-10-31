@@ -46,9 +46,9 @@
                 </test-type>
             </test-dependencies>
             <public-packages>
-                <package>com.gluonhq.netbeans.nbfx.api.view</package>
-                <package>com.gluonhq.netbeans.nbfx.api.views</package>
-                <package>com.gluonhq.netbeans.nbfx.api.icons</package>
+                <package>org.netbeans.api.nbfx.view</package>
+                <package>org.netbeans.api.nbfx.views</package>
+                <package>org.netbeans.api.nbfx.icons</package>
             </public-packages>
         </data>
     </configuration>
