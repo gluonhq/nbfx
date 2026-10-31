@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.java.editor.completion.support;
 
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.completion.CompletionItem;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ElementHandle;

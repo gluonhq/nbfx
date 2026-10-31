@@ -21,10 +21,11 @@ package org.netbeans.modules.nbfx.java.editor.completion;
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.completion.CompletionContext;
 import org.netbeans.api.nbfx.completion.CompletionItem;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.completion.CompletionProvider;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.api.nbfx.completion.SimpleCompletionItem;
+import org.netbeans.api.nbfx.java.elements.JavaElementTypes;
 import org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionItems;
 import org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompletionTypeUtils;
 import org.netbeans.modules.nbfx.java.editor.completion.support.JavaImportContext;
@@ -382,7 +383,7 @@ public final class JavaLexicalCompletionProvider implements CompletionProvider {
         if (clazz == null) {
             return SourceTypeKind.OTHER;
         }
-        return SourceTypeKind.from(clazz);
+        return JavaElementTypes.from(clazz);
     }
 
     /** If {@code candidate} starts with the user's prefix, reduce priority, so it stays near the top. */

@@ -21,7 +21,7 @@ package org.netbeans.modules.nbfx.java.navigation.structure.ui;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.editor.OpenSources;
-import org.netbeans.api.nbfx.elements.SourceLocation;
+import org.netbeans.api.nbfx.language.SourceLocation;
 import org.netbeans.modules.nbfx.ide.structure.BackgroundScans;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.GoToResolver;
 import java.io.IOException;

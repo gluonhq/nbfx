@@ -19,8 +19,8 @@
 package org.netbeans.modules.nbfx.platform.editor.completion;
 
 import org.netbeans.api.nbfx.completion.CompletionItem;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.ElementIcons;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.editor.ElementIcons;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;

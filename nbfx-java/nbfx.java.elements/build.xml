@@ -18,6 +18,6 @@
     under the License.
 
 -->
-<project basedir="." default="build" name="nbfx-api/nbfx.api.elements">
+<project basedir="." default="build" name="nbfx-java/nbfx.java.elements">
     <import file="../../nbbuild/templates/projectized.xml"/>
 </project>

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.elements;
+package org.netbeans.api.nbfx.language;
 
 /**
  * Primary semantic category of a source element, shared by the completion and
@@ -31,9 +31,9 @@ public enum SourceElementKind {
     FIELD,
     /** Type such as class, interface, enum, or record. Its subcategories are defined in {@link SourceTypeKind} */
     TYPE,
-    /** Java package segment. */
+    /** Package segment. */
     PACKAGE,
-    /** Java module name (module-descriptor {@code requires}/{@code to} operands). */
+    /** Module name (for example a module-descriptor operand). */
     MODULE,
     /** Java keyword or literal keyword. */
     KEYWORD,

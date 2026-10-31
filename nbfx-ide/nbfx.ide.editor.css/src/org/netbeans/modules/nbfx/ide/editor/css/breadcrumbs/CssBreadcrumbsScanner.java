@@ -23,7 +23,7 @@ import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
 
 import java.util.ArrayDeque;
