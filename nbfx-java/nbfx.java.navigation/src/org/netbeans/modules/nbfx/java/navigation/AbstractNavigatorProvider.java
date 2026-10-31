@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.java.navigation;
 
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.ide.workbench.NavigatorView;
 import org.netbeans.modules.nbfx.java.navigation.utils.ProjectModuleInfoAccessibilityQuery;
 import org.netbeans.modules.nbfx.project.ui.utils.Projects;
 import org.netbeans.modules.nbfx.java.navigation.utils.TreeNav;
@@ -53,7 +53,7 @@ import org.openide.util.lookup.InstanceContent;
 import org.openide.util.lookup.Lookups;
 
 /**
- * Shared base for the two navigator {@link ViewProvider} implementations: the logical Project view
+ * Shared base for the two navigator {@link NavigatorView} implementations: the logical Project view
  * ({@link ProjectNavigator}) and the physical Files view ({@link FileNavigator}). It pulls
  * up the algorithms that are genuinely common to both trees — the per-project bookkeeping
  * ({@link RootState}), the retry/selection machinery used after a drag-and-drop move,
@@ -68,7 +68,7 @@ import org.openide.util.lookup.Lookups;
  *
  * @param <T> the tree's value type
  */
-abstract class AbstractNavigatorProvider<T> implements ViewProvider {
+abstract class AbstractNavigatorProvider<T> implements NavigatorView {
 
     private static final Logger BASE_LOG = Logger.getLogger(AbstractNavigatorProvider.class.getName());
 
