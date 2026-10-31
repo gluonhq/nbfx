@@ -346,7 +346,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators, project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner | new; the IDE is the AppShell's primary consumer |
+| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators, project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope | new; project-aware editor scope landed in W1.7; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
@@ -453,7 +453,7 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Favorites | `platform.favorites` | planned |
 | Templates | `platform.templates` + `api.templates` | planned |
 | Launcher | `platform.launcher` | in `nbfx.launcher`; must move |
-| Editor core | `platform.editor` + `api.editor` | landed; remove project/Java-vocabulary coupling |
+| Editor core | `platform.editor` + `api.editor` | landed; project/Java-vocabulary coupling removed |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell must start without projects |
 | File actions | platform file service + `ide.file` | mixed; generic parts move to platform |
 
@@ -788,7 +788,8 @@ scenario remains the gate.
    `api.project` and `api.elements`; `api.usages` loses the Java vocabulary; `api.actions` uses the neutral
    `SourceLocation` from `api.language` and loses the IDE command ids; `api.views` loses project-specific
    navigator callbacks. Split `api.elements`: neutral kinds/location/modifiers to `api.language`, Java
-   conversions to `java.elements`, and the FX icon mapping to `api.editor`.
+   conversions to `java.elements`, and the FX icon mapping to `api.editor`. Then `refactor/api-editor-neutral`
+   removes the project path from `api.editor` and moves the project-aware editor scope to `ide.workbench`.
 2. `refactor/api-clusters` — move each API module into its domain cluster (§6.6); dissolve `nbfx-api`;
    update `nbfx.properties`, the cluster fragment, `build.xml`, the guards, the launcher-cluster patch and
    the docs; add `check-layers` and `check-api-isolation`.

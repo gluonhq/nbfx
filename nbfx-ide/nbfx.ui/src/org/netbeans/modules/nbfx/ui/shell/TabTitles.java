@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.ui.shell;
 
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
@@ -49,14 +50,14 @@ public final class TabTitles {
      */
     public static String titleFor(EditorDocument document, List<? extends EditorDocument> openDocuments) {
         String title = document.getTitle();
-        String projectPath = document.getProjectPath();
+        String projectPath = ProjectEditorScope.projectPathOf(document);
         String projectName = projectNameOf(projectPath);
         if (projectName == null || openDocuments == null) {
             return title;
         }
         boolean ambiguous = openDocuments.stream().anyMatch(other -> other != document
                 && title.equals(other.getTitle())
-                && !Objects.equals(projectPath, other.getProjectPath()));
+                && !Objects.equals(projectPath, ProjectEditorScope.projectPathOf(other)));
         return ambiguous ? title + " [" + projectName + "]" : title;
     }
 
@@ -66,7 +67,7 @@ public final class TabTitles {
      */
     public static String tooltipFor(EditorDocument document) {
         String filePath = OpenProject.pathOf(document.getFileObject());
-        String projectPath = document.getProjectPath();
+        String projectPath = ProjectEditorScope.projectPathOf(document);
         String projectName = projectNameOf(projectPath);
         if (projectName == null || filePath == null) {
             return filePath != null ? filePath : document.getTitle();

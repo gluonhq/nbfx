@@ -18,9 +18,6 @@
  */
 package org.netbeans.api.nbfx.editor;
 
-import org.netbeans.api.nbfx.project.OpenProject;
-import org.netbeans.api.nbfx.project.ProjectRegistry;
-
 import java.io.IOException;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -64,18 +61,6 @@ public interface EditorDocument extends Lookup.Provider {
      * @return the backing {@link FileObject}, never {@code null}
      */
     FileObject getFileObject();
-
-    /**
-     * The {@link OpenProject#getPath() path} of the open project this document's file belongs to,
-     * or {@code null} when it belongs to no open project.
-     *
-     * @return the owning project's path, or {@code null}
-     */
-    default String getProjectPath() {
-        ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
-        OpenProject project = registry == null ? null : registry.ownerOf(getFileObject());
-        return project == null ? null : project.getPath();
-    }
 
     /**
      * Returns the root node of the editor UI, suitable for adding to a scene graph.
