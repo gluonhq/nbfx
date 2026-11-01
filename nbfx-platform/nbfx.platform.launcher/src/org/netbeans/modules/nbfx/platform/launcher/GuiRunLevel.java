@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.launcher;
+package org.netbeans.modules.nbfx.platform.launcher;
 
-import org.netbeans.modules.nbfx.ui.Budget;
-import org.netbeans.modules.nbfx.ui.JavaFXLaunchApp;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -27,16 +25,19 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import org.netbeans.core.startup.RunLevel;
+import org.openide.LifecycleManager;
+import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Starts the pure-JavaFX application once the NetBeans Platform is up.
+ * Starts the JavaFX application supplied by the product's {@link AppProvider} once the NetBeans
+ * Platform is up.
  * <p>
  * Like the stock Swing {@code GuiRunLevel} in {@code org.netbeans.core}, this implements the
  * {@link RunLevel} bootstrap SPI. Access to that SPI is friend-restricted by
  * {@code org.netbeans.core.startup}; {@code org.netbeans.core} (and now this launcher) is in its
  * friend list. The bootstrap runs this after the modules have been enabled (see
- * {@code Main.finishInitialization}), so the services {@link JavaFXLaunchApp} looks up inside
+ * {@code Main.finishInitialization}), so the services the application looks up inside
  * {@code start()} are already present. {@code Application.launch} blocks until
  * {@code Platform.exit}, hence it runs on its own daemon thread and this returns immediately.
  * <p>
@@ -56,9 +57,16 @@ public final class GuiRunLevel implements RunLevel {
             LOG.fine("nbfx.test is set; not launching the application");
             return;
         }
+        AppProvider provider = Lookup.getDefault().lookup(AppProvider.class);
+        if (provider == null) {
+            LOG.severe("No AppProvider found; cannot launch the JavaFX application");
+            LifecycleManager.getDefault().exit();
+            return;
+        }
         Budget.mark("platformReady");
         LOG.info("NetBeans Platform loaded, launching JavaFX...");
-        Thread thread = new Thread(() -> Application.launch(JavaFXLaunchApp.class), "nbfx-javafx-launcher");
+        Thread thread = new Thread(() -> Application.launch(provider.applicationClass()),
+                "nbfx-javafx-launcher");
         thread.setDaemon(true);
         thread.start();
 
@@ -66,7 +74,7 @@ public final class GuiRunLevel implements RunLevel {
         if (scenario != null && !scenario.isBlank()) {
             try {
                 Budget.usable().get(60, TimeUnit.SECONDS);
-                int status = ScenarioRunner.run(Path.of(scenario));
+                int status = provider.runScenario(Path.of(scenario));
                 Platform.exit();
                 System.exit(status);
             } catch (Exception ex) {
