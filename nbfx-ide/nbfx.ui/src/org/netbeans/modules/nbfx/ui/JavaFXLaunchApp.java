@@ -18,9 +18,10 @@
  */
 package org.netbeans.modules.nbfx.ui;
 
+import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.ui.actions.ActionBars;
-import org.netbeans.modules.nbfx.ui.context.ContentManagerService;
-import org.netbeans.modules.nbfx.ui.context.EditorContexts;
+import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
+import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
 import org.netbeans.modules.nbfx.ui.context.FileSelectionContextService;
 import org.netbeans.modules.nbfx.ui.context.ActiveComponentContextService;
 import org.netbeans.modules.nbfx.ui.project.FileSystemRefresher;
@@ -29,20 +30,20 @@ import org.netbeans.modules.nbfx.project.registry.ProjectRegistryService;
 import org.netbeans.modules.nbfx.ui.project.ProjectRootWatcher;
 import org.netbeans.modules.nbfx.ui.project.ProjectSwitcher;
 import org.netbeans.modules.nbfx.ui.session.AppState;
-import org.netbeans.modules.nbfx.ui.session.CloseConfirmation;
-import org.netbeans.modules.nbfx.ui.session.DocumentCloser;
+import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
+import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.ui.session.SessionRestorer;
 import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.modules.nbfx.ui.shell.CaretStatusElement;
-import org.netbeans.modules.nbfx.ui.shell.Docking;
+import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.ui.shell.LineSeparatorStatusElement;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.ui.shell.SlidingArea;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.SlidingArea;
 import org.netbeans.modules.nbfx.ui.shell.ProjectStatusElement;
-import org.netbeans.modules.nbfx.ui.shell.ToolBarContainer;
-import org.netbeans.modules.nbfx.ui.shell.ViewTabs;
+import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;
+import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.ui.shell.WindowTitles;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
 import org.netbeans.modules.nbfx.platform.status.StatusElement;
@@ -271,7 +272,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 updateFocusScope(focusOwner);
             }
         });
-        scene.getStylesheets().add(JavaFXLaunchApp.class.getResource("styles.css").toExternalForm());
+        scene.getStylesheets().add(NbfxTabPane.stylesheet());
         // Shift+Cmd+1 / Shift+Cmd+2 reveal the active editor's file in the Logical / Physical view.
         NbfxTabPane.installNavigatorRevealShortcut(scene, this::activeEditorFile);
         // Project switching must work wherever the focus is, including the navigator tree, whose own

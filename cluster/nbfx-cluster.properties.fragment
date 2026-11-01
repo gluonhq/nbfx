@@ -67,12 +67,14 @@ nb.cluster.nbfx-platform=\
         nbfx.api.wizard,\
         nbfx.platform.actions,\
         nbfx.platform.editor,\
+        nbfx.platform.launcher,\
         nbfx.platform.macos,\
         nbfx.platform.menus,\
         nbfx.platform.nodes,\
         nbfx.platform.options,\
         nbfx.platform.output,\
         nbfx.platform.progress,\
+        nbfx.platform.shell,\
         nbfx.platform.status,\
         nbfx.platform.wizard,\
         nbfx.platform.workspace
@@ -102,7 +104,6 @@ nb.cluster.nbfx-ide=\
         nbfx.ide.usages,\
         nbfx.ide.vcs,\
         nbfx.ide.workbench,\
-        nbfx.launcher,\
         nbfx.project,\
         nbfx.project.context,\
         nbfx.project.ui,\
