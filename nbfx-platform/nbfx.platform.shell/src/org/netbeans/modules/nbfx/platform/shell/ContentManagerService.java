@@ -16,12 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.context;
+package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.platform.shell.TabContextMenu;
-import org.netbeans.modules.nbfx.ui.shell.TabTitles;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
