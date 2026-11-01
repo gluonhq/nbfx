@@ -35,6 +35,11 @@ public final class NbfxAppProvider implements AppProvider {
     }
 
     @Override
+    public int priority() {
+        return 100;
+    }
+
+    @Override
     public int runScenario(Path fixture) {
         return ScenarioRunner.run(fixture);
     }

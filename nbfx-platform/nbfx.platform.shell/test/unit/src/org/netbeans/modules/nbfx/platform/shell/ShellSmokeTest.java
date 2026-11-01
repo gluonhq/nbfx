@@ -29,6 +29,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.junit.Test;
@@ -45,6 +46,13 @@ import static org.junit.Assert.fail;
 public class ShellSmokeTest {
 
     private static final AtomicBoolean FX_STARTED = new AtomicBoolean();
+
+    @Test
+    public void defaultProviderStartsTheGenericShell() {
+        AppProvider provider = new ShellAppProvider();
+        assertSame(ShellApplication.class, provider.applicationClass());
+        assertEquals(0, provider.priority());
+    }
 
     @Test
     public void shellBuildsWithoutIdeModules() throws InterruptedException {

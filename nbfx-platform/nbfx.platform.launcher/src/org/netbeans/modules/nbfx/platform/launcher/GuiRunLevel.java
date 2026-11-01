@@ -57,7 +57,9 @@ public final class GuiRunLevel implements RunLevel {
             LOG.fine("nbfx.test is set; not launching the application");
             return;
         }
-        AppProvider provider = Lookup.getDefault().lookup(AppProvider.class);
+        AppProvider provider = Lookup.getDefault().lookupAll(AppProvider.class).stream()
+                .max(java.util.Comparator.comparingInt(AppProvider::priority))
+                .orElse(null);
         if (provider == null) {
             LOG.severe("No AppProvider found; cannot launch the JavaFX application");
             LifecycleManager.getDefault().exit();
