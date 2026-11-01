@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.List;
 import org.openide.util.lookup.ServiceProvider;
 
-/** Contributes the Window &gt; IDE Tools &gt; Properties command. */
+/** Contributes the Properties command. */
 @ServiceProvider(service = CommandsProvider.class)
 public final class PropertiesCommandsProvider implements CommandsProvider {
 

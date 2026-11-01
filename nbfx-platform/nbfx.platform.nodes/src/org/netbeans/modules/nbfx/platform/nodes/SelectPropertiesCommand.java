@@ -22,7 +22,7 @@ import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.openide.util.NbBundle;
 
-/** Window &gt; IDE Tools &gt; Properties: opens or fronts the Properties window. Always enabled. */
+/** The Properties command: opens or fronts the Properties window. Always enabled. */
 final class SelectPropertiesCommand extends AbstractCommand {
 
     SelectPropertiesCommand() {

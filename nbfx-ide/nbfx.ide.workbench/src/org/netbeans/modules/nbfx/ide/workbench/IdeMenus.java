@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import static org.netbeans.api.nbfx.actions.ActionIds.SELECT_PROPERTIES;
 import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLOSE_ALL_PROJECTS;
 import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLOSE_PROJECT;
 import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.FIND_IN_PROJECTS;
@@ -44,6 +45,7 @@ import org.netbeans.modules.nbfx.platform.menus.Menus;
  * {@link Menus}; this module adds the project, usages and search entries that depend on IDE services.
  */
 @MenuRegistration(id = "Window/IDE Tools", displayName = "IDE Tools", position = 100)
+@ActionReference(id = SELECT_PROPERTIES, path = "Menus/Window/IDE Tools", position = 10)
 @ActionReference(id = NEW_PROJECT, path = "Menus/File", position = 10)
 @ActionReference(id = NEW_FILE, path = "Menus/File", position = 15)
 @ActionReference(id = OPEN_PROJECT, path = "Menus/File", position = 20)

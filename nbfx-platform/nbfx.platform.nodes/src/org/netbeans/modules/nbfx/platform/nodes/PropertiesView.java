@@ -18,10 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.nodes;
 
-import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
-import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.view.DockLocation;
@@ -42,12 +40,11 @@ import org.openide.util.lookup.ServiceProvider;
  * <p>
  * This is the FX counterpart of the Swing {@code NbSheet}: it follows the global selection rather
  * than being told what to show. The view is closed by default; it is opened from the
- * {@code Window &gt; IDE Tools &gt; Properties} action or a file's context menu.
+ * Properties action - placed by the host in its Window menu - or a file's context menu.
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = PropertiesView.ID, displayName = "Properties",
         location = ViewLocation.RIGHT, position = 100)
-@ActionReference(id = ActionIds.SELECT_PROPERTIES, path = "Menus/Window/IDE Tools", position = 10)
 public final class PropertiesView implements ViewProvider {
 
     /** The stable id of the view. */
