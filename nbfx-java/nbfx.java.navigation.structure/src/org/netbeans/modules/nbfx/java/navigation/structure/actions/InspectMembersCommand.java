@@ -18,10 +18,10 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.actions;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.INSPECT_FILE_MEMBERS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.INSPECT_MEMBERS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.INSPECT_FILE_MEMBERS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.INSPECT_MEMBERS;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.actions.AbstractCommand;
