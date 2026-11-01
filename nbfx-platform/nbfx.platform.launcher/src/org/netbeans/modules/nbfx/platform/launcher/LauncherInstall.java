@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.launcher;
+package org.netbeans.modules.nbfx.platform.launcher;
 
-import org.netbeans.modules.nbfx.ui.Budget;
-import org.netbeans.modules.nbfx.ui.project.VersioningOptOut;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openide.modules.ModuleInfo;

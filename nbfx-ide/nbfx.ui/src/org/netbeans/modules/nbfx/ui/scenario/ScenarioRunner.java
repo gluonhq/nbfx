@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.launcher;
+package org.netbeans.modules.nbfx.ui.scenario;
 
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
@@ -48,12 +48,12 @@ import org.openide.util.Lookup;
  * {@code src} to run inside the assembled application, and it deliberately drives the real services
  * (including {@code OutputConsole}) instead of test doubles.
  */
-final class ScenarioRunner {
+public final class ScenarioRunner {
 
     private ScenarioRunner() {
     }
 
-    static int run(Path fixture) {
+    public static int run(Path fixture) {
         Path work = null;
         try {
             work = Files.createTempDirectory("nbfx-scenario").resolve("ant-hello");

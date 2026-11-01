@@ -334,7 +334,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 | `platform.favorites` | favourites view | new |
 | `platform.templates` | template model (discovery/creation) | replaces `nbfx.templates` (branch) |
 | `platform.wizard` | wizard framework + themed shell | replaces `nbfx.wizard` |
-| `platform.launcher` | application entry point | replaces `nbfx.launcher` |
+| `platform.launcher` | application entry point; `AppProvider` selects the JavaFX application | landed; replaces `nbfx.launcher`; the IDE app provider stays in `nbfx.ui` |
 | `platform.macos` | macOS integration (menus, file associations) | replaces `nbfx.macos` |
 
 The platform cluster also owns the platform API modules listed in §6.6. The **AppShell** is this cluster's
@@ -453,7 +453,7 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Credentials | `platform.credentials` | planned |
 | Favorites | `platform.favorites` | planned |
 | Templates | `platform.templates` + `api.templates` | planned |
-| Launcher | `platform.launcher` | in `nbfx.launcher`; must move |
+| Launcher | `platform.launcher` | landed; `AppProvider` + generic `GuiRunLevel`/`LauncherInstall` |
 | Editor core | `platform.editor` + `api.editor` | landed; project/Java-vocabulary coupling removed |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell must start without projects |
 | File actions | platform file service + `ide.file` | mixed; generic parts move to platform |
@@ -493,7 +493,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx.wizard` | `platform.wizard` (+ `api.wizard`) |
 | `nbfx.ui` | `platform.shell` (composition root) + `ide.workbench` (project/editor contributions) |
 | `nbfx.ui.context` | generic action-context services → `platform.actions`/`platform.shell`; `OpenProject` contexts → `ide.workbench` |
-| `nbfx.launcher` | `platform.launcher` (generic lifecycle) + IDE scenario/contribution module |
+| `nbfx.launcher` | `platform.launcher` (generic lifecycle) + `nbfx.ui` (`NbfxAppProvider` + scenario runner); landed |
 | `nbfx.macos` | `platform.macos` |
 | `libs.nbfx.javafx` | `libs.javafx` |
 | `nbfx.propertysheet` | `platform.nodes` (generic FX sheet) + `api.property` (editor SPI) + `api.nodes` (model); project/editor property contributors → `ide.workbench` (landed) |
@@ -736,8 +736,8 @@ docking, windows, menus, statusbar, output, editor, project.context, api) — **
 1. **Fixture** — `nbfx-tests/fixtures/ant-hello`, adapted from
    `netbeans/ide/jellytools.ide/test/qa-functional/data/SampleProject` (J2SE Ant, `build-impl.xml` checked
    in); `hello.Main` prints `NB_FX_SCENARIO_OK`. Acceptance: `ant clean build run` prints the marker.
-2. **Scenario** — `ScenarioTest` in `nbfx-ide/.../nbfx.launcher/test/unit` (it moves to the IDE test module
-   when the launcher moves to the platform in W1.7) with test-only deps on
+2. **Scenario** — `ScenarioTest` in `nbfx-ide/.../nbfx.ui/test/unit` (moved from `nbfx.launcher`) with
+   test-only deps on
    `nbfx.editor`, `nbfx.run`, `nbfx.vcs`, `nbfx.output`, `project.ui.ant`: copy the fixture to a temp git
    repo, wait for the async `OpenProjects` open, edit+save, build, run (assert the marker), commit, assert a
    clean status. Headless: `-Dglass.platform=Headless -Dprism.order=sw`.

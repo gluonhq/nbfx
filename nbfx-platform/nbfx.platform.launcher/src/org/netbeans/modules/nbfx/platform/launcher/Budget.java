@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui;
+package org.netbeans.modules.nbfx.platform.launcher;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -48,7 +48,7 @@ public final class Budget {
     }
 
     /** Marks the shell as usable; called by the shell once it is shown. */
-    static void markUsable() {
+    public static void markUsable() {
         USABLE.complete(null);
     }
 

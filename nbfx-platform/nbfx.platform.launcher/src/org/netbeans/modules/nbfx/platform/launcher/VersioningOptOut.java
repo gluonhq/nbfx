@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.project;
+package org.netbeans.modules.nbfx.platform.launcher;
 
 import java.io.File;
 import java.util.Arrays;

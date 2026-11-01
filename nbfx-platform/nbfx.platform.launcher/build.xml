@@ -18,6 +18,6 @@
     under the License.
 
 -->
-<project basedir="." default="build" name="nbfx-ide/nbfx.launcher">
+<project basedir="." default="build" name="nbfx-platform/nbfx.platform.launcher">
     <import file="../../nbbuild/templates/projectized.xml"/>
 </project>
