@@ -25,6 +25,7 @@ import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import org.netbeans.core.startup.RunLevel;
+import org.openide.LifecycleManager;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -59,6 +60,7 @@ public final class GuiRunLevel implements RunLevel {
         AppProvider provider = Lookup.getDefault().lookup(AppProvider.class);
         if (provider == null) {
             LOG.severe("No AppProvider found; cannot launch the JavaFX application");
+            LifecycleManager.getDefault().exit();
             return;
         }
         Budget.mark("platformReady");
