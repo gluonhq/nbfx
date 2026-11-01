@@ -35,11 +35,25 @@ public final class AppShellGuard {
             "org.netbeans.modules.nbfx.project.",
             "org.netbeans.api.nbfx.project.",
             "org.netbeans.modules.nbfx.ide.",
+            "org.netbeans.api.nbfx.usages.",
             "org.netbeans.modules.nbfx.java.",
+            "org.netbeans.api.nbfx.java.",
             "org.netbeans.modules.nbfx.javafx.",
             "org.netbeans.modules.parsing.");
 
     private AppShellGuard() {
+    }
+
+    /**
+     * Whether {@code path} is a main source of a platform module. Test sources and generated build
+     * output may use IDE types, so they are not part of the AppShell boundary.
+     */
+    private static boolean isMainSource(Path path) {
+        String text = path.toString();
+        return text.endsWith(".java")
+                && text.contains("/src/")
+                && !text.contains("/test/")
+                && !text.contains("/build/");
     }
 
     public static void main(String[] args) throws IOException {
@@ -52,8 +66,7 @@ public final class AppShellGuard {
         }
         try (Stream<Path> files = Files.walk(platform)) {
             for (Path file : (Iterable<Path>) files
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .filter(path -> path.toString().contains("/src/"))::iterator) {
+                    .filter(AppShellGuard::isMainSource)::iterator) {
                 String text = Files.readString(file, StandardCharsets.UTF_8);
                 for (String forbidden : FORBIDDEN) {
                     if (text.contains("import " + forbidden)) {
