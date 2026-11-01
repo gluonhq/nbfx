@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.session;
+package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;
 
 import org.netbeans.api.nbfx.editor.EditorSettings;
 import java.io.File;

@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.context;
+package org.netbeans.modules.nbfx.ide.workbench;
 
 import org.netbeans.api.nbfx.editor.CaretInfo;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.view.ActiveComponent;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService;
 
 import java.io.IOException;
 
