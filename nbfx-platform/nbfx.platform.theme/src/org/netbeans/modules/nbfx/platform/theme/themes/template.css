@@ -1,0 +1,118 @@
+/*
+ * nbfx theme template.
+ *
+ * To make a theme: copy this file in the same folder, give it a new name (the name is shown in
+ * View > Theme, with dashes turned into spaces), and change the values. Save the file and choose
+ * the theme from the View menu; no restart is needed. Files named template.css are never listed.
+ *
+ * Everything is on .root, so a theme is a plain list of color values. Each value is one of the
+ * CSS colors (#RRGGBB, #RRGGBBAA, rgb(), rgba(), named colors). Tokens are looked up through the
+ * scene, so changing a token changes every place that uses it.
+ *
+ * Groups:
+ *   -nbfx-accent..-nbfx-pressed     shell surfaces, text, icons, borders, scroll bars, danger
+ *   -nbfx-editor-*                  code editor surfaces, highlights, search bar, squiggles
+ *   -nbfx-code-*                    syntax colors (Java, XML, CSS, and so on)
+ *   -nbfx-popup-*                   completion and breadcrumb popups
+ *   -fx-*                           JavaFX Modena base colors for stock controls
+ *
+ * The Modena block (-fx-*) is optional: without it the stock controls keep their JavaFX defaults,
+ * which suit a light theme. A dark theme needs it so that buttons and fields are dark too.
+ */
+ */
+.root {
+    /* Accent: selection, focus, drop targets */
+    -nbfx-accent: #2775BF;
+    -nbfx-accent-hover: #3C83C5;
+    -nbfx-accent-tint: #2775BF50;
+    -nbfx-on-accent: white;
+
+    /* Surfaces: canvas behind panels, content surface for editors and lists */
+    -nbfx-canvas: #F2F2F2;
+    -nbfx-surface: white;
+    -nbfx-neutral: #D3D3D3;
+    -nbfx-chrome: #C2C2C2;
+    -nbfx-chrome-active: #BCC7D1;
+    -nbfx-chrome-hover: #D1D9E0;
+    -nbfx-hover: #E0E0E0;
+    -nbfx-pressed: #D0D0D0;
+
+    /* Text */
+    -nbfx-text-strong: black;
+    -nbfx-text: #444444;
+    -nbfx-text-muted: #666666;
+    -nbfx-text-faint: #8A8A8A;
+    -nbfx-text-disabled: #999999;
+
+    /* Icons and glyphs */
+    -nbfx-icon: #666666;
+    -nbfx-icon-hover: #999999;
+    -nbfx-icon-pressed: #AAAAAA;
+    -nbfx-icon-menu: #808080;
+    -nbfx-icon-subtle: lightgray;
+
+    /* Borders and scroll bars */
+    -nbfx-border: #CFCFCF;
+    -nbfx-border-soft: #B5B5B5;
+    -nbfx-track: #F5F5F5;
+    -nbfx-track-focused: #EDEDED;
+    -nbfx-thumb: #CFCFCF;
+    -nbfx-thumb-hover: #B6B6B6;
+    -nbfx-thumb-pressed: #9C9C9C;
+
+    /* Danger (close buttons) */
+    -nbfx-danger: #c74f50;
+    -nbfx-danger-soft: #E0A0A0;
+    -nbfx-danger-pressed: #C88080;
+
+    /* Code editor surfaces, highlights and search bar */
+    -nbfx-editor-bg: white;
+    -nbfx-editor-line: #F9F4E0;
+    -nbfx-editor-gutter: #E9E8E2;
+    -nbfx-editor-selection: #89BCED;
+    -nbfx-editor-line-band: rgba(255, 214, 102, 0.45);
+    -nbfx-editor-readonly-bg: #F2F2F2;
+    -nbfx-editor-readonly-line: #E8E8E8;
+    -nbfx-editor-readonly-gutter: #DFDEDA;
+    -nbfx-editor-brace: #CCFFCC;
+    -nbfx-editor-brace-error: #D83636;
+    -nbfx-editor-occurrence: #D7E6CB;
+    -nbfx-editor-search-match: #FFB442;
+    -nbfx-editor-squiggle-error: red;
+    -nbfx-editor-squiggle-warning: #FFA500;
+    -nbfx-editor-bar-border: #E0E0E0;
+    -nbfx-editor-text: #333333;
+    -nbfx-editor-text-error: #C62828;
+    -nbfx-editor-error-bg: #FFECEC;
+    -nbfx-editor-separator: #9C9C9C;
+    -nbfx-editor-crumb-hover: #E4E6EB;
+    -nbfx-editor-button-selected-hover: #C4C4C4;
+
+    /* Syntax colors used by the code editor's token categories */
+    -nbfx-code-keyword: #336BDD;
+    -nbfx-code-keyword-directive: blue;
+    -nbfx-code-string: #1E9347;
+    -nbfx-code-comment: #969696;
+    -nbfx-code-field: #CE54B8;
+    -nbfx-code-method: black;
+    -nbfx-code-class: black;
+    -nbfx-code-css-selector: #007c00;
+    -nbfx-code-css-property: blue;
+    -nbfx-code-xml-tag: #336BDD;
+    -nbfx-code-xml-attribute: #CE54B8;
+    -nbfx-code-xml-value: #CE7B00;
+    -nbfx-code-xml-doctype: #00007C;
+    -nbfx-code-xml-cdata: #7C6200;
+    -nbfx-code-xml-pi: #00007C;
+    -nbfx-code-hyperlink: #0000FF;
+
+    /* Completion and breadcrumb popups */
+    -nbfx-popup-bg: white;
+    -nbfx-popup-border: #C8CDD5;
+    -nbfx-popup-text: #1F2328;
+    -nbfx-popup-muted: #6B7280;
+    -nbfx-popup-hover: #F3F7FB;
+    -nbfx-popup-selected: #DCEBFA;
+    -nbfx-popup-selected-text: #0B57D0;
+    -nbfx-popup-separator: #D7DCE3;
+}

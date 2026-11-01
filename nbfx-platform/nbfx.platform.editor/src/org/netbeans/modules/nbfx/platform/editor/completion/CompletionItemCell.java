@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.editor.completion;
 import org.netbeans.api.nbfx.completion.CompletionItem;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.editor.ElementIcons;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
@@ -141,6 +142,7 @@ final class CompletionItemCell extends ListCell<CompletionItem> {
         Scene scene = new Scene(group);
         scene.getStylesheets().add(
                 Objects.requireNonNull(CompletionItemCell.class.getResource("completion-popup.css")).toExternalForm());
+        NbfxTheme.apply(scene);
         group.applyCss();
         group.layout();
         int width = (int) Math.ceil(group.getLayoutBounds().getWidth());

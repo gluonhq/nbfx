@@ -270,7 +270,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 updateFocusScope(focusOwner);
             }
         });
-        scene.getStylesheets().add(JavaFXLaunchApp.class.getResource("styles.css").toExternalForm());
+        ShellStyles.apply(scene);
         // Shift+Cmd+1 / Shift+Cmd+2 reveal the active editor's file in the Logical / Physical view.
         NbfxTabPane.installNavigatorRevealShortcut(scene, this::activeEditorFile);
         // Project switching must work wherever the focus is, including the navigator tree, whose own

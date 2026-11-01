@@ -39,10 +39,13 @@ public record LineDecoration(int start, int end, String style) {
      * @param results a decorationResult with a list of line decorations
      * @return a RichParagraph
      */
+    /** Inline style of plain (undecorated) text: the theme's editor text color, so it reads in dark mode too. */
+    private static final String PLAIN_STYLE = "-fx-fill: -nbfx-editor-text;";
+
     public static RichParagraph getRichParagraph(String text, List<LineDecoration> results) {
         RichParagraph.Builder builder = RichParagraph.builder();
         if (results.isEmpty()) {
-            builder.addSegment(text);
+            builder.addWithInlineStyle(text, PLAIN_STYLE);
         } else {
             int len = text.length();
             int pos = 0;
@@ -58,7 +61,7 @@ public record LineDecoration(int start, int end, String style) {
                     break;
                 }
                 if (start > pos) {
-                    builder.addSegment(text.substring(pos, start));
+                    builder.addWithInlineStyle(text.substring(pos, start), PLAIN_STYLE);
                 }
                 if (end > start) {
                     builder.addWithInlineStyle(text.substring(start, end), dec.style);
@@ -66,7 +69,7 @@ public record LineDecoration(int start, int end, String style) {
                 pos = end;
             }
             if (pos < len) {
-                builder.addSegment(text.substring(pos));
+                builder.addWithInlineStyle(text.substring(pos), PLAIN_STYLE);
             }
 
             // Add brace-match background highlights as overlays
