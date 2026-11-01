@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.session;
+package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.ui.context.EditorContexts;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;

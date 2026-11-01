@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ui.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.StatusElementSupport;
+
 import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
 import java.util.function.Consumer;
 import javafx.geometry.Orientation;

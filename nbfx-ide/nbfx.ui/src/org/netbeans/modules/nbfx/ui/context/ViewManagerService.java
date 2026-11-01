@@ -20,10 +20,10 @@ package org.netbeans.modules.nbfx.ui.context;
 
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
-import org.netbeans.modules.nbfx.ui.shell.Docking;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneRole;
-import org.netbeans.modules.nbfx.ui.shell.ViewTabs;
+import org.netbeans.modules.nbfx.platform.shell.Docking;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import java.util.logging.Logger;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;

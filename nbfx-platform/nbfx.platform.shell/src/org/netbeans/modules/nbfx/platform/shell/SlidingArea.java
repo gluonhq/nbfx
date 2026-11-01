@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.platform.shell;
+
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneKind;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea.Anchor;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneKind;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneRole;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;

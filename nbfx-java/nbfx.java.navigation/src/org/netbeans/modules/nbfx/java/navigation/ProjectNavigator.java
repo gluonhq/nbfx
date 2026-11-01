@@ -33,7 +33,7 @@ import org.netbeans.modules.nbfx.java.navigation.utils.NavigatorIcons;
 import org.netbeans.modules.nbfx.java.navigation.utils.PackageScanner;
 import org.netbeans.modules.nbfx.project.ui.utils.Projects;
 import org.netbeans.modules.nbfx.java.navigation.utils.TreeNav;
-import org.netbeans.modules.nbfx.ide.file.FileDragAndDrop;
+import org.netbeans.modules.nbfx.platform.shell.FileDragAndDrop;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;

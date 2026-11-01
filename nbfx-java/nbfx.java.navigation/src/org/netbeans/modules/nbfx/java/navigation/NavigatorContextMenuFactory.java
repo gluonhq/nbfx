@@ -30,7 +30,7 @@ import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.ide.file.DesktopActions;
+import org.netbeans.modules.nbfx.platform.shell.DesktopActions;
 import org.netbeans.modules.nbfx.ide.file.FileClipboardActions;
 import org.netbeans.modules.nbfx.java.navigation.utils.NavigatorIcons;
 import org.netbeans.modules.nbfx.java.navigation.utils.PackageScanner;

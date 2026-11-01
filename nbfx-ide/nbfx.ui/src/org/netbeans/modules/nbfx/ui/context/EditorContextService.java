@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ui.context;
 
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;

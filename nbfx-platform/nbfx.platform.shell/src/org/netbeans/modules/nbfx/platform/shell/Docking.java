@@ -16,14 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.platform.shell;
+
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneKind;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneKind;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneRole;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.platform.shell;
 
 import javafx.application.Platform;
 
 /**
  * Shared helpers for the main window's programmatic status bar elements.
  */
-final class StatusElementSupport {
+public final class StatusElementSupport {
 
     private StatusElementSupport() {
     }
 
     /** Runs {@code action} on the JavaFX Application Thread, immediately if already on it. */
-    static void runOnFxThread(Runnable action) {
+    public static void runOnFxThread(Runnable action) {
         if (Platform.isFxApplicationThread()) {
             action.run();
         } else {

@@ -18,9 +18,9 @@
  */
 package org.netbeans.modules.nbfx.ui.context;
 
-import org.netbeans.modules.nbfx.ui.session.CloseConfirmation;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.ui.shell.TabContextMenu;
+import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.TabContextMenu;
 import org.netbeans.modules.nbfx.ui.shell.TabTitles;
 
 import org.netbeans.api.nbfx.editor.ContentManager;

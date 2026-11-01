@@ -74,6 +74,7 @@ nb.cluster.nbfx-platform=\
         nbfx.platform.options,\
         nbfx.platform.output,\
         nbfx.platform.progress,\
+        nbfx.platform.shell,\
         nbfx.platform.status,\
         nbfx.platform.wizard,\
         nbfx.platform.workspace
