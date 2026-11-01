@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.platform.shell;
+
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
-import org.netbeans.modules.nbfx.ide.file.DesktopActions;
-import org.netbeans.modules.nbfx.ui.session.DocumentCloser;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

@@ -20,8 +20,8 @@ package org.netbeans.modules.nbfx.ui.session;
 
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
-import org.netbeans.modules.nbfx.ui.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.ui.shell.ToolBarContainer;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;
 
 import org.netbeans.api.nbfx.editor.EditorSettings;
 import java.io.File;
@@ -546,14 +546,14 @@ public final class AppState {
     }
 
     /**
-     * The split of a persisted editor tab (see {@link org.netbeans.modules.nbfx.ui.shell.EditorSplit}):
+     * The split of a persisted editor tab (see {@link org.netbeans.modules.nbfx.platform.shell.EditorSplit}):
      * its orientation and the scroll/caret of the editor in its second half.
      */
     public record SplitEntry(Orientation orientation, int topParagraph, int caretParagraph, int caretColumn) {
     }
 
     /**
-     * A persisted pane: its {@link org.netbeans.modules.nbfx.ui.shell.NbfxTabPane.PaneRole role},
+     * A persisted pane: its {@link org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole role},
      * its bounds (only meaningful, and only valid, for a detached pane), its tabs in order, the
      * index of the selected one ({@code -1} when the pane is empty) and, for a pane minimized to a
      * sliding side of the main window, how it is {@linkplain Minimized minimized} ({@code null} for
@@ -592,7 +592,7 @@ public final class AppState {
 
         /**
          * How a pane is minimized to a sliding side (see
-         * {@link org.netbeans.modules.nbfx.ui.shell.SlidingArea}): the {@code side} it slides from,
+         * {@link org.netbeans.modules.nbfx.platform.shell.SlidingArea}): the {@code side} it slides from,
          * its slide-in {@code size} (a width for the left and right sides, a height for the bottom),
          * and where it goes back when restored - next to the dock area's leaf at {@code anchorIndex}
          * (its depth-first index in the layout's {@link Layout#dock() tree}; the neighbour it went

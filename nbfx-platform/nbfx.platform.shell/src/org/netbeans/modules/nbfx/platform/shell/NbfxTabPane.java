@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.ui.session.CloseConfirmation;
-import org.netbeans.modules.nbfx.ui.session.DocumentCloser;
 
 import org.netbeans.api.nbfx.actions.Command;
 import java.util.HashMap;
@@ -44,7 +42,6 @@ import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
-import org.netbeans.modules.nbfx.ide.file.FileDragAndDrop;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -170,7 +167,7 @@ public final class NbfxTabPane extends TabPane {
     private static final String VIEW_ID_KEY = "nbfx.viewId";
 
     private static final String STYLESHEET = Objects.requireNonNull(
-            NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/ui/styles.css")).toExternalForm();
+            NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/platform/shell/styles.css")).toExternalForm();
     private static final String TAB_PANE_CLASS = "nbfx-tab-pane";
     private static final String TAB_HEADER_CLASS = "nbfx-tab-header";
     private static final PseudoClass DOCK_FOCUSED = PseudoClass.getPseudoClass("dock-focused");
