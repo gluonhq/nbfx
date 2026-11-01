@@ -182,6 +182,11 @@ jobs:
         run: |
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ platform-build
 
+      - name: AppShell conformance
+        timeout-minutes: 15
+        run: |
+          ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ appshell-conformance
+
       - name: Platform unit tests
         timeout-minutes: 25
         run: |

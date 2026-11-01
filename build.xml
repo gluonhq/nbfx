@@ -641,6 +641,19 @@ metabuild.hash=${nbfx.nbbuild.hash}
         </antcall>
     </target>
 
+    <target name="appshell-conformance" depends="platform-build"
+            description="Run the platform-only AppShell conformance fixture">
+        <antcall target="test">
+            <param name="nbfx.cluster.config" value="nbfx-platform"/>
+            <param name="nbfx.fragment.file" value="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+            <param name="nbfx.cluster.properties" value="build/cluster-platform.properties"/>
+            <param name="nbfx.cluster.file" location="${nbfx.build.dir}/cluster-platform.properties"/>
+            <param name="nbfx.fragment" location="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+            <param name="test.modules" value="nbfx-platform/nbfx.platform.shell"/>
+            <param name="test.includes" value="**/AppShellConformanceTest.class"/>
+        </antcall>
+    </target>
+
     <target name="test" depends="bootstrap"
             description="Run the unit tests of every nbfx module (-Dtest.modules=nbfx-platform/* to filter)">
         <!-- Use the module build files, not bare directories: a stale empty module directory left
