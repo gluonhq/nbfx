@@ -18,8 +18,9 @@
  */
 package org.netbeans.api.nbfx.breadcrumbs;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.ElementModifiers;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -101,12 +102,12 @@ public interface BreadcrumbElement {
     }
 
     /**
-     * Modifier flags, compatible with {@link java.lang.reflect.Modifier}.
+     * The element's neutral modifiers, for its icon and styling.
      *
-     * @return modifier bit mask
+     * @return the neutral modifiers, never {@code null}
      */
-    default int modifiers() {
-        return 0;
+    default ElementModifiers modifiers() {
+        return ElementModifiers.NONE;
     }
 
     /**

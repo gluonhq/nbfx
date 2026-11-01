@@ -138,9 +138,10 @@ org.netbeans.libs.nbfx.<library>                      bundled external library  
   module metadata; the cluster is the deliverable/domain boundary.
 - Module code names are `org.netbeans.modules.nbfx.<module>`; module directories are `nbfx.<module>`.
   **Package == module code-name** no longer holds: API packages are `org.netbeans.api.nbfx.*`, SPI packages
-  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. Library
-  directories use `libs.nbfx.<library>` because `nbbuild` derives the directory from the
-  `org.netbeans.libs.*` code name.
+  are `org.netbeans.spi.nbfx.*`, and implementation packages are `org.netbeans.modules.nbfx.*`. A
+  domain-specific API may add the domain segment, for example `org.netbeans.api.nbfx.java.elements`; it
+  still follows the `org.netbeans.api.nbfx.*` root. Library directories use `libs.nbfx.<library>` because
+  `nbbuild` derives the directory from the `org.netbeans.libs.*` code name.
 - A module that must expose a model to headless code but a UI elsewhere is split:
   `…ide.<capability>` (UI) + `…api.<capability>` (model). A module never mixes a public model with FX UI.
 - `<capability>` is a noun: `actions`, `views`, `status`, `dialogs`, `options`, `settings`, `progress`,
@@ -281,15 +282,15 @@ The table is the API **catalogue**, not a cluster: each module lives in its doma
 | `api.output` | M | **planned** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
 | `api.execution` | M | **planned** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport` |
 | `api.terminal` | M | **planned** | `TerminalModel`, `PtyProcess`, `TerminalSession` |
-| `api.language` | M | **planned** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`ElementIcons` — the one language registry and the provider scope ([Appendix I](appendix/I-language-soundness.md)) |
-| `api.elements` | T1 → `java.elements` | **landed** | the **Java** vocabulary (`SourceElementKind`, `SourceTypeKind`, `SourceModifiers`) moves to `java.elements`; only the neutral `ElementRef`/`SourceLocation`/`ElementIcons` stay in `api.language` (no `java.lang.reflect.Modifier` bits in a neutral API) |
+| `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
+| `api.elements` | dissolved | **dissolved** | neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers` → `api.language` (no `java.lang.reflect.Modifier` bits); Java conversion (`SourceModifiers`, `JavaElementTypes`) → `java.elements`; FX `ElementIcons` → `api.editor` |
 | `api.nodes` | M | **planned** | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events |
 | `api.property` | T2-FX | **landed** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; depends on `api.nodes` (the handle lives there — M never depends on a T2-FX module) |
 | `api.usages` | M | **landed** | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
 | `api.project` | M | **landed** | `ProjectModel`, `ProjectRegistry`, `ProjectFactory`, `ProjectFile`/`Directory`/`Library`, `@ProjectTypeRegistration`, `ProjectKindProvider` |
 | `api.build` | M | **planned** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
 | `api.project.customizer` | T2-FX | **planned** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | **landed** | `EditorService`, `EditorDocument`, `EditorContext`, annotations (`EditorAnnotation`, `EditorAnnotationProvider`), completion/breadcrumbs SPIs |
+| `api.editor` | T2-FX | **landed** | `EditorService`, `EditorDocument`, `EditorContext`, annotations (`EditorAnnotation`, `EditorAnnotationProvider`), completion/breadcrumbs SPIs, `ElementIcons` |
 | `api.editor.intelligence` | M | **planned** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
 | `api.wizard` | T2-FX | **landed** | `WizardIterator`, `WizardPanel`, `WizardDescriptor`, `@WizardRegistration` |
 | `api.templates` | M | **planned** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
@@ -480,7 +481,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 
 | Current module | Target |
 |---|---|
-| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `ElementRef`/`SourceLocation`/`ElementIcons`) + `java.elements` (`SourceElementKind`/`SourceTypeKind`/`SourceModifiers`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.editor`/`ide.file`. Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
+| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers`) + `java.elements` (`SourceModifiers`/`JavaElementTypes`) + `api.editor` (`ElementIcons`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.editor`/`ide.file`. Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
 | `nbfx.annotations` | dissolved: annotations move into their `api.*` module; path constants are owned by `api.layer.LayerPaths` |
 | `nbfx-api` cluster | **dissolved**: each API module moves to its domain cluster (§6.6); the API tier stays module metadata |
 | `nbfx.actions`, `nbfx.context` | `platform.actions` |
@@ -788,7 +789,8 @@ scenario remains the gate.
 1. `refactor/api-neutral` — remove the API leaks the single API cluster hides: `api.editor` loses
    `api.project` and `api.elements`; `api.usages` loses the Java vocabulary; `api.actions` uses the neutral
    `SourceLocation` from `api.language` and loses the IDE command ids; `api.views` loses project-specific
-   navigator callbacks. Split `api.elements` into neutral `api.language` types and `java.elements`.
+   navigator callbacks. Split `api.elements`: neutral kinds/location/modifiers to `api.language`, Java
+   conversions to `java.elements`, and the FX icon mapping to `api.editor`.
 2. `refactor/api-clusters` — move each API module into its domain cluster (§6.6); dissolve `nbfx-api`;
    update `nbfx.properties`, the cluster fragment, `build.xml`, the guards, the launcher-cluster patch and
    the docs; add `check-layers` and `check-api-isolation`.

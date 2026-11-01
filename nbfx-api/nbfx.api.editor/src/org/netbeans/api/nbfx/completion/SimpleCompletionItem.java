@@ -18,8 +18,9 @@
  */
 package org.netbeans.api.nbfx.completion;
 
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.ElementModifiers;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 
 import java.util.Objects;
 
@@ -30,7 +31,7 @@ public record SimpleCompletionItem(String label, String insertText, String sortT
                                    int sortPriority,
                                    String leftText, String rightText,
                                    SourceElementKind kind, SourceTypeKind typeKind,
-                                   int modifiers,
+                                   ElementModifiers modifiers,
                                    boolean emphasized, boolean deprecated,
                                    String qualifiedName) implements CompletionItem {
 
@@ -42,6 +43,7 @@ public record SimpleCompletionItem(String label, String insertText, String sortT
         rightText = rightText == null ? "" : rightText;
         kind = kind == null ? SourceElementKind.OTHER : kind;
         typeKind = typeKind == null ? SourceTypeKind.OTHER : typeKind;
+        modifiers = modifiers == null ? ElementModifiers.NONE : modifiers;
         qualifiedName = qualifiedName == null ? "" : qualifiedName;
     }
 
@@ -53,7 +55,7 @@ public record SimpleCompletionItem(String label, String insertText, String sortT
                                 int sortPriority,
                                 String leftText, String rightText,
                                 SourceElementKind kind, SourceTypeKind typeKind,
-                                int modifiers,
+                                ElementModifiers modifiers,
                                 boolean emphasized, boolean deprecated) {
         this(label, insertText, sortText, sortPriority, leftText, rightText,
                 kind, typeKind, modifiers, emphasized, deprecated, "");

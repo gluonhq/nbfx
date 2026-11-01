@@ -18,7 +18,7 @@
  */
 package org.netbeans.api.nbfx.actions;
 
-import org.netbeans.api.nbfx.elements.SourceLocation;
+import org.netbeans.api.nbfx.language.SourceLocation;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javafx.scene.control.MenuItem;

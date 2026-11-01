@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.platform.editor.completion;
 
 import org.netbeans.api.nbfx.completion.CompletionContext;
 import org.netbeans.api.nbfx.completion.CompletionItem;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceElementKind;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;

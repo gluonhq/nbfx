@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.elements;
-
-import java.util.Objects;
+package org.netbeans.api.nbfx.language;
 
 /**
  * Subcategories for {@link SourceElementKind#TYPE}, shared by the completion and
@@ -83,25 +81,4 @@ public enum SourceTypeKind {
         };
     }
 
-    /**
-     * Converts a runtime class into a source type kind.
-     *
-     * @param clazz runtime class
-     * @return mapped source type kind
-     */
-    public static SourceTypeKind from(Class<?> clazz) {
-        if (Objects.requireNonNull(clazz).isAnnotation()) {
-            return ANNOTATION;
-        }
-        if (clazz.isInterface()) {
-            return INTERFACE;
-        }
-        if (clazz.isEnum()) {
-            return ENUM;
-        }
-        if (clazz.isRecord()) {
-            return RECORD;
-        }
-        return CLASS;
-    }
 }

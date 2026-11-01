@@ -32,7 +32,7 @@
 
     <answer id="arch-what">
         <p>
-            The <b>NBFX API</b> provides integration between NetBeans and JavaFX tools.
+            The <b>nbfx Java element API</b> maps Java language-model elements onto the neutral element vocabulary.
         </p>
     </answer>
     

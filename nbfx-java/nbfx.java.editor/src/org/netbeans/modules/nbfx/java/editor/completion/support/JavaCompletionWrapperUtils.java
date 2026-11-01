@@ -21,6 +21,8 @@ package org.netbeans.modules.nbfx.java.editor.completion.support;
 import org.netbeans.api.nbfx.progress.Cancellation;
 
 import org.netbeans.api.nbfx.completion.CompletionItem;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
+import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.java.source.ClassIndex;
 import org.netbeans.api.java.source.CompilationController;
 import org.netbeans.api.java.source.ElementHandle;
@@ -146,14 +148,15 @@ final class JavaCompletionWrapperUtils {
         Class<?> wrapperClass = JavaCompletionTypeUtils.tryLoad(wrapperFqcn);
         if (wrapperClass == null) {
             return List.of(conventionWrapperType(
-                    wrapperSimpleName, prefix, wrapperFqcn, 0, false));
+                    wrapperSimpleName, prefix, wrapperFqcn, ElementModifiers.NONE, false));
         }
         Class<?> expectedClass = JavaCompletionTypeUtils.tryLoad(expectedType.getQualifiedName().toString());
         if (expectedClass != null && !expectedClass.isAssignableFrom(wrapperClass)) {
             return List.of();
         }
         return List.of(conventionWrapperType(wrapperSimpleName, prefix, wrapperClass.getTypeName(),
-                wrapperClass.getModifiers(), wrapperClass.isAnnotationPresent(Deprecated.class)));
+                SourceModifiers.fromBits(wrapperClass.getModifiers()),
+                wrapperClass.isAnnotationPresent(Deprecated.class)));
     }
 
     // ---------------------------------------------------------------------

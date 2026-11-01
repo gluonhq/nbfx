@@ -23,8 +23,9 @@ import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
 import org.netbeans.api.nbfx.progress.Cancellation;
-import org.netbeans.api.nbfx.elements.SourceElementKind;
-import org.netbeans.api.nbfx.elements.SourceTypeKind;
+import org.netbeans.api.nbfx.language.ElementModifiers;
+import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.api.nbfx.language.SourceTypeKind;
 import org.netbeans.modules.nbfx.java.editor.processor.semantics.JavaSourceContext;
 import com.sun.source.tree.BlockTree;
 import com.sun.source.tree.CaseTree;
@@ -69,7 +70,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static org.netbeans.api.nbfx.elements.SourceModifiers.toModifierBits;
+import static org.netbeans.api.nbfx.java.elements.SourceModifiers.toElementModifiers;
 
 /**
  * Builds the breadcrumb tree of a Java source file, following the shapes produced by the
@@ -200,7 +201,7 @@ final class JavaBreadcrumbsScanner {
             }
             return SimpleBreadcrumbElement.root(className(typePath), pos[0], pos[1],
                     SourceElementKind.TYPE, SourceTypeKind.from(classTree.getKind().name()),
-                    toModifierBits(classTree.getModifiers().getFlags()));
+                    toElementModifiers(classTree.getModifiers().getFlags()));
         }
 
         /**
@@ -216,7 +217,7 @@ final class JavaBreadcrumbsScanner {
             }
             SimpleBreadcrumbElement root = SimpleBreadcrumbElement.root(
                     moduleTree.getName().toString(), pos[0], pos[1],
-                    SourceElementKind.MODULE, null, 0);
+                    SourceElementKind.MODULE, null, ElementModifiers.NONE);
             for (DirectiveTree directive : moduleTree.getDirectives()) {
                 if (cancellation.isCancelled()) {
                     break;
@@ -225,7 +226,7 @@ final class JavaBreadcrumbsScanner {
                 int[] directivePos = spanOf(directive, modulePath);
                 if (label != null && directivePos != null) {
                     root.addChild(label, directivePos[0], directivePos[1],
-                            SourceElementKind.OTHER, null, 0);
+                            SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
             }
             return root;
@@ -331,7 +332,7 @@ final class JavaBreadcrumbsScanner {
                     ClassTree ct = (ClassTree) leaf;
                     return parent.addChild(className(path), pos[0], pos[1],
                             SourceElementKind.TYPE, SourceTypeKind.from(leaf.getKind().name()),
-                            toModifierBits(ct.getModifiers().getFlags()));
+                            toElementModifiers(ct.getModifiers().getFlags()));
                 }
                 case METHOD -> {
                     MethodTree mt = (MethodTree) leaf;
@@ -342,14 +343,14 @@ final class JavaBreadcrumbsScanner {
                     return parent.addChild(name, pos[0], pos[1],
                             SourceElementKind.METHOD,
                             constructor ? SourceTypeKind.CONSTRUCTOR : null,
-                            toModifierBits(mt.getModifiers().getFlags()));
+                            toElementModifiers(mt.getModifiers().getFlags()));
                 }
                 case VARIABLE -> {
                     VariableTree vt = (VariableTree) leaf;
                     boolean field = isClassKind(path.getParentPath().getLeaf().getKind());
                     return parent.addChild(vt.getName().toString(), pos[0], pos[1],
                             field ? SourceElementKind.FIELD : SourceElementKind.VARIABLE, null,
-                            toModifierBits(vt.getModifiers().getFlags()));
+                            toElementModifiers(vt.getModifiers().getFlags()));
                 }
                 case CASE -> {
                     CaseTree ct = (CaseTree) leaf;
@@ -359,55 +360,55 @@ final class JavaBreadcrumbsScanner {
                             ? "default:"
                             : "case " + condense(labels.stream().map(Object::toString)
                                     .collect(Collectors.joining(", "))) + ":";
-                    return parent.addChild(label, pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                    return parent.addChild(label, pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case CATCH -> {
                     CatchTree ct = (CatchTree) leaf;
                     return parent.addChild("catch " + condense(ct.getParameter().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case DO_WHILE_LOOP -> {
                     DoWhileLoopTree dt = (DoWhileLoopTree) leaf;
                     return parent.addChild("do ... while " + condense(dt.getCondition().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case ENHANCED_FOR_LOOP -> {
                     EnhancedForLoopTree ft = (EnhancedForLoopTree) leaf;
                     String label = "for (" + ft.getVariable() + " : " + ft.getExpression() + ")";
                     return parent.addChild(condenseKeepPrefix(label, "for "), pos[0], pos[1],
-                            SourceElementKind.OTHER, null, 0);
+                            SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case FOR_LOOP -> {
                     return parent.addChild(forLoopLabel((ForLoopTree) leaf), pos[0], pos[1],
-                            SourceElementKind.OTHER, null, 0);
+                            SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case IF -> {
                     int[] ifPos = ifSectionSpan((IfTree) leaf, pos, elseSection);
                     return parent.addChild(ifChainLabel(path, elseSection), ifPos[0], ifPos[1],
-                            SourceElementKind.OTHER, null, 0);
+                            SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case SWITCH -> {
                     SwitchTree st = (SwitchTree) leaf;
                     return parent.addChild("switch " + condense(st.getExpression().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case SWITCH_EXPRESSION -> {
                     SwitchExpressionTree st = (SwitchExpressionTree) leaf;
                     return parent.addChild("switch " + condense(st.getExpression().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case SYNCHRONIZED -> {
                     SynchronizedTree st = (SynchronizedTree) leaf;
                     return parent.addChild("synchronized " + condense(st.getExpression().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case TRY -> {
-                    return parent.addChild("try", pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                    return parent.addChild("try", pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case WHILE_LOOP -> {
                     WhileLoopTree wt = (WhileLoopTree) leaf;
                     return parent.addChild("while " + condense(wt.getCondition().toString()),
-                            pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                            pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case LAMBDA_EXPRESSION -> {
                     LambdaExpressionTree lt = (LambdaExpressionTree) leaf;
@@ -415,17 +416,17 @@ final class JavaBreadcrumbsScanner {
                             .map(p -> p.getName().toString())
                             .collect(Collectors.joining(", "));
                     return parent.addChild(condense("(" + params + ") ->"), pos[0], pos[1],
-                            SourceElementKind.OTHER, null, 0);
+                            SourceElementKind.OTHER, null, ElementModifiers.NONE);
                 }
                 case BLOCK -> {
                     Tree parentLeaf = path.getParentPath().getLeaf();
                     if (isClassKind(parentLeaf.getKind())) {
                         String label = ((BlockTree) leaf).isStatic() ? "<static init>" : "<init>";
-                        return parent.addChild(label, pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                        return parent.addChild(label, pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                     }
                     if (parentLeaf.getKind() == Tree.Kind.TRY
                             && ((com.sun.source.tree.TryTree) parentLeaf).getFinallyBlock() == leaf) {
-                        return parent.addChild("finally", pos[0], pos[1], SourceElementKind.OTHER, null, 0);
+                        return parent.addChild("finally", pos[0], pos[1], SourceElementKind.OTHER, null, ElementModifiers.NONE);
                     }
                     return null;
                 }

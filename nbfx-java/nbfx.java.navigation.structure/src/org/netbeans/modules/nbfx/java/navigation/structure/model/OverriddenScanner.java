@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.model;
 
-import org.netbeans.api.nbfx.elements.SourceModifiers;
+import org.netbeans.api.nbfx.java.elements.SourceModifiers;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.GoToResolver.Collector;
 import org.netbeans.modules.nbfx.java.navigation.structure.model.GoToResolver.Implementation;
 import com.sun.source.tree.ClassTree;

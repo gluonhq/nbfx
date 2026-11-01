@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.java.navigation.structure.ui;
 
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.actions.ElementContextMenuContributor;
-import org.netbeans.api.nbfx.elements.SourceLocation;
+import org.netbeans.api.nbfx.language.SourceLocation;
 import org.netbeans.api.nbfx.view.CellBreadth;
 import org.netbeans.modules.nbfx.ide.structure.ScanningPanel;
 import org.netbeans.modules.nbfx.ide.structure.TreeScrolling;
