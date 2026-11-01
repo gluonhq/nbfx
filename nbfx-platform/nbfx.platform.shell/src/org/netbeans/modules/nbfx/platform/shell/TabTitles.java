@@ -30,6 +30,13 @@ import org.openide.util.Lookup;
  */
 public final class TabTitles {
 
+    /** The provider used when the host registers none: the interface defaults. */
+    private static final TabTitleProvider DEFAULT = new TabTitleProvider() { };
+
+    /** The host's provider; the result caches the instances so labelling a tab does no lookup. */
+    private static final Lookup.Result<TabTitleProvider> PROVIDERS =
+            Lookup.getDefault().lookupResult(TabTitleProvider.class);
+
     private TabTitles() {
     }
 
@@ -40,10 +47,7 @@ public final class TabTitles {
      * @param openDocuments every open document, including {@code document}
      */
     public static String titleFor(EditorDocument document, List<? extends EditorDocument> openDocuments) {
-        TabTitleProvider provider = Lookup.getDefault().lookup(TabTitleProvider.class);
-        return provider != null
-                ? provider.titleFor(document, openDocuments)
-                : document.getTitle();
+        return provider().titleFor(document, openDocuments);
     }
 
     /**
@@ -52,10 +56,14 @@ public final class TabTitles {
      * @param document the document whose tab is being labelled
      */
     public static String tooltipFor(EditorDocument document) {
-        TabTitleProvider provider = Lookup.getDefault().lookup(TabTitleProvider.class);
-        return provider != null
-                ? provider.tooltipFor(document)
-                : document.getFileObject() != null
-                        ? document.getFileObject().getPath() : document.getTitle();
+        return provider().tooltipFor(document);
+    }
+
+    /** The host's provider, or the interface defaults when none is registered. */
+    private static TabTitleProvider provider() {
+        for (TabTitleProvider provider : PROVIDERS.allInstances()) {
+            return provider;
+        }
+        return DEFAULT;
     }
 }
