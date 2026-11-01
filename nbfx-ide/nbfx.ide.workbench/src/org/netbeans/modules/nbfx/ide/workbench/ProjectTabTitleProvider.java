@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.shell;
+package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.project.OpenProject;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
+import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.project.OpenProject;
+import org.netbeans.modules.nbfx.platform.shell.TabTitleProvider;
+import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Computes the text shown on an editor tab and in its tooltip.
- * <p>
- * With several projects open, two of them may hold files with the same name; such tabs are
- * disambiguated with the name of the project they belong to. The tooltip always names the owning
- * project and the file's path within it.
+ * Project-aware tab titles: with several projects open, two of them may hold files with the same
+ * name, so such tabs are disambiguated with the name of the project they belong to. The tooltip
+ * always names the owning project and the file's path within it.
  */
-public final class TabTitles {
+@ServiceProvider(service = TabTitleProvider.class)
+public final class ProjectTabTitleProvider implements TabTitleProvider {
 
     /** Separates the project name from the file path in a tab tooltip. */
     private static final String TOOLTIP_SEPARATOR = " \u2014 ";
 
-    private TabTitles() {
-    }
-
-    /**
-     * The title for {@code document}'s tab: its {@link EditorDocument#getTitle() plain title},
-     * suffixed with the owning project's name when another open document of a different project has
-     * the same title.
-     *
-     * @param document     the document whose tab is being labelled
-     * @param openDocuments every open document, including {@code document}
-     */
-    public static String titleFor(EditorDocument document, List<? extends EditorDocument> openDocuments) {
+    @Override
+    public String titleFor(EditorDocument document, List<? extends EditorDocument> openDocuments) {
         String title = document.getTitle();
         String projectPath = ProjectEditorScope.projectPathOf(document);
         String projectName = projectNameOf(projectPath);
@@ -61,11 +51,8 @@ public final class TabTitles {
         return ambiguous ? title + " [" + projectName + "]" : title;
     }
 
-    /**
-     * The tooltip for {@code document}'s tab: {@code <project> — <path within the project>}, or the
-     * file's full path when it belongs to no open project.
-     */
-    public static String tooltipFor(EditorDocument document) {
+    @Override
+    public String tooltipFor(EditorDocument document) {
         String filePath = OpenProject.pathOf(document.getFileObject());
         String projectPath = ProjectEditorScope.projectPathOf(document);
         String projectName = projectNameOf(projectPath);
