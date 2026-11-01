@@ -18,10 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.WeakHashMap;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
@@ -36,6 +39,10 @@ import org.openide.util.Lookup;
  */
 public final class ProjectEditorScope {
 
+    /** Project paths resolved per document; tab-title bindings call this repeatedly. */
+    private static final Map<EditorDocument, String> PROJECT_PATHS =
+            Collections.synchronizedMap(new WeakHashMap<>());
+
     private ProjectEditorScope() {
     }
 
@@ -49,9 +56,16 @@ public final class ProjectEditorScope {
         if (document == null) {
             return null;
         }
+        synchronized (PROJECT_PATHS) {
+            if (PROJECT_PATHS.containsKey(document)) {
+                return PROJECT_PATHS.get(document);
+            }
+        }
         ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
         OpenProject project = registry == null ? null : registry.ownerOf(document.getFileObject());
-        return project == null ? null : project.getPath();
+        String path = project == null ? null : project.getPath();
+        PROJECT_PATHS.put(document, path);
+        return path;
     }
 
     /**
