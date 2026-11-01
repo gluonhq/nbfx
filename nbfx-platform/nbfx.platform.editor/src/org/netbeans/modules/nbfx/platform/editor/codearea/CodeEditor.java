@@ -25,6 +25,7 @@ import org.netbeans.modules.nbfx.platform.editor.breadcrumbs.BreadcrumbsBar;
 import org.netbeans.modules.nbfx.platform.editor.codearea.search.SearchSupport;
 import org.netbeans.modules.nbfx.platform.editor.breadcrumbs.BreadcrumbsSupport;
 import org.netbeans.modules.nbfx.platform.editor.completion.CompletionController;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import com.sun.jfx.incubator.scene.control.richtext.RichTextAreaSkinHelper;
 import com.sun.jfx.incubator.scene.control.richtext.VFlow;
 import javafx.application.Platform;
@@ -140,6 +141,12 @@ public class CodeEditor implements EditorDocument {
         }
         rootPane.getStylesheets().add(
                 Objects.requireNonNull(CodeEditor.class.getResource("codeeditor.css")).toExternalForm());
+        // The colors come from the theme, a scene-level sheet: apply it once the editor is in a scene.
+        rootPane.sceneProperty().addListener((obs, oldScene, scene) -> {
+            if (scene != null) {
+                NbfxTheme.apply(scene);
+            }
+        });
 
         // Custom left decorator that shows line numbers + error indicators with tooltips.
         lineDecorator = new MarkLineNumberDecorator(decorator, codeArea.fontProperty());

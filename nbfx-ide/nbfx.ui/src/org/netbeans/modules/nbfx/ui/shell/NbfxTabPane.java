@@ -50,6 +50,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
+import org.netbeans.modules.nbfx.ui.ShellStyles;
 import javafx.css.PseudoClass;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
@@ -169,8 +170,6 @@ public final class NbfxTabPane extends TabPane {
     /** Key under which a view tab stores its stable {@code ViewProvider} identifier for persistence. */
     private static final String VIEW_ID_KEY = "nbfx.viewId";
 
-    private static final String STYLESHEET = Objects.requireNonNull(
-            NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/ui/styles.css")).toExternalForm();
     private static final String TAB_PANE_CLASS = "nbfx-tab-pane";
     private static final String TAB_HEADER_CLASS = "nbfx-tab-header";
     private static final PseudoClass DOCK_FOCUSED = PseudoClass.getPseudoClass("dock-focused");
@@ -1555,9 +1554,7 @@ public final class NbfxTabPane extends TabPane {
             public void invalidated(Observable observable) {
                 Scene scene = tabPane.getScene();
                 if (scene != null) {
-                    if (!scene.getStylesheets().contains(STYLESHEET)) {
-                        scene.getStylesheets().add(STYLESHEET);
-                    }
+                    ShellStyles.apply(scene);
                     tabPane.sceneProperty().removeListener(this);
                 }
             }

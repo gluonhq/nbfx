@@ -35,6 +35,7 @@ import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -478,7 +479,34 @@ public final class ActionBars {
             breadcrumbs.selectedProperty().bindBidirectional(editorSettings.showBreadcrumbs());
             viewMenu.getItems().add(breadcrumbs);
         }
+        // One radio item per theme file; rebuilt each time the menu opens, so new files show up.
+        refreshThemeItems(viewMenu);
+        viewMenu.setOnShowing(e -> refreshThemeItems(viewMenu));
         return viewMenu;
+    }
+
+    /** Marks the View menu items that list the themes, so that they can be replaced. */
+    private static final String THEME_ITEM = "nbfx-theme-item";
+
+    /**
+     * Replaces the theme items at the end of the View menu with one radio item per theme. Only one
+     * theme is selected at a time; choosing an item applies it to every open window.
+     */
+    private static void refreshThemeItems(Menu viewMenu) {
+        viewMenu.getItems().removeIf(item -> THEME_ITEM.equals(item.getUserData()));
+        String current = NbfxTheme.current();
+        ToggleGroup group = new ToggleGroup();
+        SeparatorMenuItem separator = new SeparatorMenuItem();
+        separator.setUserData(THEME_ITEM);
+        viewMenu.getItems().add(separator);
+        for (String id : NbfxTheme.themes()) {
+            RadioMenuItem item = new RadioMenuItem(NbfxTheme.displayName(id));
+            item.setUserData(THEME_ITEM);
+            item.setToggleGroup(group);
+            item.setSelected(id.equals(current));
+            item.setOnAction(e -> NbfxTheme.setTheme(id));
+            viewMenu.getItems().add(item);
+        }
     }
 
     /** Human-readable name for a tool bar id, from the resource bundle (falls back to the id). */
