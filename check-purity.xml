@@ -214,8 +214,16 @@
         <echo message="[purity] AppShell violations: ${appshell.violations}"/>
     </target>
 
-    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-namespace,check-baseline,check-logging,check-languages,check-layers,check-api-isolation,check-appshell,check-dependencies,check-jars,check-packaging">
-        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${namespace.violations} namespace, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${layers.violations} layer, ${api.violations} API isolation, ${appshell.violations} AppShell, ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
+    <target name="check-platform-delivery">
+        <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="platform.result">
+            <arg value="nbfx-tests/tools/PlatformDeliveryGuard.java"/><arg value="${basedir}"/>
+        </exec>
+        <condition property="platform.violations" value="1" else="0"><not><equals arg1="${platform.result}" arg2="0"/></not></condition>
+        <echo message="[purity] platform delivery violations: ${platform.violations}"/>
+    </target>
+
+    <target name="check-purity" depends="check-sources,check-java-source,check-naming,check-namespace,check-baseline,check-logging,check-languages,check-layers,check-api-isolation,check-appshell,check-dependencies,check-jars,check-packaging,check-platform-delivery">
+        <fail message="[purity] ${src.violations} forbidden import(s), ${dep.violations} forbidden dependency(ies), ${naming.violations} naming, ${namespace.violations} namespace, ${baseline.violations} baseline, ${logging.violations} logging, ${languages.violations} language violation(s), ${layers.violations} layer, ${api.violations} API isolation, ${appshell.violations} AppShell, ${platform.violations} platform delivery, ${jar.violations} forbidden bundled-class violation(s) and ${packaging.violations} forbidden window-system jar(s) found under the nbfx clusters;">
             <condition>
                 <and>
                     <equals arg1="${nbfx.purity.strict}" arg2="true"/>
@@ -227,6 +235,7 @@
                         <not><equals arg1="${layers.violations}" arg2="0"/></not>
                         <not><equals arg1="${api.violations}" arg2="0"/></not>
                         <not><equals arg1="${appshell.violations}" arg2="0"/></not>
+                        <not><equals arg1="${platform.violations}" arg2="0"/></not>
                         <not><equals arg1="${dep.violations}" arg2="0"/></not>
                         <not><equals arg1="${naming.violations}" arg2="0"/></not>
                         <not><equals arg1="${namespace.violations}" arg2="0"/></not>

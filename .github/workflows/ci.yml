@@ -132,3 +132,65 @@ jobs:
         run: |
           ant check-purity
           ant -f check-purity.xml check-figures
+
+  platform:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      ANT_OPTS: >-
+        -Djava.net.preferIPv4Stack=true
+        -DdownloadBinaries.connectTimeoutMs=30000
+    steps:
+      - name: Checkout (with the NetBeans submodule)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Restore external binary cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ~/.hgexternalcache
+          key: ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-${{ hashFiles('netbeans/**/external/binaries-list') }}-
+
+      - name: Seed jhall external binary
+        run: |
+          cache="${HOME}/.hgexternalcache"
+          jhall="${cache}/CA70822C47A67FC3A11670270567C2D01566DAE1-jhall-2.0_05.jar"
+          mkdir -p "$cache"
+          if [ ! -f "$jhall" ]; then
+            curl --fail --location --retry 5 --retry-all-errors \
+              --output "$jhall" \
+              https://repo.maven.apache.org/maven2/javax/help/javahelp/2.0.05/javahelp-2.0.05.jar
+          fi
+          echo "ca70822c47a67fc3a11670270567c2d01566dae1  ${jhall}" | sha1sum -c -
+
+      - name: JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: oracle
+          java-version: '25'
+
+      - name: Ant
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ant
+          ant -version
+
+      - name: Build the platform-only AppShell
+        run: |
+          ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ platform-build
+
+      - name: Platform unit tests
+        timeout-minutes: 25
+        run: |
+          ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ platform-test
+
+      - name: Upload platform test results
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: platform-test-results
+          path: netbeans/**/build/test/unit/results/TEST-*.xml
+          if-no-files-found: ignore

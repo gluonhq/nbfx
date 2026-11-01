@@ -596,6 +596,27 @@ metabuild.hash=${nbfx.nbbuild.hash}
         </ant>
     </target>
 
+    <!-- The platform-only config needs the nbfx cluster definitions as well as the platform list,
+         so concatenate the common fragment with the platform list. -->
+    <target name="platform-fragment">
+        <mkdir dir="${nbfx.build.dir}"/>
+        <concat destfile="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment" fixlastline="yes">
+            <fileset file="${nbfx.fragment}"/>
+            <fileset file="cluster/nbfx-platform-cluster.properties.fragment"/>
+        </concat>
+    </target>
+
+    <target name="platform-build" depends="platform-fragment" description="Build the platform-only AppShell deliverable (no nbfx IDE/Java modules)">
+        <antcall target="build">
+            <param name="nbfx.cluster.config" value="nbfx-platform"/>
+            <param name="nbfx.fragment.file" value="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+            <param name="nbfx.cluster.properties" value="build/cluster-platform.properties"/>
+            <param name="nbfx.cluster.file" location="${nbfx.build.dir}/cluster-platform.properties"/>
+            <param name="nbfx.fragment" location="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+        </antcall>
+        <ant antfile="${basedir}/check-purity.xml" target="check-platform-delivery" dir="${basedir}" inheritall="false"/>
+    </target>
+
     <target name="run" depends="bootstrap" description="Launch the FX app on the lean nbfx cluster set">
         <ant antfile="${nbfx.sub.dir}/nbbuild/build.xml" dir="${nbfx.sub.dir}/nbbuild"
              target="tryme" inheritall="false">
@@ -607,6 +628,18 @@ metabuild.hash=${nbfx.nbbuild.hash}
     <!-- ======================================================================== -->
     <!-- tests                                                                    -->
     <!-- ======================================================================== -->
+
+    <target name="platform-test" depends="platform-fragment"
+            description="Run the unit tests of the platform-only deliverable">
+        <antcall target="test">
+            <param name="nbfx.cluster.config" value="nbfx-platform"/>
+            <param name="nbfx.fragment.file" value="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+            <param name="nbfx.cluster.properties" value="build/cluster-platform.properties"/>
+            <param name="nbfx.cluster.file" location="${nbfx.build.dir}/cluster-platform.properties"/>
+            <param name="nbfx.fragment" location="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
+            <param name="test.modules" value="nbfx-platform/*"/>
+        </antcall>
+    </target>
 
     <target name="test" depends="bootstrap"
             description="Run the unit tests of every nbfx module (-Dtest.modules=nbfx-platform/* to filter)">
