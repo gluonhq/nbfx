@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.modules.nbfx.ide.usages.ui.UsagesViewProvider;
@@ -43,7 +45,7 @@ final class SelectUsagesCommand extends AbstractCommand {
     }
 
     SelectUsagesCommand() {
-        super(ActionIds.SELECT_USAGES, NbBundle.getMessage(SelectUsagesCommand.class, "CTL_SelectUsagesCommand"),
+        super(IdeActionIds.SELECT_USAGES, NbBundle.getMessage(SelectUsagesCommand.class, "CTL_SelectUsagesCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT3, KeyCombination.SHORTCUT_DOWN), false);
     }
 

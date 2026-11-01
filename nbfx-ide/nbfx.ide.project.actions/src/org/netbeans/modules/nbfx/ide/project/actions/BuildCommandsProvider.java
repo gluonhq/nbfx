@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.project.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
@@ -39,17 +41,17 @@ public final class BuildCommandsProvider implements CommandsProvider {
     @Override
     public Collection<Command> createCommands() {
         return List.of(
-                new BuildCommand(ActionIds.BUILD, message("BuildCommand.build"),
+                new BuildCommand(IdeActionIds.BUILD, message("BuildCommand.build"),
                         BuildCommands.BUILD),
-                new BuildCommand(ActionIds.CLEAN_BUILD, message("BuildCommand.cleanBuild"),
+                new BuildCommand(IdeActionIds.CLEAN_BUILD, message("BuildCommand.cleanBuild"),
                         BuildCommands.REBUILD),
-                new BuildCommand(ActionIds.CLEAN, message("BuildCommand.clean"),
+                new BuildCommand(IdeActionIds.CLEAN, message("BuildCommand.clean"),
                         BuildCommands.CLEAN),
-                new BuildCommand(ActionIds.TEST, message("BuildCommand.test"),
+                new BuildCommand(IdeActionIds.TEST, message("BuildCommand.test"),
                         BuildCommands.TEST),
-                new BuildCommand(ActionIds.RUN, message("BuildCommand.run"),
+                new BuildCommand(IdeActionIds.RUN, message("BuildCommand.run"),
                         BuildCommands.RUN),
-                new BuildCommand(ActionIds.JAVADOC, message("BuildCommand.javadoc"),
+                new BuildCommand(IdeActionIds.JAVADOC, message("BuildCommand.javadoc"),
                         BuildCommands.JAVADOC));
     }
 

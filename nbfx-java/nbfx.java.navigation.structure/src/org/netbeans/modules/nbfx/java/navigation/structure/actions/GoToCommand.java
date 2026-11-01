@@ -18,10 +18,12 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.actions;
 
-import static org.netbeans.api.nbfx.actions.ActionIds.GO_TO_DECLARATION;
-import static org.netbeans.api.nbfx.actions.ActionIds.GO_TO_IMPLEMENTATION;
-import static org.netbeans.api.nbfx.actions.ActionIds.GO_TO_SOURCE;
-import static org.netbeans.api.nbfx.actions.ActionIds.GO_TO_SUPER_IMPLEMENTATION;
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_DECLARATION;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_IMPLEMENTATION;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_SOURCE;
+import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_SUPER_IMPLEMENTATION;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.MenuRegistration;
@@ -82,10 +84,10 @@ final class GoToCommand extends AbstractCommand {
     /** The command id of {@code kind}. */
     static String idOf(GoToResolver.Kind kind) {
         return switch (kind) {
-            case SOURCE -> ActionIds.GO_TO_SOURCE;
-            case DECLARATION -> ActionIds.GO_TO_DECLARATION;
-            case SUPER_IMPLEMENTATION -> ActionIds.GO_TO_SUPER_IMPLEMENTATION;
-            case IMPLEMENTATION -> ActionIds.GO_TO_IMPLEMENTATION;
+            case SOURCE -> IdeActionIds.GO_TO_SOURCE;
+            case DECLARATION -> IdeActionIds.GO_TO_DECLARATION;
+            case SUPER_IMPLEMENTATION -> IdeActionIds.GO_TO_SUPER_IMPLEMENTATION;
+            case IMPLEMENTATION -> IdeActionIds.GO_TO_IMPLEMENTATION;
         };
     }
 

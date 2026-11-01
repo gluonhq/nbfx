@@ -29,7 +29,7 @@ import org.netbeans.modules.nbfx.ui.shell.SlidingArea;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.ide.workbench.NavigatorView;
 import org.netbeans.modules.nbfx.ui.session.AppState.Layout;
 import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout;
 import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout.Minimized;
@@ -100,7 +100,7 @@ public final class SessionRestorer {
      * showing.
      */
     public void captureSession(Collection<File> projects,
-            Collection<? extends ViewProvider> providers) {
+            Collection<? extends NavigatorView> providers) {
         if (projects != null) {
             for (File project : projects) {
                 captureExpansion(project, providers);
@@ -109,7 +109,7 @@ public final class SessionRestorer {
         captureLayout();
     }
 
-    private void captureExpansion(File project, Collection<? extends ViewProvider> providers) {
+    private void captureExpansion(File project, Collection<? extends NavigatorView> providers) {
         if (project == null || providers == null) {
             return;
         }
@@ -119,7 +119,7 @@ public final class SessionRestorer {
         }
         List<String> expanded = new ArrayList<>();
         String selected = null;
-        for (ViewProvider provider : providers) {
+        for (NavigatorView provider : providers) {
             // Only this project's own nodes: with several projects open the providers hold one tree
             // per root, and each project's state is persisted under its own key.
             expanded.addAll(provider.getExpandedPaths(root));

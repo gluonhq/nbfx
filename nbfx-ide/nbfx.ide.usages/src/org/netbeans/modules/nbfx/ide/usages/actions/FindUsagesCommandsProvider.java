@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.actions;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
@@ -62,7 +64,7 @@ public class FindUsagesCommandsProvider implements CommandsProvider {
 
     @Override
     public Optional<Command> createScoped(String id, ObservableValue<EditorDocument> activeDocument) {
-        if (context == null || model == null || activeDocument == null || !ActionIds.FIND_USAGES.equals(id)) {
+        if (context == null || model == null || activeDocument == null || !IdeActionIds.FIND_USAGES.equals(id)) {
             return Optional.empty();
         }
         return Optional.of(new FindUsagesCommand(activeDocument, model));

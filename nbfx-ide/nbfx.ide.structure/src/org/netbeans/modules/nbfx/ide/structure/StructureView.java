@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.structure;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
@@ -42,7 +44,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ViewRegistration(id = StructureView.ID, displayName = "#StructureView.title",
         iconName = "org/netbeans/modules/nbfx/ide/structure/navigator.png",
         location = ViewLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
-@ActionReference(id = ActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 50)
+@ActionReference(id = IdeActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 50)
 public final class StructureView implements ViewProvider {
 
     /** The stable id of the view. */

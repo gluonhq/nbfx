@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.debug;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.ContextAction;
@@ -42,7 +44,7 @@ final class ToggleBreakpointCommand {
 
     /** The command, enabled while an editor document is in the global action context. */
     static Command create() {
-        return new ContextAction(ActionIds.TOGGLE_BREAKPOINT,
+        return new ContextAction(IdeActionIds.TOGGLE_BREAKPOINT,
                 NbBundle.getMessage(ToggleBreakpointCommand.class, "CTL_ToggleBreakpointCommand"),
                 null, context -> context.lookup(EditorDocument.class) != null,
                 ToggleBreakpointCommand::toggle, EditorDocument.class);

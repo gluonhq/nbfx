@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.structure;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import java.util.Objects;
@@ -37,7 +39,7 @@ import org.openide.util.NbBundle;
 final class SelectNavigatorCommand extends AbstractCommand {
 
     SelectNavigatorCommand() {
-        super(ActionIds.SELECT_NAVIGATOR,
+        super(IdeActionIds.SELECT_NAVIGATOR,
                 NbBundle.getMessage(SelectNavigatorCommand.class, "CTL_SelectNavigatorCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT7, KeyCombination.SHORTCUT_DOWN), false);
     }

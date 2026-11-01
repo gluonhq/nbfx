@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.project;
 
+import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
@@ -40,10 +42,10 @@ public final class ProjectCommandsProvider implements CommandsProvider {
     @Override
     public Collection<Command> createCommands() {
         return List.of(
-                new WizardCommand(ActionIds.NEW_PROJECT, message("CTL_NewProjectCommand"),
+                new WizardCommand(IdeActionIds.NEW_PROJECT, message("CTL_NewProjectCommand"),
                         new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
                         NewProjectWizard.ID),
-                new WizardCommand(ActionIds.NEW_FILE, message("CTL_NewFileCommand"),
+                new WizardCommand(IdeActionIds.NEW_FILE, message("CTL_NewFileCommand"),
                         new KeyCodeCombination(KeyCode.N, KeyCombination.SHORTCUT_DOWN),
                         NewFileWizard.ID));
     }

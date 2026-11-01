@@ -33,8 +33,7 @@ nbfx/
 ├── nbfx-local.properties         # optional local overrides (not committed)
 ├── .gitmodules                   # netbeans submodule
 ├── netbeans/                     # submodule → apache/netbeans @ pinned SHA
-├── nbfx-api/                     # transitional API cluster (dissolves into domain clusters, PLAN §6.6)
-├── nbfx-platform/                # AppShell + platform modules
+├── nbfx-platform/                # AppShell + platform modules and platform APIs
 ├── nbfx-ide/                     # IDE modules + IDE contributions to the AppShell
 ├── nbfx-java/                    # Java/JVM usage
 ├── cluster/
@@ -94,19 +93,17 @@ and vice versa.
    (`-define-cluster-path` builds `cluster.path` from it; packaging targets too). An external
    `-Dclusters.list.file` alone is not sufficient.
 
-The fragment currently defines five clusters (dependency direction `nbfx-libs → nbfx-api → nbfx-platform →
-nbfx-ide → nbfx-java`) and the lean `clusters.config.nbfx.list`. The target has no `nbfx-api` cluster: APIs
-live in their domain cluster (PLAN §2/§6.6, `refactor/api-clusters`). This section describes the current
-build until that step lands.
+The fragment defines four clusters (dependency direction `nbfx-libs → nbfx-platform → nbfx-ide →
+nbfx-java`) and the lean `clusters.config.nbfx.list`. APIs live in the cluster of their domain; there is no
+`nbfx-api` cluster.
 
 ```
 nb.cluster.nbfx-libs.dir=nbfx-libs           no cluster dependency
-nb.cluster.nbfx-api.dir=nbfx-api             depends platform, nbfx-libs
-nb.cluster.nbfx-platform.dir=nbfx-platform   depends platform, nbfx-api
+nb.cluster.nbfx-platform.dir=nbfx-platform   depends platform, nbfx-libs, ide
 nb.cluster.nbfx-ide.dir=nbfx-ide             depends nbfx-platform, ide, java
 nb.cluster.nbfx-java.dir=nbfx-java           depends nbfx-ide, java, extide, apisupport
 
-clusters.config.nbfx.list = platform, nbfx-libs, nbfx-api, nbfx-platform, nbfx-ide, nbfx-java,
+clusters.config.nbfx.list = platform, nbfx-libs, nbfx-platform, nbfx-ide, nbfx-java,
                             java, ide, extide, apisupport
 ```
 
@@ -130,7 +127,7 @@ hooks.
 | `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>org.netbeans.modules.nbfx.launcher</friend>` (RunLevel SPI) |
 | `0002-friend-maven` | `java/maven/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
 | `0003-friend-maven-embedder` | `java/maven.embedder/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
-| `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-api`, `nbfx-platform`, `nbfx-ide`, `nbfx-java`; drop `nbfx-api` when W1.7 lands |
+| `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` |
 | `0011-tryme-clusters` | `nbbuild/build.xml` | `tryme` passes `--clusters` from `clusters.config.nbfx.list` + JMS flags |
 | `0012-ignored-binaries` | `nbbuild/antsrc/…/extlibs/ignored-binaries` | allow the bundled JavaFX jars **and native libs** |
 | `0013-rat-exclusions` | `nbbuild/rat-exclusions.txt` | exclude the nbfx dirs from Rat |
