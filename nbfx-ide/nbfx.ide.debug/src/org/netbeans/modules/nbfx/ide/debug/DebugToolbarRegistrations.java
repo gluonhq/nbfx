@@ -18,14 +18,14 @@
  */
 package org.netbeans.modules.nbfx.ide.debug;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_CONTINUE;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_FILE;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_STEP_INTO;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_STEP_OUT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_STEP_OVER;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.DEBUG_STOP;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_CONTINUE;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_FILE;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_STEP_INTO;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_STEP_OUT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_STEP_OVER;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.DEBUG_STOP;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.ToolbarRegistration;

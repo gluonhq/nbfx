@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionLayerReader;

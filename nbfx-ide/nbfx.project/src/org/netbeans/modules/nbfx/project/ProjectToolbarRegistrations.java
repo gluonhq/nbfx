@@ -18,10 +18,10 @@
  */
 package org.netbeans.modules.nbfx.project;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.NEW_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.OPEN_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEW_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.OPEN_PROJECT;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.ToolbarRegistration;
