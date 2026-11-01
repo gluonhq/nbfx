@@ -124,7 +124,7 @@ hooks.
 
 | Patch | File | Change |
 |---|---|---|
-| `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>org.netbeans.modules.nbfx.launcher</friend>` (RunLevel SPI) |
+| `0001-friend-core-startup` | `platform/core.startup/nbproject/project.xml` | `<friend>org.netbeans.modules.nbfx.platform.launcher</friend>` (RunLevel SPI) |
 | `0002-friend-maven` | `java/maven/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
 | `0003-friend-maven-embedder` | `java/maven.embedder/nbproject/project.xml` | `<friend>` for `org.netbeans.modules.nbfx.java.maven` and `org.netbeans.modules.nbfx.java.maven.structure` |
 | `0010-launcher-clusters` | `nb/ide.launcher/netbeans.clusters` | add `nbfx-libs`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` |

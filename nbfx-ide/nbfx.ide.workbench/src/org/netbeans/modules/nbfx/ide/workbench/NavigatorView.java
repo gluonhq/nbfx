@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.ide.workbench;
 import java.util.List;
 import java.util.function.Consumer;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.shell.ViewStateProvider;
 import org.openide.filesystems.FileObject;
 
 /**
@@ -30,7 +31,7 @@ import org.openide.filesystems.FileObject;
  * The platform {@link ViewProvider} stays generic; only views that show a project tree implement this
  * IDE-tier interface.
  */
-public interface NavigatorView extends ViewProvider {
+public interface NavigatorView extends ViewProvider, ViewStateProvider {
 
     /**
      * Reveals {@code file} in this view: expands to it and selects it.
