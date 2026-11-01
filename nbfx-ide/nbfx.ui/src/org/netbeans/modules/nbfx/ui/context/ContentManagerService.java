@@ -30,11 +30,7 @@ import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.file.FileIconProvider;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Objects;
-import java.util.Set;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -204,26 +200,8 @@ public class ContentManagerService implements ContentManager {
     }
 
     @Override
-    public void closeFiles(String projectPath) {
-        // Which documents belong to the project is resolved now, not when the tabs are actually
-        // removed: a document resolves its project lazily, from the registry, and the removal is
-        // deferred to the FX thread - by then the project is already closed (closeProject asks for
-        // its files first) and its documents would answer with no project, leaving their tabs open.
-        Set<EditorDocument> targets = Collections.newSetFromMap(new IdentityHashMap<>());
-        targets.addAll(documentsOf(projectPath));
-        NbfxTabPane.closeTabs(targets::contains);
-    }
-
-    @Override
     public List<EditorDocument> getMainPaneDocuments() {
         return NbfxTabPane.documentsOf(mainPane);
-    }
-
-    @Override
-    public List<EditorDocument> documentsOf(String projectPath) {
-        return NbfxTabPane.allDocuments().stream()
-                .filter(document -> Objects.equals(projectPath, document.getProjectPath()))
-                .toList();
     }
 
     @Override

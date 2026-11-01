@@ -32,6 +32,7 @@ import org.netbeans.modules.nbfx.ui.session.AppState;
 import org.netbeans.modules.nbfx.ui.session.CloseConfirmation;
 import org.netbeans.modules.nbfx.ui.session.DocumentCloser;
 import org.netbeans.modules.nbfx.ui.session.SessionRestorer;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.modules.nbfx.ui.shell.CaretStatusElement;
@@ -1442,8 +1443,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         }
         String path = project.getPath();
         if (confirmUnsaved) {
-            EditorContext context = Lookup.getDefault().lookup(EditorContext.class);
-            List<EditorDocument> documents = context != null ? context.documentsOf(path) : List.of();
+            List<EditorDocument> documents = ProjectEditorScope.documentsOf(path);
             if (!documents.isEmpty() && !CloseConfirmation.confirmClose(documents)) {
                 return;
             }
@@ -1454,10 +1454,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         abortSessionRestore();
         // A project still loading stops loading now: nothing should keep building for a closed project.
         cancelProjectLoading(path);
-        ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
-        if (contentManager != null) {
-            contentManager.closeFiles(path);
-        }
+        ProjectEditorScope.closeFiles(path);
         // Closing the registry entry makes the views drop the project's tree (they observe it).
         projectRegistry.close(project);
         // Only this project's file-operation history goes: the other projects keep theirs.

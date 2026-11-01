@@ -24,7 +24,7 @@ import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.FileContextMenuContributor;
 import org.netbeans.api.nbfx.actions.ActionRef;
-import org.netbeans.api.nbfx.editor.EditorContext;
+import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
@@ -281,11 +281,10 @@ final class NavigatorContextMenuFactory<T> {
 
     /** Whether the project rooted at {@code root} has any document with unsaved changes. */
     private static boolean hasModifiedDocuments(FileObject root) {
-        EditorContext context = Lookup.getDefault().lookup(EditorContext.class);
-        if (context == null || root == null) {
+        if (root == null) {
             return false;
         }
-        return context.documentsOf(OpenProject.pathOf(root)).stream()
+        return ProjectEditorScope.documentsOf(OpenProject.pathOf(root)).stream()
                 .anyMatch(document -> document.modifiedProperty().get());
     }
 
