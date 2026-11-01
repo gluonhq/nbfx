@@ -18,14 +18,14 @@
  */
 package org.netbeans.modules.nbfx.ide.project.actions;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.BUILD;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLEAN;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLEAN_BUILD;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.JAVADOC;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.RUN;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.TEST;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.BUILD;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLEAN;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLEAN_BUILD;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.JAVADOC;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.RUN;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.TEST;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.MenuRegistration;

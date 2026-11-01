@@ -314,10 +314,10 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | replaces current `nbfx.ui`; the rest of the AppShell is the sibling rows below (§6.6) |
+| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | module landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer); `ide.workbench` holds the IDE assembly and app provider; the rest of the AppShell is the sibling rows below (§6.6) |
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
 | `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
-| `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; absorbs the generic context services from `nbfx.ui.context` |
+| `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | generic menu layout; IDE entries are contributed by `ide.workbench.IdeMenus` | replaces `nbfx.menus` |
 | `platform.status` | status bar + element rendering | replaces `nbfx.statusbar` |
 | `platform.dialogs` | dialog host, notification line, toasts, exception reporting | new (was planned) |
@@ -334,7 +334,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 | `platform.favorites` | favourites view | new |
 | `platform.templates` | template model (discovery/creation) | replaces `nbfx.templates` (branch) |
 | `platform.wizard` | wizard framework + themed shell | replaces `nbfx.wizard` |
-| `platform.launcher` | application entry point | replaces `nbfx.launcher` |
+| `platform.launcher` | application entry point; `AppProvider` selects the JavaFX application | landed; replaces `nbfx.launcher`; the IDE app provider is `ide.workbench.NbfxAppProvider` |
 | `platform.macos` | macOS integration (menus, file associations) | replaces `nbfx.macos` |
 
 The platform cluster also owns the platform API modules listed in §6.6. The **AppShell** is this cluster's
@@ -347,7 +347,8 @@ application framework; `platform.shell` is its composition root, not the whole A
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `ide.workbench` | IDE contributions to the AppShell: project commands, navigators (`NavigatorView`), project switching, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope, `IdeActionIds` and `IdeMenus` | new; project-aware editor scope, navigator view and IDE action/menu vocabulary landed in W1.7; the IDE is the AppShell's primary consumer |
+| `ide.actions` | stable IDE-only command ids (`IdeActionIds`), shared by project, file, editor, debug, search, VCS and workbench modules | new; kept below `ide.workbench` so those modules do not depend on the assembly |
+| `ide.workbench` | IDE assembly and contributions to the AppShell: app provider, launcher app, action bars, project commands, navigators (`NavigatorView`), project switching and loading, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope and `IdeMenus`; the action vocabulary lives in `ide.actions` | landed; absorbs the former `nbfx.ui` module; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
@@ -429,14 +430,13 @@ platform set uses upstream `platform` and `ide`; the IDE set adds upstream `ide`
 
 **The AppShell** is the platform deliverable's application framework. `platform.shell` is its composition
 root; the services below are the AppShell. The IDE is its primary consumer; downstream may use the whole
-AppShell, individual services, or another composition. "State" is honest: `landed`, `in nbfx.ui` (must move),
-`planned`.
+AppShell, individual services, or another composition. "State" is honest: `landed` or `planned`.
 
 | AppShell service | Modules | State |
 |---|---|---|
-| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; shell in `nbfx.ui` |
+| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
-| Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | generic parts in `nbfx.ui.context`; must move |
+| Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
 | Menus, toolbars, context menus | `platform.menus` (generic layout) + `ide.workbench.IdeMenus` (IDE entries) | landed; IDE entries split out in W1.7 |
 | Status bar | `platform.status` + `api.status` | landed |
 | Options | `platform.options` + `api.options` | landed |
@@ -453,10 +453,10 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Credentials | `platform.credentials` | planned |
 | Favorites | `platform.favorites` | planned |
 | Templates | `platform.templates` + `api.templates` | planned |
-| Launcher | `platform.launcher` | in `nbfx.launcher`; must move |
+| Launcher | `platform.launcher` | landed; `AppProvider` + generic `GuiRunLevel`/`LauncherInstall` |
 | Editor core | `platform.editor` + `api.editor` | landed; project/Java-vocabulary coupling removed |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell must start without projects |
-| File actions | platform file service + `ide.file` | mixed; generic parts move to platform |
+| File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file` |
 
 **API placement.** The API tier is module metadata, not a cluster. The `nbfx-api` cluster is dissolved
 (W1.7, landed); each API module lives in its domain cluster:
@@ -491,9 +491,9 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx.options` | `platform.options` (+ `api.options`) |
 | `nbfx.output` | `platform.output` (+ `api.output`) |
 | `nbfx.wizard` | `platform.wizard` (+ `api.wizard`) |
-| `nbfx.ui` | `platform.shell` (composition root) + `ide.workbench` (project/editor contributions) |
-| `nbfx.ui.context` | generic action-context services → `platform.actions`/`platform.shell`; `OpenProject` contexts → `ide.workbench` |
-| `nbfx.launcher` | `platform.launcher` (generic lifecycle) + IDE scenario/contribution module |
+| `nbfx.ui` | **dissolved**: generic shell → `platform.shell`, IDE assembly/project/editor contributions → `ide.workbench`; landed |
+| `nbfx.ui.context` | generic action-context services → `platform.shell` (landed); `OpenProject` contexts → `ide.workbench` (landed) |
+| `nbfx.launcher` | `platform.launcher` (generic lifecycle) + `ide.workbench` (`NbfxAppProvider` + scenario runner); landed |
 | `nbfx.macos` | `platform.macos` |
 | `libs.nbfx.javafx` | `libs.javafx` |
 | `nbfx.propertysheet` | `platform.nodes` (generic FX sheet) + `api.property` (editor SPI) + `api.nodes` (model); project/editor property contributors → `ide.workbench` (landed) |
@@ -736,8 +736,8 @@ docking, windows, menus, statusbar, output, editor, project.context, api) — **
 1. **Fixture** — `nbfx-tests/fixtures/ant-hello`, adapted from
    `netbeans/ide/jellytools.ide/test/qa-functional/data/SampleProject` (J2SE Ant, `build-impl.xml` checked
    in); `hello.Main` prints `NB_FX_SCENARIO_OK`. Acceptance: `ant clean build run` prints the marker.
-2. **Scenario** — `ScenarioTest` in `nbfx-ide/.../nbfx.launcher/test/unit` (it moves to the IDE test module
-   when the launcher moves to the platform in W1.7) with test-only deps on
+2. **Scenario** — `ScenarioTest` in `nbfx-ide/.../nbfx.ide.workbench/test/unit` (moved from `nbfx.launcher`) with
+   test-only deps on
    `nbfx.editor`, `nbfx.run`, `nbfx.vcs`, `nbfx.output`, `project.ui.ant`: copy the fixture to a temp git
    repo, wait for the async `OpenProjects` open, edit+save, build, run (assert the marker), commit, assert a
    clean status. Headless: `-Dglass.platform=Headless -Dprism.order=sw`.
@@ -796,9 +796,9 @@ scenario remains the gate.
 2. `refactor/api-clusters` (**landed**) — moved each API module into its domain cluster (§6.6); dissolved
    `nbfx-api`; updated `nbfx.properties`, the cluster fragment, `build.xml`, the guards, the
    launcher-cluster patch and the docs; added `check-layers` and `check-api-isolation`.
-3. `refactor/appshell-boundary` — extract `ide.workbench` from `nbfx.ui`; move `nbfx.ui` → `platform.shell`,
+3. `refactor/appshell-boundary` (**landed**) — extracted `ide.workbench` from `nbfx.ui`; moved `nbfx.ui` → `platform.shell`,
    `nbfx.launcher` → `platform.launcher`, `nbfx.propertysheet` → `platform.nodes`, and the generic
-   action-context services → `platform.actions`/`platform.shell`; add `check-appshell`.
+   action-context services → `platform.shell`; added `check-appshell`; dissolved `nbfx.ui`.
 4. `feature/appshell-conformance` — a platform-only fixture that starts the AppShell and exercises options,
    action context, wizards, property sheet, nodes, dialogs, progress, output, terminal, quick search, theme,
    credentials, favorites and templates. The fixture starts here and grows with each W3 service.

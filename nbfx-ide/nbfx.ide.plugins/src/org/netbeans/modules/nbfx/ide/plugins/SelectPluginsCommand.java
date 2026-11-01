@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.plugins;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
