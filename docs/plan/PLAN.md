@@ -571,7 +571,7 @@ launcher's `--add-exports` list is empty today and lives in one file.
 
 The rule is [Appendix A](appendix/A-toolkit-policy.md); this is the implementation. **Status is honest**:
 the checks marked **exists** run today (`check-purity.xml` has `check-sources`, `check-java-source`,
-`check-languages`, `check-naming`, `check-namespace`, `check-layers`, `check-api-isolation`,
+`check-languages`, `check-naming`, `check-namespace`, `check-layers`, `check-api-isolation`, `check-appshell`,
 `check-dependencies`, `check-jars`, `check-packaging`, `check-figures`, `check-budget`, `check-baseline`,
 `check-logging`); the rest are `pending` with the step that lands them — a pending check is not a guardrail
 until `feature/ci` runs it (§11 W0/W12).
@@ -582,7 +582,7 @@ until `feature/ci` runs it (§11 W0/W12).
 | `check-dependencies` | **exists** | walk each `project.xml` graph | a forbidden NetBeans UI module |
 | `check-layers` | **exists** (W1.7) | compare every nbfx module dependency with the cluster order | an upward nbfx edge (`ide` → `platform`, `platform` → `ide`, …) |
 | `check-api-isolation` | **exists** (W1.7) | API modules (tier metadata) may depend only on API modules in the same or a lower cluster, plus libs/upstream APIs | an API module depends on an implementation module |
-| `check-appshell` | pending (W1.7) | source scan of `platform.*`/AppShell modules and the platform artifact | an AppShell module imports project/IDE/Java, or the platform artifact contains IDE modules |
+| `check-appshell` | **exists** (source scan; platform artifact pending) | source scan of `nbfx-platform` modules | an AppShell module imports project/IDE/Java/JavaFX-usage/parsing types |
 | `check-jars` | **exists** (the current four cluster directories; `jdeps` + `nbfx-javafx` pending) | jar listing (bundled classes) on the cluster directories of the selected deliverable; `jdeps`/`nbfx-javafx` when the cluster lands | a reference/bundle of a forbidden package outside an allowed tier or exemption |
 | `check-packaging` | **exists** (extend to the retirement matrix and per deliverable) | the retirement matrix (absent modules per milestone); the platform artifact must not contain `nbfx-ide`/`nbfx-java` | a retired module reappears in the distribution, or an IDE module appears in the platform artifact |
 | `check-figures` | **exists** | `ant -f check-purity.xml check-figures` → `java docs/plan/tools/Counts.java --check` | stale figures, a hand-typed count ([`figures.md`](figures.md)) |
