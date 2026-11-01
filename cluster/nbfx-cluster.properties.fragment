@@ -89,6 +89,7 @@ nb.cluster.nbfx-ide=\
         nbfx.api.project,\
         nbfx.api.usages,\
         nbfx.editor.actions,\
+        nbfx.ide.actions,\
         nbfx.ide.build,\
         nbfx.ide.debug,\
         nbfx.ide.editor.css,\
@@ -107,8 +108,7 @@ nb.cluster.nbfx-ide=\
         nbfx.project,\
         nbfx.project.context,\
         nbfx.project.ui,\
-        nbfx.project.ui.api,\
-        nbfx.ui
+        nbfx.project.ui.api
 
 # --- nbfx-java: FX replacements for java/ + extide/ project types -------------
 nb.cluster.nbfx-java.dir=nbfx-java

@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.actions;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;

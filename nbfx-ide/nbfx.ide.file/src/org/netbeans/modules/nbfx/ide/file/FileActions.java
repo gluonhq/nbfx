@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.file;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import java.util.ArrayList;
 import java.util.List;

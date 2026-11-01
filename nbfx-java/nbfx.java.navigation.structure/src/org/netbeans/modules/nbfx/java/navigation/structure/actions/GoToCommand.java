@@ -18,12 +18,12 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.structure.actions;
 
-import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_DECLARATION;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_IMPLEMENTATION;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_SOURCE;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.GO_TO_SUPER_IMPLEMENTATION;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.GO_TO_DECLARATION;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.GO_TO_IMPLEMENTATION;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.GO_TO_SOURCE;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.GO_TO_SUPER_IMPLEMENTATION;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.MenuRegistration;
