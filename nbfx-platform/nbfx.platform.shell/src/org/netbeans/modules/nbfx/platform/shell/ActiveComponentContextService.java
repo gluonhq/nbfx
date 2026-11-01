@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.context;
+package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.view.ActiveComponent;
 import org.netbeans.api.nbfx.view.ActiveComponentContext;

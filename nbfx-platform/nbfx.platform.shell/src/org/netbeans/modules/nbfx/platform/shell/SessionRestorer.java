@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.session;
+package org.netbeans.modules.nbfx.platform.shell;
+
+
 
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea.Anchor;
@@ -29,13 +31,12 @@ import org.netbeans.modules.nbfx.platform.shell.SlidingArea;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.modules.nbfx.ide.workbench.NavigatorView;
-import org.netbeans.modules.nbfx.ui.session.AppState.Layout;
-import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout;
-import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout.Minimized;
-import org.netbeans.modules.nbfx.ui.session.AppState.SplitEntry;
-import org.netbeans.modules.nbfx.ui.session.AppState.TabEntry;
-import org.netbeans.modules.nbfx.ui.session.AppState.TabKind;
+import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
+import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
+import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
+import org.netbeans.modules.nbfx.platform.shell.AppState.SplitEntry;
+import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
+import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import java.io.File;
 import java.util.ArrayList;
@@ -100,7 +101,7 @@ public final class SessionRestorer {
      * showing.
      */
     public void captureSession(Collection<File> projects,
-            Collection<? extends NavigatorView> providers) {
+            Collection<? extends ViewStateProvider> providers) {
         if (projects != null) {
             for (File project : projects) {
                 captureExpansion(project, providers);
@@ -109,7 +110,7 @@ public final class SessionRestorer {
         captureLayout();
     }
 
-    private void captureExpansion(File project, Collection<? extends NavigatorView> providers) {
+    private void captureExpansion(File project, Collection<? extends ViewStateProvider> providers) {
         if (project == null || providers == null) {
             return;
         }
@@ -119,7 +120,7 @@ public final class SessionRestorer {
         }
         List<String> expanded = new ArrayList<>();
         String selected = null;
-        for (NavigatorView provider : providers) {
+        for (ViewStateProvider provider : providers) {
             // Only this project's own nodes: with several projects open the providers hold one tree
             // per root, and each project's state is persisted under its own key.
             expanded.addAll(provider.getExpandedPaths(root));

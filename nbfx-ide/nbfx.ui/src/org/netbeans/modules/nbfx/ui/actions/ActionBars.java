@@ -20,9 +20,10 @@ package org.netbeans.modules.nbfx.ui.actions;
 
 import org.netbeans.modules.nbfx.ide.workbench.IdeActionIds;
 
+import org.netbeans.modules.nbfx.platform.shell.DispatchingCommand;
 import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
 import org.netbeans.modules.nbfx.ui.project.ProjectSwitcher;
-import org.netbeans.modules.nbfx.ui.session.AppState;
+import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.TabContextMenu;
 import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;

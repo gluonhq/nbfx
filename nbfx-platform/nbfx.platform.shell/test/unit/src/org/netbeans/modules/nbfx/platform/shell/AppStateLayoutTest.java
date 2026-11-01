@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.session;
+package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
-import org.netbeans.modules.nbfx.ui.session.AppState.Layout;
-import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout;
-import org.netbeans.modules.nbfx.ui.session.AppState.PaneLayout.Minimized;
-import org.netbeans.modules.nbfx.ui.session.AppState.TabEntry;
-import org.netbeans.modules.nbfx.ui.session.AppState.TabKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
+import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
+import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
+import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
+import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import java.util.List;
 import javafx.geometry.Side;
 import org.junit.Test;

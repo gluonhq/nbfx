@@ -314,7 +314,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | module landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters); session and context composition still in `nbfx.ui` and move next; the rest of the AppShell is the sibling rows below (§6.6) |
+| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | module landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer); `nbfx.ui` keeps the IDE assembly and app provider; the rest of the AppShell is the sibling rows below (§6.6) |
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
 | `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; absorbs the generic context services from `nbfx.ui.context` |
@@ -434,9 +434,9 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 
 | AppShell service | Modules | State |
 |---|---|---|
-| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell landed, session composition still in `nbfx.ui` |
+| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
-| Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | generic parts in `nbfx.ui.context`; must move |
+| Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
 | Menus, toolbars, context menus | `platform.menus` (generic layout) + `ide.workbench.IdeMenus` (IDE entries) | landed; IDE entries split out in W1.7 |
 | Status bar | `platform.status` + `api.status` | landed |
 | Options | `platform.options` + `api.options` | landed |
@@ -492,7 +492,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx.output` | `platform.output` (+ `api.output`) |
 | `nbfx.wizard` | `platform.wizard` (+ `api.wizard`) |
 | `nbfx.ui` | `platform.shell` (composition root) + `ide.workbench` (project/editor contributions); generic shell core landed in `platform.shell` |
-| `nbfx.ui.context` | generic action-context services → `platform.actions`/`platform.shell`; `OpenProject` contexts → `ide.workbench` |
+| `nbfx.ui.context` | generic action-context services → `platform.shell` (landed); `OpenProject` contexts → `ide.workbench` (landed) |
 | `nbfx.launcher` | `platform.launcher` (generic lifecycle) + `nbfx.ui` (`NbfxAppProvider` + scenario runner); landed |
 | `nbfx.macos` | `platform.macos` |
 | `libs.nbfx.javafx` | `libs.javafx` |

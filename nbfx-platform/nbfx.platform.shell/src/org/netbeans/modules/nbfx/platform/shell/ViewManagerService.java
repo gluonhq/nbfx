@@ -16,14 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.context;
+package org.netbeans.modules.nbfx.platform.shell;
+
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
-import org.netbeans.modules.nbfx.platform.shell.Docking;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
-import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import java.util.logging.Logger;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;

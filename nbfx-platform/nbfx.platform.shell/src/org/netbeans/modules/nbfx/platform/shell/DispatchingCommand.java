@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.actions;
+package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.Objects;
 
@@ -38,7 +38,7 @@ public final class DispatchingCommand extends AbstractCommand {
     private final Command fileCommand;
     private final ObservableValue<Boolean> preferFile;
 
-    DispatchingCommand(Command editorCommand, Command fileCommand, ObservableValue<Boolean> preferFile) {
+    public DispatchingCommand(Command editorCommand, Command fileCommand, ObservableValue<Boolean> preferFile) {
         super(editorCommand.getId(), editorCommand.getText(), editorCommand.getAccelerator());
         this.editorCommand = Objects.requireNonNull(editorCommand);
         this.fileCommand = Objects.requireNonNull(fileCommand);

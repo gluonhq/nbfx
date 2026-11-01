@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ui.context;
+package org.netbeans.modules.nbfx.ide.workbench;
 
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
