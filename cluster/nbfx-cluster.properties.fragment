@@ -49,6 +49,7 @@ nb.cluster.nbfx-platform.dir=nbfx-platform
 # layer edge: no nbfx-ide module is a build prerequisite of an nbfx-platform module.
 nb.cluster.nbfx-platform.depends=\
         nb.cluster.platform,\
+        nb.cluster.nbfx-libs,\
         nb.cluster.ide
 nb.cluster.nbfx-platform=\
         nbfx.api.actions,\

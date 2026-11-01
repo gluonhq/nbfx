@@ -99,7 +99,7 @@ nbfx-java`) and the lean `clusters.config.nbfx.list`. APIs live in the cluster o
 
 ```
 nb.cluster.nbfx-libs.dir=nbfx-libs           no cluster dependency
-nb.cluster.nbfx-platform.dir=nbfx-platform   depends platform, ide
+nb.cluster.nbfx-platform.dir=nbfx-platform   depends platform, nbfx-libs, ide
 nb.cluster.nbfx-ide.dir=nbfx-ide             depends nbfx-platform, ide, java
 nb.cluster.nbfx-java.dir=nbfx-java           depends nbfx-ide, java, extide, apisupport
 
