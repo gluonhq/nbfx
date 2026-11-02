@@ -205,11 +205,23 @@
         </sequential>
     </macrodef>
 
+    <!-- Removes a directory that Finder may be displaying: it writes a fresh .DS_Store into a folder
+         whose contents change, so the rmdir after Ant emptied the folder can lose the race ("Unable
+         to delete directory"). A second pass a moment later removes the file and the folder. -->
+    <macrodef name="nbfx-rmdir">
+        <attribute name="dir"/>
+        <sequential>
+            <retry retrycount="3" retrydelay="500">
+                <delete dir="@{dir}"/>
+            </retry>
+        </sequential>
+    </macrodef>
+
     <target name="release-bin" depends="-release-check,build,-dist-launcher"
             description="Create the convenience binary build/release/nbfx-VERSION-bin.zip (the nbfx cluster config, all platforms)">
         <property name="nbfx.dist.dir" location="${nbfx.sub.dir}/nbbuild/netbeans"/>
         <property name="nbfx.release.tmp" location="${nbfx.release.dir}/tmp"/>
-        <delete dir="${nbfx.release.tmp}"/>
+        <nbfx-rmdir dir="${nbfx.release.tmp}"/>
         <mkdir dir="${nbfx.release.tmp}"/>
         <!-- upstream licence summary of the bundled NetBeans libraries (LICENSE, NOTICE, licenses/) -->
         <ant antfile="${nbfx.sub.dir}/nbbuild/build.xml" dir="${nbfx.sub.dir}/nbbuild"
@@ -288,7 +300,7 @@
             <zipfileset file="${nbfx.release.tmp}/THIRDPARTY" fullpath="${nbfx.release.name}/THIRDPARTY"/>
             <zipfileset file="${nbfx.dist.dir}/KEYS" fullpath="${nbfx.release.name}/KEYS"/>
         </zip>
-        <delete dir="${nbfx.release.tmp}"/>
+        <nbfx-rmdir dir="${nbfx.release.tmp}"/>
         <echo message="[nbfx] ${nbfx.release.bin}"/>
     </target>
 
@@ -330,7 +342,7 @@
                 </resourcecount>
             </condition>
         </fail>
-        <delete dir="${nbfx.verify.dir}"/>
+        <nbfx-rmdir dir="${nbfx.verify.dir}"/>
         <mkdir dir="${nbfx.verify.dir}/gnupg"/>
         <chmod dir="${nbfx.verify.dir}/gnupg" perm="700" type="dir"/>
         <!-- a fresh keyring that only knows the keys in KEYS -->
