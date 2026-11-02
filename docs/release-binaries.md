@@ -106,6 +106,10 @@ legal/javafx/                       the union of the SDKs' licence texts
   `-Dnbfx.javafx.platform=<p>` overrides it.
 - **Launchers:** `bin/netbeans` and `bin/netbeans64.exe`, without the 32-bit `netbeans.exe` (there is no
   32-bit JDK 25). The import-class override in `etc/netbeans.conf` (commit `1f3468f`) serves both.
+  Both take the first JDK they find; `--jdkhome <dir>` (a space, not `=`) or `netbeans_jdkhome` in
+  `etc/netbeans.conf` picks one. On a JDK older than 25 the `JdkCheck` CLI handler in
+  `nbfx-platform/core/nbfx-noimport.jar` refuses the start with that advice, on every start, before the
+  module system can list every module as uninstallable.
 
 ## 4. Steps
 
