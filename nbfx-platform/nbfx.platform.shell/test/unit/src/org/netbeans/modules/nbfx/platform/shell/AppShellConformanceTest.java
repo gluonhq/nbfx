@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javafx.stage.Stage;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
@@ -51,6 +52,19 @@ public class AppShellConformanceTest {
                 Class.forName("org.netbeans.modules.nbfx.ide.workbench.JavaFXLaunchApp"));
         assertNotNull(ShellApplication.class);
         assertSame(ShellApplication.class, new ShellAppProvider().applicationClass());
+    }
+
+    @Test
+    public void defaultShellApplicationStarts() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            ShellApplication application = new ShellApplication();
+            application.start(new Stage());
+            assertNotNull(application.getStage());
+            assertNotNull(application.getMainPane());
+            assertNotNull(application.getDockArea());
+            assertNotNull(application.getSlidingArea());
+            return null;
+        });
     }
 
     @Test
