@@ -35,6 +35,17 @@ public interface AppProvider {
     Class<? extends Application> applicationClass();
 
     /**
+     * Where this provider ranks against the others when several are registered. The launcher starts
+     * the provider with the highest priority; the default provider of the platform shell uses
+     * {@code 0}, a product application a higher value.
+     *
+     * @return the priority; higher wins
+     */
+    default int priority() {
+        return 0;
+    }
+
+    /**
      * Runs the optional in-application scenario for {@code fixture}. The default refuses.
      *
      * @param fixture the scenario fixture

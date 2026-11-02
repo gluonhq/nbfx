@@ -29,6 +29,7 @@ import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
+import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.api.nbfx.status.StatusAlignment;
@@ -109,26 +110,12 @@ import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
-public class JavaFXLaunchApp extends Application implements WindowSink {
+public class JavaFXLaunchApp extends ShellApplication {
 
     private final static Logger LOG = Logger.getLogger(JavaFXLaunchApp.class.getName());
 
-    private Stage stage;
-    /** The window system driving the main-window lifecycle; {@code null} when none is registered. */
-    private WindowSystem windowSystem;
-    /** Whether the window system reached the SHOWN phase, so {@link WindowSystem#save()} is legal. */
-    private boolean windowSystemShown;
-    /** Last non-maximized geometry, so a maximized window still persists a restore-size. */
-    private double restoreX = Double.NaN, restoreY = Double.NaN;
-    private double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
     private Collection<? extends NavigatorView> providers;
-    private final AppState appState = new AppState();
-    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
     private NbfxTabPane navigatorPane;
-    /** The dock area: the navigator pane, the editor pane and the panes docked next to them. */
-    private DockArea<TabPane> dockArea;
-    /** The dock area with the sliding sides minimized panes go to; what the window shows. */
-    private SlidingArea slidingArea;
     private ActionBars actionBars;
     private StatusBar statusBar;
     private ProjectStatusElement projectElement;
@@ -137,7 +124,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     private final ProjectRegistry projectRegistry = projectRegistry();
     /** The running application, so services (e.g. the project opener) can reach it. */
     private static volatile JavaFXLaunchApp instance;
-    private boolean projectStateCaptured;
     /** Whether at least one project is currently open; drives Close Project enablement. */
     private final BooleanBinding projectOpen = Bindings.isNotEmpty(projectRegistry.getOpenProjects());
     /** The projects whose trees are still loading; several can load at once. */
@@ -168,19 +154,14 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     private final ActiveComponentContext activeComponents = activeComponentContext();
 
     @Override
-    public void start(Stage stage) {
-        Budget.mark("fxStart");
-        this.stage = stage;
+    protected void prepare() {
         instance = this;
         // Resolve the navigator views up front (the ViewProviders registered as navigators).
         providers = navigatorViews();
         LOG.fine("PROVIDERS = " + providers);
         // Publish the navigator-focused state so the file commands can track it (clipboard refresh).
-        // The navigator selection no longer needs publishing: each navigator exposes it through its
-        // own ViewProvider.getLookup(), which the global context follows (§22).
         treeFocused.subscribe(fileSelection::setNavigatorFocused);
-        // Publish the active component (view or editor) whenever any pane's selected tab changes,
-        // in this window or a detached one, so the global context follows the selection (§23).
+        // Publish the active component whenever any pane's selected tab changes.
         NbfxTabPane.addActiveTabListener(this::updateActiveComponent);
         for (NavigatorView provider : providers) {
             // A project's tree is built in the background and reported back through this callback,
@@ -188,19 +169,34 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             provider.setOnProjectLoaded(this::onProjectLoaded);
             provider.setOnProjectLoadFailed(this::onProjectLoadFailed);
         }
+    }
 
-        dockArea = createDockArea();
-        slidingArea = Docking.slides();
-        if (sessionRestorer.startupLayout().isEmpty()) {
+    @Override
+    protected List<NbfxTabPane> createPanes() {
+        List<NbfxTabPane> panes = new ArrayList<>();
+        panes.add(createNavigator());
+        ContentManager contentManager = contentManager();
+        if (contentManager == null) {
+            LOG.severe("We have no content manager!!");
+        } else if (contentManager instanceof ContentManagerService cmi && cmi.getMainPane() instanceof NbfxTabPane editor) {
+            panes.add(editor);
+        } else {
+            LOG.severe("We have competing content managers!");
+        }
+        return panes;
+    }
+
+    @Override
+    protected void decorate(BorderPane borderPane) {
+        if (getSessionRestorer().startupLayout().isEmpty()) {
             // First run: no layout to restore, so the default one also holds the default views.
             introduceDefaultViews();
         }
-        BorderPane borderPane = new BorderPane(slidingArea);
 
         actionBars = new ActionBars();
         actionBars.registerProjectCommands(this::openProject,
                 this::closeProject, this::closeAllProjects, projectOpen.not());
-        actionBars.configureRecentProjects(appState::getRecentProjects, this::openProject,
+        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
                 this::clearRecentProjects, this::projectIcon);
         actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
         actionBars.configureFileDispatch(treeFocused);
@@ -209,11 +205,11 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         actionBars.registerWindowCommands(windowActions(mainScope));
         actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
         ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
+        getAppState().initToolbars(toolBars);
         VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
         borderPane.setTop(topBars);
         // Give the window system the host services it needs: the bars for detached windows, the
-        // navigator revealer, and where a tab docks back (editors to the editor pane or wherever the
-        // editors are while it is hidden, views to their default location).
+        // navigator revealer, and where a tab docks back.
         WindowEnvironmentService windowEnvironment = windowEnvironment();
         if (windowEnvironment != null) {
             windowEnvironment.setActionBars(actionBars);
@@ -226,6 +222,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 }
                 return homeOfView(tab);
             });
+            windowEnvironment.setProjectSwitcher(projectSwitcher);
         }
 
         projectElement = new ProjectStatusElement();
@@ -237,53 +234,43 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
         borderPane.setBottom(statusBar);
 
-        // The selected project follows the navigator selection (handled by the navigator itself) and,
-        // when the user moves to another editor tab (in this window or a detached one), the project
-        // owning that tab's file.
-        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
+        getStage().setTitle(WindowTitles.of(projectRegistry.getSelected()));
+        projectRegistry.selectedProjectProperty().subscribe(project -> {
+            getStage().setTitle(WindowTitles.of(project));
+            projectElement.setProject(project == null ? null : project.getDisplayName());
+            // Undo/Redo of file operations apply to the selected project's own history.
+            FileUndoManager.getDefault().setScope(project == null ? null : project.getPath());
+        });
+    }
 
-        Scene scene = new Scene(borderPane, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
-        // Reflect which area (navigator tree vs editor) holds keyboard focus, both when the focus owner
-        // changes within the window and when the window itself (re)gains focus.
+    @Override
+    protected void sceneReady(Scene scene) {
+        // Reflect which area (navigator tree vs editor) holds keyboard focus, both when the focus
+        // owner changes within the window and when the window itself (re)gains focus.
+        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
         scene.focusOwnerProperty().subscribe(fo -> {
-            if (stage.isFocused()) {
+            if (getStage().isFocused()) {
                 updateFocusScope(fo);
-                // Moving the focus into a pane makes what is current there decide the project: the
-                // file selected in the navigator tree, or the file being edited. Their own change
-                // events are not enough, as clicking the tab or the tree node that is ALREADY
-                // selected fires none, yet the user has just moved back to that project.
+                // Moving the focus into a pane makes what is current there decide the project.
                 if (isNavigatorFocused(fo)) {
                     selectProjectOf(focusedNavigatorFile(fo));
-                } else if (isWithin(fo, slidingArea) && activeDocument != null) {
+                } else if (isWithin(fo, getSlidingArea()) && activeDocument != null) {
                     selectProjectOf(activeDocument.getValue());
                 }
             }
         });
-        stage.focusedProperty().subscribe(focused -> {
+        getStage().focusedProperty().subscribe(focused -> {
             Node focusOwner = scene.getFocusOwner();
             if (!focused) {
-                dockArea.markFocused(false, focusOwner);
+                getDockArea().markFocused(false, focusOwner);
                 treeFocused.set(false);
             } else {
                 updateFocusScope(focusOwner);
             }
         });
-        scene.getStylesheets().add(NbfxTabPane.stylesheet());
         // Shift+Cmd+1 / Shift+Cmd+2 reveal the active editor's file in the Logical / Physical view.
         NbfxTabPane.installNavigatorRevealShortcut(scene, this::activeEditorFile);
-        // Project switching must work wherever the focus is, including the navigator tree, whose own
-        // arrow-key handling would otherwise swallow the menu accelerator.
-        if (windowEnvironment != null) {
-            windowEnvironment.setProjectSwitcher(projectSwitcher);
-        }
         NbfxTabPane.installProjectSwitchShortcut(scene);
-        stage.setTitle(WindowTitles.of(projectRegistry.getSelected()));
-        projectRegistry.selectedProjectProperty().subscribe(project -> {
-            stage.setTitle(WindowTitles.of(project));
-            projectElement.setProject(project == null ? null : project.getDisplayName());
-            // Undo/Redo of file operations apply to the selected project's own history.
-            FileUndoManager.getDefault().setScope(project == null ? null : project.getPath());
-        });
         if (activeDocument != null) {
             activeDocument.subscribe(this::selectProjectOf);
             activeDocument.flatMap(EditorDocument::caretInfoProperty).subscribe(caretElement::setInfo);
@@ -295,22 +282,10 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 }
             });
         }
-        stage.setScene(scene);
+    }
 
-        // Track the geometry the window system will snapshot; register the save hook.
-        trackWindowBounds();
-        appState.initToolbars(toolBars);
-        appState.initViewSettings(Lookup.getDefault().lookup(EditorSettings.class));
-        appState.installShutdownHook();
-
-        // The window-close gesture is the only interactive path: confirm any
-        // unsaved changes, then request shutdown. Actual teardown (persist +
-        // exit) is centralized in stop(), invoked by Platform.exit().
-        stage.setOnCloseRequest(event -> {
-            if (!requestQuit()) {
-                event.consume();
-            }
-        });
+    @Override
+    protected void started() {
         // On platforms with a native application menu (macOS), let the platform-specific module
         // register its Preferences and Quit handlers; the launcher stays free of that code.
         ApplicationMenu applicationMenu = Lookup.getDefault().lookup(ApplicationMenu.class);
@@ -319,49 +294,18 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         }
 
         // Everything the IDE knows about the open projects comes from the platform's filesystem
-        // layer, which does not see changes made outside the IDE until it is refreshed. Coming back
-        // from another application is exactly when the user may have just made some.
+        // layer, which does not see changes made outside the IDE until it is refreshed.
         watchApplicationFocus();
-
-        // Drive the window lifecycle through the window system: it restores the persisted geometry
-        // (through this shell) and shows the stage. Without one, show directly with the defaults.
-        windowSystem = Lookup.getDefault().lookup(WindowSystem.class);
-        if (windowSystem != null) {
-            windowSystem.setSink(this);
-            windowSystem.init();
-            windowSystem.load();
-            windowSystem.show();
-            windowSystemShown = true;
-        } else {
-            stage.show();
-        }
-
-        Budget.mark("usable");
-        Budget.markUsable();
-        Platform.runLater(this::restoreSessionProjects);
     }
 
-    private boolean confirmClose() {
-        return CloseConfirmation.confirmClose(EditorContexts.documentsSnapshot());
+    @Override
+    protected void restoreSession() {
+        restoreSessionProjects();
     }
 
-    /**
-     * Confirms unsaved changes, captures the session and exits. Returns {@code false} when the user
-     * cancels; the caller keeps the window open then.
-     */
-    private boolean requestQuit() {
-        if (!confirmClose()) {
-            return false;
-        }
-        // Capture while the window is still showing, so editor scroll (top visible line) can be read
-        // via screen coordinates before the stage is hidden by Platform.exit().
-        captureSession();
-        projectStateCaptured = true;
-        if (windowSystemShown) {
-            windowSystem.save();
-        }
-        Platform.exit();
-        return true;
+    @Override
+    protected void stopping() {
+        refresher.shutdown();
     }
 
     /** Runs the Options command, so the macOS Preferences… item opens the Options dialog. */
@@ -372,12 +316,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         }
     }
 
-    /**
-     * Follows the focus of every window of the application, the main stage and the windows detached
-     * tabs live in, so that a refresh is asked for when the user comes back from another
-     * application - and not when they move between our own windows, which cannot have changed
-     * anything on disk. This is what the IDE gets from {@code WindowEvent.getOppositeWindow()}.
-     */
     private void watchApplicationFocus() {
         ObservableList<Window> windows = Window.getWindows();
         windows.forEach(this::watchFocus);
@@ -438,135 +376,12 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         return dirs;
     }
 
-    @Override
-    public void stop() {
-        // Single teardown point: capture the tree state and window layout, persist, then shut down.
-        if (!projectStateCaptured) {
-            captureSession();
-        }
-        if (windowSystemShown) {
-            windowSystem.save();
-        }
-        appState.save();
-        refresher.shutdown();
-        LOG.info("JavaFX application stopping, shutting down NetBeans Platform...");
-        LifecycleManager.getDefault().exit();
-    }
-
-    // --- WindowSink: the JavaFX shell adapter the window system drives -----------------------------
-
-    /** Within this many pixels of the screen's visual bounds counts as "maximized". */
-    private static final double MAXIMIZED_TOLERANCE = 4;
-
-    @Override
-    public void apply(WindowState state) {
-        if (stage == null) {
-            return;
-        }
-        double x = state.x();
-        double y = state.y();
-        double width = state.width();
-        double height = state.height();
-        boolean maximized = state.maximized();
-        if (!(width > 0)) {
-            // No window-system geometry persisted yet: migrate what the session store used to own.
-            AppState.WindowBounds legacy = appState.persistedWindowBounds();
-            x = legacy.x();
-            y = legacy.y();
-            width = legacy.width();
-            height = legacy.height();
-            maximized = legacy.maximized();
-        }
-        stage.setWidth(width);
-        stage.setHeight(height);
-        if (!Double.isNaN(x) && !Double.isNaN(y) && AppState.isVisibleOnAnyScreen(x, y, width, height)) {
-            stage.setX(x);
-            stage.setY(y);
-        } else if (!Double.isNaN(x) || !Double.isNaN(y)) {
-            LOG.info("Stored window position is off-screen; centering instead");
-        }
-        restoreWidth = width;
-        restoreHeight = height;
-        stage.setMaximized(maximized);
-    }
-
-    @Override
-    public WindowState snapshot() {
-        boolean maximized = isMaximized();
-        double x = maximized ? restoreX : stage.getX();
-        double y = maximized ? restoreY : stage.getY();
-        double width = maximized ? restoreWidth : stage.getWidth();
-        double height = maximized ? restoreHeight : stage.getHeight();
-        return new WindowState(List.of(), x, y, width, height, maximized, Map.of());
-    }
-
-    @Override
-    public void show() {
-        stage.show();
-    }
-
-    @Override
-    public void hide() {
-        stage.hide();
-    }
-
-    /**
-     * Mirrors the main window's geometry into the restore fields, ignoring a maximized frame so a
-     * maximized window still persists the size to restore to.
-     */
-    private void trackWindowBounds() {
-        stage.xProperty().subscribe(nv -> {
-            if (!isMaximized()) {
-                restoreX = nv.doubleValue();
-            }
-        });
-        stage.yProperty().subscribe(nv -> {
-            if (!isMaximized()) {
-                restoreY = nv.doubleValue();
-            }
-        });
-        stage.widthProperty().subscribe(nv -> {
-            if (!isMaximized()) {
-                restoreWidth = nv.doubleValue();
-            }
-        });
-        stage.heightProperty().subscribe(nv -> {
-            if (!isMaximized()) {
-                restoreHeight = nv.doubleValue();
-            }
-        });
-    }
-
-    /**
-     * Whether the window is really maximized. On macOS, un-maximizing by dragging the edge leaves
-     * the stage's flag set, so the flag only counts when the frame also fills the screen.
-     */
-    private boolean isMaximized() {
-        if (!stage.isMaximized()) {
-            return false;
-        }
-        double x = stage.getX();
-        double y = stage.getY();
-        double w = stage.getWidth();
-        double h = stage.getHeight();
-        if (Double.isNaN(x) || Double.isNaN(y) || Double.isNaN(w) || Double.isNaN(h)) {
-            return true; // not laid out yet: trust the flag
-        }
-        List<Screen> screens = Screen.getScreensForRectangle(x, y, w, h);
-        if (screens.isEmpty()) {
-            return true;
-        }
-        Rectangle2D visual = screens.getFirst().getVisualBounds();
-        return w >= visual.getWidth() - MAXIMIZED_TOLERANCE
-                && h >= visual.getHeight() - MAXIMIZED_TOLERANCE;
-    }
-
     private NbfxTabPane createNavigator() {
         navigatorPane = new NbfxTabPane(NbfxTabPane.PaneRole.NAVIGATOR);
         // Every persisted navigator tab is docked here first, whichever pane the layout last put it
         // in; opening a project then redistributes them (restoreLayout). This keeps every navigator
         // view reachable even when no project is ever opened.
-        AppState.Layout layout = sessionRestorer.startupLayout();
+        AppState.Layout layout = getSessionRestorer().startupLayout();
         // On the first run there is no persisted layout, so the order and the set of navigators come
         // from the layer (position and navigator flag declared with @ViewRegistration); afterwards
         // the persisted order, which the user arranged, wins.
@@ -642,7 +457,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      * {@link ViewProvider} published in the Lookup. Returns {@code null} for an unknown view (one
      * persisted by an earlier run but no longer installed).
      */
-    private Tab viewTabFor(String viewId) {
+    @Override
+    protected Tab viewTabFor(String viewId) {
         return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
             for (NavigatorView provider : providers) {
                 if (provider.getId().equals(viewId)) {
@@ -716,20 +532,6 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      * The window's dock area: the navigator pane left of the editor pane - the navigator pane alone
      * if there is no (or no known) content manager to provide the editor pane.
      */
-    private DockArea<TabPane> createDockArea() {
-        NbfxTabPane navigator = createNavigator();
-        ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
-        if (contentManager == null) {
-            LOG.severe("We have no content manager!!");
-            return Docking.create(navigator);
-        }
-        if (contentManager instanceof ContentManagerService cmi && cmi.getMainPane() instanceof NbfxTabPane mainPane) {
-            return Docking.create(navigator, mainPane);
-        }
-        LOG.severe("We have competing content managers!");
-        return Docking.create(navigator);
-    }
-
     /** The main pane's active-document observable, or {@code null} if no content manager is present. */
     private ObservableValue<EditorDocument> mainPaneActiveDocument() {
         ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
@@ -848,9 +650,9 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             setNavigatorRevealInProgress(false);
             return;
         }
-        if (stage != null) {
-            stage.toFront();
-            stage.requestFocus();
+        if (getStage() != null) {
+            getStage().toFront();
+            getStage().requestFocus();
         }
         ChangeListener<Boolean> onFocused = new ChangeListener<>() {
             @Override
@@ -909,7 +711,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
         //    and moves the docked panes' content into the editor pane.
         NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
-        dockArea.applyTree(dockArea.defaultTree());
+        getDockArea().applyTree(getDockArea().defaultTree());
         // 2. Every tab to its default place. A view's default location below one of the permanent
         //    panes creates its pane now, in the default shape, where it stays.
         for (TabPane pane : List.of(navigatorPane, mainPane)) {
@@ -953,7 +755,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 manager.show(view);
             }
         }
-        appState.setIntroducedViews(defaultViewIds());
+        getAppState().setIntroducedViews(defaultViewIds());
     }
 
     /**
@@ -965,7 +767,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      * still lives in {@link AppState}/{@link SessionRestorer}.
      */
     private void introduceDefaultViews() {
-        Set<String> introduced = appState.getIntroducedViews();
+        Set<String> introduced = getAppState().getIntroducedViews();
         Set<String> defaults = defaultViewIds();
         if (introduced.containsAll(defaults)) {
             return;
@@ -982,7 +784,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
             }
         }
         introduced.addAll(defaults);
-        appState.setIntroducedViews(introduced);
+        getAppState().setIntroducedViews(introduced);
     }
 
     /** The ids of the non-navigator views registered to open at start-up, in registration order. */
@@ -1023,8 +825,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      */
     private void updateFocusScope(Node focusOwner) {
         // The sliding area holds the dock area and the panel a minimized tab slides in to.
-        if (isWithin(focusOwner, slidingArea)) {
-            dockArea.markFocused(true, focusOwner);
+        if (isWithin(focusOwner, getSlidingArea())) {
+            getDockArea().markFocused(true, focusOwner);
             treeFocused.set(isNavigatorFocused(focusOwner));
             updateActiveComponent();
         }
@@ -1198,12 +1000,13 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      * while the last session is still being reopened leaves it untouched: a half-restored window
      * would otherwise overwrite it with the tabs that did make it back.
      */
-    private void captureSession() {
+    @Override
+    protected void captureSession() {
         if (restoringSession) {
             LOG.info("The session is still being restored; keeping the persisted one");
             return;
         }
-        sessionRestorer.captureSession(openProjectFiles(), providers);
+        getSessionRestorer().captureSession(openProjectFiles(), providers);
         persistSession();
     }
 
@@ -1213,7 +1016,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      */
     private void persistSession() {
         OpenProject selected = projectRegistry.getSelected();
-        appState.setOpenProjects(
+        getAppState().setOpenProjects(
                 projectRegistry.getOpenProjects().stream().map(OpenProject::getPath).toList(),
                 selected == null ? null : selected.getPath());
     }
@@ -1221,7 +1024,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
     void openProject() {
         DirectoryChooser dirChooser = new DirectoryChooser();
         dirChooser.setTitle("Open Project");
-        File selectedDir = dirChooser.showDialog(stage);
+        File selectedDir = dirChooser.showDialog(getStage());
         if (selectedDir != null) {
             openProject(selectedDir);
         } else {
@@ -1239,7 +1042,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         if (dir == null || !dir.isDirectory()) {
             LOG.warning("Project directory does not exist: " + dir);
             if (dir != null) {
-                appState.removeRecentProject(dir.getPath());
+                getAppState().removeRecentProject(dir.getPath());
                 actionBars.refreshRecentProjects();
             }
             return;
@@ -1275,8 +1078,8 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         // Read with the normalized path, the same key the state was captured under, and stash the
         // pending expansion/selection on the views before opening: they mirror the registry and build
         // a project's tree as soon as it is opened, applying this pending state.
-        List<String> expandedPaths = appState.getExpandedNodes(projectDir.getPath());
-        String selectedPath = appState.getSelectedNode(projectDir.getPath());
+        List<String> expandedPaths = getAppState().getExpandedNodes(projectDir.getPath());
+        String selectedPath = getAppState().getSelectedNode(projectDir.getPath());
         for (NavigatorView provider : providers) {
             provider.restoreExpandedPaths(rootFileObject, expandedPaths);
             provider.restoreSelectedPath(rootFileObject, selectedPath);
@@ -1389,7 +1192,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         rootWatcher.watch(project);
         ProjectIconProvider icons = Lookup.getDefault().lookup(ProjectIconProvider.class);
         String iconName = icons == null ? null : icons.iconName(rootFileObject);
-        appState.addRecentProject(dir.getPath(), iconName);
+        getAppState().addRecentProject(dir.getPath(), iconName);
         actionBars.refreshRecentProjects();
         persistSession();
         // The persisted layout describes the whole window across every project of the session, so it
@@ -1457,7 +1260,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         projectRegistry.close(project);
         // Only this project's file-operation history goes: the other projects keep theirs.
         FileUndoManager.getDefault().clear(path);
-        appState.clearProjectState(new File(path));
+        getAppState().clearProjectState(new File(path));
         persistSession();
     }
 
@@ -1489,7 +1292,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         // Closing the registry makes the views drop every project's tree (they observe it).
         projectRegistry.closeAll();
         for (OpenProject project : projects) {
-            appState.clearProjectState(new File(project.getPath()));
+            getAppState().clearProjectState(new File(project.getPath()));
         }
         persistSession();
     }
@@ -1505,13 +1308,13 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 return;
             }
             closeProject(project, false);
-            appState.removeRecentProject(project.getPath());
+            getAppState().removeRecentProject(project.getPath());
             actionBars.refreshRecentProjects();
         });
     }
 
     private void clearRecentProjects() {
-        appState.clearRecentProjects();
+        getAppState().clearRecentProjects();
         actionBars.refreshRecentProjects();
     }
 
@@ -1579,12 +1382,12 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
      * gone are pruned.
      */
     private void restoreSessionProjects() {
-        List<String> projects = appState.getOpenProjects();
+        List<String> projects = getAppState().getOpenProjects();
         if (projects.isEmpty()) {
             introduceDefaultViews();
             return;
         }
-        sessionSelected = appState.getSelectedProject();
+        sessionSelected = getAppState().getSelectedProject();
         List<File> dirs = new ArrayList<>();
         for (String path : projects) {
             File dir = FileUtil.normalizeFile(new File(path));
@@ -1593,7 +1396,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
                 pendingSessionProjects.add(dir.getPath());
             } else {
                 LOG.info("Project of the last session no longer exists, pruning: " + path);
-                appState.removeRecentProject(path);
+                getAppState().removeRecentProject(path);
             }
         }
         if (dirs.isEmpty()) {
@@ -1639,7 +1442,7 @@ public class JavaFXLaunchApp extends Application implements WindowSink {
         restoringSession = false;
         String selected = sessionSelected;
         sessionSelected = null;
-        sessionRestorer.restoreSession(focused -> {
+        getSessionRestorer().restoreSession(focused -> {
             // The tab the session comes back focused on decides the project, exactly as moving to a
             // tab does while the app runs. The project that was selected at exit only applies when
             // the focus does not land on an editor of an open project (an empty or navigator pane).
