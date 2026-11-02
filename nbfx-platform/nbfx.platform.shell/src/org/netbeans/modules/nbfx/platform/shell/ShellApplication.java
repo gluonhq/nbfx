@@ -56,36 +56,45 @@ public class ShellApplication extends Application implements WindowSink {
 
     private static final double MAXIMIZED_TOLERANCE = 4;
 
-    private Stage stage;
+    protected Stage stage;
     /** The window system driving the main-window lifecycle; {@code null} when none is registered. */
-    private WindowSystem windowSystem;
+    protected WindowSystem windowSystem;
     /** Whether the window system reached the SHOWN phase, so {@link WindowSystem#save()} is legal. */
-    private boolean windowSystemShown;
+    protected boolean windowSystemShown;
     /** Last non-maximized geometry, so a maximized window still persists a restore-size. */
-    private double restoreX = Double.NaN, restoreY = Double.NaN;
-    private double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
+    protected double restoreX = Double.NaN, restoreY = Double.NaN;
+    protected double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
 
-    private final AppState appState = new AppState();
-    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
+    protected final AppState appState = new AppState();
+    protected final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
 
-    private NbfxTabPane mainPane;
-    private DockArea<TabPane> dockArea;
-    private SlidingArea slidingArea;
-    private BorderPane root;
+    protected NbfxTabPane mainPane;
+    protected DockArea<TabPane> dockArea;
+    protected SlidingArea slidingArea;
+    protected BorderPane root;
     private boolean stateCaptured;
 
     @Override
     public final void start(Stage stage) {
         Budget.mark("fxStart");
         this.stage = stage;
-        mainPane = createMainPane();
-        dockArea = Docking.create(mainPane);
+        prepare();
+        List<NbfxTabPane> panes = createPanes();
+        if (panes.isEmpty()) {
+            throw new IllegalStateException("The shell has no primary pane");
+        }
+        mainPane = panes.stream()
+                .filter(pane -> NbfxTabPane.roleOf(pane) == NbfxTabPane.PaneRole.MAIN)
+                .findFirst()
+                .orElse(panes.get(0));
+        dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
         decorate(root);
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
+        sceneReady(scene);
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
             if (!requestQuit()) {
@@ -153,6 +162,20 @@ public class ShellApplication extends Application implements WindowSink {
         return root;
     }
 
+    /** Called before the primary panes are created, on the JavaFX Application Thread. */
+    protected void prepare() {
+    }
+
+    /**
+     * The primary panes of the window, the main editor pane first or in any order. The default is
+     * the editor pane alone; a product adds its navigator panes here.
+     *
+     * @return the primary panes; must not be empty
+     */
+    protected List<NbfxTabPane> createPanes() {
+        return List.of(createMainPane());
+    }
+
     /**
      * Adds the product's chrome and contributions to the window. Called before the scene is shown,
      * on the JavaFX Application Thread. The default does nothing.
@@ -160,6 +183,15 @@ public class ShellApplication extends Application implements WindowSink {
      * @param root the window's root layout
      */
     protected void decorate(BorderPane root) {
+    }
+
+    /**
+     * Called once the scene exists, before it is shown, so a product can install focus listeners and
+     * shortcuts. The default does nothing.
+     *
+     * @param scene the window's scene
+     */
+    protected void sceneReady(Scene scene) {
     }
 
     /** Called after the window is showing, on the JavaFX Application Thread. */
@@ -179,7 +211,7 @@ public class ShellApplication extends Application implements WindowSink {
      * Confirms unsaved changes, captures the session and exits. Returns {@code false} when the user
      * cancels; the caller keeps the window open then.
      */
-    private boolean requestQuit() {
+    protected boolean requestQuit() {
         if (!confirmClose()) {
             return false;
         }
@@ -192,11 +224,11 @@ public class ShellApplication extends Application implements WindowSink {
         return true;
     }
 
-    private void captureSession() {
+    protected void captureSession() {
         sessionRestorer.captureSession(List.of(), List.of());
     }
 
-    private void restoreSession() {
+    protected void restoreSession() {
         if (!sessionRestorer.startupLayout().isEmpty()) {
             sessionRestorer.restoreSession(null);
         }
@@ -210,7 +242,7 @@ public class ShellApplication extends Application implements WindowSink {
         return new NbfxTabPane(NbfxTabPane.PaneRole.MAIN);
     }
 
-    private Tab viewTabFor(String viewId) {
+    protected Tab viewTabFor(String viewId) {
         for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
             if (viewId.equals(view.getId())) {
                 return ViewTabs.create(view, view.getDescription());
