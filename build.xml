@@ -506,11 +506,15 @@ nbfx-java
              these classes: they must load on the JDKs they reject. -->
         <javac srcdir="${basedir}/release/launcher/src" destdir="${nbfx.dist.noimport.classes}"
                release="17" includeantruntime="false" encoding="UTF-8">
-            <classpath><pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/boot.jar"/></classpath>
+            <classpath>
+                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/boot.jar"/>
+                <!-- NbBundle, for the messages in the jar's Bundle.properties -->
+                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/org-openide-util.jar"/>
+            </classpath>
         </javac>
         <jar destfile="${nbfx.sub.dir}/nbbuild/netbeans/nbfx-platform/core/nbfx-noimport.jar">
             <fileset dir="${nbfx.dist.noimport.classes}"/>
-            <fileset dir="${basedir}/release/launcher/src" includes="META-INF/**"/>
+            <fileset dir="${basedir}/release/launcher/src" includes="META-INF/**,**/Bundle.properties"/>
         </jar>
         <replaceregexp file="${nbfx.sub.dir}/nbbuild/netbeans/etc/netbeans.conf" byline="true"
                        match="^(netbeans_default_options=&quot;(?!.*netbeans\.importclass=).*)&quot;\s*$"

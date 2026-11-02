@@ -18,11 +18,25 @@
  */
 package org.netbeans.modules.nbfx.startup;
 
+import java.awt.Dimension;
 import java.awt.GraphicsEnvironment;
+import java.awt.Image;
+import java.awt.Toolkit;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JOptionPane;
+import javax.swing.JScrollPane;
+import javax.swing.JTextPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 import org.netbeans.CLIHandler;
+import org.openide.util.NbBundle;
 
 /**
  * Refuses to start on a JDK older than nbfx needs, at every start.
@@ -61,12 +75,9 @@ public final class JdkCheck extends CLIHandler {
         if (Runtime.version().feature() >= REQUIRED_JAVA) {
             return null;
         }
-        return "nbfx needs JDK " + REQUIRED_JAVA + " or later, but was started with Java "
-                + Runtime.version() + " (" + System.getProperty("java.home") + ").\n\n"
-                + "Start it with a JDK " + REQUIRED_JAVA + ", either on the command line:\n"
-                + "    bin/netbeans --jdkhome <path to JDK " + REQUIRED_JAVA + ">\n"
-                + "    bin\\netbeans64.exe --jdkhome <path to JDK " + REQUIRED_JAVA + ">\n"
-                + "or for every start, by setting netbeans_jdkhome in etc/netbeans.conf.";
+        // Bundle.properties of this package, in the jar; NbBundle is on the startup classpath too.
+        return NbBundle.getMessage(JdkCheck.class, "JdkCheck.problem",
+                REQUIRED_JAVA, Runtime.version(), System.getProperty("java.home"));
     }
 
     /** Reports {@code message} on {@code err} and, with a display, in a dialog too. */
@@ -74,8 +85,78 @@ public final class JdkCheck extends CLIHandler {
         err.println(message);
         // netbeans64.exe has no console: show it too.
         if (!GraphicsEnvironment.isHeadless()) {
-            JOptionPane.showMessageDialog(null, message, "nbfx", JOptionPane.ERROR_MESSAGE);
+            dialog(message).setVisible(true);
         }
+    }
+
+    /**
+     * The message as the platform's own start-up warning shows it (core.startup's {@code NbEvents}:
+     * system look and feel, a dialog with the frame icons, the text in an HTML pane, a button row),
+     * so that it looks like the dialog it replaces, but as an error, with Exit as the only choice.
+     */
+    static JDialog dialog(String message) {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ReflectiveOperationException | RuntimeException | UnsupportedLookAndFeelException ex) {
+            // the cross-platform look and feel will do
+        }
+        JTextPane text = new JTextPane();
+        text.setContentType("text/html");
+        text.setEditable(false);
+        text.setOpaque(false);
+        text.setText(html(message));
+        JComponent body = text;
+        if (text.getPreferredSize().width > 600 || text.getPreferredSize().height > 400) {
+            text.setPreferredSize(new Dimension(600, 400));
+            body = new JScrollPane(text);
+        }
+        JOptionPane pane = new JOptionPane(body, JOptionPane.ERROR_MESSAGE, JOptionPane.DEFAULT_OPTION, null);
+        JButton exit = new JButton(NbBundle.getMessage(JdkCheck.class, "JdkCheck.exit"));
+        exit.addActionListener(e -> pane.setValue(0));
+        pane.setOptions(new Object[] {exit});
+        pane.setInitialValue(exit);
+        JDialog dialog = pane.createDialog(null, NbBundle.getMessage(JdkCheck.class, "JdkCheck.title"));
+        dialog.setIconImages(frameIcons());
+        dialog.setResizable(true);
+        dialog.pack();
+        return dialog;
+    }
+
+    /**
+     * {@code message} as HTML: escaped, line breaks kept, and the indented lines (the commands) in
+     * a monospaced font, indent included.
+     */
+    static String html(String message) {
+        StringBuilder html = new StringBuilder();
+        for (String line : message.split("\n", -1)) {
+            if (html.length() > 0) {
+                html.append("<br>");
+            }
+            int indent = 0;
+            while (indent < line.length() && line.charAt(indent) == ' ') {
+                indent++;
+            }
+            String escaped = line.substring(indent).replace("&", "&amp;").replace("<", "&lt;");
+            if (indent > 0) {
+                html.append("<code>").append("&nbsp;".repeat(indent)).append(escaped).append("</code>");
+            } else {
+                html.append(escaped);
+            }
+        }
+        return html.toString();
+    }
+
+    /** The platform's frame icons; core.startup is on the startup classpath, like this class. */
+    private static List<Image> frameIcons() {
+        List<Image> icons = new ArrayList<>();
+        ClassLoader loader = JdkCheck.class.getClassLoader();
+        for (String name : new String[] {"frame.gif", "frame32.gif", "frame48.gif", "frame256.png"}) {
+            URL url = loader.getResource("org/netbeans/core/startup/" + name);
+            if (url != null) {
+                icons.add(Toolkit.getDefaultToolkit().getImage(url));
+            }
+        }
+        return icons;
     }
 
     @Override
