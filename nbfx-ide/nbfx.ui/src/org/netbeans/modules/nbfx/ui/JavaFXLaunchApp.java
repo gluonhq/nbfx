@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.ui;
 
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.ui.actions.ActionBars;
-import org.netbeans.modules.nbfx.ui.context.ContentManagerService;
+import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
 import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
 import org.netbeans.modules.nbfx.ui.context.FileSelectionContextService;
 import org.netbeans.modules.nbfx.ui.context.ActiveComponentContextService;
