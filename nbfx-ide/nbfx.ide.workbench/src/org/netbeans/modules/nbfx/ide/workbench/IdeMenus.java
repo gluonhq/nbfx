@@ -19,22 +19,22 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import static org.netbeans.api.nbfx.actions.ActionIds.SELECT_PROPERTIES;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLOSE_ALL_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.CLOSE_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.FIND_IN_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.FIND_USAGES;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.NEW_FILE;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.NEW_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.NEXT_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.OPEN_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.PREVIOUS_PROJECT;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.REPLACE_IN_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_FILES;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_IN_FILES;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_IN_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_SEARCH_RESULTS;
-import static org.netbeans.modules.nbfx.ide.workbench.IdeActionIds.SELECT_USAGES;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLOSE_ALL_PROJECTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLOSE_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.FIND_IN_PROJECTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.FIND_USAGES;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEW_FILE;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEW_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEXT_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.OPEN_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.PREVIOUS_PROJECT;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.REPLACE_IN_PROJECTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_FILES;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_IN_FILES;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_IN_PROJECTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_PROJECTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_SEARCH_RESULTS;
+import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_USAGES;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.MenuRegistration;
