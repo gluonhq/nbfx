@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.launcher;
 
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,7 +59,7 @@ public final class GuiRunLevel implements RunLevel {
             return;
         }
         AppProvider provider = Lookup.getDefault().lookupAll(AppProvider.class).stream()
-                .max(java.util.Comparator.comparingInt(AppProvider::priority))
+                .max(Comparator.comparingInt(AppProvider::priority))
                 .orElse(null);
         if (provider == null) {
             LOG.severe("No AppProvider found; cannot launch the JavaFX application");

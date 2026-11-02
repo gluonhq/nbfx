@@ -44,8 +44,11 @@ import org.openide.util.Lookup;
 /**
  * The platform's generic JavaFX application shell: the main window, the editor pane, docking,
  * sliding sides, the persisted window layout and the window-system lifecycle. A product extends it
- * by overriding {@link #decorate(BorderPane)} and adding its own menus, views and services; this
- * class itself knows no project, IDE or Java concept.
+ * and adds its own panes, chrome, views and services through the hooks called from {@link #start}:
+ * {@link #prepare()}, {@link #createPanes()}, {@link #decorate(BorderPane)}, {@link #sceneReady(Scene)}
+ * and {@link #started()}, in that order, then {@link #restoreSession()}. {@link #captureSession()}
+ * and {@link #stopping()} run during shutdown. This class itself knows no project, IDE or Java
+ * concept.
  * <p>
  * The shell registers itself as the window system's {@link WindowSink} and, via
  * {@link ShellAppProvider}, is the default application when no product provides one.
@@ -56,22 +59,22 @@ public class ShellApplication extends Application implements WindowSink {
 
     private static final double MAXIMIZED_TOLERANCE = 4;
 
-    protected Stage stage;
+    private Stage stage;
     /** The window system driving the main-window lifecycle; {@code null} when none is registered. */
-    protected WindowSystem windowSystem;
+    private WindowSystem windowSystem;
     /** Whether the window system reached the SHOWN phase, so {@link WindowSystem#save()} is legal. */
-    protected boolean windowSystemShown;
+    private boolean windowSystemShown;
     /** Last non-maximized geometry, so a maximized window still persists a restore-size. */
-    protected double restoreX = Double.NaN, restoreY = Double.NaN;
-    protected double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
+    private double restoreX = Double.NaN, restoreY = Double.NaN;
+    private double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
 
-    protected final AppState appState = new AppState();
-    protected final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
+    private final AppState appState = new AppState();
+    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
 
-    protected NbfxTabPane mainPane;
-    protected DockArea<TabPane> dockArea;
-    protected SlidingArea slidingArea;
-    protected BorderPane root;
+    private NbfxTabPane mainPane;
+    private DockArea<TabPane> dockArea;
+    private SlidingArea slidingArea;
+    private BorderPane root;
     private boolean stateCaptured;
 
     @Override
@@ -160,6 +163,16 @@ public class ShellApplication extends Application implements WindowSink {
     /** The window's root layout, for a product that adds chrome around the dock area. */
     protected final BorderPane getRoot() {
         return root;
+    }
+
+    /** The persisted shell state, for a product that contributes project/session state. */
+    protected final AppState getAppState() {
+        return appState;
+    }
+
+    /** The session restorer, for a product that restores or captures its own session. */
+    protected final SessionRestorer getSessionRestorer() {
+        return sessionRestorer;
     }
 
     /** Called before the primary panes are created, on the JavaFX Application Thread. */

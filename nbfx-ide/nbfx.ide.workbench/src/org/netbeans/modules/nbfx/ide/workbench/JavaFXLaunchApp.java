@@ -188,7 +188,7 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     @Override
     protected void decorate(BorderPane borderPane) {
-        if (sessionRestorer.startupLayout().isEmpty()) {
+        if (getSessionRestorer().startupLayout().isEmpty()) {
             // First run: no layout to restore, so the default one also holds the default views.
             introduceDefaultViews();
         }
@@ -196,7 +196,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         actionBars = new ActionBars();
         actionBars.registerProjectCommands(this::openProject,
                 this::closeProject, this::closeAllProjects, projectOpen.not());
-        actionBars.configureRecentProjects(appState::getRecentProjects, this::openProject,
+        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
                 this::clearRecentProjects, this::projectIcon);
         actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
         actionBars.configureFileDispatch(treeFocused);
@@ -205,6 +205,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         actionBars.registerWindowCommands(windowActions(mainScope));
         actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
         ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
+        getAppState().initToolbars(toolBars);
         VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
         borderPane.setTop(topBars);
         // Give the window system the host services it needs: the bars for detached windows, the
@@ -233,9 +234,9 @@ public class JavaFXLaunchApp extends ShellApplication {
                 new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
         borderPane.setBottom(statusBar);
 
-        stage.setTitle(WindowTitles.of(projectRegistry.getSelected()));
+        getStage().setTitle(WindowTitles.of(projectRegistry.getSelected()));
         projectRegistry.selectedProjectProperty().subscribe(project -> {
-            stage.setTitle(WindowTitles.of(project));
+            getStage().setTitle(WindowTitles.of(project));
             projectElement.setProject(project == null ? null : project.getDisplayName());
             // Undo/Redo of file operations apply to the selected project's own history.
             FileUndoManager.getDefault().setScope(project == null ? null : project.getPath());
@@ -248,20 +249,20 @@ public class JavaFXLaunchApp extends ShellApplication {
         // owner changes within the window and when the window itself (re)gains focus.
         ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
         scene.focusOwnerProperty().subscribe(fo -> {
-            if (stage.isFocused()) {
+            if (getStage().isFocused()) {
                 updateFocusScope(fo);
                 // Moving the focus into a pane makes what is current there decide the project.
                 if (isNavigatorFocused(fo)) {
                     selectProjectOf(focusedNavigatorFile(fo));
-                } else if (isWithin(fo, slidingArea) && activeDocument != null) {
+                } else if (isWithin(fo, getSlidingArea()) && activeDocument != null) {
                     selectProjectOf(activeDocument.getValue());
                 }
             }
         });
-        stage.focusedProperty().subscribe(focused -> {
+        getStage().focusedProperty().subscribe(focused -> {
             Node focusOwner = scene.getFocusOwner();
             if (!focused) {
-                dockArea.markFocused(false, focusOwner);
+                getDockArea().markFocused(false, focusOwner);
                 treeFocused.set(false);
             } else {
                 updateFocusScope(focusOwner);
@@ -380,7 +381,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Every persisted navigator tab is docked here first, whichever pane the layout last put it
         // in; opening a project then redistributes them (restoreLayout). This keeps every navigator
         // view reachable even when no project is ever opened.
-        AppState.Layout layout = sessionRestorer.startupLayout();
+        AppState.Layout layout = getSessionRestorer().startupLayout();
         // On the first run there is no persisted layout, so the order and the set of navigators come
         // from the layer (position and navigator flag declared with @ViewRegistration); afterwards
         // the persisted order, which the user arranged, wins.
@@ -649,9 +650,9 @@ public class JavaFXLaunchApp extends ShellApplication {
             setNavigatorRevealInProgress(false);
             return;
         }
-        if (stage != null) {
-            stage.toFront();
-            stage.requestFocus();
+        if (getStage() != null) {
+            getStage().toFront();
+            getStage().requestFocus();
         }
         ChangeListener<Boolean> onFocused = new ChangeListener<>() {
             @Override
@@ -710,7 +711,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
         //    and moves the docked panes' content into the editor pane.
         NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
-        dockArea.applyTree(dockArea.defaultTree());
+        getDockArea().applyTree(getDockArea().defaultTree());
         // 2. Every tab to its default place. A view's default location below one of the permanent
         //    panes creates its pane now, in the default shape, where it stays.
         for (TabPane pane : List.of(navigatorPane, mainPane)) {
@@ -754,7 +755,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                 manager.show(view);
             }
         }
-        appState.setIntroducedViews(defaultViewIds());
+        getAppState().setIntroducedViews(defaultViewIds());
     }
 
     /**
@@ -766,7 +767,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * still lives in {@link AppState}/{@link SessionRestorer}.
      */
     private void introduceDefaultViews() {
-        Set<String> introduced = appState.getIntroducedViews();
+        Set<String> introduced = getAppState().getIntroducedViews();
         Set<String> defaults = defaultViewIds();
         if (introduced.containsAll(defaults)) {
             return;
@@ -783,7 +784,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             }
         }
         introduced.addAll(defaults);
-        appState.setIntroducedViews(introduced);
+        getAppState().setIntroducedViews(introduced);
     }
 
     /** The ids of the non-navigator views registered to open at start-up, in registration order. */
@@ -824,8 +825,8 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     private void updateFocusScope(Node focusOwner) {
         // The sliding area holds the dock area and the panel a minimized tab slides in to.
-        if (isWithin(focusOwner, slidingArea)) {
-            dockArea.markFocused(true, focusOwner);
+        if (isWithin(focusOwner, getSlidingArea())) {
+            getDockArea().markFocused(true, focusOwner);
             treeFocused.set(isNavigatorFocused(focusOwner));
             updateActiveComponent();
         }
@@ -1005,7 +1006,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             LOG.info("The session is still being restored; keeping the persisted one");
             return;
         }
-        sessionRestorer.captureSession(openProjectFiles(), providers);
+        getSessionRestorer().captureSession(openProjectFiles(), providers);
         persistSession();
     }
 
@@ -1015,7 +1016,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     private void persistSession() {
         OpenProject selected = projectRegistry.getSelected();
-        appState.setOpenProjects(
+        getAppState().setOpenProjects(
                 projectRegistry.getOpenProjects().stream().map(OpenProject::getPath).toList(),
                 selected == null ? null : selected.getPath());
     }
@@ -1023,7 +1024,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     void openProject() {
         DirectoryChooser dirChooser = new DirectoryChooser();
         dirChooser.setTitle("Open Project");
-        File selectedDir = dirChooser.showDialog(stage);
+        File selectedDir = dirChooser.showDialog(getStage());
         if (selectedDir != null) {
             openProject(selectedDir);
         } else {
@@ -1041,7 +1042,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (dir == null || !dir.isDirectory()) {
             LOG.warning("Project directory does not exist: " + dir);
             if (dir != null) {
-                appState.removeRecentProject(dir.getPath());
+                getAppState().removeRecentProject(dir.getPath());
                 actionBars.refreshRecentProjects();
             }
             return;
@@ -1077,8 +1078,8 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Read with the normalized path, the same key the state was captured under, and stash the
         // pending expansion/selection on the views before opening: they mirror the registry and build
         // a project's tree as soon as it is opened, applying this pending state.
-        List<String> expandedPaths = appState.getExpandedNodes(projectDir.getPath());
-        String selectedPath = appState.getSelectedNode(projectDir.getPath());
+        List<String> expandedPaths = getAppState().getExpandedNodes(projectDir.getPath());
+        String selectedPath = getAppState().getSelectedNode(projectDir.getPath());
         for (NavigatorView provider : providers) {
             provider.restoreExpandedPaths(rootFileObject, expandedPaths);
             provider.restoreSelectedPath(rootFileObject, selectedPath);
@@ -1191,7 +1192,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         rootWatcher.watch(project);
         ProjectIconProvider icons = Lookup.getDefault().lookup(ProjectIconProvider.class);
         String iconName = icons == null ? null : icons.iconName(rootFileObject);
-        appState.addRecentProject(dir.getPath(), iconName);
+        getAppState().addRecentProject(dir.getPath(), iconName);
         actionBars.refreshRecentProjects();
         persistSession();
         // The persisted layout describes the whole window across every project of the session, so it
@@ -1259,7 +1260,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         projectRegistry.close(project);
         // Only this project's file-operation history goes: the other projects keep theirs.
         FileUndoManager.getDefault().clear(path);
-        appState.clearProjectState(new File(path));
+        getAppState().clearProjectState(new File(path));
         persistSession();
     }
 
@@ -1291,7 +1292,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Closing the registry makes the views drop every project's tree (they observe it).
         projectRegistry.closeAll();
         for (OpenProject project : projects) {
-            appState.clearProjectState(new File(project.getPath()));
+            getAppState().clearProjectState(new File(project.getPath()));
         }
         persistSession();
     }
@@ -1307,13 +1308,13 @@ public class JavaFXLaunchApp extends ShellApplication {
                 return;
             }
             closeProject(project, false);
-            appState.removeRecentProject(project.getPath());
+            getAppState().removeRecentProject(project.getPath());
             actionBars.refreshRecentProjects();
         });
     }
 
     private void clearRecentProjects() {
-        appState.clearRecentProjects();
+        getAppState().clearRecentProjects();
         actionBars.refreshRecentProjects();
     }
 
@@ -1381,12 +1382,12 @@ public class JavaFXLaunchApp extends ShellApplication {
      * gone are pruned.
      */
     private void restoreSessionProjects() {
-        List<String> projects = appState.getOpenProjects();
+        List<String> projects = getAppState().getOpenProjects();
         if (projects.isEmpty()) {
             introduceDefaultViews();
             return;
         }
-        sessionSelected = appState.getSelectedProject();
+        sessionSelected = getAppState().getSelectedProject();
         List<File> dirs = new ArrayList<>();
         for (String path : projects) {
             File dir = FileUtil.normalizeFile(new File(path));
@@ -1395,7 +1396,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                 pendingSessionProjects.add(dir.getPath());
             } else {
                 LOG.info("Project of the last session no longer exists, pruning: " + path);
-                appState.removeRecentProject(path);
+                getAppState().removeRecentProject(path);
             }
         }
         if (dirs.isEmpty()) {
@@ -1441,7 +1442,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         restoringSession = false;
         String selected = sessionSelected;
         sessionSelected = null;
-        sessionRestorer.restoreSession(focused -> {
+        getSessionRestorer().restoreSession(focused -> {
             // The tab the session comes back focused on decides the project, exactly as moving to a
             // tab does while the app runs. The project that was selected at exit only applies when
             // the focus does not land on an editor of an open project (an empty or navigator pane).
