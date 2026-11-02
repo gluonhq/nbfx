@@ -18,9 +18,6 @@
  */
 package org.netbeans.modules.nbfx.startup;
 
-import java.awt.GraphicsEnvironment;
-import javax.swing.JOptionPane;
-
 /**
  * The settings import of the binary release: there is nothing to import.
  *
@@ -33,35 +30,23 @@ import javax.swing.JOptionPane;
  * <p>The import runs before the module system, so this class lives on the startup classpath
  * ({@code nbfx-platform/core/nbfx-noimport.jar}), not in a module. See build.xml:-dist-launcher.
  *
- * <p>It is also the first nbfx code to run on a new userdir, so it checks the JDK: the launchers
- * take the first JDK they find, and on one older than nbfx needs every nbfx module fails to
- * install. This class is compiled for Java 17, as core.startup is, so that it loads on such a JDK
- * and can say so; an exception from {@code main} makes core.startup log it and exit.
+ * <p>It also repeats the JDK check of {@link JdkCheck} for a new userdir, in case the bootstrap
+ * did not run that handler. This class is compiled for Java 17, as core.startup is, so that it
+ * loads on an old JDK and can say so; an exception from {@code main} makes core.startup log it
+ * and exit.
  */
 public final class NoImport {
-
-    /** The Java version every nbfx module requires ({@code OpenIDE-Module-Java-Dependencies}). */
-    private static final int REQUIRED_JAVA = 25;
 
     private NoImport() {
     }
 
     public static void main(String[] args) {
-        int feature = Runtime.version().feature();
-        if (feature >= REQUIRED_JAVA) {
+        String problem = JdkCheck.problem();
+        if (problem == null) {
             return;
         }
-        String message = "nbfx needs JDK " + REQUIRED_JAVA + " or later, but was started with Java "
-                + Runtime.version() + " (" + System.getProperty("java.home") + ").\n\n"
-                + "Start it with a JDK " + REQUIRED_JAVA + ", either on the command line:\n"
-                + "    bin/netbeans --jdkhome <path to JDK " + REQUIRED_JAVA + ">\n"
-                + "    bin\\netbeans64.exe --jdkhome <path to JDK " + REQUIRED_JAVA + ">\n"
-                + "or for every start, by setting netbeans_jdkhome in etc/netbeans.conf.";
-        System.err.println(message);
-        // netbeans64.exe has no console: show it too. core.startup calls this on the AWT event thread.
-        if (!GraphicsEnvironment.isHeadless()) {
-            JOptionPane.showMessageDialog(null, message, "nbfx", JOptionPane.ERROR_MESSAGE);
-        }
-        throw new IllegalStateException(message);
+        // core.startup calls this on the AWT event thread.
+        JdkCheck.report(problem, System.err);
+        throw new IllegalStateException(problem);
     }
 }
