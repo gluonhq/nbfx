@@ -594,6 +594,7 @@ until `feature/ci` runs it (§11 W0/W12).
 | `check-namespace` | **exists** (W1.6) | `NamespaceGuard` enforces module code names, directories and API/SPI/implementation package roots; API modules are identified by tier metadata, not by the `nbfx-api` cluster | an old `com.gluonhq` module directory, a non-namespaced package, or an implementation package exported from an API module |
 | `check-baseline` | **exists** (W1) | one `javac.release`; no `javafx.web`; one `--add-exports` file (§8.1) | a drifting JDK/FX/class-file baseline |
 | `check-i18n` | pending (W4) | every user-visible string is an `NbBundle` key in `Bundle.properties` | a missing key, a hardcoded string |
+| `check-bundles` | **exists** (W1.7) | `BundleGuard`: every literal key passed to `NbBundle.getMessage(X.class, "key")`, directly or through a one-line `message(key)` helper, exists in the `Bundle.properties` of `X`'s package | a key stranded in another module after a class moved (a `MissingResourceException` at run time) |
 | `check-logging` | **exists** (W1) | no `System.out`/`printStackTrace`; `Logger` named after the module | a stray print |
 | `check-lookup` | pending (W3) | the `Lookups.forPath` invocation count is constant across N user actions (Appendix E.5) | a per-action layer lookup |
 | leak test | pending (W3) | open/close a view N times; listener count returns to baseline and the view is weakly reachable (Appendix E.2) | a leaked subscription |
