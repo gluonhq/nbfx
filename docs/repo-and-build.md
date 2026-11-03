@@ -178,8 +178,8 @@ an `nbfx-ide`/`nbfx-java` cluster or module in that delivery.
 `ant appshell-conformance` builds the platform-only deliverable and runs the AppShell conformance
 fixture in `platform.shell`. The fixture asserts that no nbfx IDE class is loadable and exercises the
 landed platform services; it grows with the W3 services.
- Any property can
-be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
+
+Any property can be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
 
 `ant test` runs the `test-unit` target of every module under `nbfx-*/*`; modules without
 `test/unit/src` are a no-op. It expects an existing distribution (`ant build` once) and uses the same
