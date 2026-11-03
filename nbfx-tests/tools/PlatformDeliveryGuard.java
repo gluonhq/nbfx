@@ -44,7 +44,10 @@ public final class PlatformDeliveryGuard {
 
     public static void main(String[] args) throws IOException {
         Path root = args.length == 0 ? Paths.get(System.getProperty("user.dir")) : Paths.get(args[0]);
-        Path config = root.resolve("build/cluster-platform.properties");
+        Path config = args.length > 1 ? Paths.get(args[1]) : Paths.get("build/cluster-platform.properties");
+        if (!config.isAbsolute()) {
+            config = root.resolve(config);
+        }
         if (!Files.isRegularFile(config)) {
             System.out.println("[platform] OK (no platform build)");
             return;

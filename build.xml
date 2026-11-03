@@ -620,11 +620,13 @@ metabuild.hash=${nbfx.nbbuild.hash}
         <antcall target="build">
             <param name="nbfx.cluster.config" value="nbfx-platform"/>
             <param name="nbfx.fragment.file" value="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
-            <param name="nbfx.cluster.properties" value="build/cluster-platform.properties"/>
+            <param name="nbfx.cluster.properties" value="${nbfx.build.dir}/cluster-platform.properties"/>
             <param name="nbfx.cluster.file" location="${nbfx.build.dir}/cluster-platform.properties"/>
             <param name="nbfx.fragment" location="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
         </antcall>
-        <ant antfile="${basedir}/check-purity.xml" target="check-platform-delivery" dir="${basedir}" inheritall="false"/>
+        <ant antfile="${basedir}/check-purity.xml" target="check-platform-delivery" dir="${basedir}" inheritall="false">
+            <property name="nbfx.build.dir" value="${nbfx.build.dir}"/>
+        </ant>
     </target>
 
     <target name="run" depends="bootstrap" description="Launch the FX app on the lean nbfx cluster set">
@@ -639,12 +641,12 @@ metabuild.hash=${nbfx.nbbuild.hash}
     <!-- tests                                                                    -->
     <!-- ======================================================================== -->
 
-    <target name="platform-test" depends="platform-fragment"
+    <target name="platform-test" depends="platform-build"
             description="Run the unit tests of the platform-only deliverable">
         <antcall target="test">
             <param name="nbfx.cluster.config" value="nbfx-platform"/>
             <param name="nbfx.fragment.file" value="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
-            <param name="nbfx.cluster.properties" value="build/cluster-platform.properties"/>
+            <param name="nbfx.cluster.properties" value="${nbfx.build.dir}/cluster-platform.properties"/>
             <param name="nbfx.cluster.file" location="${nbfx.build.dir}/cluster-platform.properties"/>
             <param name="nbfx.fragment" location="${nbfx.build.dir}/nbfx-platform-cluster.properties.fragment"/>
             <param name="test.modules" value="nbfx-platform/*"/>

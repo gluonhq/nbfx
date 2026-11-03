@@ -35,6 +35,7 @@
 <project basedir="." default="check-purity" name="nbfx-purity">
 
     <property name="nbfx.purity.strict" value="false"/>
+    <property name="nbfx.build.dir" value="build"/>
     <property name="nbfx.src.pattern" value="nbfx-libs/*/src/**/*.java,nbfx-platform/*/src/**/*.java,nbfx-ide/*/src/**/*.java,nbfx-java/*/src/**/*.java"/>
     <property name="nbfx.deps.pattern" value="nbfx-libs/*/nbproject/project.xml,nbfx-platform/*/nbproject/project.xml,nbfx-ide/*/nbproject/project.xml,nbfx-java/*/nbproject/project.xml"/>
     <property name="nbfx.jar.pattern" value="org-netbeans-modules-nbfx-*.jar,org-netbeans-libs-nbfx-*.jar"/>
@@ -224,7 +225,7 @@
 
     <target name="check-platform-delivery">
         <exec executable="${java.home}/bin/java" failonerror="false" dir="${basedir}" resultproperty="platform.result">
-            <arg value="nbfx-tests/tools/PlatformDeliveryGuard.java"/><arg value="${basedir}"/>
+            <arg value="nbfx-tests/tools/PlatformDeliveryGuard.java"/><arg value="${basedir}"/><arg value="${nbfx.build.dir}/cluster-platform.properties"/>
         </exec>
         <condition property="platform.violations" value="1" else="0"><not><equals arg1="${platform.result}" arg2="0"/></not></condition>
         <echo message="[purity] platform delivery violations: ${platform.violations}"/>
