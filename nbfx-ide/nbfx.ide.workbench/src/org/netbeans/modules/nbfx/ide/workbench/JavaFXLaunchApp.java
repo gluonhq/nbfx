@@ -30,6 +30,8 @@ import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
+import org.netbeans.modules.nbfx.platform.shell.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
 import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.api.nbfx.status.StatusAlignment;
@@ -152,6 +154,13 @@ public class JavaFXLaunchApp extends ShellApplication {
     private final BooleanProperty treeFocused = new SimpleBooleanProperty(false);
     /** The active-component state published to the global action context (the TopComponent replacement). */
     private final ActiveComponentContext activeComponents = activeComponentContext();
+
+    @Override
+    protected ShellChrome createChrome(ShellContext context) {
+        // The IDE still contributes its own menu/tool/status bars in decorate() until the
+        // platform chrome builder lands; do not install the empty default chrome on top of them.
+        return ShellChrome.NONE;
+    }
 
     @Override
     protected void prepare() {

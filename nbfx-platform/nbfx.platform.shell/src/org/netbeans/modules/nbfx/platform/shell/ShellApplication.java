@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -75,6 +76,7 @@ public class ShellApplication extends Application implements WindowSink {
     private DockArea<TabPane> dockArea;
     private SlidingArea slidingArea;
     private BorderPane root;
+    private ShellChrome chrome;
     private boolean stateCaptured;
 
     @Override
@@ -93,6 +95,13 @@ public class ShellApplication extends Application implements WindowSink {
         dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
+        chrome = createChrome(new ShellContext(Lookup.getDefault()));
+        if (chrome.top() != null) {
+            root.setTop(chrome.top());
+        }
+        if (chrome.bottom() != null) {
+            root.setBottom(chrome.bottom());
+        }
         decorate(root);
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
@@ -135,6 +144,9 @@ public class ShellApplication extends Application implements WindowSink {
             windowSystem.save();
         }
         appState.save();
+        if (chrome != null) {
+            chrome.dispose();
+        }
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
@@ -165,6 +177,11 @@ public class ShellApplication extends Application implements WindowSink {
         return root;
     }
 
+    /** The chrome installed for this shell. */
+    protected final ShellChrome getChrome() {
+        return chrome;
+    }
+
     /** The persisted shell state, for a product that contributes project/session state. */
     protected final AppState getAppState() {
         return appState;
@@ -173,6 +190,20 @@ public class ShellApplication extends Application implements WindowSink {
     /** The session restorer, for a product that restores or captures its own session. */
     protected final SessionRestorer getSessionRestorer() {
         return sessionRestorer;
+    }
+
+    /**
+     * Creates the chrome for this shell. The default resolves the highest-priority
+     * {@link ShellChromeProvider}; a product may override this method directly.
+     *
+     * @param context the shell context
+     * @return the chrome, never {@code null}
+     */
+    protected ShellChrome createChrome(ShellContext context) {
+        return Lookup.getDefault().lookupAll(ShellChromeProvider.class).stream()
+                .max(Comparator.comparingInt(ShellChromeProvider::priority))
+                .map(provider -> provider.create(context))
+                .orElse(ShellChrome.NONE);
     }
 
     /** Called before the primary panes are created, on the JavaFX Application Thread. */
