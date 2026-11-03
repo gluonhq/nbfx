@@ -53,6 +53,13 @@ there, a local build downloads it by hand. To move to another JDK, change the pi
 `package.runtime` file name of the platform's configuration; nbpackage reads the architecture from
 the file name, so keep the vendor's name.
 
+A `.tar.gz` runtime is repacked with `tar` after the checksum, under the same name, before nbpackage
+sees it. The jdk.java.net Linux tarball has no directory entries, and nbpackage (at the pinned
+commit) creates the parent directory of regular file entries only, so the first symlink of an
+all-symlink directory, `legal/java.compiler/ADDITIONAL_LICENSE_INFO`, fails to extract with
+`NoSuchFileException`; `tar` writes the directory entries the extraction needs. The macOS tarball
+has them already. A local Linux build needs the same repack (below).
+
 ## The workflow
 
 [`packages.yml`](../../.github/workflows/packages.yml) builds every package on GitHub runners:
@@ -104,6 +111,8 @@ unzip nbpackage-1.0-bin.zip
 mkdir -p release/packaging/macos-aarch64/downloads
 curl -o release/packaging/macos-aarch64/downloads/openjdk-27.0.1.0.3_macos-aarch64_bin.tar.gz <url>
 shasum -a 256 release/packaging/macos-aarch64/downloads/*          # compare with the pin
+# Linux only: repack the tarball so it carries directory entries (see "The bundled runtime")
+# mkdir x && tar xzf <file> -C x && tar czf <file> -C x . && rm -r x
 
 # the zip: ant release-bin (-Dnbfx.release.dryrun=true without a tag), or a release's
 mkdir -p build/packages
@@ -128,3 +137,5 @@ what the package will contain.
   window; a mismatch only affects dock grouping.
 - **The Debian/RPM maintainer address** is a placeholder.
 - **Windows signing** (Authenticode) is not set up.
+- **The tarball repack** goes away once nbpackage creates parent directories for link entries too
+  (a two-line fix in `ArchiveUtils`, to be proposed upstream) and `NBPACKAGE_REF` moves past it.
