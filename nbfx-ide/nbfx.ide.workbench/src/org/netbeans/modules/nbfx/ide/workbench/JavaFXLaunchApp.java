@@ -915,12 +915,11 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /** The application host services for the window system, or {@code null} if not registered. */
     private static WindowEnvironmentService windowEnvironment() {
-        WindowEnvironment environment = Lookup.getDefault().lookup(WindowEnvironment.class);
-        if (environment instanceof WindowEnvironmentService impl) {
-            return impl;
+        WindowEnvironmentService environment = Lookup.getDefault().lookup(WindowEnvironmentService.class);
+        if (environment == null) {
+            LOG.warning("No WindowEnvironmentService found in the Lookup");
         }
-        LOG.warning("No WindowEnvironmentService found in the Lookup");
-        return null;
+        return environment;
     }
 
     /** The status bar progress service, or {@code null} if not registered. */
