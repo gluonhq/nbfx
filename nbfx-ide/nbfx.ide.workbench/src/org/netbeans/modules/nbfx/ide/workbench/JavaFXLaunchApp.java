@@ -317,14 +317,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         refresher.shutdown();
     }
 
-    /** Runs the Options command, so the macOS Preferences… item opens the Options dialog. */
-    private void openPreferences() {
-        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
-        if (registry != null) {
-            registry.find(ActionIds.SELECT_OPTIONS).ifPresent(Command::run);
-        }
-    }
-
     private void watchApplicationFocus() {
         ObservableList<Window> windows = Window.getWindows();
         windows.forEach(this::watchFocus);

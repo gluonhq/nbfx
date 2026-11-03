@@ -31,8 +31,12 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import org.netbeans.api.nbfx.actions.ActionIds;
+import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorSettings;
+import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
@@ -95,7 +99,8 @@ public class ShellApplication extends Application implements WindowSink {
         dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
-        chrome = createChrome(new ShellContext(Lookup.getDefault()));
+        ShellContext context = new ShellContext(Lookup.getDefault());
+        chrome = createChrome(context);
         if (chrome.top() != null) {
             root.setTop(chrome.top());
         }
@@ -111,6 +116,8 @@ public class ShellApplication extends Application implements WindowSink {
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
         sceneReady(scene);
         stage.setScene(scene);
+        ShellBranding branding = Lookup.getDefault().lookup(ShellBranding.class);
+        stage.setTitle(branding == null ? "NetBeansFX" : branding.title(context));
         stage.setOnCloseRequest(event -> {
             if (!requestQuit()) {
                 event.consume();
@@ -243,6 +250,18 @@ public class ShellApplication extends Application implements WindowSink {
 
     /** Called after the window is showing, on the JavaFX Application Thread. */
     protected void started() {
+        ApplicationMenu menu = Lookup.getDefault().lookup(ApplicationMenu.class);
+        if (menu != null) {
+            menu.install(this::openPreferences, this::requestQuit);
+        }
+    }
+
+    /** Runs the Options command, so a native application menu can open the Options dialog. */
+    protected final void openPreferences() {
+        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+        if (registry != null) {
+            registry.find(ActionIds.SELECT_OPTIONS).ifPresent(Command::run);
+        }
     }
 
     /** Called during shutdown, before the platform exits, on the JavaFX Application Thread. */

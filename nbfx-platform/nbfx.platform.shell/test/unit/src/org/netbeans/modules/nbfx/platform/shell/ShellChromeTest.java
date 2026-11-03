@@ -45,7 +45,7 @@ public class ShellChromeTest {
             ShellChrome chrome = new DefaultShellChromeProvider().create(new ShellContext(Lookup.getDefault()));
             assertNotNull(chrome);
             assertTrue(chrome instanceof DefaultShellChrome);
-            assertNull(chrome.bottom());
+            assertNotNull(chrome.bottom());
             return null;
         });
     }
