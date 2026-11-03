@@ -18,9 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.api.nbfx.project.ProjectRegistry;
+import org.netbeans.api.nbfx.status.StatusAlignment;
+import org.netbeans.api.nbfx.status.StatusRegistration;
 import org.netbeans.modules.nbfx.platform.shell.StatusElementSupport;
-
 import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import javafx.util.Subscription;
+import org.openide.util.Lookup;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -28,13 +32,15 @@ import javafx.scene.control.Separator;
 import javafx.scene.layout.HBox;
 
 /**
- * Names the selected project - the one the project-scoped actions apply to. Created and driven by
- * the main window; not an exported API.
+ * Names the selected project - the one the project-scoped actions apply to. Registered as
+ * {@code project}; it follows the {@link ProjectRegistry} on its own.
  */
+@StatusRegistration(id = "project", alignment = StatusAlignment.LEFT, position = 0)
 public final class ProjectStatusElement implements StatusElementHolder {
 
     private final HBox group;
     private final Label label = new Label();
+    private Subscription subscription;
 
     /** Creates the element. Must be called on the JavaFX Application Thread. */
     public ProjectStatusElement() {
@@ -44,6 +50,19 @@ public final class ProjectStatusElement implements StatusElementHolder {
         group = new HBox(label, separator);
         group.getStyleClass().addAll("status-bar-project-group");
         setProject(null);
+        ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
+        if (registry != null) {
+            subscription = registry.selectedProjectProperty()
+                    .subscribe(project -> setProject(project == null ? null : project.getDisplayName()));
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (subscription != null) {
+            subscription.unsubscribe();
+            subscription = null;
+        }
     }
 
     @Override

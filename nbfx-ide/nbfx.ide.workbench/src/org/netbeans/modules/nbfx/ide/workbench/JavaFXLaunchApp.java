@@ -20,48 +20,30 @@ package org.netbeans.modules.nbfx.ide.workbench;
 
 import javafx.collections.FXCollections;
 import javafx.beans.property.SimpleObjectProperty;
-import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
 import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
 import org.netbeans.modules.nbfx.platform.shell.FileSelectionContextService;
 import org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
+import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.platform.shell.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
 import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
-import org.netbeans.modules.nbfx.platform.workspace.DockArea;
-import org.netbeans.api.nbfx.status.StatusAlignment;
-import org.netbeans.modules.nbfx.platform.shell.CaretStatusElement;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
-import org.netbeans.modules.nbfx.platform.shell.LineSeparatorStatusElement;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.platform.shell.SlidingArea;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectStatusElement;
-import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
-import org.netbeans.modules.nbfx.ide.workbench.WindowTitles;
-import org.netbeans.modules.nbfx.platform.status.StatusBar;
-import org.netbeans.modules.nbfx.platform.status.StatusElement;
-import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
-import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
-import org.netbeans.modules.nbfx.platform.workspace.WindowSink;
-import org.netbeans.modules.nbfx.platform.workspace.WindowState;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
-import org.netbeans.api.nbfx.view.ApplicationMenu;
-import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
-import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.file.FileSelectionContext;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectIconProvider;
@@ -84,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
-import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -94,22 +75,19 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.Screen;
-import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.Subscription;
-import org.openide.LifecycleManager;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
+import org.openide.util.lookup.ProxyLookup;
 import org.openide.util.NbBundle;
 
 public class JavaFXLaunchApp extends ShellApplication {
@@ -118,11 +96,8 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     private Collection<? extends NavigatorView> providers;
     private NbfxTabPane navigatorPane;
+    /** Still owns the detached-window bars while those move to the shell builders. */
     private ActionBars actionBars;
-    private StatusBar statusBar;
-    private ProjectStatusElement projectElement;
-    private CaretStatusElement caretElement;
-    private LineSeparatorStatusElement lineSeparatorElement;
     private final ProjectRegistry projectRegistry = projectRegistry();
     /** The running application, so services (e.g. the project opener) can reach it. */
     private static volatile JavaFXLaunchApp instance;
@@ -157,29 +132,34 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {
+        // The main window is built by the generic shell from the layer and contributions. ActionBars
+        // stays temporarily for the detached-window bars, which the window environment still asks it
+        // to create.
         actionBars = new ActionBars();
-        actionBars.registerProjectCommands(this::openProject,
-                this::closeProject, this::closeAllProjects, projectOpen.not());
         actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
                 this::clearRecentProjects, this::projectIcon);
         actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
         actionBars.configureFileDispatch(treeFocused);
-        // The main window's menu/tool bars are scoped to the main pane's own selected editor.
-        ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
-        actionBars.registerWindowCommands(windowActions(mainScope));
-        actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
-        ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
-        getAppState().initToolbars(toolBars);
-        VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
 
-        projectElement = new ProjectStatusElement();
-        caretElement = new CaretStatusElement();
-        lineSeparatorElement = new LineSeparatorStatusElement();
-        statusBar = new StatusBar(StatusElementRegistry.discover(List.of(
-                new StatusElement("project", StatusAlignment.LEFT, 0, projectElement),
-                new StatusElement("caret", StatusAlignment.RIGHT, 10, caretElement),
-                new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
-        return new IdeChrome(topBars, statusBar);
+        ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
+        IdeCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
+                this::openProject, this::closeProject, this::closeAllProjects, projectOpen.not(),
+                windowActions(mainScope), projectSwitcher,
+                file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
+        DefaultShellChrome chrome = new DefaultShellChrome(context);
+        actionBars.useToolBars(chrome.toolBars());
+        return chrome;
+    }
+
+    @Override
+    protected Lookup shellLookup() {
+        return new ProxyLookup(Lookups.fixed(
+                new IdeShellCommandResolver(mainPaneActiveDocument(), treeFocused),
+                new IdeShellIconProvider(),
+                new RecentProjectsMenuFactory(getAppState()::getRecentProjects, this::openProject,
+                        this::clearRecentProjects, this::projectIcon),
+                new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon)),
+                super.shellLookup());
     }
 
     @Override
@@ -239,13 +219,9 @@ public class JavaFXLaunchApp extends ShellApplication {
             windowEnvironment.setProjectSwitcher(projectSwitcher);
         }
 
-        getStage().setTitle(WindowTitles.of(projectRegistry.getSelected()));
-        projectRegistry.selectedProjectProperty().subscribe(project -> {
-            getStage().setTitle(WindowTitles.of(project));
-            projectElement.setProject(project == null ? null : project.getDisplayName());
-            // Undo/Redo of file operations apply to the selected project's own history.
-            FileUndoManager.getDefault().setScope(project == null ? null : project.getPath());
-        });
+        projectRegistry.selectedProjectProperty().subscribe(project ->
+                // Undo/Redo of file operations apply to the selected project's own history.
+                FileUndoManager.getDefault().setScope(project == null ? null : project.getPath()));
     }
 
     @Override
@@ -278,25 +254,12 @@ public class JavaFXLaunchApp extends ShellApplication {
         NbfxTabPane.installProjectSwitchShortcut(scene);
         if (activeDocument != null) {
             activeDocument.subscribe(this::selectProjectOf);
-            activeDocument.flatMap(EditorDocument::caretInfoProperty).subscribe(caretElement::setInfo);
-            activeDocument.flatMap(EditorDocument::lineSeparatorProperty).subscribe(lineSeparatorElement::setSeparator);
-            lineSeparatorElement.setOnChange(separator -> {
-                EditorDocument document = activeDocument.getValue();
-                if (document != null) {
-                    document.setLineSeparator(separator);
-                }
-            });
         }
     }
 
     @Override
     protected void started() {
-        // On platforms with a native application menu (macOS), let the platform-specific module
-        // register its Preferences and Quit handlers; the launcher stays free of that code.
-        ApplicationMenu applicationMenu = Lookup.getDefault().lookup(ApplicationMenu.class);
-        if (applicationMenu != null) {
-            applicationMenu.install(this::openPreferences, this::requestQuit);
-        }
+        super.started();
 
         // Everything the IDE knows about the open projects comes from the platform's filesystem
         // layer, which does not see changes made outside the IDE until it is refreshed.
@@ -540,14 +503,14 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Builds the Window-menu actions and their context-driven enablement, scoped to the main editor pane. */
-    private ActionBars.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
+    private IdeCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
         ObservableList<EditorDocument> documents = EditorContexts.openDocuments();
         ObservableValue<Boolean> closeDocumentDisabled = mainScope == null
                 ? new SimpleBooleanProperty(true)
                 : Bindings.createBooleanBinding(() -> mainScope.getValue() == null, mainScope);
         ObservableValue<Boolean> closeAllDisabled = Bindings.isEmpty(documents);
         ObservableValue<Boolean> closeOtherDisabled = Bindings.size(documents).lessThan(2);
-        return new ActionBars.WindowActions(
+        return new IdeCommands.WindowActions(
                 () -> selectNavigator(firstNavigatorId(0)),
                 () -> selectNavigator(firstNavigatorId(1)),
                 this::selectEditor,
@@ -1039,7 +1002,6 @@ public class JavaFXLaunchApp extends ShellApplication {
             LOG.warning("Project directory does not exist: " + dir);
             if (dir != null) {
                 getAppState().removeRecentProject(dir.getPath());
-                actionBars.refreshRecentProjects();
             }
             return;
         }
@@ -1189,7 +1151,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         ProjectIconProvider icons = Lookup.getDefault().lookup(ProjectIconProvider.class);
         String iconName = icons == null ? null : icons.iconName(rootFileObject);
         getAppState().addRecentProject(dir.getPath(), iconName);
-        actionBars.refreshRecentProjects();
         persistSession();
         // The persisted layout describes the whole window across every project of the session, so it
         // is applied once - when the last of them has loaded. A project opened later comes up empty:
@@ -1305,13 +1266,11 @@ public class JavaFXLaunchApp extends ShellApplication {
             }
             closeProject(project, false);
             getAppState().removeRecentProject(project.getPath());
-            actionBars.refreshRecentProjects();
-        });
+            });
     }
 
     private void clearRecentProjects() {
         getAppState().clearRecentProjects();
-        actionBars.refreshRecentProjects();
     }
 
     /**
@@ -1396,8 +1355,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             }
         }
         if (dirs.isEmpty()) {
-            actionBars.refreshRecentProjects();
-            introduceDefaultViews();
+                introduceDefaultViews();
             persistSession();
             return;
         }
@@ -1505,28 +1463,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         public void closeAll() {
             projects.clear();
             selected.set(null);
-        }
-    }
-
-    /** The IDE's chrome as a {@link ShellChrome}; its controls remain owned by ActionBars. */
-    private static final class IdeChrome implements ShellChrome {
-
-        private final Node top;
-        private final Node bottom;
-
-        IdeChrome(Node top, Node bottom) {
-            this.top = top;
-            this.bottom = bottom;
-        }
-
-        @Override
-        public Node top() {
-            return top;
-        }
-
-        @Override
-        public Node bottom() {
-            return bottom;
         }
     }
 }
