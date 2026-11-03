@@ -167,7 +167,8 @@ jobs:
         if: env.RC == ''
         run: |
           mkdir "$RUNNER_TEMP/assets"
-          gh release download "$RC_TAG" --pattern 'nbfx-*' --dir "$RUNNER_TEMP/assets" \
+          # the release files and the native packages (nbfx_<version>-1_amd64.deb has an underscore)
+          gh release download "$RC_TAG" --pattern 'nbfx-*' --pattern 'nbfx_*' --dir "$RUNNER_TEMP/assets" \
             || { echo "::error::$RC_TAG has no nbfx-* files to promote"; exit 1; }
           ls -l "$RUNNER_TEMP/assets"
           gh release upload "$TAG" --clobber "$RUNNER_TEMP"/assets/*

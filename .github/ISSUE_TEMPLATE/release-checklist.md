@@ -44,6 +44,7 @@ NetBeans revision (`nbfx.submodule.commit`): ...
 - [ ] 6 files uploaded to the draft (`gh release upload <version>-rcN build/release/*`)
 - [ ] *Release verify* green (`gh workflow run release-verify.yml -f tag=<version>-rcN`)
 - [ ] Highlights written, pre-release published
+- [ ] Native packages attached (`gh workflow run packages.yml --repo gluonhq/nbfx-installers -f tag=<version>-rcN -f publish=release`)
 - [ ] Review window opened in this issue (at least 72 hours, until ...)
 
 ### Review

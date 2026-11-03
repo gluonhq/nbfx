@@ -67,9 +67,8 @@ binary modules as they choose.
 Releases are built, signed and verified with the Ant harness and published as GitHub releases, following
 the Apache release procedure as far as a non-ASF project can — see **[`RELEASING.md`](RELEASING.md)**.
 Native installers with a bundled JDK (macOS Apple silicon `.pkg`, Windows `.exe`, Linux
-`.deb`/`.rpm`/`.AppImage`; macOS Intel uses the zip) are built from the binary zip by the *Packages*
-workflow — see
-[`release/packaging/README.md`](release/packaging/README.md).
+`.deb`/`.rpm`/`.AppImage`; macOS Intel uses the zip) are built from the binary zip in
+[gluonhq/nbfx-installers](https://github.com/gluonhq/nbfx-installers).
 `LICENSE`, `NOTICE` and `THIRDPARTY` describe the licences, `KEYS` holds the signing keys.
 
 ## Build and test
