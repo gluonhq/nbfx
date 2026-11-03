@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
@@ -31,6 +32,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.util.Subscription;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
@@ -81,6 +83,7 @@ public class ShellApplication extends Application implements WindowSink {
     private SlidingArea slidingArea;
     private BorderPane root;
     private ShellChrome chrome;
+    private Subscription titleSubscription;
     private boolean stateCaptured;
 
     @Override
@@ -99,7 +102,7 @@ public class ShellApplication extends Application implements WindowSink {
         dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
-        ShellContext context = new ShellContext(Lookup.getDefault());
+        ShellContext context = new ShellContext(shellLookup());
         chrome = createChrome(context);
         if (chrome.top() != null) {
             root.setTop(chrome.top());
@@ -116,8 +119,16 @@ public class ShellApplication extends Application implements WindowSink {
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
         sceneReady(scene);
         stage.setScene(scene);
-        ShellBranding branding = Lookup.getDefault().lookup(ShellBranding.class);
+        ShellBranding branding = context.lookup().lookupAll(ShellBranding.class).stream()
+                .max(Comparator.comparingInt(ShellBranding::priority))
+                .orElse(null);
         stage.setTitle(branding == null ? "NetBeansFX" : branding.title(context));
+        if (branding != null) {
+            ObservableValue<String> title = branding.titleProperty(context);
+            if (title != null) {
+                titleSubscription = title.subscribe(stage::setTitle);
+            }
+        }
         stage.setOnCloseRequest(event -> {
             if (!requestQuit()) {
                 event.consume();
@@ -154,6 +165,10 @@ public class ShellApplication extends Application implements WindowSink {
             windowSystem.save();
         }
         appState.save();
+        if (titleSubscription != null) {
+            titleSubscription.unsubscribe();
+            titleSubscription = null;
+        }
         if (chrome != null) {
             chrome.dispose();
         }
@@ -200,6 +215,17 @@ public class ShellApplication extends Application implements WindowSink {
     /** The session restorer, for a product that restores or captures its own session. */
     protected final SessionRestorer getSessionRestorer() {
         return sessionRestorer;
+    }
+
+    /**
+     * The lookup exposed to the chrome and its dynamic contributions. The default is the global
+     * lookup; a product overrides this to add per-shell services (its command resolver, dynamic
+     * menu factories, branding and so on).
+     *
+     * @return the lookup, never {@code null}
+     */
+    protected Lookup shellLookup() {
+        return Lookup.getDefault();
     }
 
     /**

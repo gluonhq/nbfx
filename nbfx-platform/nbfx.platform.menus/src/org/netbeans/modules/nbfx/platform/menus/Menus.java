@@ -59,7 +59,6 @@ import org.netbeans.api.nbfx.views.MenuRegistration;
 @ActionReference(id = SAVE, path = "Menus/File", position = 60, separatorBefore = true)
 @ActionReference(id = SAVE_ALL, path = "Menus/File", position = 70)
 @ActionReference(id = SELECT_EDITOR, path = "Menus/Window", position = 5)
-@ActionReference(id = Menus.CONFIGURE_WINDOW, path = "Menus/Window", position = 60, separatorBefore = true)
 @ActionReference(id = RESET_WINDOWS, path = "Menus/Window", position = 70)
 @ActionReference(id = CLOSE_DOCUMENT, path = "Menus/Window", position = 80, separatorBefore = true)
 @ActionReference(id = CLOSE_ALL_DOCUMENTS, path = "Menus/Window", position = 90)

@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 
 /**
@@ -27,6 +28,16 @@ import javafx.scene.Node;
  * @since 1.0
  */
 public interface ShellBranding {
+
+    /**
+     * The precedence when several brandings are registered. The highest priority wins, so a
+     * product branding can replace the neutral platform default without ambiguity.
+     *
+     * @return the priority; the default is {@code 0}
+     */
+    default int priority() {
+        return 0;
+    }
 
     /** The application name, used by the default title. */
     String applicationName();
@@ -38,6 +49,17 @@ public interface ShellBranding {
 
     /** The application icon, or {@code null}. */
     default Node icon(ShellContext context) {
+        return null;
+    }
+
+    /**
+     * A live title for {@code context}, or {@code null} when the title does not change. The shell
+     * follows it after the initial {@link #title(ShellContext) title}.
+     *
+     * @param context the shell context
+     * @return the observable title, or {@code null}
+     */
+    default ObservableValue<String> titleProperty(ShellContext context) {
         return null;
     }
 }

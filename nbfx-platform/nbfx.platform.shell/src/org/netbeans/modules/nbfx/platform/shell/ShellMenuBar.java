@@ -20,10 +20,21 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
+import javafx.collections.ListChangeListener;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.SeparatorMenuItem;
+import org.netbeans.api.nbfx.actions.ActionLayerReader;
+import org.netbeans.api.nbfx.actions.ActionRef;
+import org.netbeans.api.nbfx.actions.Command;
+import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
-import org.openide.util.Lookup;
+import org.openide.util.Exceptions;
 
 /**
  * Builds a menu bar from the {@code NbFx/Menus} layer and the dynamic sections registered in the
@@ -33,9 +44,13 @@ import org.openide.util.Lookup;
  */
 public final class ShellMenuBar {
 
+    private static final String DYNAMIC_EXT = LayerPaths.DYNAMIC_SUFFIX.startsWith(".")
+            ? LayerPaths.DYNAMIC_SUFFIX.substring(1) : LayerPaths.DYNAMIC_SUFFIX;
+
     private final ShellContext context;
-    private final List<DynamicMenu> dynamicMenus = new ArrayList<>();
-    private final javafx.scene.control.MenuBar menuBar;
+    private final Map<FileObject, MenuModel> models = new IdentityHashMap<>();
+    private final Map<FileObject, Menu> menus = new IdentityHashMap<>();
+    private final MenuBar menuBar;
 
     public ShellMenuBar(ShellContext context) {
         this.context = context;
@@ -43,21 +58,26 @@ public final class ShellMenuBar {
     }
 
     /** The built menu bar. */
-    public javafx.scene.control.MenuBar menuBar() {
+    public MenuBar menuBar() {
         return menuBar;
     }
 
     /** Disposes the dynamic sections created for this bar. */
     public void dispose() {
-        for (DynamicMenu menu : dynamicMenus) {
-            menu.dispose();
+        for (MenuModel model : models.values()) {
+            for (DynamicEntry entry : model.dynamic()) {
+                if (entry.content() != null) {
+                    entry.content().dispose();
+                }
+            }
         }
-        dynamicMenus.clear();
+        models.clear();
+        menus.clear();
     }
 
-    private javafx.scene.control.MenuBar build() {
-        List<javafx.scene.control.Menu> menus = new ArrayList<>();
-        FileObject root = FileUtil.getConfigFile("NbFx/Menus");
+    private MenuBar build() {
+        List<Menu> topLevel = new ArrayList<>();
+        FileObject root = FileUtil.getConfigFile(LayerPaths.MENUS);
         if (root != null) {
             List<FileObject> folders = new ArrayList<>();
             for (FileObject child : root.getChildren()) {
@@ -69,64 +89,87 @@ public final class ShellMenuBar {
                     .comparingInt((FileObject folder) -> intAttribute(folder, "position", Integer.MAX_VALUE))
                     .thenComparing(FileObject::getName));
             for (FileObject folder : folders) {
-                javafx.scene.control.Menu menu = createMenu(folder);
-                if (menu != null && !menu.getItems().isEmpty()) {
-                    menus.add(menu);
+                Menu menu = menu(folder);
+                if (!menu.getItems().isEmpty()) {
+                    topLevel.add(menu);
                 }
             }
         }
-        javafx.scene.control.MenuBar bar = new javafx.scene.control.MenuBar(
-                menus.toArray(javafx.scene.control.Menu[]::new));
+        MenuBar bar = new MenuBar(topLevel.toArray(Menu[]::new));
         bar.setUseSystemMenuBar(true);
         return bar;
     }
 
-    private javafx.scene.control.Menu createMenu(FileObject folder) {
+    /** The stable menu instance for {@code folder}, built once and refilled as sections change. */
+    private Menu menu(FileObject folder) {
+        Menu existing = menus.get(folder);
+        if (existing != null) {
+            return existing;
+        }
         String title = stringAttribute(folder, "displayName", folder.getName());
-        javafx.scene.control.Menu menu = new javafx.scene.control.Menu(title);
-        addItems(menu, folder);
-        addSubmenus(menu, folder);
+        Menu menu = new Menu(title);
+        menu.setId(folder.getName());
+        menus.put(folder, menu);
+        MenuModel model = model(folder, menu);
+        fill(menu, model);
         return menu;
     }
 
-    private void addItems(javafx.scene.control.Menu menu, FileObject folder) {
-        List<Entry> entries = new ArrayList<>();
-        for (org.netbeans.api.nbfx.actions.ActionRef ref
-                : org.netbeans.api.nbfx.actions.ActionLayerReader.read(folder)) {
-            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore()));
-        }
-        for (DynamicEntry dynamic : readDynamic(folder)) {
-            entries.add(dynamic);
-        }
-        entries.sort(Comparator.comparingInt(Entry::position).thenComparing(Entry::id));
-        for (Entry entry : entries) {
+    /**
+     * Fills {@code menu} from {@code model}. A dynamic section may update its items at any time;
+     * rebuilding the menu keeps the section at its declared position without the section knowing it.
+     */
+    private void fill(Menu menu, MenuModel model) {
+        menu.getItems().clear();
+        for (Entry entry : model.entries()) {
             if (entry.separatorBefore() && !menu.getItems().isEmpty()
-                    && !(menu.getItems().get(menu.getItems().size() - 1)
-                            instanceof javafx.scene.control.SeparatorMenuItem)) {
-                menu.getItems().add(new javafx.scene.control.SeparatorMenuItem());
+                    && !(menu.getItems().get(menu.getItems().size() - 1) instanceof SeparatorMenuItem)) {
+                menu.getItems().add(new SeparatorMenuItem());
             }
             if (entry instanceof StaticEntry staticEntry) {
-                javafx.scene.control.MenuItem item = menuItem(staticEntry.commandId());
+                MenuItem item = menuItem(staticEntry.commandId());
                 if (item != null) {
                     menu.getItems().add(item);
                 }
-            } else if (entry instanceof DynamicEntry dynamic) {
-                DynamicMenu content = dynamic.content();
-                if (content != null) {
-                    menu.getItems().addAll(content.items());
-                    content.items().addListener((javafx.collections.ListChangeListener<javafx.scene.control.MenuItem>) change -> {
-                        menu.getItems().removeAll(change.getRemoved());
-                        menu.getItems().addAll(change.getAddedSubList());
-                    });
-                }
+            } else if (entry instanceof DynamicEntry dynamic && dynamic.content() != null) {
+                menu.getItems().addAll(dynamic.content().items());
+            }
+        }
+        for (FileObject subfolder : model.subfolders()) {
+            Menu submenu = menu(subfolder);
+            if (!submenu.getItems().isEmpty()) {
+                menu.getItems().add(submenu);
             }
         }
     }
 
-    private List<DynamicEntry> readDynamic(FileObject folder) {
+    private MenuModel model(FileObject folder, Menu owner) {
+        List<Entry> entries = new ArrayList<>();
+        for (ActionRef ref : ActionLayerReader.read(folder)) {
+            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore()));
+        }
+        List<DynamicEntry> dynamicEntries = readDynamic(folder, owner);
+        entries.addAll(dynamicEntries);
+        entries.sort(Comparator.comparingInt(Entry::position).thenComparing(Entry::id));
+
+        List<FileObject> subfolders = new ArrayList<>();
+        for (FileObject child : folder.getChildren()) {
+            if (child.isFolder()) {
+                subfolders.add(child);
+            }
+        }
+        subfolders.sort(Comparator
+                .comparingInt((FileObject f) -> intAttribute(f, "position", Integer.MAX_VALUE))
+                .thenComparing(FileObject::getName));
+        MenuModel model = new MenuModel(List.copyOf(entries), List.copyOf(subfolders), List.copyOf(dynamicEntries));
+        models.put(folder, model);
+        return model;
+    }
+
+    private List<DynamicEntry> readDynamic(FileObject folder, Menu owner) {
         List<DynamicEntry> entries = new ArrayList<>();
         for (FileObject child : folder.getChildren()) {
-            if (!child.isData() || !child.hasExt("dynamic")) {
+            if (!child.isData() || !child.hasExt(DYNAMIC_EXT)) {
                 continue;
             }
             String factoryName = stringAttribute(child, "factory", "");
@@ -137,7 +180,12 @@ public final class ShellMenuBar {
             boolean separatorBefore = Boolean.TRUE.equals(child.getAttribute("separatorBefore"));
             DynamicMenu content = createDynamic(factoryName);
             if (content != null) {
-                dynamicMenus.add(content);
+                content.items().addListener((ListChangeListener<MenuItem>) change -> {
+                    MenuModel current = models.get(folder);
+                    if (current != null) {
+                        fill(owner, current);
+                    }
+                });
             }
             entries.add(new DynamicEntry(position, child.getName(), separatorBefore, content));
         }
@@ -145,31 +193,28 @@ public final class ShellMenuBar {
     }
 
     private DynamicMenu createDynamic(String factoryName) {
-        for (DynamicMenu.Factory factory : Lookup.getDefault().lookupAll(DynamicMenu.Factory.class)) {
+        for (DynamicMenu.Factory factory : context.lookup().lookupAll(DynamicMenu.Factory.class)) {
             if (factory.getClass().getName().equals(factoryName)) {
                 try {
                     return factory.create(context.lookup());
                 } catch (RuntimeException ex) {
-                    org.openide.util.Exceptions.printStackTrace(ex);
+                    Exceptions.printStackTrace(ex);
                     return null;
                 }
             }
         }
-        org.openide.util.Exceptions.printStackTrace(new IllegalStateException(
+        Exceptions.printStackTrace(new IllegalStateException(
                 "No DynamicMenu.Factory registered for " + factoryName));
         return null;
     }
 
-    private javafx.scene.control.MenuItem menuItem(String commandId) {
-        org.netbeans.api.nbfx.actions.ActionRegistry registry = context.actions();
-        if (registry == null) {
-            return null;
-        }
-        org.netbeans.api.nbfx.actions.Command command = registry.find(commandId).orElse(null);
+    private MenuItem menuItem(String commandId) {
+        Command command = context.command(commandId);
         if (command == null) {
             return null;
         }
-        javafx.scene.control.MenuItem item = new javafx.scene.control.MenuItem(command.getText(), command.getIcon());
+        MenuItem item = new MenuItem(command.getText(),
+                context.icon(command, ShellIconProvider.MENU_SIZE));
         item.disableProperty().bind(command.disabledProperty());
         item.setOnAction(event -> command.run());
         if (command.getAccelerator() != null) {
@@ -178,30 +223,16 @@ public final class ShellMenuBar {
         return item;
     }
 
-    private void addSubmenus(javafx.scene.control.Menu parent, FileObject folder) {
-        List<FileObject> subfolders = new ArrayList<>();
-        for (FileObject child : folder.getChildren()) {
-            if (child.isFolder()) {
-                subfolders.add(child);
-            }
-        }
-        subfolders.sort(Comparator
-                .comparingInt((FileObject f) -> intAttribute(f, "position", Integer.MAX_VALUE))
-                .thenComparing(FileObject::getName));
-        for (FileObject subfolder : subfolders) {
-            javafx.scene.control.Menu menu = createMenu(subfolder);
-            if (menu != null && !menu.getItems().isEmpty()) {
-                parent.getItems().add(menu);
-            }
-        }
-    }
-
     private static int intAttribute(FileObject file, String name, int fallback) {
         return file.getAttribute(name) instanceof Integer value ? value : fallback;
     }
 
     private static String stringAttribute(FileObject file, String name, String fallback) {
         return file.getAttribute(name) instanceof String value && !value.isBlank() ? value : fallback;
+    }
+
+    private record MenuModel(List<Entry> entries, List<FileObject> subfolders,
+            List<DynamicEntry> dynamic) {
     }
 
     private sealed interface Entry permits StaticEntry, DynamicEntry {

@@ -18,16 +18,12 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import java.util.List;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
-import javafx.util.Subscription;
-import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
-import org.netbeans.modules.nbfx.platform.status.StatusElement;
 import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
+import org.openide.util.lookup.Lookups;
+import org.openide.util.lookup.ProxyLookup;
 
 /**
  * The platform's default chrome: menu bar and tool bars above the docking area and the composed
@@ -43,39 +39,21 @@ public final class DefaultShellChrome implements ShellChrome {
     private final ShellToolBars toolBarBuilder;
     private final VBox top;
     private final StatusBar statusBar;
-    private final CaretStatusElement caret = new CaretStatusElement();
-    private final LineSeparatorStatusElement lineSeparator = new LineSeparatorStatusElement();
-    private Subscription caretSubscription;
-    private Subscription lineSeparatorSubscription;
 
     /** Creates the default chrome for {@code context}. */
     public DefaultShellChrome(ShellContext context) {
         this.context = context;
-        this.menuBuilder = new ShellMenuBar(context);
+        // The tool bars are built first so the View section can observe the container they produce.
         this.toolBarBuilder = new ShellToolBars(context);
+        ShellContext menuContext = new ShellContext(new ProxyLookup(
+                Lookups.fixed(toolBarBuilder.container()), context.lookup()));
+        this.menuBuilder = new ShellMenuBar(menuContext);
         boolean hasMenus = !menuBuilder.menuBar().getMenus().isEmpty();
         boolean hasToolBars = !toolBarBuilder.container().getToolBars().isEmpty();
         this.top = hasMenus || hasToolBars
                 ? new VBox(menuBuilder.menuBar(), toolBarBuilder.container())
                 : null;
-        this.statusBar = new StatusBar(StatusElementRegistry.discover(List.of(
-                new StatusElement("caret", StatusAlignment.RIGHT, 10, caret),
-                new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparator))));
-        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
-        if (activeDocument != null) {
-            caretSubscription = activeDocument.flatMap(EditorDocument::caretInfoProperty)
-                    .subscribe(caret::setInfo);
-            lineSeparatorSubscription = activeDocument.flatMap(EditorDocument::lineSeparatorProperty)
-                    .subscribe(lineSeparator::setSeparator);
-        }
-        lineSeparator.setOnChange(separator -> {
-            if (activeDocument != null) {
-                EditorDocument document = activeDocument.getValue();
-                if (document != null) {
-                    document.setLineSeparator(separator);
-                }
-            }
-        });
+        this.statusBar = new StatusBar(StatusElementRegistry.discover());
     }
 
     /** The context this chrome was created for. */
@@ -83,8 +61,8 @@ public final class DefaultShellChrome implements ShellChrome {
         return context;
     }
 
-    /** The main tool bar container, for {@link ShellApplication}'s persistence hook. */
-    ToolBarContainer toolBars() {
+    /** The main tool bar container, for persistence and for detached windows that mirror it. */
+    public ToolBarContainer toolBars() {
         return toolBarBuilder.container();
     }
 
@@ -100,12 +78,7 @@ public final class DefaultShellChrome implements ShellChrome {
 
     @Override
     public void dispose() {
-        if (caretSubscription != null) {
-            caretSubscription.unsubscribe();
-        }
-        if (lineSeparatorSubscription != null) {
-            lineSeparatorSubscription.unsubscribe();
-        }
         menuBuilder.dispose();
+        statusBar.dispose();
     }
 }

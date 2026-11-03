@@ -27,7 +27,6 @@ import javafx.scene.control.ToolBar;
 import javafx.scene.control.Tooltip;
 import org.netbeans.api.nbfx.actions.ActionLayerReader;
 import org.netbeans.api.nbfx.actions.ActionRef;
-import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
@@ -78,29 +77,29 @@ public final class ShellToolBars {
     private ToolBar createBar(FileObject folder) {
         ToolBar bar = new ToolBar();
         bar.setId(folder.getName());
+        String displayName = stringAttribute(folder, "displayName", folder.getName());
+        bar.setAccessibleText(displayName);
         Label handle = new Label("\u22ee");
         handle.getStyleClass().add("toolbar-drag-handle");
         handle.setFocusTraversable(false);
-        handle.setTooltip(new Tooltip(stringAttribute(folder, "displayName", folder.getName())));
+        handle.setTooltip(new Tooltip(displayName));
         bar.getItems().add(handle);
-        ActionRegistry registry = context.actions();
-        if (registry != null) {
-            for (ActionRef ref : ActionLayerReader.read(folder)) {
-                Command command = registry.find(ref.actionId()).orElse(null);
-                if (command != null) {
-                    bar.getItems().add(button(command));
-                }
+        for (ActionRef ref : ActionLayerReader.read(folder)) {
+            Command command = context.command(ref.actionId());
+            if (command != null) {
+                bar.getItems().add(button(command));
             }
         }
         return bar;
     }
 
-    private static Button button(Command command) {
+    private Button button(Command command) {
         Button button = new Button();
         button.getStyleClass().add("toolbar-button");
         button.setFocusTraversable(false);
-        if (command.getIcon() != null) {
-            button.setGraphic(command.getIcon());
+        javafx.scene.Node icon = context.icon(command, ShellIconProvider.TOOLBAR_SIZE);
+        if (icon != null) {
+            button.setGraphic(icon);
         } else {
             button.setText(command.getText());
         }

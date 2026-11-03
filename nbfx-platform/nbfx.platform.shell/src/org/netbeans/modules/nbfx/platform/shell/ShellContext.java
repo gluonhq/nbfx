@@ -19,8 +19,10 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.Objects;
+import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.actions.Command;
 import org.openide.util.Lookup;
 
 /**
@@ -45,5 +47,48 @@ public record ShellContext(Lookup lookup) {
     /** The generic action context, or {@code null} when none is available. */
     public ActionContext actionContext() {
         return lookup.lookup(ActionContext.class);
+    }
+
+    /**
+     * Resolves the command registered under {@code id}. A {@link ShellCommandResolver} in the
+     * lookup takes precedence; otherwise the registry is consulted.
+     *
+     * @param id the command id
+     * @return the command, or {@code null}
+     */
+    public Command command(String id) {
+        return command(id, null);
+    }
+
+    /**
+     * Resolves the command registered under {@code id}, allowing a resolver to dispatch to a file
+     * counterpart while {@code preferFile} is {@code true}.
+     *
+     * @param id         the command id
+     * @param preferFile whether file-targeted commands are preferred, or {@code null}
+     * @return the command, or {@code null}
+     */
+    public Command command(String id, ObservableValue<Boolean> preferFile) {
+        ShellCommandResolver resolver = lookup.lookup(ShellCommandResolver.class);
+        if (resolver != null) {
+            Command resolved = resolver.resolve(id, preferFile);
+            if (resolved != null) {
+                return resolved;
+            }
+        }
+        ActionRegistry registry = actions();
+        return registry == null ? null : registry.find(id).orElse(null);
+    }
+
+    /**
+     * The icon for {@code command}, preferring the command's own icon and falling back to the
+     * {@link ShellIconProvider} in the lookup.
+     *
+     * @param command the command
+     * @param size    the requested edge size in pixels
+     * @return a new icon node, or {@code null}
+     */
+    public javafx.scene.Node icon(Command command, double size) {
+        return ShellIconProvider.icon(this, command, size);
     }
 }
