@@ -314,7 +314,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | module landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer); `ide.workbench` holds the IDE assembly and app provider; the rest of the AppShell is the sibling rows below (§6.6) |
+| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority; the rest of the AppShell is the sibling rows below (§6.6) |
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
 | `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
@@ -422,7 +422,7 @@ The two deliverables are cluster combinations; neither is a module or an assembl
 | Deliverable | Clusters | Acceptance |
 |---|---|---|
 | **IDE** (primary) | `nbfx-libs`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` (+ `nbfx-javafx` when it lands) | the W0/M1/M2 scenarios on a real project; the application image |
-| **Platform** (secondary) | `nbfx-libs`, `nbfx-platform` | the AppShell starts without IDE modules; the AppShell conformance fixture passes; platform modules and APIs are published as source and binary modules |
+| **Platform** (secondary) | `nbfx-libs`, `nbfx-platform` | `ant platform-build` produces the platform-only distribution; the default `ShellApplication` starts without IDE modules; `ant appshell-conformance` passes; platform modules and APIs are published as source and binary modules |
 
 Each deliverable also includes the upstream clusters its nbfx cluster dependencies require (today the
 platform set uses upstream `platform` and `ide`; the IDE set adds upstream `ide`, `java`, `extide` and
@@ -582,7 +582,8 @@ until `feature/ci` runs it (§11 W0/W12).
 | `check-dependencies` | **exists** | walk each `project.xml` graph | a forbidden NetBeans UI module |
 | `check-layers` | **exists** (W1.7) | compare every nbfx module dependency with the cluster order | an upward nbfx edge (`ide` → `platform`, `platform` → `ide`, …) |
 | `check-api-isolation` | **exists** (W1.7) | API modules (tier metadata) may depend only on API modules in the same or a lower cluster, plus libs/upstream APIs | an API module depends on an implementation module |
-| `check-appshell` | **exists** (source scan; platform artifact pending) | source scan of `nbfx-platform` modules | an AppShell module imports project/IDE/Java/JavaFX-usage/parsing types |
+| `check-appshell` | **exists** | source scan of `nbfx-platform` modules | an AppShell module imports project/IDE/Java/JavaFX-usage/parsing types |
+| `check-platform-delivery` | **exists** (W1.7) | the platform-only configuration selects no `nbfx-ide`/`nbfx-java` cluster, and the platform cluster contains no IDE/Java jars and does contain `platform.shell` | an IDE/Java cluster or module leaks into the platform deliverable |
 | `check-jars` | **exists** (the current four cluster directories; `jdeps` + `nbfx-javafx` pending) | jar listing (bundled classes) on the cluster directories of the selected deliverable; `jdeps`/`nbfx-javafx` when the cluster lands | a reference/bundle of a forbidden package outside an allowed tier or exemption |
 | `check-packaging` | **exists** (extend to the retirement matrix and per deliverable) | the retirement matrix (absent modules per milestone); the platform artifact must not contain `nbfx-ide`/`nbfx-java` | a retired module reappears in the distribution, or an IDE module appears in the platform artifact |
 | `check-figures` | **exists** | `ant -f check-purity.xml check-figures` → `java docs/plan/tools/Counts.java --check` | stale figures, a hand-typed count ([`figures.md`](figures.md)) |
@@ -590,7 +591,7 @@ until `feature/ci` runs it (§11 W0/W12).
 | `check-languages` | **exists** (W1) | `LanguageGuard` rejects concrete `java`/`css`/`xml`/`fxml` branches in `platform.editor`; providers are language-scoped through `SyntaxDecoratorFactory`, and unknown extensions get a plain-text decorator (Appendix I.3/I.4) | an `if (java)` in the core, or an unknown language falling back to Java |
 | `check-api` | pending (W2) | exported set ⊆ `arch.xml` set; dependant spec versions exist; the API tier is read from module metadata, not from a cluster | a subtree export, a missing `arch.xml` `<api>` entry, or a tier inferred from `nbfx-api` |
 | `check-naming` | **exists** (W1) | no `Fx*`/`Impl`/`Object`-factory in public API; `LayerPaths` is the only shared constants class | a forbidden public name |
-| AppShell conformance | pending (W1.7/W3) | platform-only fixture exercises options, action context, wizard, property sheet, nodes, dialogs, progress, output, terminal, quick search, theme, credentials, favorites and templates | a service cannot be used without IDE modules |
+| AppShell conformance | **exists** (first slice, W1.7/W3) | platform-only fixture asserts no IDE class is loadable and exercises the action registry/context, property sheet, progress, output and wizard registry; grows with the W3 services (nodes, dialogs, terminal, quick search, theme, credentials, favorites, templates) | a service cannot be used without IDE modules |
 | `check-namespace` | **exists** (W1.6) | `NamespaceGuard` enforces module code names, directories and API/SPI/implementation package roots; API modules are identified by tier metadata, not by the `nbfx-api` cluster | an old `com.gluonhq` module directory, a non-namespaced package, or an implementation package exported from an API module |
 | `check-baseline` | **exists** (W1) | one `javac.release`; no `javafx.web`; one `--add-exports` file (§8.1) | a drifting JDK/FX/class-file baseline |
 | `check-i18n` | pending (W4) | every user-visible string is an `NbBundle` key in `Bundle.properties` | a missing key, a hardcoded string |
@@ -667,7 +668,7 @@ dates slip; the module boundary may not.
   AppShell conformance fixture lives with the platform. `<test-dependency>` may cross layers, is never a run
   dependency and the test artefact is not shipped; the graph guard treats test edges separately. If scenarios
   multiply, move them to a test-only `nbfx-qa` cluster.
-- **Harness**: NetBeans `nbjunit` (`figures.md`: 42 test files today) + `nbbuild` `sigtest` targets for the
+- **Harness**: NetBeans `nbjunit` (the test-file count is in [`figures.md`](figures.md)) + `nbbuild` `sigtest` targets for the
   governed API modules.
 - **All unit tests are a PR gate.** `ant test` discovers every module under `nbfx-*/*` and runs its
   `test-unit` target. Modules without `test/unit/src` no-op, so the gate has no hand-maintained module list
@@ -716,7 +717,7 @@ workstreams only the stated dependencies do.**
 | W1 containment/naming/split | `check-java-source` green with the 4-module allowlist; no `Fx*` in an exported package; all consumers compile after `api-split`; layer contract test green; `check-jars` scans the cluster set |
 | W1.5 full test gate | `ant test` discovers every nbfx test module; all unit tests and the headless scenario pass on `main`; the full suite is a required CI check; no hardcoded module list |
 | W1.6 namespace alignment | all module code names are under `org.netbeans.modules.nbfx.*` / `org.netbeans.libs.nbfx.*`; directories use `nbfx.` (libraries `libs.nbfx.`); API packages are `org.netbeans.api.nbfx.*`; implementation packages are `org.netbeans.modules.nbfx.*`; no live `com.gluonhq` module directory remains |
-| W1.7 platform boundary/API clusters | APIs live in their domain clusters and `nbfx-api` is gone; the platform deliverable starts without IDE modules; `check-appshell` and `check-api-isolation` are green; the IDE scenario is green |
+| W1.7 platform boundary/API clusters | APIs live in their domain clusters and `nbfx-api` is gone; `ant platform-build` produces a platform-only distribution whose default `ShellApplication` starts; `ant appshell-conformance` passes; `check-appshell`, `check-platform-delivery` and `check-api-isolation` are green; the IDE scenario is green |
 | W2 governance | every governed module has `arch.xml` + `apichanges` + a `sigtest` target; spec-version guard green; exemption register has owners and dates; the language conformance fixture passes |
 | W3 AppShell services | each service is platform-only, documents its thread, disposal and lease tests, and is covered by the AppShell conformance fixture; index-on-open with progress and cancellation |
 | W4 IDE core | the M1 scenario (open/edit/search/find/commit/run-tests) on a J2SE project; every explorer panel renders through `api.nodes` |
@@ -1067,9 +1068,15 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #66, #67 | prune only upstream cluster folders; Apache headers for `ant rat` | build hygiene |
 | #70 | `ci/all-unit-tests` | W1.5 landed |
 | #71, #72 | module and package namespace moves | W1.6 landed |
+| #73 | two-deliverable plan and AppShell scope | §1/§6.6 define the platform deliverable |
+| #74–#76, #78 | element vocabulary, editor project neutralization, navigator/action split, API clusters | W1.7 API boundary landed |
+| #85, #86 | AppShell foundation: view/action APIs, API clusters, property sheet, `check-appshell` | W1.7 boundary started; both merged |
+| #87–#92 | launcher in `platform.launcher`; generic shell and services in `platform.shell`; `ide.workbench` and `ide.actions`; `nbfx.ui` dissolved; shell smoke test | W1.7 boundary implemented (open stack) |
+| #93–#95 | default `ShellApplication`/`ShellAppProvider`; platform-only build and delivery guard; AppShell conformance fixture | platform deliverable builds and is conformance-tested (open stack) |
 
-**Current status:** W0, W1, W1.5 and W1.6 are on `main`. W1.7 is implemented in the stacked PRs #74–#76 and #78
-(element vocabulary, editor project neutralization, navigator/action ids and API clusters). The AppShell
-boundary has started with the property sheet in `platform.nodes` (#81); next is the shell/launcher move
-(`refactor/appshell-boundary`). The module and source counts are in [`figures.md`](figures.md), not in this
-table.
+**Current status:** W0, W1, W1.5, W1.6 and the AppShell foundation (#85/#86) are on `main`. The rest of
+W1.7 is implemented in the stacked PRs #87–#95: launcher and shell moved into the platform, `nbfx.ui`
+dissolved into `ide.workbench`/`ide.actions`, the platform shell gained a default application, the
+platform-only deliverable and its guard landed, and the first AppShell conformance fixture passes. The
+remaining W1.7 work is to merge the stack and grow the conformance fixture with the W3 services. The
+module and source counts are in [`figures.md`](figures.md), not in this table.

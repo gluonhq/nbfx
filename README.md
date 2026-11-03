@@ -80,8 +80,11 @@ cluster configuration and runs the build:
 
 ```sh
 ant bootstrap      # submodule + upstream patches + cluster config + overlay
-ant build          # build the 'nbfx' cluster config
+ant build          # build the 'nbfx' (IDE) cluster config
 ant test           # run every module's unit tests (after `ant build`)
+ant platform-build # build the platform-only AppShell deliverable
+ant platform-test  # run the platform-only unit tests
+ant appshell-conformance  # run the platform-only AppShell conformance fixture
 ant run            # launch the FX app on the lean cluster set
 ant module -Dmodule=<cluster>/<module>   # rebuild one module into the dist (seconds)
 ant check-purity   # forbidden Swing/AWT imports & deps, bundled classes, no core.windows jar
@@ -94,7 +97,6 @@ the cluster configuration is generated. `ant test` runs the whole unit-test suit
 tests (or one cluster's), filter the target:
 
 ```sh
-ant test -Dtest.modules=nbfx-platform/*
 ant test -Dtest.modules=nbfx-platform/*
 ```
 

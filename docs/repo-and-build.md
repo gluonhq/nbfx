@@ -37,7 +37,8 @@ nbfx/
 ├── nbfx-ide/                     # IDE modules + IDE contributions to the AppShell
 ├── nbfx-java/                    # Java/JVM usage
 ├── cluster/
-│   └── nbfx-cluster.properties.fragment   # nb.cluster.nbfx-* + clusters.config.nbfx.list
+│   ├── nbfx-cluster.properties.fragment          # nb.cluster.nbfx-* + clusters.config.nbfx.list
+│   └── nbfx-platform-cluster.properties.fragment # clusters.config.nbfx-platform.list
 ├── patches/                      # upstream patch set (see §4)
 ├── check-purity.xml              # guardrails (source/deps/bundled classes/packaging)
 ├── README.md
@@ -87,7 +88,8 @@ and vice versa.
    only scans the `FOREST` dirs plus the dirs of clusters listed there — without this the
    `all-<module>` targets for the nbfx clusters are never created),
 3. drops `core.windows` from the platform cluster (the pure-JavaFX window-system removal, M9.2/M9.4),
-4. appends the fragment (the five `nb.cluster.nbfx-*` definitions and `clusters.config.nbfx.list`),
+4. appends the fragment (the `nb.cluster.nbfx-*` definitions and `clusters.config.nbfx.list`),
+   or the platform fragment for the platform-only deliverable,
 5. writes the result to `build/cluster.properties` **and installs it as the submodule's
    `nbbuild/cluster.properties`**, because several harness targets read that path directly
    (`-define-cluster-path` builds `cluster.path` from it; packaging targets too). An external
@@ -161,16 +163,32 @@ cd netbeans/nbbuild
 ant -Dcluster.config=nbfx -Dclusters.list.file="$PWD/../../build/cluster.properties" build
 ```
 
-`ant help` lists all targets; `ant print-config` prints the effective configuration. Any property can
-be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
+`ant help` lists all targets; `ant print-config` prints the effective configuration.
+
+### 3.1 Deliverables
+
+`ant build`/`ant test` build and test the IDE deliverable (all four nbfx clusters).
+`ant platform-build`/`ant platform-test` build and test the platform-only deliverable: they use
+`clusters.config.nbfx-platform.list` from
+`cluster/nbfx-platform-cluster.properties.fragment` (upstream `platform`, `nbfx-libs`,
+`nbfx-platform` and the upstream `ide` cluster required by `platform.editor`), keep their generated
+configuration in `build/cluster-platform.properties`, and run `PlatformDeliveryGuard`, which rejects
+an `nbfx-ide`/`nbfx-java` cluster or module in that delivery.
+
+`ant appshell-conformance` builds the platform-only deliverable and runs the AppShell conformance
+fixture in `platform.shell`. The fixture asserts that no nbfx IDE class is loadable and exercises the
+landed platform services; it grows with the W3 services.
+
+Any property can be overridden with `-Dname=value` (e.g. `-Dnbfx.overlay=symlink`).
 
 `ant test` runs the `test-unit` target of every module under `nbfx-*/*`; modules without
 `test/unit/src` are a no-op. It expects an existing distribution (`ant build` once) and uses the same
 headless test properties as the module tests. All modules run even after a failure; `TestResults` then
 checks every module's JUnit XML and fails once at the end, so CI can upload the complete result set.
 Narrow the run for the local loop with `-Dtest.modules=nbfx-platform/*` or
-`-Dtest.modules=nbfx-ide/*`. The IDE's headless scenario is part of this suite (it moves to the IDE test
-module when the launcher moves to the platform in W1.7); CI does not run it a second time.
+`-Dtest.modules=nbfx-ide/*`. The IDE's headless scenario is part of this suite (it lives in `ide.workbench`; the launcher is now in
+the platform). `ant platform-test` runs the platform modules only; `ant appshell-conformance` runs the
+platform-only fixture separately.
 
 `build` and `run` depend on `bootstrap`, so they re-run the overlay first: edits in the outer
 `nbfx-*` cluster directories are synced into `netbeans/` automatically on
