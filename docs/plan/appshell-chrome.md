@@ -53,27 +53,25 @@ A downstream product either subclasses `ShellApplication` or depends on `ide.wor
 
 ### 3.2 `JavaFXLaunchApp`
 
-The IDE application currently owns:
+The IDE main window now uses `DefaultShellChrome`. What remains in the launcher is:
 
-- `ActionBars` creation and configuration;
-- top area `VBox(menuBar, toolBars)`;
-- project/caret/line status elements and `StatusBar`;
-- `WindowEnvironmentService` wiring;
-- project-aware title and `FileUndoManager` scope;
-- `ApplicationMenu` installation.
+- `ActionBars` only for detached-window bars (transitional);
+- `WindowEnvironmentService` wiring for navigator/home/reveal and the detached-bar bridge;
+- `FileUndoManager` scope on project selection;
+- IDE `ShellCommandResolver`, `ShellIconProvider`, dynamic-menu factories and command registration.
 
-This is the code to move behind generic shell chrome and IDE contributions.
+The launcher no longer builds the main `VBox(menuBar, toolBars)`, creates the status elements or `StatusBar`, sets the title from `WindowTitles`, or installs `ApplicationMenu`.
 
 ### 3.3 `ActionBars`
 
-Partly layer-driven, but hardcodes:
+Retained only as the detached-window builder for now. Its main-window special cases (`File`/`Edit`/`View`/`Window`, fallback lists, recent/open projects, icon map) are no longer used by the main window; they are replaced by:
 
-- special cases for `File`, `Edit`, `View`, `Window`;
-- fallback menu and toolbar lists;
-- IDE icon map;
-- recent projects, open projects, project switching;
-- detached-window bars;
-- IDE bundle labels.
+- layer `@ActionReference` entries;
+- platform `ViewMenuFactory` and `ConfigureWindowMenuFactory`;
+- IDE `RecentProjectsMenuFactory` and `OpenProjectsMenuFactory`;
+- IDE `IdeShellCommandResolver` and `IdeShellIconProvider`.
+
+The remaining detached-bar path is the last `ActionBars` user and is the next removal target.
 
 ### 3.4 Existing platform registries
 
@@ -142,20 +140,16 @@ public interface ShellChromeProvider {
 No editor or shell internals:
 
 ```java
-public interface ShellContext {
-    Lookup lookup();
-
-    default ActionRegistry actions() {
-        return lookup().lookup(ActionRegistry.class);
-    }
-
-    default ActionContext actionContext() {
-        return lookup().lookup(ActionContext.class);
-    }
+public record ShellContext(Lookup lookup) {
+    ActionRegistry actions();
+    ActionContext actionContext();
+    Command command(String id);
+    Command command(String id, ObservableValue<Boolean> preferFile);
+    Node icon(Command command, double size);
 }
 ```
 
-`ActionContext` is a `Lookup`, so a contribution that needs an `EditorDocument` does `context.actionContext().lookup(EditorDocument.class)`; that contribution is editor-specific. No `EditorDocument`, `AppState`, `DockArea`, `SlidingArea` or `NbfxTabPane` in the generic context.
+`ActionContext` is a `Lookup`, so a contribution that needs an `EditorDocument` does `context.actionContext().lookup(EditorDocument.class)`; that contribution is editor-specific. No `EditorDocument`, `AppState`, `DockArea`, `SlidingArea` or `NbfxTabPane` in the generic context. `command`/`icon` delegate to optional `ShellCommandResolver`/`ShellIconProvider` services in the same lookup, then to the registry/`Command.getIcon()`.
 
 ### 5.3 Dynamic menus
 
@@ -204,7 +198,7 @@ public interface DynamicMenu {
 }
 ```
 
-- Factory registered via `@ServiceProvider(service = DynamicMenu.Factory.class)`.
+- A factory may be registered via `@ServiceProvider(service = DynamicMenu.Factory.class)`, or supplied per shell in the `ShellContext` lookup (needed when it has launcher state, as the IDE recent/open-project factories do).
 - Factory has no `menuId()`/`position()`; layer metadata is authoritative.
 - `create` is called once per menu instance/per shell.
 - Returned instance owns listeners and is disposed with the menu bar.
@@ -215,9 +209,10 @@ public interface DynamicMenu {
 1. Read `.ref` entries in each `NbFx/Menus/<menu>` folder.
 2. Read `.dynamic` entries in the same folder.
 3. Merge by `position`; tie-break by id/class name.
-4. Resolve the factory from `Lookup` by the `factory` class name.
+4. Resolve the factory from the `ShellContext` lookup by the `factory` class name.
 5. Call `create(scopedLookup)`, add `items()`, listen to the observable list.
-6. Dispose the dynamic instances when the menu bar/shell closes.
+6. Keep the menu and submenu instances stable; a section change refills them in place, without recreating sibling menus or factories.
+7. Dispose the dynamic instances when the menu bar/shell closes.
 
 No `File`/`Edit`/`View`/`Window` switch.
 
@@ -235,8 +230,7 @@ No `File`/`Edit`/`View`/`Window` switch.
 ### 5.5 Icons and labels
 
 - `Command.getIcon()` is canonical.
-- Remove `ActionBars.ICONS`.
-- During transition, shell-owned commands may use one `ShellIconProvider`; not a UI map.
+- `ShellIconProvider` is implemented as the transitional home for shell-owned command icons; the IDE provides it from its resources.
 - Commands without an icon render by text.
 - Menu/toolbar labels come from `@MenuRegistration.displayName`/`@ToolbarRegistration.displayName`/`Command.getText()` and the registering module’s bundle.
 - W2 updates `api.actions.Command` javadoc to remove the shell-command exception.
@@ -250,21 +244,23 @@ StatusBar statusBar = new StatusBar(StatusElementRegistry.discover());
 ```
 
 - No `ShellStatusBar` renderer.
-- `CaretStatusElement`/`LineSeparatorStatusElement` are platform editor status holders; they resolve the active document via `ActionContext`/`EditorContexts` in implementation.
-- `ProjectStatusElement` is an IDE `@StatusRegistration`.
+- `CaretStatusElement`/`LineSeparatorStatusElement` are platform `@StatusRegistration`s; they resolve the active document via `EditorContexts` and own their subscriptions in implementation.
+- `ProjectStatusElement` is an IDE `@StatusRegistration` that follows `ProjectRegistry` on its own.
 - No `EditorDocument` in status SPI.
 
 ### 5.7 `ShellBranding`
 
 ```java
 public interface ShellBranding {
+    default int priority() { return 0; }
     String applicationName();
     String title(ShellContext context);
     Node icon(ShellContext context);
+    default ObservableValue<String> titleProperty(ShellContext context) { return null; }
 }
 ```
 
-Default neutral title; IDE `ProjectBranding` supplies project-aware title/icon. `ShellApplication` sets the stage title from it.
+Default neutral title; IDE `ProjectBranding` (priority 100) supplies a live project-aware title. `ShellApplication` selects the highest-priority branding, sets the initial title and follows `titleProperty` when present.
 
 ### 5.8 `ShellActions`
 
