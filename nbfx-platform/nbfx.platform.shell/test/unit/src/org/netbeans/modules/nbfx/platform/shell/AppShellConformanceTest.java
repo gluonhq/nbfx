@@ -19,12 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
-import javafx.application.Platform;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
@@ -42,7 +37,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Platform-only AppShell conformance: the shell and the landed platform services must work without
@@ -50,8 +44,6 @@ import static org.junit.Assert.fail;
  * the classpath boundary itself.
  */
 public class AppShellConformanceTest {
-
-    private static final AtomicBoolean FX_STARTED = new AtomicBoolean();
 
     @Test
     public void noIdeModulesOnThePlatformClasspath() {
@@ -63,7 +55,7 @@ public class AppShellConformanceTest {
 
     @Test
     public void actionRegistryWorksWithoutIdeModules() throws InterruptedException {
-        onFx(() -> {
+        FxTestSupport.onFx(() -> {
             ActionRegistry registry = new ActionRegistryImpl();
             AtomicBoolean ran = new AtomicBoolean();
             registry.register(new RunnableCommand("conformance", "Conformance", null, () -> ran.set(true)));
@@ -77,7 +69,7 @@ public class AppShellConformanceTest {
 
     @Test
     public void propertySheetOutputProgressAndWizardsWork() throws InterruptedException {
-        onFx(() -> {
+        FxTestSupport.onFx(() -> {
             PropertySheet sheet = new PropertySheet();
             assertNotNull(sheet);
             SimpleFxPropertySet set = new SimpleFxPropertySet("conformance", "Conformance", List.of(
@@ -89,40 +81,5 @@ public class AppShellConformanceTest {
             assertNotNull(WizardRegistry.discover());
             return null;
         });
-    }
-
-    private static <T> T onFx(Supplier<T> task) throws InterruptedException {
-        ensureFxStarted();
-        CountDownLatch done = new CountDownLatch(1);
-        AtomicReference<T> result = new AtomicReference<>();
-        AtomicReference<Throwable> error = new AtomicReference<>();
-        Platform.runLater(() -> {
-            try {
-                result.set(task.get());
-            } catch (Throwable t) {
-                error.set(t);
-            } finally {
-                done.countDown();
-            }
-        });
-        if (!done.await(30, TimeUnit.SECONDS)) {
-            fail("timed out waiting for the JavaFX thread");
-        }
-        Throwable failure = error.get();
-        if (failure instanceof AssertionError assertion) {
-            throw assertion;
-        }
-        if (failure != null) {
-            throw new AssertionError(failure);
-        }
-        return result.get();
-    }
-
-    private static void ensureFxStarted() throws InterruptedException {
-        if (FX_STARTED.compareAndSet(false, true)) {
-            CountDownLatch latch = new CountDownLatch(1);
-            Platform.startup(latch::countDown);
-            latch.await();
-        }
     }
 }
