@@ -102,6 +102,9 @@ public class ShellApplication extends Application implements WindowSink {
         if (chrome.bottom() != null) {
             root.setBottom(chrome.bottom());
         }
+        if (chrome instanceof DefaultShellChrome defaultChrome) {
+            appState.initToolbars(defaultChrome.toolBars());
+        }
         decorate(root);
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);

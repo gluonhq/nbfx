@@ -19,22 +19,32 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import javafx.scene.Node;
+import javafx.scene.layout.VBox;
 
 /**
- * The platform's default chrome. The first increment only establishes the contract; the menu bar,
- * tool bars and status composition are added in the following chrome phases. The class owns the
- * concrete controls internally so they never become part of the product-facing {@link ShellChrome}
- * contract.
+ * The platform's default chrome: menu bar and tool bars above the docking area. The status bar is
+ * added by the status composition phase. Concrete controls stay here; the product-facing
+ * {@link ShellChrome} contract only exposes nodes.
  *
  * @since 1.0
  */
 public final class DefaultShellChrome implements ShellChrome {
 
     private final ShellContext context;
+    private final ShellMenuBar menuBuilder;
+    private final ShellToolBars toolBarBuilder;
+    private final VBox top;
 
     /** Creates the default chrome for {@code context}. */
     public DefaultShellChrome(ShellContext context) {
         this.context = context;
+        this.menuBuilder = new ShellMenuBar(context);
+        this.toolBarBuilder = new ShellToolBars(context);
+        boolean hasMenus = !menuBuilder.menuBar().getMenus().isEmpty();
+        boolean hasToolBars = !toolBarBuilder.container().getToolBars().isEmpty();
+        this.top = hasMenus || hasToolBars
+                ? new VBox(menuBuilder.menuBar(), toolBarBuilder.container())
+                : null;
     }
 
     /** The context this chrome was created for. */
@@ -42,13 +52,23 @@ public final class DefaultShellChrome implements ShellChrome {
         return context;
     }
 
+    /** The main tool bar container, for {@link ShellApplication}'s persistence hook. */
+    ToolBarContainer toolBars() {
+        return toolBarBuilder.container();
+    }
+
     @Override
     public Node top() {
-        return null;
+        return top;
     }
 
     @Override
     public Node bottom() {
         return null;
+    }
+
+    @Override
+    public void dispose() {
+        menuBuilder.dispose();
     }
 }

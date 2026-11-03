@@ -40,12 +40,14 @@ public class ShellChromeTest {
     }
 
     @Test
-    public void defaultProviderCreatesDefaultChrome() {
-        ShellChrome chrome = new DefaultShellChromeProvider().create(new ShellContext(Lookup.getDefault()));
-        assertNotNull(chrome);
-        assertTrue(chrome instanceof DefaultShellChrome);
-        assertNull(chrome.top());
-        assertNull(chrome.bottom());
+    public void defaultProviderCreatesDefaultChrome() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            ShellChrome chrome = new DefaultShellChromeProvider().create(new ShellContext(Lookup.getDefault()));
+            assertNotNull(chrome);
+            assertTrue(chrome instanceof DefaultShellChrome);
+            assertNull(chrome.bottom());
+            return null;
+        });
     }
 
     @Test
