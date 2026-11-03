@@ -354,7 +354,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 | `ide.workbench` | IDE assembly and contributions to the AppShell: app provider, launcher app, project commands, navigators (`NavigatorView`), project switching and loading, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope and `IdeMenus`; the action vocabulary lives in `ide.actions` | landed; absorbs the former `nbfx.ui` module. The main window uses the generic shell chrome and contributes `RecentProjectsMenuFactory`, `OpenProjectsMenuFactory`, `IdeShellCommandResolver`, `IdeShellIconProvider` and `ProjectBranding`; `ActionBars` is retained only for detached windows and is the next removal target; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
-| `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
+| `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions`; owns the project lifecycle commands (open/close/close all/next/previous) and the build commands, with the shell providing `ProjectOpener`/`ProjectLifecycle` |
 | `ide.project.customizer` | customizer host + built-in categories | on `api.project.customizer` |
 | `ide.build` | build/run orchestration on `api.build` + `api.execution` | replaces `nbfx.run` |
 | `ide.editor.xml`, `ide.editor.css` | XML/CSS syntax decoration, breadcrumbs and the CSS Find Usages provider (language modules, not core) | from `nbfx.editor` |

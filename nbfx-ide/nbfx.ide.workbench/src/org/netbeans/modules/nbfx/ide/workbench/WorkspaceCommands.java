@@ -35,10 +35,12 @@ import org.openide.filesystems.FileObject;
 import org.openide.util.NbBundle;
 
 /**
- * Registers the IDE's launcher-owned commands with the shared registry. The chrome builders only
- * resolve commands by id; they never need the launcher's project or window state.
+ * Registers the workbench-owned commands: navigator/editor selection, window reset and document
+ * close, plus Select in Projects/Files. Project lifecycle and build commands live in their own IDE
+ * modules; the workbench only contributes what depends on the main window, its navigator panes and
+ * the shared editor set.
  */
-final class IdeCommands {
+final class WorkspaceCommands {
 
     /** The launcher-owned window actions and their enablement. */
     record WindowActions(
@@ -48,24 +50,14 @@ final class IdeCommands {
             Runnable closeOtherDocuments, ObservableValue<Boolean> closeOtherDisabled) {
     }
 
-    private IdeCommands() {
+    private WorkspaceCommands() {
     }
 
-    static void register(ActionRegistry registry, Runnable openProject, Runnable closeProject,
-            Runnable closeAllProjects, ObservableValue<Boolean> closeDisabled, WindowActions actions,
-            ProjectSwitcher switcher, Consumer<FileObject> selectInProjects,
-            Consumer<FileObject> selectInFiles) {
+    static void register(ActionRegistry registry, WindowActions actions,
+            Consumer<FileObject> selectInProjects, Consumer<FileObject> selectInFiles) {
         if (registry == null) {
             return;
         }
-        registry.register(new RunnableCommand(IdeActionIds.OPEN_PROJECT, message("CTL_OpenProjectCommand"),
-                new KeyCodeCombination(KeyCode.O, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
-                openProject));
-        registry.register(new RunnableCommand(IdeActionIds.CLOSE_PROJECT, message("CTL_CloseProjectCommand"),
-                null, closeProject, closeDisabled));
-        registry.register(new RunnableCommand(IdeActionIds.CLOSE_ALL_PROJECTS, message("CTL_CloseAllProjectsCommand"),
-                null, closeAllProjects, closeDisabled));
-
         registry.register(new RunnableCommand(IdeActionIds.SELECT_PROJECTS, message("CTL_SelectProjectsCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN), actions.selectProjects()));
         registry.register(new RunnableCommand(IdeActionIds.SELECT_FILES, message("CTL_SelectFilesCommand"),
@@ -82,15 +74,6 @@ final class IdeCommands {
                 actions.closeAllDocuments(), actions.closeAllDisabled()));
         registry.register(new RunnableCommand(ActionIds.CLOSE_OTHER_DOCUMENTS, message("CTL_CloseOtherDocumentsCommand"),
                 null, actions.closeOtherDocuments(), actions.closeOtherDisabled()));
-
-        if (switcher != null) {
-            registry.register(new RunnableCommand(IdeActionIds.NEXT_PROJECT, message("CTL_NextProjectCommand"),
-                    new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
-                    switcher::next, switcher.disabled()));
-            registry.register(new RunnableCommand(IdeActionIds.PREVIOUS_PROJECT, message("CTL_PreviousProjectCommand"),
-                    new KeyCodeCombination(KeyCode.LEFT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
-                    switcher::previous, switcher.disabled()));
-        }
 
         ObservableValue<EditorDocument> active = EditorContexts.activeDocument();
         ObservableValue<Boolean> disabled = active == null
@@ -113,6 +96,6 @@ final class IdeCommands {
     }
 
     private static String message(String key) {
-        return NbBundle.getMessage(IdeCommands.class, key);
+        return NbBundle.getMessage(WorkspaceCommands.class, key);
     }
 }

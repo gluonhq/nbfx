@@ -196,27 +196,6 @@ public final class ActionBars {
         this.treeFocused = treeFocused;
     }
 
-    /**
-     * Registers the launcher-owned project commands (Open / Close Project) into the registry.
-     * New Project comes from the wizard module. Must be called before
-     * {@link #createMenuBar(ObservableValue)} / {@link #createToolBars(ObservableValue)} so their
-     * controls can be built.
-     */
-    public void registerProjectCommands(Runnable openProject,
-            Runnable closeProject, Runnable closeAllProjects, ObservableValue<Boolean> closeDisabled) {
-        if (registry == null) {
-            LOG.warning("No ActionRegistry found; project actions will not be available");
-            return;
-        }
-        registry.register(new RunnableCommand(IdeActionIds.OPEN_PROJECT, message("CTL_OpenProjectCommand"),
-                new KeyCodeCombination(KeyCode.O, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
-                openProject));
-        registry.register(new RunnableCommand(IdeActionIds.CLOSE_PROJECT, message("CTL_CloseProjectCommand"),
-                null, closeProject, closeDisabled));
-        registry.register(new RunnableCommand(IdeActionIds.CLOSE_ALL_PROJECTS, message("CTL_CloseAllProjectsCommand"),
-                null, closeAllProjects, closeDisabled));
-    }
-
     /** The launcher-owned window actions and their enablement, passed to {@link #registerWindowCommands}. */
     public record WindowActions(
             Runnable selectProjects, Runnable selectFiles, Runnable selectEditor, Runnable resetWindows,
@@ -288,25 +267,16 @@ public final class ActionBars {
     }
 
     /**
-     * Configures project switching: registers the Next/Previous Project commands and gives the
-     * Window menu what it needs to list the open projects - the registry to observe, the
-     * {@code switcher} that performs the switch, and a resolver for each project's icon. Must be
-     * called before {@link #createMenuBar(ObservableValue)}.
+     * Gives the Window menu what it needs to list the open projects - the registry to observe, the
+     * {@code switcher} that performs the switch, and a resolver for each project's icon. The
+     * commands themselves are owned by {@code ide.project.actions}. Must be called before
+     * {@link #createMenuBar(ObservableValue)}.
      */
     public void configureProjectSwitching(ProjectRegistry registry, ProjectSwitcher switcher,
             Function<OpenProject, Node> projectIcon) {
         this.projects = registry;
         this.projectSwitcher = switcher;
         this.openProjectIconResolver = projectIcon;
-        if (this.registry == null || switcher == null) {
-            return;
-        }
-        this.registry.register(new RunnableCommand(IdeActionIds.NEXT_PROJECT, message("CTL_NextProjectCommand"),
-                new KeyCodeCombination(KeyCode.RIGHT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
-                switcher::next, switcher.disabled()));
-        this.registry.register(new RunnableCommand(IdeActionIds.PREVIOUS_PROJECT, message("CTL_PreviousProjectCommand"),
-                new KeyCodeCombination(KeyCode.LEFT, KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN),
-                switcher::previous, switcher.disabled()));
     }
 
     /**

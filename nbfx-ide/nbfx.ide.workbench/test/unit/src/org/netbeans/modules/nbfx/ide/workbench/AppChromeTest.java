@@ -31,11 +31,15 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import junit.framework.Test;
+import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.junit.NbModuleSuite;
 import org.netbeans.junit.NbTestCase;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
+import org.openide.util.Lookup;
 
 /**
  * The IDE's main window uses the generic shell chrome: the menu and tool bars come from the layer
@@ -80,6 +84,21 @@ public class AppChromeTest extends NbTestCase {
         assertEquals(List.of("file", "clipboard", "edit", "build", "debug"),
                 chrome.toolBars().getToolBars().stream().map(toolBar -> toolBar.getId()).toList());
         assertNotNull("the main window has no status bar", chrome.bottom());
+
+        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+        assertNotNull("no action registry", registry);
+        assertTrue("Open Project is not registered",
+                registry.find(IdeActionIds.OPEN_PROJECT).isPresent());
+        assertTrue("Close Project is not registered",
+                registry.find(IdeActionIds.CLOSE_PROJECT).isPresent());
+        assertTrue("Close All Projects is not registered",
+                registry.find(IdeActionIds.CLOSE_ALL_PROJECTS).isPresent());
+        assertTrue("Next Project is not registered",
+                registry.find(IdeActionIds.NEXT_PROJECT).isPresent());
+        assertTrue("Previous Project is not registered",
+                registry.find(IdeActionIds.PREVIOUS_PROJECT).isPresent());
+        assertNotNull("the project lifecycle service is missing",
+                Lookup.getDefault().lookup(ProjectLifecycle.class));
     }
 
     private static ShellChrome chrome(JavaFXLaunchApp application) throws Exception {

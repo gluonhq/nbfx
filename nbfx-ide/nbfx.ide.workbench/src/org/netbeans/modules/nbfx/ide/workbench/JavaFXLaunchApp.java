@@ -68,7 +68,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -80,7 +79,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
-import javafx.stage.DirectoryChooser;
 import javafx.stage.Window;
 import javafx.util.Subscription;
 import org.openide.filesystems.FileObject;
@@ -101,8 +99,6 @@ public class JavaFXLaunchApp extends ShellApplication {
     private final ProjectRegistry projectRegistry = projectRegistry();
     /** The running application, so services (e.g. the project opener) can reach it. */
     private static volatile JavaFXLaunchApp instance;
-    /** Whether at least one project is currently open; drives Close Project enablement. */
-    private final BooleanBinding projectOpen = Bindings.isNotEmpty(projectRegistry.getOpenProjects());
     /** The projects whose trees are still loading; several can load at once. */
     private final ProjectLoads loads = new ProjectLoads();
     /** The task reported while projects load; separate from builds, which own their own task. */
@@ -142,9 +138,8 @@ public class JavaFXLaunchApp extends ShellApplication {
         actionBars.configureFileDispatch(treeFocused);
 
         ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
-        IdeCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
-                this::openProject, this::closeProject, this::closeAllProjects, projectOpen.not(),
-                windowActions(mainScope), projectSwitcher,
+        WorkspaceCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
+                windowActions(mainScope),
                 file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
         DefaultShellChrome chrome = new DefaultShellChrome(context);
         actionBars.useToolBars(chrome.toolBars());
@@ -503,14 +498,14 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Builds the Window-menu actions and their context-driven enablement, scoped to the main editor pane. */
-    private IdeCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
+    private WorkspaceCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
         ObservableList<EditorDocument> documents = EditorContexts.openDocuments();
         ObservableValue<Boolean> closeDocumentDisabled = mainScope == null
                 ? new SimpleBooleanProperty(true)
                 : Bindings.createBooleanBinding(() -> mainScope.getValue() == null, mainScope);
         ObservableValue<Boolean> closeAllDisabled = Bindings.isEmpty(documents);
         ObservableValue<Boolean> closeOtherDisabled = Bindings.size(documents).lessThan(2);
-        return new IdeCommands.WindowActions(
+        return new WorkspaceCommands.WindowActions(
                 () -> selectNavigator(firstNavigatorId(0)),
                 () -> selectNavigator(firstNavigatorId(1)),
                 this::selectEditor,
@@ -980,18 +975,6 @@ public class JavaFXLaunchApp extends ShellApplication {
                 selected == null ? null : selected.getPath());
     }
 
-    void openProject() {
-        DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setTitle("Open Project");
-        File selectedDir = dirChooser.showDialog(getStage());
-        if (selectedDir != null) {
-            openProject(selectedDir);
-        } else {
-            LOG.warning("No directory selected");
-        }
-    }
-
-
     /**
      * Opens {@code dir} <em>alongside</em> the projects already open: every navigator view gains a
      * root for it and its tree is built in the background, while the other projects keep their trees,
@@ -1182,11 +1165,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * Closing a project resets all persisted state for it, so it is not reopened on the next launch and,
      * if picked from Recent Projects, opens fresh at the project root.
      */
-    private void closeProject() {
-        closeProject(projectRegistry.getSelected());
-    }
-
-    private void closeProject(OpenProject project) {
+    void closeProject(OpenProject project) {
         closeProject(project, true);
     }
 
@@ -1223,10 +1202,10 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /**
      * Closes every open project without closing the application. Same contract as
-     * {@link #closeProject()}, applied to all of them: a single unsaved-changes confirmation, then
+     * {@link #closeProject(OpenProject)}, applied to all of them: a single unsaved-changes confirmation, then
      * each project's navigator root and persisted state are dropped.
      */
-    private void closeAllProjects() {
+    void closeAllProjects() {
         List<OpenProject> projects = List.copyOf(projectRegistry.getOpenProjects());
         if (projects.isEmpty()) {
             return;
@@ -1267,6 +1246,16 @@ public class JavaFXLaunchApp extends ShellApplication {
             closeProject(project, false);
             getAppState().removeRecentProject(project.getPath());
             });
+    }
+
+    /** Selects and reveals the next open project, wrapping around. */
+    void selectNextProject() {
+        projectSwitcher.next();
+    }
+
+    /** Selects and reveals the previous open project, wrapping around. */
+    void selectPreviousProject() {
+        projectSwitcher.previous();
     }
 
     private void clearRecentProjects() {
