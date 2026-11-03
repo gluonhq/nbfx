@@ -1,0 +1,337 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Native packages (installers) of the binary release, built with Apache NetBeans nbpackage from
+# nbfx-<version>-bin.zip, a bundled JDK and the configurations in release/packaging/
+# (release/packaging/README.md).
+#
+#   workflow_dispatch   tag empty: builds the zip from the chosen ref (a snapshot); otherwise takes
+#                       nbfx-<version>-bin.zip from that release (a draft will do). `publish` puts the
+#                       packages on that release, or on the rolling "snapshot" pre-release; the
+#                       workflow artifacts hold them in any case.
+#   release published   a release candidate (a pre-release): the packages are built from its zip
+#                       and attached to it. The final release gets them copied from the candidate
+#                       by release-draft.yml, the same bytes, so it is not packaged again.
+#
+# One job builds nbpackage from source, one obtains the zip, then a matrix of (platform, package
+# type) jobs package, and the last job collects every package into one artifact and publishes.
+# Signing and notarization (macOS) happen when the secrets are set; otherwise the packages are
+# unsigned, which is what a pull request or a fork gets.
+name: Packages
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag whose nbfx-<version>-bin.zip to package (empty builds the zip from this ref)
+        required: false
+        default: ''
+      publish:
+        description: Where to publish the packages, besides the workflow artifacts
+        type: choice
+        options: [nowhere, snapshot, release]
+        default: nowhere
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: packages-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  GH_REPO: ${{ github.repository }}
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+  PUBLISH: ${{ github.event_name == 'release' && 'release' || inputs.publish }}
+  # nbpackage is built from source at this commit of apache/netbeans-nbpackage (master of
+  # 2026-10-01: release 1.0 plus dependency updates). Move the pin to take a newer one.
+  NBPACKAGE_REPOSITORY: apache/netbeans-nbpackage
+  NBPACKAGE_REF: 4edb5c02f116d0ac11e4cf0f19db4951d297c15c
+
+jobs:
+  binary:
+    name: The binary zip
+    # a published final release is served by the files of its candidate (see above)
+    if: github.event_name != 'release' || github.event.release.prerelease
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.zip.outputs.version }}
+      label: ${{ steps.zip.outputs.label }}
+    steps:
+      - name: Check the inputs
+        run: |
+          if [ "$PUBLISH" = release ] && [ -z "$TAG" ]; then
+            echo "::error::publishing to a release needs its tag"; exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      # a release: the zip the release manager uploaded, checked against its .sha512 when present
+      - name: Download nbfx-<version>-bin.zip of ${{ env.TAG }}
+        if: env.TAG != ''
+        run: |
+          mkdir -p build/release
+          gh release download "$TAG" --pattern 'nbfx-*-bin.zip' --pattern 'nbfx-*-bin.zip.sha512' --dir build/release \
+            || { echo "::error::$TAG has no nbfx-<version>-bin.zip"; exit 1; }
+          cd build/release
+          for sum in *.sha512; do [ -f "$sum" ] && sha512sum -c "$sum"; done
+          ls -l
+
+      # a snapshot: the zip of this ref, as `ant release-bin` makes it (dry run: no tag needed)
+      - name: Check out the pinned NetBeans revision (shallow)
+        if: env.TAG == ''
+        run: git submodule update --init --depth 1 netbeans
+
+      - uses: ./.github/actions/setup-build
+        if: env.TAG == ''
+
+      - name: ant release-bin
+        if: env.TAG == ''
+        # as ci.yml: HTTPS to OSUOSL is unreachable from GitHub runners; DownloadBinaries still
+        # verifies each file's SHA-1
+        run: ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ -Dnbfx.release.dryrun=true release-bin
+
+      - uses: ./.github/actions/save-build-cache
+        if: env.TAG == '' && always()
+
+      - name: Version and label
+        id: zip
+        run: |
+          zip=$(cd build/release && ls nbfx-*-bin.zip)
+          version=${zip#nbfx-}; version=${version%-bin.zip}
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          # the label names the artifacts: the tag, or the version and the commit of a snapshot
+          if [ -n "$TAG" ]; then label=$TAG; else label="$version-$(git rev-parse --short HEAD)"; fi
+          echo "label=$label" >> "$GITHUB_OUTPUT"
+          echo "packaging $zip as $label"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nbfx-bin-zip
+          path: build/release/nbfx-*-bin.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  nbpackage:
+    name: Build nbpackage
+    if: github.event_name != 'release' || github.event.release.prerelease
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ env.NBPACKAGE_REPOSITORY }}
+          ref: ${{ env.NBPACKAGE_REF }}
+          persist-credentials: false
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: oracle
+          java-version: '25'
+          cache: maven
+
+      - name: mvnw package
+        run: ./mvnw --batch-mode --no-transfer-progress -DskipTests package
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nbpackage
+          path: target/nbpackage-*-bin.zip
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    name: ${{ matrix.type }} (${{ matrix.platform }})
+    needs: [binary, nbpackage]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # the configuration is release/packaging/<platform>/<type>.properties; no macOS x64
+          # package: the zip serves that platform (release/packaging/README.md)
+          - platform: macos-aarch64
+            type: macos-pkg
+            os: macos-15
+          # the runner image has Inno Setup
+          - platform: windows-x64
+            type: windows-innosetup
+            os: windows-2025
+          - platform: linux-x64
+            type: linux-deb
+            os: ubuntu-24.04
+          - platform: linux-x64
+            type: linux-rpm
+            os: ubuntu-24.04
+          - platform: linux-x64
+            type: linux-appimage
+            os: ubuntu-24.04
+    env:
+      VERSION: ${{ needs.binary.outputs.version }}
+      LABEL: ${{ needs.binary.outputs.label }}
+      CONFIG: release/packaging/${{ matrix.platform }}/${{ matrix.type }}.properties
+      # macOS signing and notarization; empty: unsigned
+      MACSIGN_USER: ${{ secrets.MACSIGN_USER }}
+      NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: nbfx-bin-zip
+          path: input
+
+      - uses: actions/download-artifact@v6
+        with:
+          name: nbpackage
+          path: nbpackage
+
+      # nbpackage needs JDK 21+; the package bundles its own
+      - uses: actions/setup-java@v6
+        with:
+          distribution: oracle
+          java-version: '25'
+
+      - name: Unpack nbpackage
+        shell: bash
+        run: |
+          cd nbpackage
+          unzip -q nbpackage-*-bin.zip
+          mods=$(find . -mindepth 2 -maxdepth 2 -type d -name mods | head -1)
+          [ -n "$mods" ] || { echo "::error::no nbpackage-*/mods in the nbpackage artifact"; exit 1; }
+          echo "NBPACKAGE_MODS=nbpackage/${mods#./}" >> "$GITHUB_ENV"
+
+      # the pinned JDK (and appimagetool) of release/packaging/runtimes.properties, into the
+      # downloads/ directory the configuration points at, checked against the pinned SHA-256
+      - name: Download the runtime
+        shell: bash
+        env:
+          PLATFORM: ${{ matrix.platform }}
+          TYPE: ${{ matrix.type }}
+        run: |
+          props=release/packaging/runtimes.properties
+          pin() { sed -n "s/^$1=//p" "$props"; }
+          fetch() {
+            local file url sha dir
+            file=$(pin "$1.$PLATFORM.file"); url=$(pin "$1.$PLATFORM.url"); sha=$(pin "$1.$PLATFORM.sha256")
+            [ -n "$file" ] && [ -n "$url" ] && [ -n "$sha" ] || { echo "::error::$1.$PLATFORM is not pinned in $props"; exit 1; }
+            dir="release/packaging/$PLATFORM/downloads"
+            mkdir -p "$dir"
+            curl --fail --location --retry 5 --retry-all-errors --output "$dir/$file" "$url"
+            if command -v sha256sum > /dev/null; then
+              echo "$sha  $dir/$file" | sha256sum -c -
+            else
+              echo "$sha  $dir/$file" | shasum -a 256 -c -
+            fi
+          }
+          fetch jdk
+          if [ "$TYPE" = linux-appimage ]; then
+            fetch appimagetool
+            chmod +x release/packaging/$PLATFORM/downloads/appimagetool-*.AppImage
+          fi
+
+      - name: Install rpm
+        if: matrix.type == 'linux-rpm'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Import the signing certificates
+        if: matrix.type == 'macos-pkg' && env.MACSIGN_USER != ''
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CERTIFICATES_FILE_BASE64 }}
+          p12-password: ${{ secrets.CERTIFICATES_PASSWORD }}
+
+      - name: nbpackage
+        shell: bash
+        env:
+          TYPE: ${{ matrix.type }}
+          # appimagetool runs without FUSE on the runner
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          mkdir -p dist
+          args=(--verbose --config "$CONFIG" --input input/nbfx-*-bin.zip --output dist "-Pversion=$VERSION")
+          if [ "$TYPE" = macos-pkg ] && [ -n "$MACSIGN_USER" ]; then
+            args+=("-Pmacos.codesign-id=Developer ID Application: $MACSIGN_USER"
+                   "-Pmacos.pkgbuild-id=Developer ID Installer: $MACSIGN_USER")
+          fi
+          java -p "$NBPACKAGE_MODS" -m org.apache.netbeans.nbpackage/org.apache.netbeans.nbpackage.Main "${args[@]}"
+          ls -l dist
+
+      - name: Notarize and staple
+        if: matrix.type == 'macos-pkg' && env.MACSIGN_USER != '' && env.NOTARIZATION_USERNAME != ''
+        env:
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+          NOTARIZATION_TEAMID: ${{ secrets.NOTARIZATION_TEAMID }}
+        run: |
+          for pkg in dist/*.pkg; do
+            xcrun notarytool submit "$pkg" --apple-id "$NOTARIZATION_USERNAME" --password "$NOTARIZATION_PASSWORD" \
+              --team-id "$NOTARIZATION_TEAMID" --wait
+            xcrun stapler staple "$pkg"
+            spctl --assess --type install -vv "$pkg"
+          done
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nbfx-${{ env.LABEL }}-${{ matrix.platform }}-${{ matrix.type }}
+          path: dist/*
+          if-no-files-found: error
+
+  collect:
+    name: Collect and publish
+    needs: [binary, package]
+    runs-on: ubuntu-24.04
+    env:
+      LABEL: ${{ needs.binary.outputs.label }}
+      VERSION: ${{ needs.binary.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: nbfx-${{ needs.binary.outputs.label }}-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * > "nbfx-$LABEL-packages.sha256"
+          ls -l
+
+      # one artifact with every package, whatever is published
+      - uses: actions/upload-artifact@v6
+        with:
+          name: nbfx-${{ env.LABEL }}-packages
+          path: dist/*
+
+      - name: Upload to the release ${{ env.TAG }}
+        if: env.PUBLISH == 'release'
+        run: gh release upload "$TAG" --clobber dist/*
+
+      # the rolling snapshot: one pre-release, recreated on the packaged commit
+      - name: Update the snapshot pre-release
+        if: env.PUBLISH == 'snapshot'
+        run: |
+          gh release delete snapshot --cleanup-tag --yes || true
+          gh release create snapshot --prerelease --target "$GITHUB_SHA" \
+            --title "nbfx snapshot $LABEL" \
+            --notes "Unsigned development packages of nbfx $VERSION built from $GITHUB_SHA by the Packages workflow (run $GITHUB_RUN_ID). Not a release." \
+            dist/*
