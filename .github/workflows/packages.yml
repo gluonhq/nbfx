@@ -243,6 +243,22 @@ jobs:
             fi
           }
           fetch jdk
+          # nbpackage (at NBPACKAGE_REF) creates the parent directory of regular file entries only,
+          # and the jdk.java.net Linux tarball has no directory entries, so its first symlink in an
+          # all-symlink directory (legal/java.compiler/ADDITIONAL_LICENSE_INFO) fails to extract
+          # with NoSuchFileException. Repack a .tar.gz runtime with tar, which writes the directory
+          # entries, under the same name (nbpackage reads the architecture from it).
+          file=$(pin "jdk.$PLATFORM.file")
+          case "$file" in
+            *.tar.gz)
+              dir="release/packaging/$PLATFORM/downloads"
+              rm -rf "$dir/repack" && mkdir "$dir/repack"
+              tar xzf "$dir/$file" -C "$dir/repack"
+              rm -f "$dir/$file"
+              tar czf "$dir/$file" -C "$dir/repack" .
+              rm -rf "$dir/repack"
+              ;;
+          esac
           if [ "$TYPE" = linux-appimage ]; then
             fetch appimagetool
             chmod +x release/packaging/$PLATFORM/downloads/appimagetool-*.AppImage
