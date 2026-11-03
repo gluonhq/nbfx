@@ -465,11 +465,12 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 **Chrome contract rules.** `ShellChrome` is a composition contract, not a second implementation:
 `Node top()`, `Node bottom()` and `void dispose()`. Concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
 controls stay inside `DefaultShellChrome` and are not part of the product SPI. Contribution contexts are
-narrow (the action registry, the active editor document and a `Lookup`); they do not expose `AppState`,
-`DockArea`, `SlidingArea` or `NbfxTabPane`. `MenuContribution`, `StatusContribution` and
+narrow (the action registry, `ActionContext` and a `Lookup`); they do not expose `AppState`,
+`DockArea`, `SlidingArea` or `NbfxTabPane`. `DynamicMenu.Factory`, `StatusContribution` and
 `WindowEnvironmentContribution` are ordered, failure-isolated and disposed with the shell. New chrome SPIs
 are T1/T2-FX API and must be covered by W2 `arch.xml`/`apichanges`/`check-api`; anything not intended for
-downstream stays in an internal package.
+downstream stays in an internal package. The detailed contracts and layer rules are in
+[`appshell-chrome.md`](appshell-chrome.md).
 
 **API placement.** The API tier is module metadata, not a cluster. The `nbfx-api` cluster is dissolved
 (W1.7, landed); each API module lives in its domain cluster:
@@ -870,6 +871,9 @@ cancellation and a memory budget — [Appendix D.5](appendix/D-bridge-and-retire
 registrations with no IDE class; `ShellChrome` exposes no concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
 in its product contract; the IDE menu/toolbar/status IDs and behaviour are unchanged; downstream adds chrome
 through registrations, not by subclassing.
+
+The detailed API/SPI contracts, layer-registration rules, use cases, UX interaction rules, test matrix and
+per-phase acceptance criteria are in [`appshell-chrome.md`](appshell-chrome.md).
 
 **W4 — IDE core.** `feature/project-model`, `feature/project-ui`,
 `refactor/nodes-model` → `refactor/nodes-usages` → `refactor/nodes-navigator` →
