@@ -157,9 +157,29 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {
-        // The IDE still contributes its own menu/tool/status bars in decorate() until the
-        // platform chrome builder lands; do not install the empty default chrome on top of them.
-        return ShellChrome.NONE;
+        actionBars = new ActionBars();
+        actionBars.registerProjectCommands(this::openProject,
+                this::closeProject, this::closeAllProjects, projectOpen.not());
+        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
+                this::clearRecentProjects, this::projectIcon);
+        actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
+        actionBars.configureFileDispatch(treeFocused);
+        // The main window's menu/tool bars are scoped to the main pane's own selected editor.
+        ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
+        actionBars.registerWindowCommands(windowActions(mainScope));
+        actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
+        ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
+        getAppState().initToolbars(toolBars);
+        VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
+
+        projectElement = new ProjectStatusElement();
+        caretElement = new CaretStatusElement();
+        lineSeparatorElement = new LineSeparatorStatusElement();
+        statusBar = new StatusBar(StatusElementRegistry.discover(List.of(
+                new StatusElement("project", StatusAlignment.LEFT, 0, projectElement),
+                new StatusElement("caret", StatusAlignment.RIGHT, 10, caretElement),
+                new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
+        return new IdeChrome(topBars, statusBar);
     }
 
     @Override
@@ -202,21 +222,6 @@ public class JavaFXLaunchApp extends ShellApplication {
             introduceDefaultViews();
         }
 
-        actionBars = new ActionBars();
-        actionBars.registerProjectCommands(this::openProject,
-                this::closeProject, this::closeAllProjects, projectOpen.not());
-        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
-                this::clearRecentProjects, this::projectIcon);
-        actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
-        actionBars.configureFileDispatch(treeFocused);
-        // The main window's menu/tool bars are scoped to the main pane's own selected editor.
-        ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
-        actionBars.registerWindowCommands(windowActions(mainScope));
-        actionBars.registerEditorContextCommands(file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
-        ToolBarContainer toolBars = actionBars.createToolBars(mainScope);
-        getAppState().initToolbars(toolBars);
-        VBox topBars = new VBox(actionBars.createMenuBar(mainScope), toolBars);
-        borderPane.setTop(topBars);
         // Give the window system the host services it needs: the bars for detached windows, the
         // navigator revealer, and where a tab docks back.
         WindowEnvironmentService windowEnvironment = windowEnvironment();
@@ -233,15 +238,6 @@ public class JavaFXLaunchApp extends ShellApplication {
             });
             windowEnvironment.setProjectSwitcher(projectSwitcher);
         }
-
-        projectElement = new ProjectStatusElement();
-        caretElement = new CaretStatusElement();
-        lineSeparatorElement = new LineSeparatorStatusElement();
-        statusBar = new StatusBar(StatusElementRegistry.discover(List.of(
-                new StatusElement("project", StatusAlignment.LEFT, 0, projectElement),
-                new StatusElement("caret", StatusAlignment.RIGHT, 10, caretElement),
-                new StatusElement("line-separator", StatusAlignment.RIGHT, 20, lineSeparatorElement))));
-        borderPane.setBottom(statusBar);
 
         getStage().setTitle(WindowTitles.of(projectRegistry.getSelected()));
         projectRegistry.selectedProjectProperty().subscribe(project -> {
@@ -1509,6 +1505,28 @@ public class JavaFXLaunchApp extends ShellApplication {
         public void closeAll() {
             projects.clear();
             selected.set(null);
+        }
+    }
+
+    /** The IDE's chrome as a {@link ShellChrome}; its controls remain owned by ActionBars. */
+    private static final class IdeChrome implements ShellChrome {
+
+        private final Node top;
+        private final Node bottom;
+
+        IdeChrome(Node top, Node bottom) {
+            this.top = top;
+            this.bottom = bottom;
+        }
+
+        @Override
+        public Node top() {
+            return top;
+        }
+
+        @Override
+        public Node bottom() {
+            return bottom;
         }
     }
 }
