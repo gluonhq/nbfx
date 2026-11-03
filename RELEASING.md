@@ -41,7 +41,7 @@ Adopting the full procedure later should then be a small diff to this file, not 
 | `*.asc` | Detached, armored GPG signature of each artefact. |
 | `*.sha512` | SHA-512 checksum of each artefact (`sha512sum -c` / `shasum -a 512 -c`). |
 | `KEYS` | The public keys of the release managers (repository root). |
-| `nbfx-<version>-arm64.pkg`, `.exe`, `.deb`, `.rpm`, `.AppImage` | Native packages of the binary with a bundled JDK for macOS aarch64, Windows x64 and Linux x64 (macOS x64 stays on the zip), built by the *Packages* workflow with nbpackage ([release/packaging/README.md](release/packaging/README.md)). Convenience only: they are not signed with the release key, and are not part of the vote. |
+| `nbfx-<version>-arm64.pkg`, `.exe`, `.deb`, `.rpm`, `.AppImage` | Native packages of the binary with a bundled JDK for macOS aarch64, Windows x64 and Linux x64 (macOS x64 stays on the zip), built from the published zip by the *Packages* workflow of [gluonhq/nbfx-installers](https://github.com/gluonhq/nbfx-installers) with nbpackage. Convenience only: they are not signed with the release key, and are not part of the vote. |
 
 Versions are `MAJOR.MINOR.PATCH`. The tags are `<version>-rcN` for candidates and `<version>` for the
 release, both on the same commit. Each RC is built under the final file names, so promoting it uploads the
@@ -156,10 +156,15 @@ gh workflow run release-verify.yml -f tag=0.1.0-rc1
 ```
 
 When it reports green on the checklist issue, write the highlights in the draft and **publish** it (it
-stays a pre-release). Publishing runs *Release verify* once more, on the public files, and *Packages*,
-which builds the native packages from the published zip and attaches them to the pre-release
-([release/packaging/README.md](release/packaging/README.md)). Promoting the candidate (step 6) copies
-them to the final release with the other files.
+stays a pre-release). Publishing runs *Release verify* once more, on the public files. Then build the
+native packages from the published zip and attach them to the pre-release with the *Packages* workflow
+of [gluonhq/nbfx-installers](https://github.com/gluonhq/nbfx-installers):
+
+```sh
+gh workflow run packages.yml --repo gluonhq/nbfx-installers -f tag=0.1.0-rc1 -f publish=release
+```
+
+Promoting the candidate (step 6) copies them to the final release with the other files.
 
 ### 5. Review
 
