@@ -31,10 +31,10 @@ it, adds the runtime and a launcher that starts `bin/netbeans` (or `bin\netbeans
 | Platform | Package | Configuration | Tooling |
 |---|---|---|---|
 | macOS aarch64 | `nbfx-<version>-arm64.pkg` (an `.app` bundle in a signed, notarized installer) | `macos-aarch64/macos-pkg.properties` | `swift`, `codesign`, `pkgbuild` (Xcode command line tools) |
-| Windows x64 | `nbfx-<version>-x86_64.exe` (Inno Setup) | `windows-x64/windows-innosetup.properties` | [Inno Setup 6](https://jrsoftware.org/isinfo.php) |
-| Linux x64 | `.deb` | `linux-x64/linux-deb.properties` | `dpkg`, `dpkg-deb`, `fakeroot` |
-| Linux x64 | `.rpm` | `linux-x64/linux-rpm.properties` | `rpm`, `rpmbuild` |
-| Linux x64 | `.AppImage` | `linux-x64/linux-appimage.properties` | [appimagetool](https://github.com/AppImage/appimagetool) |
+| Windows x64 | `nbfx-<version>.exe` (Inno Setup) | `windows-x64/windows-innosetup.properties` | [Inno Setup 6](https://jrsoftware.org/isinfo.php) |
+| Linux x64 | `nbfx_<version>-1_amd64.deb` | `linux-x64/linux-deb.properties` | `dpkg`, `dpkg-deb`, `fakeroot` |
+| Linux x64 | `nbfx-<version>-0.x86_64.rpm` | `linux-x64/linux-rpm.properties` | `rpm`, `rpmbuild` |
+| Linux x64 | `nbfx-<version>-x86_64.AppImage` | `linux-x64/linux-appimage.properties` | [appimagetool](https://github.com/AppImage/appimagetool) |
 
 There is no package for macOS x64: jdk.java.net has no JDK 27 for it (the port is deprecated
 since JDK 27 and Oracle no longer builds it), so that platform keeps using the zip with a JDK of
@@ -125,7 +125,8 @@ nbpackage-1.0/bin/nbpackage --verbose \
 Application: ..." -Pmacos.pkgbuild-id="Developer ID Installer: ..."` to sign, or
 `-Pinnosetup.tool=<path to ISCC.exe>`. On Linux without FUSE, run the AppImage build with
 `APPIMAGE_EXTRACT_AND_RUN=1`. `--image-only` stops after the unpacked, laid-out image, to inspect
-what the package will contain.
+what the package will contain; a full run leaves that image directory next to the package (the
+workflow deletes it before uploading).
 
 ## Open points
 
