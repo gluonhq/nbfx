@@ -618,3 +618,42 @@ Target:
    `SessionRestorer`.
 6. Conformance tests cover a custom area, a custom area weight, a view placed in it, and a
    declarative first-run layout.
+
+---
+
+## 14. Revised permanent-pane composition plan
+
+The declarative layer now covers view metadata, custom areas and the first-run dock tree. The
+remaining composition is the permanent pane itself.
+
+Revised ownership:
+
+- `@AreaRegistration` owns geometry only: id, displayName, location and weight.
+- `@PaneRegistration` owns a permanent pane: id, displayName, `PaneKind`, owning area,
+  `permanent` and `keepWhenEmpty`.
+- `@WindowLayoutRegistration` owns the initial dock tree and references the registered pane ids.
+- `WindowComposition` is a runtime resolver over the pane, area and layout registries; it is not a
+  fourth registration mechanism.
+
+Required API/lifecycle decisions:
+
+- move `PaneKind` from `NbfxTabPane` to `api.views` so pane registrations can use it;
+- make `PaneRole` a canonical value object with built-in `MAIN`, `NAVIGATOR`, `DOCKED`, `DETACHED`
+  and `SLIDE`, plus `PaneRole.of(id)` for registered roles;
+- keep the editor `MAIN` pane special: it is supplied by `ContentManager` and is the only
+  `PaneKind.EDITOR` pane;
+- define `keepWhenEmpty`, persistence and minimization behavior for custom permanent panes;
+- define unknown-role behavior for persisted layouts and unknown areas for views.
+
+Implementation sequence:
+
+1. move `PaneKind` to `api.views`;
+2. generalize `PaneRole` and preserve persisted-layout compatibility;
+3. add `@PaneRegistration`, processor and `WindowPaneRegistry`;
+4. register MAIN/NAVIGATOR as platform panes;
+5. add `WindowComposition` resolved from pane/area/layout registries;
+6. add `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` and keep the existing
+   constructor as a compatibility path;
+7. resolve `ViewArea` to its pane through `@PaneRegistration.area`;
+8. remove the `NAVIGATOR` fallback from `ViewManagerService`;
+9. test custom panes, areas, trees, unknown roles and restored layouts.
