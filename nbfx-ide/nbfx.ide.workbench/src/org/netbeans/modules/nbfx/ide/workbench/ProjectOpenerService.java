@@ -18,8 +18,12 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import java.io.File;
+import javafx.stage.DirectoryChooser;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
+import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -30,6 +34,24 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ProjectOpener.class)
 public final class ProjectOpenerService implements ProjectOpener {
+
+    @Override
+    public void open() {
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app == null) {
+            return;
+        }
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle(NbBundle.getMessage(ProjectOpenerService.class, "CTL_OpenProjectCommand"));
+        File directory = chooser.showDialog(app.getWindow().stage());
+        if (directory == null) {
+            return;
+        }
+        FileObject root = FileUtil.toFileObject(FileUtil.normalizeFile(directory));
+        if (root != null) {
+            app.openProject(root);
+        }
+    }
 
     @Override
     public void open(FileObject root) {

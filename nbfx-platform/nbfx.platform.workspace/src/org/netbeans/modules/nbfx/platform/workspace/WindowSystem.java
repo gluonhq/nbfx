@@ -98,6 +98,7 @@ public final class WindowSystem {
 
     private final Supplier<List<ViewSpec>> registrations;
     private final ViewStateStore store;
+    private final Lookup services;
     private final List<WindowSystemListener> listeners = new ArrayList<>();
     private volatile WindowSink sink;
 
@@ -111,7 +112,7 @@ public final class WindowSystem {
      * then a no-op sink is used, so the system can be looked up and driven safely.
      */
     public WindowSystem() {
-        this(ViewRegistry::discover, new ViewStateStore(), null);
+        this(ViewRegistry::discover, new ViewStateStore(), null, Lookup.getDefault());
     }
 
     /**
@@ -122,9 +123,15 @@ public final class WindowSystem {
      * @param sink          the JavaFX shell adapter, or {@code null} until {@link #setSink(WindowSink)}
      */
     WindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink) {
+        this(registrations, store, sink, Lookup.getDefault());
+    }
+
+    WindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink,
+            Lookup services) {
         this.registrations = Objects.requireNonNull(registrations, "registrations");
         this.store = Objects.requireNonNull(store, "store");
         this.sink = sink;
+        this.services = Objects.requireNonNull(services, "services");
     }
 
     /**
@@ -156,6 +163,11 @@ public final class WindowSystem {
     public synchronized void init() {
         if (phase != Phase.IDLE) {
             throw new IllegalStateException("init() already called; phase=" + phase);
+        }
+        for (WindowSystemListener listener : services.lookupAll(WindowSystemListener.class)) {
+            if (!listeners.contains(listener)) {
+                listeners.add(listener);
+            }
         }
         discovered = List.copyOf(registrations.get());
         phase = Phase.INIT;

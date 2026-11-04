@@ -44,6 +44,20 @@
             <class package="org.netbeans.api.nbfx.views" name="DockLocation"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewRegistration"/>
         </change>
+        <change id="navigator.revealer.index">
+            <api name="netbeansfx_views"/>
+            <summary>Reveal in a specific navigator.</summary>
+            <version major="1" minor="5"/>
+            <date day="4" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>NavigatorRevealer.reveal(FileObject, int)</code> so callers can select
+                the Projects or Files navigator explicitly while the single-argument reveal remains
+                the compatibility default.
+            </description>
+            <class package="org.netbeans.api.nbfx.view" name="NavigatorRevealer"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
