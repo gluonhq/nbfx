@@ -666,3 +666,31 @@ Remaining:
 - `keepWhenEmpty` is declared but not yet applied by `DockArea`/`NbfxTabPane`;
 - `WindowComposition` is resolved but `ShellApplication` does not yet consume it to build panes;
 - unknown persisted roles and removed panes need explicit migration tests.
+
+---
+
+## 15. Pane-instance composition plan
+
+`WindowComposition` describes which panes exist and how they start out, but the shell still chose
+the concrete instances imperatively. This step makes the shell consume the composition.
+
+Ownership:
+
+- `WindowComposition` is the single source of registered permanent panes and the first-run tree.
+- A `WindowPaneProvider` (or the `ShellApplication.createPane(WindowPane)` hook) supplies concrete
+  instances for declared panes; the hook wins over providers, providers win over the default.
+- The editor pane stays special: an `EDITOR` registration resolves through `ContentManager`, never
+  through a provider.
+- `keepWhenEmpty` is a `DockHost` decision; `Docking` answers it from `WindowPaneRegistry`.
+
+Implementation sequence:
+
+1. add `WindowPaneProvider` and a protected `createPane(WindowPane)` hook;
+2. have `ShellApplication.start()` build its panes from the resolved composition and pass the
+   composition to `Docking.create`;
+3. replace `JavaFXLaunchApp.createPanes()` with a navigator `createPane` override;
+4. remove the hardcoded pane factory from the shell and the duplicate built-in pane defaults from
+   the registry;
+5. honor `keepWhenEmpty` in `DockArea`;
+6. move tabs of an unknown persisted role to the editor/default view pane instead of dropping them;
+7. test provider selection, keep-when-empty and unknown-role migration.
