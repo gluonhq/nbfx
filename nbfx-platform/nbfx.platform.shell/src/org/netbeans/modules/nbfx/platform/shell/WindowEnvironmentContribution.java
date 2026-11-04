@@ -18,13 +18,10 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import java.util.List;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
-import org.netbeans.api.nbfx.actions.Command;
 import org.openide.filesystems.FileObject;
-import org.openide.util.Lookup;
 
 /**
  * A product/IDE contribution to the generic {@code WindowEnvironment}. The default environment
@@ -36,7 +33,7 @@ import org.openide.util.Lookup;
 public interface WindowEnvironmentContribution {
 
     /** Creates the bars for a detached window, or {@code null} when this contribution has none. */
-    default Region createDetachedBars(Lookup context, List<Command> scopedCommands) {
+    default Region createDetachedBars(DetachedBarsContext context) {
         return null;
     }
 

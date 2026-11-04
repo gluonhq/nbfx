@@ -127,9 +127,8 @@ public final class ShellMenuBar {
                 menu.getItems().add(new SeparatorMenuItem());
             }
             if (entry instanceof StaticEntry staticEntry) {
-                MenuItem item = menuItem(staticEntry.commandId());
-                if (item != null) {
-                    menu.getItems().add(item);
+                if (staticEntry.item() != null) {
+                    menu.getItems().add(staticEntry.item());
                 }
             } else if (entry instanceof DynamicEntry dynamic && dynamic.content() != null) {
                 menu.getItems().addAll(dynamic.content().items());
@@ -146,7 +145,8 @@ public final class ShellMenuBar {
     private MenuModel model(FileObject folder, Menu owner) {
         List<Entry> entries = new ArrayList<>();
         for (ActionRef ref : ActionLayerReader.read(folder)) {
-            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore()));
+            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore(),
+                    menuItem(ref.actionId())));
         }
         List<DynamicEntry> dynamicEntries = readDynamic(folder, owner);
         entries.addAll(dynamicEntries);
@@ -241,7 +241,8 @@ public final class ShellMenuBar {
         boolean separatorBefore();
     }
 
-    private record StaticEntry(int position, String commandId, boolean separatorBefore) implements Entry {
+    private record StaticEntry(int position, String commandId, boolean separatorBefore,
+            MenuItem item) implements Entry {
         @Override
         public String id() {
             return commandId;

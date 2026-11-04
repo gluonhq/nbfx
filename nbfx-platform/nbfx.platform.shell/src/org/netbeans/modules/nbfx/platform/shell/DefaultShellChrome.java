@@ -80,5 +80,9 @@ public final class DefaultShellChrome implements ShellChrome {
     public void dispose() {
         menuBuilder.dispose();
         statusBar.dispose();
+        ShellCommandResolver resolver = context.lookup().lookup(ShellCommandResolver.class);
+        if (resolver != null) {
+            resolver.close();
+        }
     }
 }

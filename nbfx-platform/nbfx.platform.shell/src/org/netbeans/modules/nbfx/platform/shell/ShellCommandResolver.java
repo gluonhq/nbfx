@@ -53,4 +53,8 @@ public interface ShellCommandResolver {
     default Command resolve(String id, ObservableValue<Boolean> preferFile) {
         return resolve(id);
     }
+
+    /** Releases any scoped commands created by this resolver. */
+    default void close() {
+    }
 }

@@ -19,10 +19,11 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import org.netbeans.api.nbfx.actions.Command;
+import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.api.nbfx.view.NavigatorRevealer;
-import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
+import org.netbeans.modules.nbfx.platform.shell.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.WindowEnvironmentContribution;
-import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import javafx.scene.control.Tab;
@@ -49,7 +50,6 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
     private BiConsumer<FileObject, Integer> navigatorRevealer;
     private Function<FileObject, Boolean> navigatorFileRevealer;
     private Function<Tab, TabPane> homeResolver;
-    private ProjectSwitcher projectSwitcher;
     private boolean navigatorRevealInProgress;
 
     /** Sets the bars used to build the menu and tool bars of each detached window. */
@@ -72,15 +72,11 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
         this.homeResolver = homeResolver;
     }
 
-    /** Sets the switcher driving the Next/Previous Project shortcut in every window. */
-    void setProjectSwitcher(ProjectSwitcher projectSwitcher) {
-        this.projectSwitcher = projectSwitcher;
-    }
-
     @Override
-    public Region createDetachedBars(Lookup context, List<Command> scopedCommands) {
+    public Region createDetachedBars(DetachedBarsContext context) {
         return actionBars == null ? null
-                : actionBars.createDetachedBars(EditorContexts.activeDocument(), scopedCommands);
+                : actionBars.createDetachedBars(context.activeDocument(EditorDocument.class),
+                        context.scopedCommands());
     }
 
     @Override
@@ -100,19 +96,21 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
 
     @Override
     public boolean selectNextProject() {
-        if (projectSwitcher == null) {
+        ProjectLifecycle lifecycle = Lookup.getDefault().lookup(ProjectLifecycle.class);
+        if (lifecycle == null) {
             return false;
         }
-        projectSwitcher.next();
+        lifecycle.selectNext();
         return true;
     }
 
     @Override
     public boolean selectPreviousProject() {
-        if (projectSwitcher == null) {
+        ProjectLifecycle lifecycle = Lookup.getDefault().lookup(ProjectLifecycle.class);
+        if (lifecycle == null) {
             return false;
         }
-        projectSwitcher.previous();
+        lifecycle.selectPrevious();
         return true;
     }
 

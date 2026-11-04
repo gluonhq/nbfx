@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
@@ -37,6 +40,7 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
     private final ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
     private final ObservableValue<EditorDocument> mainScope;
     private final ObservableValue<Boolean> preferFile;
+    private final Map<String, Optional<Command>> scoped = new HashMap<>();
 
     IdeShellCommandResolver(ObservableValue<EditorDocument> mainScope, ObservableValue<Boolean> preferFile) {
         this.mainScope = mainScope;
@@ -53,9 +57,9 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
         if (registry == null) {
             return null;
         }
-        Command editor = registry.createScoped(id, mainScope)
-                .or(() -> registry.find(id))
-                .orElse(null);
+        Command scopedCommand = scoped.computeIfAbsent(id,
+                key -> registry.createScoped(key, mainScope)).orElse(null);
+        Command editor = scopedCommand != null ? scopedCommand : registry.find(id).orElse(null);
         if (editor == null) {
             return null;
         }
@@ -81,5 +85,11 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
             default -> null;
         };
         return fileId == null || registry == null ? null : registry.find(fileId).orElse(null);
+    }
+
+    @Override
+    public void close() {
+        scoped.values().stream().flatMap(Optional::stream).forEach(Command::dispose);
+        scoped.clear();
     }
 }

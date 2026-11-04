@@ -211,7 +211,6 @@ public class JavaFXLaunchApp extends ShellApplication {
                 }
                 return homeOfView(tab);
             });
-            windowEnvironment.setProjectSwitcher(projectSwitcher);
         }
 
         projectRegistry.selectedProjectProperty().subscribe(project ->
