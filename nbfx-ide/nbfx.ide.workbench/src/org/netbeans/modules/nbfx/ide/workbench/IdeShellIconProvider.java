@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -26,7 +28,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
-import org.netbeans.modules.nbfx.platform.shell.ShellIconProvider;
 
 /**
  * The IDE's icon resources, kept out of the generic builders. A contributed command that carries

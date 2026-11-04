@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.api;
 
 import javafx.collections.ObservableList;
 import javafx.scene.control.MenuItem;

@@ -164,6 +164,7 @@
             </test-dependencies>
             <public-packages>
                 <package>org.netbeans.modules.nbfx.platform.shell</package>
+                <package>org.netbeans.modules.nbfx.platform.shell.api</package>
             </public-packages>
         </data>
     </configuration>

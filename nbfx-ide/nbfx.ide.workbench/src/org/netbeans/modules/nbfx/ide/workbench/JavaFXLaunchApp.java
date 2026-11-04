@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+
 import javafx.collections.FXCollections;
 import javafx.beans.property.SimpleObjectProperty;
 import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
@@ -30,8 +33,6 @@ import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.platform.shell.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
 import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;

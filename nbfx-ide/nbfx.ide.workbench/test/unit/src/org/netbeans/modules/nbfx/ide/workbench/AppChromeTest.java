@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,7 +40,6 @@ import org.netbeans.junit.NbTestCase;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
 import org.netbeans.modules.nbfx.platform.status.StatusElement;
 import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
 import org.openide.util.Lookup;

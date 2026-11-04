@@ -18,12 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.api.nbfx.view.NavigatorRevealer;
-import org.netbeans.modules.nbfx.platform.shell.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.WindowEnvironmentContribution;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import javafx.scene.control.Tab;

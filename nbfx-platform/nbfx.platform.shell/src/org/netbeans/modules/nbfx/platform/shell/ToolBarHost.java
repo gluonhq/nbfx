@@ -19,28 +19,14 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 /**
- * Creates the chrome for one shell instance. The provider is a service; the returned chrome is
- * per-shell content and is disposed with the shell.
+ * A chrome that owns the main tool bars. The shell uses this capability for toolbar persistence
+ * without knowing the concrete chrome implementation; a custom chrome may implement it when it
+ * wants the standard persistence and detached-window mirroring.
  *
  * @since 1.0
  */
-public interface ShellChromeProvider {
+public interface ToolBarHost {
 
-    /**
-     * Creates the chrome for {@code context}.
-     *
-     * @param context the shell context
-     * @return the chrome, never {@code null}
-     */
-    ShellChrome create(ShellContext context);
-
-    /**
-     * Where this provider ranks when several are registered. The shell uses the highest priority;
-     * the platform default uses {@code 0}, a product provider a higher value.
-     *
-     * @return the priority; higher wins
-     */
-    default int priority() {
-        return 0;
-    }
+    /** The main window's tool bar container. */
+    ToolBarContainer toolBars();
 }

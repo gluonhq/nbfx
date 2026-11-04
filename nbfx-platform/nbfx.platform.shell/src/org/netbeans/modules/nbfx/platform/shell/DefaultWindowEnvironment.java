@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+
 import java.util.List;
 import java.util.Objects;
 import javafx.beans.value.ObservableValue;

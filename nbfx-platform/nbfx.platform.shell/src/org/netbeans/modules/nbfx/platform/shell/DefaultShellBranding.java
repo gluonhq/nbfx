@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+
 import org.openide.util.lookup.ServiceProvider;
 
 /**

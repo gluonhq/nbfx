@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.DynamicMenu;
+
 import java.io.File;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -31,7 +33,6 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
-import org.netbeans.modules.nbfx.platform.shell.DynamicMenu;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 

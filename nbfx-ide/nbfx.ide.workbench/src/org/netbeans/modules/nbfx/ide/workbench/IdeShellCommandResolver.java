@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +30,6 @@ import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DispatchingCommand;
-import org.netbeans.modules.nbfx.platform.shell.ShellCommandResolver;
 import org.openide.util.Lookup;
 
 /**

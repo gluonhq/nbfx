@@ -18,6 +18,11 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProvider;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +88,7 @@ public class ShellApplication extends Application implements WindowSink {
     private SlidingArea slidingArea;
     private BorderPane root;
     private ShellChrome chrome;
+    private ShellBranding branding;
     private Subscription titleSubscription;
     private boolean stateCaptured;
 
@@ -110,8 +116,8 @@ public class ShellApplication extends Application implements WindowSink {
         if (chrome.bottom() != null) {
             root.setBottom(chrome.bottom());
         }
-        if (chrome instanceof DefaultShellChrome defaultChrome) {
-            appState.initToolbars(defaultChrome.toolBars());
+        if (chrome instanceof ToolBarHost toolBarHost) {
+            appState.initToolbars(toolBarHost.toolBars());
         }
         decorate(root);
 
@@ -119,9 +125,7 @@ public class ShellApplication extends Application implements WindowSink {
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
         sceneReady(scene);
         stage.setScene(scene);
-        ShellBranding branding = context.lookup().lookupAll(ShellBranding.class).stream()
-                .max(Comparator.comparingInt(ShellBranding::priority))
-                .orElse(null);
+        branding = ShellBranding.select(context.lookup()).orElse(null);
         stage.setTitle(branding == null ? "NetBeansFX" : branding.title(context));
         if (branding != null) {
             ObservableValue<String> title = branding.titleProperty(context);
@@ -168,6 +172,10 @@ public class ShellApplication extends Application implements WindowSink {
         if (titleSubscription != null) {
             titleSubscription.unsubscribe();
             titleSubscription = null;
+        }
+        if (branding != null) {
+            branding.dispose();
+            branding = null;
         }
         if (chrome != null) {
             chrome.dispose();
