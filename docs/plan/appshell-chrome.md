@@ -846,3 +846,23 @@ What landed:
 `.root` is the token contract. Component CSS may add namespaced tokens on `.root`; a theme that
 predates the component still gets the component default because the default sheet is applied before
 the theme.
+
+---
+
+## 20. OS light/dark theme mode
+
+Theme selection now uses the JavaFX 26 platform colors:
+
+- `Platform.getPreferences().colorSchemeProperty()` reports the OS light/dark scheme;
+- `Scene.getPreferences().setColorScheme(...)` overrides the scene scheme and drives the native
+  title bar on Windows/macOS.
+
+`ThemeMode` is `SYSTEM`, `LIGHT` or `DARK`. System mode chooses the branded light/dark theme pair;
+explicit mode keeps the selected theme and sets the scene scheme to match it. The View > Theme menu
+offers Follow System, Light, Dark and the individual theme files.
+
+User themes may declare a sidecar `<id>.properties` with `scheme=dark`; otherwise they default to
+light. The OS listener is installed with the shell and disposed on stop. Shell, editor, popup,
+detached and dialog scenes register for theme updates.
+
+Linux native title-bar behavior remains platform-dependent and is documented as a limitation.
