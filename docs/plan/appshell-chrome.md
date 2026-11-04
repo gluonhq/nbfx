@@ -718,7 +718,9 @@ Implemented:
 - `PaneRole.defaultKind()` is the single editor-pane rule: only `MAIN` defaults to
   `PaneKind.EDITOR`, every other role to `PaneKind.VIEW`;
 - persistence ordering also uses the resolved composition, so runtime placement and capture no
-  longer re-read `WindowPaneRegistry` once the shell has started.
+  longer re-read `WindowPaneRegistry` once the shell has started;
+- the one-shell-per-JVM invariant is documented on `ShellApplication` and `Docking`; restarting a
+  shell in the same JVM would reuse the static docking area and pane registry.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;

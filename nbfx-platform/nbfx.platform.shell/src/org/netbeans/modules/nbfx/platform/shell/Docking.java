@@ -49,7 +49,8 @@ import javafx.scene.control.TabPane;
  * The main window's {@link DockArea} and how it is bound to the application: its permanent panes are
  * the {@link PaneRole#NAVIGATOR} and {@link PaneRole#MAIN} {@link NbfxTabPane}s, keyed by their role
  * names in the persisted {@code DockTree}s, and the panes it docks next to them are
- * {@link PaneRole#DOCKED} ones. There is one area per application.
+ * {@link PaneRole#DOCKED} ones. There is one area per JVM, so the shell is one per JVM; creating a
+ * second area replaces the first.
  */
 public final class Docking implements DockHost<TabPane> {
 

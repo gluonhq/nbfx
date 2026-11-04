@@ -73,6 +73,9 @@ import org.openide.util.Lookup;
  * <p>
  * The shell registers itself as the window system's {@link WindowSink} and, via
  * {@link ShellAppProvider}, is the default application when no product provides one.
+ * <p>
+ * The shell is one per JVM: the docking area, sliding area, composition and tab-pane registry are
+ * process-wide.
  */
 public class ShellApplication extends Application implements WindowSink, ShellWindow {
 
