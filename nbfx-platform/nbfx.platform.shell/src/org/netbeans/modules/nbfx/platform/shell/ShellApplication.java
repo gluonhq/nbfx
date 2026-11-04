@@ -51,6 +51,7 @@ import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
@@ -153,6 +154,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
+        NbfxTheme.apply(scene);
         if (branding != null) {
             scene.getStylesheets().addAll(branding.sceneStylesheets());
             stage.getIcons().setAll(branding.icons());
