@@ -24,6 +24,7 @@ import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProvider;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -101,6 +102,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private boolean applicationMenuInstalled;
     private Subscription titleSubscription;
     private boolean stateCaptured;
+    /** Providers resolved for this shell, in priority order. */
+    private List<WindowPaneProvider> paneProviderList = List.of();
     /** Providers that created a pane, so their resources are released with the shell. */
     private final Map<NbfxTabPane, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
 
@@ -112,6 +115,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         WindowComposition composition = WindowCompositionResolver.resolve();
         Lookup shellLookup = shellLookup();
         WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition.panes(), this);
+        paneProviderList = providers(paneContext);
         Map<String, NbfxTabPane> panes = instantiatePanes(composition, paneContext);
         if (panes.isEmpty()) {
             throw new IllegalStateException("The shell has no primary pane");
@@ -320,10 +324,9 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (pane.role().isMain() || pane.kind() == PaneKind.EDITOR) {
             return createMainPane();
         }
-        for (WindowPaneProvider provider : context.lookup()
-                .lookupAll(WindowPaneProvider.class).stream()
-                .sorted(Comparator.comparingInt(WindowPaneProvider::priority).reversed())
-                .toList()) {
+        List<WindowPaneProvider> candidates = paneProviderList.isEmpty()
+                ? providers(context) : paneProviderList;
+        for (WindowPaneProvider provider : candidates) {
             NbfxTabPane instance = provider.createPane(pane, context);
             if (instance != null) {
                 paneProviders.put(instance, provider);
@@ -331,6 +334,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             }
         }
         return new NbfxTabPane(pane.role(), pane.kind());
+    }
+
+    /** Providers from {@code context}, highest priority first. */
+    private static List<WindowPaneProvider> providers(WindowPaneContext context) {
+        List<WindowPaneProvider> providers = new ArrayList<>(
+                context.lookup().lookupAll(WindowPaneProvider.class));
+        providers.sort(Comparator.comparingInt(WindowPaneProvider::priority).reversed());
+        return List.copyOf(providers);
     }
 
     /** Instantiates the composition's permanent panes, keyed by role name. */
@@ -358,6 +369,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             }
         }
         paneProviders.clear();
+        paneProviderList = List.of();
     }
 
     /**

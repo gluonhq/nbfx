@@ -703,6 +703,7 @@ Implemented:
 - `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
   `org.netbeans.modules.nbfx.platform.shell.spi` package;
 - `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
+- providers are resolved once per shell and the composition/area are process-wide;
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;
