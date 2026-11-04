@@ -530,3 +530,36 @@ Additional:
 - `JavaFXLaunchApp` returns `ShellChrome.NONE` to preserve current IDE behavior.
 
 Do not start the menu/toolbar extraction until this contract is green.
+
+
+---
+
+## 12. Review remediation status (branch `refactor/shell-chrome-contract`)
+
+Implemented after the review:
+
+- detached-window scope is passed to the contribution as a typed document observable, not the global
+  active document;
+- scoped commands are cached and disposed with the chrome;
+- dynamic menu sections update only their own range; static item identity is preserved;
+- `DynamicMenu` lives with `@DynamicMenuRegistration`; the processor validates the factory type and
+  ids; display-name submenus, empty-section handling and stable factory ids are implemented;
+- the product contract/SPI lives in `platform.shell.api`; `ToolBarHost` replaces concrete
+  `DefaultShellChrome` checks;
+- branding selection is priority-based, deterministic and disposable;
+- window-environment contributions are stateless and resolved once per environment;
+- status elements receive the shell lookup through `init(Lookup)`;
+- editor View toggles live in `platform.editor`;
+- application-menu installation is idempotent and shell-lookup based;
+- project-lifecycle, wizard, build and document-close commands are placed by ownership;
+- `ProjectEditorScope` moved to `project.context`, and affected feature modules no longer depend on
+  `ide.workbench`.
+
+Still outstanding:
+
+- detached-window bars still go through `ActionBars`; replace them with `ShellMenuBar`/
+  `ShellToolBars` and a detached chrome profile, then remove `ActionBars`;
+- `platform.shell` still exports its implementation package because `ShellApplication` and
+  `NbfxTabPane` are not yet split from the internal package;
+- the downstream platform-only fixture with no `ShellApplication` subclass is still missing;
+- apichanges/signature-test coverage for the new API/SPI remains a W2 item.

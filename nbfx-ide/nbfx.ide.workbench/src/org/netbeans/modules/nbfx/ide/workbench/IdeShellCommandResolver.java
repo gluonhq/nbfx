@@ -38,12 +38,18 @@ import org.openide.util.Lookup;
  */
 final class IdeShellCommandResolver implements ShellCommandResolver {
 
-    private final ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+    private final ActionRegistry registry;
     private final ObservableValue<EditorDocument> mainScope;
     private final ObservableValue<Boolean> preferFile;
     private final Map<String, Optional<Command>> scoped = new HashMap<>();
 
     IdeShellCommandResolver(ObservableValue<EditorDocument> mainScope, ObservableValue<Boolean> preferFile) {
+        this(Lookup.getDefault().lookup(ActionRegistry.class), mainScope, preferFile);
+    }
+
+    IdeShellCommandResolver(ActionRegistry registry, ObservableValue<EditorDocument> mainScope,
+            ObservableValue<Boolean> preferFile) {
+        this.registry = registry;
         this.mainScope = mainScope;
         this.preferFile = preferFile;
     }
