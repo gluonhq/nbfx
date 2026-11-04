@@ -708,7 +708,8 @@ Implemented:
 - providers may release their pane through `disposePane`, which the shell calls on stop;
 - `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
   to `Docking.create`;
-- `JavaFXLaunchApp` overrides only the navigator pane and no longer owns a pane list;
+- `NavigatorPaneProvider` in `ide.workbench` creates and fills the navigator pane; the
+  application subclass no longer owns pane-specific composition;
 - the registry no longer hardcodes MAIN/NAVIGATOR; the platform layer is the single declaration;
 - `PlatformWindowLayout` declares the first-run structure with `H[](P:NAVIGATOR,P:MAIN)`; the
   initial divider is derived from the registered explorer area weight, and explicit dividers still
