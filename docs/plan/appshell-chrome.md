@@ -532,3 +532,48 @@ Additional:
 - `JavaFXLaunchApp` returns `ShellChrome.NONE` to preserve current IDE behavior.
 
 Do not start the menu/toolbar extraction until this contract is green.
+
+
+---
+
+## 12. Review remediation status (branch `refactor/shell-chrome-contract`)
+
+Implemented after the review:
+
+- detached-window scope is passed to the contribution as a typed document observable, not the global
+  active document;
+- scoped commands are cached and disposed with the chrome;
+- dynamic menu sections update only their own range; static item identity is preserved;
+- `DynamicMenu` lives with `@DynamicMenuRegistration`; the processor validates the factory type and
+  ids; display-name submenus, empty-section handling and stable factory ids are implemented;
+- the product contract/SPI lives in `platform.shell.api`; `ToolBarHost` replaces concrete
+  `DefaultShellChrome` checks;
+- branding selection is priority-based, deterministic and disposable;
+- window-environment contributions are stateless and resolved once per environment;
+- status elements receive the shell lookup through `init(Lookup)`;
+- editor View toggles live in `platform.editor`;
+- application-menu installation is idempotent and shell-lookup based;
+- project-lifecycle, wizard, build and document-close commands are placed by ownership;
+- `ProjectEditorScope` moved to `project.context`, and affected feature modules no longer depend on
+  `ide.workbench`.
+
+Detached chrome is now generic:
+
+- `ShellChromeProfile` filters menu/toolbar surfaces without changing the layer;
+- `DetachedBars`/`DetachedChromeProfile` build the detached window from `ShellMenuBar`/
+  `ShellToolBars`;
+- detached commands use the window's own document scope and are disposed with the window;
+- `ActionBars` has been deleted;
+- project action metadata now lives in `ide.project.actions`;
+- `Select Editor` and document-close commands live in `platform.shell`;
+- project state moved from `AppState` to the IDE `ProjectState`, with `ViewStateStore` as the
+  generic session-restorer hook; legacy migration also lives in `ProjectState`;
+- `ShellWindow` is the stable window facade.
+
+Still outstanding:
+
+- `platform.shell` still exports its implementation package because `NbfxTabPane` and the
+  remaining implementation types are not yet split;
+- apichanges/signature-test coverage for the new API/SPI remains a W2 item;
+- `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
+  navigator/dock internals.

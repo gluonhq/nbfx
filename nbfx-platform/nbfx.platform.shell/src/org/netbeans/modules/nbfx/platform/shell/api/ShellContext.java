@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.api;
 
 import java.util.Objects;
 import javafx.beans.value.ObservableValue;
@@ -47,6 +47,12 @@ public record ShellContext(Lookup lookup) {
     /** The generic action context, or {@code null} when none is available. */
     public ActionContext actionContext() {
         return lookup.lookup(ActionContext.class);
+    }
+
+    /** The chrome profile for this context; defaults to {@link ShellChromeProfile#ALL}. */
+    public ShellChromeProfile profile() {
+        ShellChromeProfile profile = lookup.lookup(ShellChromeProfile.class);
+        return profile == null ? ShellChromeProfile.ALL : profile;
     }
 
     /**

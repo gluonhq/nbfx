@@ -18,26 +18,21 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.api.nbfx.actions.Command;
-import org.netbeans.api.nbfx.view.NavigatorRevealer;
-import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
-import org.netbeans.modules.nbfx.platform.shell.WindowEnvironmentContribution;
-import java.util.List;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
-import org.openide.util.Lookup;
+import org.netbeans.api.nbfx.project.ProjectLifecycle;
+import org.netbeans.api.nbfx.view.NavigatorRevealer;
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
 import org.openide.filesystems.FileObject;
+import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
 
 /**
- * The launcher's {@link WindowEnvironment}: it supplies the window system with the host services -
- * the shared {@link ActionBars}, the navigator revealer, the project switcher and the tab home
- * resolver - which used to be static setters on the tab pane. The launcher configures the single
- * instance (obtained through the Lookup) while starting up.
+ * The IDE's window-environment contribution. It is stateless: every operation delegates to the
+ * running shell, which owns the navigators, detached bars, tab homes and reveal state.
  */
 @ServiceProviders({
     @ServiceProvider(service = WindowEnvironmentContribution.class),
@@ -45,89 +40,69 @@ import org.openide.util.lookup.ServiceProviders;
 })
 public final class WindowEnvironmentService implements WindowEnvironmentContribution, NavigatorRevealer {
 
-    private ActionBars actionBars;
-    private BiConsumer<FileObject, Integer> navigatorRevealer;
-    private Function<FileObject, Boolean> navigatorFileRevealer;
-    private Function<Tab, TabPane> homeResolver;
-    private ProjectSwitcher projectSwitcher;
-    private boolean navigatorRevealInProgress;
-
-    /** Sets the bars used to build the menu and tool bars of each detached window. */
-    void setActionBars(ActionBars actionBars) {
-        this.actionBars = actionBars;
-    }
-
-    /** Sets the hook used by detached editor windows to reveal their selected file in the navigator. */
-    void setNavigatorRevealer(BiConsumer<FileObject, Integer> navigatorRevealer) {
-        this.navigatorRevealer = navigatorRevealer;
-    }
-
-    /** Sets the hook that reveals a file in whichever navigator shows its project (the targeted service). */
-    void setNavigatorFileRevealer(Function<FileObject, Boolean> navigatorFileRevealer) {
-        this.navigatorFileRevealer = navigatorFileRevealer;
-    }
-
-    /** Sets how the pane a tab belongs in by default is found. */
-    void setHomeResolver(Function<Tab, TabPane> homeResolver) {
-        this.homeResolver = homeResolver;
-    }
-
-    /** Sets the switcher driving the Next/Previous Project shortcut in every window. */
-    void setProjectSwitcher(ProjectSwitcher projectSwitcher) {
-        this.projectSwitcher = projectSwitcher;
-    }
-
     @Override
-    public Region createDetachedBars(Lookup context, List<Command> scopedCommands) {
-        return actionBars == null ? null
-                : actionBars.createDetachedBars(EditorContexts.activeDocument(), scopedCommands);
+    public Region createDetachedBars(DetachedBarsContext context) {
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        return app == null ? null : app.createDetachedBars(context);
     }
 
     @Override
     public boolean revealInNavigator(FileObject file, int index) {
-        if (navigatorRevealer != null && file != null) {
-            navigatorRevealer.accept(file, index);
-            return true;
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app == null || file == null) {
+            return false;
         }
-        return false;
+        app.revealFileInNavigator(file, index);
+        return true;
     }
 
     @Override
     public boolean reveal(FileObject file) {
-        return navigatorFileRevealer != null && file != null
-                && Boolean.TRUE.equals(navigatorFileRevealer.apply(file));
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        return app != null && file != null && app.revealFileInOwningNavigator(file);
     }
 
     @Override
     public boolean selectNextProject() {
-        if (projectSwitcher == null) {
+        ProjectLifecycle lifecycle = lookupLifecycle();
+        if (lifecycle == null) {
             return false;
         }
-        projectSwitcher.next();
+        lifecycle.selectNext();
         return true;
     }
 
     @Override
     public boolean selectPreviousProject() {
-        if (projectSwitcher == null) {
+        ProjectLifecycle lifecycle = lookupLifecycle();
+        if (lifecycle == null) {
             return false;
         }
-        projectSwitcher.previous();
+        lifecycle.selectPrevious();
         return true;
     }
 
     @Override
     public TabPane homeOf(Tab tab) {
-        return homeResolver == null ? null : homeResolver.apply(tab);
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        return app == null ? null : app.homeOf(tab);
     }
 
     @Override
     public boolean isNavigatorRevealInProgress() {
-        return navigatorRevealInProgress;
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        return app != null && app.isNavigatorRevealInProgress();
     }
 
     @Override
     public void setNavigatorRevealInProgress(boolean inProgress) {
-        this.navigatorRevealInProgress = inProgress;
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app != null) {
+            app.setNavigatorRevealInProgress(inProgress);
+        }
+    }
+
+    private static ProjectLifecycle lookupLifecycle() {
+        return Lookup.getDefault().lookup(ProjectLifecycle.class);
     }
 }

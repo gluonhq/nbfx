@@ -18,6 +18,10 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
+
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
@@ -32,7 +36,7 @@ import org.openide.util.lookup.ProxyLookup;
  *
  * @since 1.0
  */
-public final class DefaultShellChrome implements ShellChrome {
+public final class DefaultShellChrome implements ShellChrome, ToolBarHost {
 
     private final ShellContext context;
     private final ShellMenuBar menuBuilder;
@@ -53,7 +57,7 @@ public final class DefaultShellChrome implements ShellChrome {
         this.top = hasMenus || hasToolBars
                 ? new VBox(menuBuilder.menuBar(), toolBarBuilder.container())
                 : null;
-        this.statusBar = new StatusBar(StatusElementRegistry.discover());
+        this.statusBar = new StatusBar(StatusElementRegistry.discover(context.lookup()));
     }
 
     /** The context this chrome was created for. */
@@ -61,7 +65,7 @@ public final class DefaultShellChrome implements ShellChrome {
         return context;
     }
 
-    /** The main tool bar container, for persistence and for detached windows that mirror it. */
+    @Override
     public ToolBarContainer toolBars() {
         return toolBarBuilder.container();
     }
@@ -80,5 +84,9 @@ public final class DefaultShellChrome implements ShellChrome {
     public void dispose() {
         menuBuilder.dispose();
         statusBar.dispose();
+        ShellCommandResolver resolver = context.lookup().lookup(ShellCommandResolver.class);
+        if (resolver != null) {
+            resolver.close();
+        }
     }
 }

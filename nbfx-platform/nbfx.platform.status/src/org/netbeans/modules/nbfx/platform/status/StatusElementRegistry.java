@@ -53,7 +53,18 @@ public final class StatusElementRegistry {
      * @return the elements, ordered by slot, position and id
      */
     public static List<StatusElement> discover() {
-        return discover(List.of());
+        return discover(List.of(), Lookup.getDefault());
+    }
+
+    /**
+     * Discovers the registered status elements with {@code services} passed to each element before
+     * the status bar creates its node.
+     *
+     * @param services the shell lookup
+     * @return the elements, ordered by slot, position and id
+     */
+    public static List<StatusElement> discover(Lookup services) {
+        return discover(List.of(), services);
     }
 
     /**
@@ -64,10 +75,26 @@ public final class StatusElementRegistry {
      * @return all elements, ordered by slot, position and id
      */
     public static List<StatusElement> discover(List<StatusElement> additional) {
+        return discover(additional, Lookup.getDefault());
+    }
+
+    /**
+     * Discovers the registered status elements and merges {@code additional}, initializing every
+     * element with {@code services}.
+     *
+     * @param additional extra elements to include
+     * @param services   the shell lookup passed to each element
+     * @return all elements, ordered by slot, position and id
+     */
+    public static List<StatusElement> discover(List<StatusElement> additional, Lookup services) {
         Lookup lookup = Lookups.forPath(LayerPaths.STATUS);
         FileObject folder = FileUtil.getConfigFile(LayerPaths.STATUS);
         List<StatusElement> elements = new ArrayList<>(additional);
+        for (StatusElement element : additional) {
+            element.element().init(services);
+        }
         for (StatusElementHolder element : lookup.lookupAll(StatusElementHolder.class)) {
+            element.init(services);
             FileObject file = folder == null ? null : folder.getFileObject(element.getId(), "instance");
             StatusAlignment alignment = file == null
                     ? element.alignment()

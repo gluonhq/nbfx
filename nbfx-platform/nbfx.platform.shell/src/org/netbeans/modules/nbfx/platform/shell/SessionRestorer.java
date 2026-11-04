@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.geometry.Orientation;
@@ -86,9 +87,14 @@ public final class SessionRestorer {
      */
     private final Function<String, Tab> viewTabs;
 
-    public SessionRestorer(AppState appState, Function<String, Tab> viewTabs) {
+    /** The product's project-tree state store, resolved lazily so a subclass can install it. */
+    private final Supplier<ViewStateStore> viewStateStore;
+
+    public SessionRestorer(AppState appState, Function<String, Tab> viewTabs,
+            Supplier<ViewStateStore> viewStateStore) {
         this.appState = appState;
         this.viewTabs = viewTabs;
+        this.viewStateStore = viewStateStore;
     }
 
     // --- Capture ------------------------------------------------------------
@@ -128,8 +134,11 @@ public final class SessionRestorer {
                 selected = provider.getSelectedPath(root);
             }
         }
-        appState.setExpandedNodes(project.getPath(), expanded);
-        appState.setSelectedNode(project.getPath(), selected);
+        ViewStateStore store = viewStateStore == null ? null : viewStateStore.get();
+        if (store != null) {
+            store.setExpandedNodes(project.getPath(), expanded);
+            store.setSelectedNode(project.getPath(), selected);
+        }
     }
 
     /**

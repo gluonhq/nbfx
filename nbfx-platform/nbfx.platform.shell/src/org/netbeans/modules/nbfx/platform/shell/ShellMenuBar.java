@@ -32,6 +32,10 @@ import org.netbeans.api.nbfx.actions.ActionLayerReader;
 import org.netbeans.api.nbfx.actions.ActionRef;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.views.DynamicMenu;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Exceptions;
@@ -48,12 +52,14 @@ public final class ShellMenuBar {
             ? LayerPaths.DYNAMIC_SUFFIX.substring(1) : LayerPaths.DYNAMIC_SUFFIX;
 
     private final ShellContext context;
+    private final ShellChromeProfile profile;
     private final Map<FileObject, MenuModel> models = new IdentityHashMap<>();
     private final Map<FileObject, Menu> menus = new IdentityHashMap<>();
     private final MenuBar menuBar;
 
     public ShellMenuBar(ShellContext context) {
         this.context = context;
+        this.profile = context.profile();
         this.menuBar = build();
     }
 
@@ -81,7 +87,7 @@ public final class ShellMenuBar {
         if (root != null) {
             List<FileObject> folders = new ArrayList<>();
             for (FileObject child : root.getChildren()) {
-                if (child.isFolder()) {
+                if (child.isFolder() && profile.includeMenu(child.getName())) {
                     folders.add(child);
                 }
             }
@@ -96,7 +102,7 @@ public final class ShellMenuBar {
             }
         }
         MenuBar bar = new MenuBar(topLevel.toArray(Menu[]::new));
-        bar.setUseSystemMenuBar(true);
+        bar.setUseSystemMenuBar(profile.useSystemMenuBar());
         return bar;
     }
 
@@ -116,18 +122,26 @@ public final class ShellMenuBar {
     }
 
     /**
-     * Fills {@code menu} from {@code model}. Entries and submenu folders share one position-ordered
-     * list; a dynamic section may update its items at any time, and rebuilding the menu keeps every
-     * section at its declared position without the section knowing it.
+     * Fills {@code menu} from {@code model}. Each entry keeps its rendered items, so a dynamic
+     * update can replace only its own range; separators are laid out in one pass over the whole
+     * entry list, so a section becoming empty or non-empty cannot leave a stale separator.
      */
     private void fill(Menu menu, MenuModel model) {
+        for (EntryState state : model.states()) {
+            state.rendered = render(state.entry());
+        }
+        layout(menu, model);
+    }
+
+    /** Adds the rendered entries and their separators in model order, reusing the item instances. */
+    private void layout(Menu menu, MenuModel model) {
         menu.getItems().clear();
-        for (Entry entry : model.entries()) {
-            List<MenuItem> content = content(entry);
+        for (EntryState state : model.states()) {
+            List<MenuItem> content = state.rendered;
             if (content.isEmpty()) {
                 continue;
             }
-            if (entry.separatorBefore() && !menu.getItems().isEmpty()
+            if (state.entry().separatorBefore() && !menu.getItems().isEmpty()
                     && !(menu.getItems().get(menu.getItems().size() - 1) instanceof SeparatorMenuItem)) {
                 menu.getItems().add(new SeparatorMenuItem());
             }
@@ -135,13 +149,26 @@ public final class ShellMenuBar {
         }
     }
 
+    /** Replaces the items owned by {@code entry}, then normalises the whole menu's separators. */
+    private void refreshDynamic(Menu menu, MenuModel model, DynamicEntry entry) {
+        for (EntryState state : model.states()) {
+            if (state.entry() == entry) {
+                state.rendered = render(entry);
+                layout(menu, model);
+                return;
+            }
+        }
+    }
+
     /** The items an entry contributes; empty when a command is missing or a section is empty. */
-    private List<MenuItem> content(Entry entry) {
+    private List<MenuItem> render(Entry entry) {
         if (entry instanceof StaticEntry staticEntry) {
-            MenuItem item = menuItem(staticEntry.commandId());
-            return item == null ? List.of() : List.of(item);
+            return staticEntry.item() == null ? List.of() : List.of(staticEntry.item());
         }
         if (entry instanceof DynamicEntry dynamic) {
+            if (dynamic.submenu() != null) {
+                return dynamic.submenu().getItems().isEmpty() ? List.of() : List.of(dynamic.submenu());
+            }
             return dynamic.content() == null ? List.of() : List.copyOf(dynamic.content().items());
         }
         if (entry instanceof SubmenuEntry submenu) {
@@ -154,12 +181,16 @@ public final class ShellMenuBar {
     private MenuModel model(FileObject folder, Menu owner) {
         List<Entry> entries = new ArrayList<>();
         for (ActionRef ref : ActionLayerReader.read(folder)) {
-            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore()));
+            if (!profile.includeMenuItem(folder.getName(), ref.actionId())) {
+                continue;
+            }
+            entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore(),
+                    menuItem(ref.actionId())));
         }
         List<DynamicEntry> dynamicEntries = readDynamic(folder, owner);
         entries.addAll(dynamicEntries);
         for (FileObject child : folder.getChildren()) {
-            if (child.isFolder()) {
+            if (child.isFolder() && profile.includeMenu(child.getName())) {
                 entries.add(new SubmenuEntry(
                         intAttribute(child, "position", Integer.MAX_VALUE),
                         child.getName(),
@@ -168,7 +199,11 @@ public final class ShellMenuBar {
             }
         }
         entries.sort(Comparator.comparingInt(Entry::position).thenComparing(Entry::id));
-        MenuModel model = new MenuModel(List.copyOf(entries), List.copyOf(dynamicEntries));
+        List<EntryState> states = new ArrayList<>(entries.size());
+        for (Entry entry : entries) {
+            states.add(new EntryState(entry));
+        }
+        MenuModel model = new MenuModel(List.copyOf(states), List.copyOf(dynamicEntries));
         models.put(folder, model);
         return model;
     }
@@ -179,29 +214,44 @@ public final class ShellMenuBar {
             if (!child.isData() || !child.hasExt(DYNAMIC_EXT)) {
                 continue;
             }
+            if (!profile.includeMenuItem(folder.getName(), child.getName())) {
+                continue;
+            }
             String factoryName = stringAttribute(child, "factory", "");
             if (factoryName.isEmpty()) {
                 continue;
             }
             int position = intAttribute(child, "position", Integer.MAX_VALUE);
             boolean separatorBefore = Boolean.TRUE.equals(child.getAttribute("separatorBefore"));
+            String displayName = stringAttribute(child, "displayName", "");
             DynamicMenu content = createDynamic(factoryName);
+            Menu submenu = null;
+            if (content != null && !displayName.isEmpty()) {
+                submenu = new Menu(displayName);
+                submenu.setId(child.getName());
+                submenu.getItems().setAll(content.items());
+                Menu dynamicSubmenu = submenu;
+                content.items().addListener((ListChangeListener<MenuItem>) change ->
+                        dynamicSubmenu.getItems().setAll(content.items()));
+            }
+            DynamicEntry entry = new DynamicEntry(position, child.getName(), separatorBefore,
+                    content, submenu);
             if (content != null) {
                 content.items().addListener((ListChangeListener<MenuItem>) change -> {
                     MenuModel current = models.get(folder);
                     if (current != null) {
-                        fill(owner, current);
+                        refreshDynamic(owner, current, entry);
                     }
                 });
             }
-            entries.add(new DynamicEntry(position, child.getName(), separatorBefore, content));
+            entries.add(entry);
         }
         return entries;
     }
 
     private DynamicMenu createDynamic(String factoryName) {
         for (DynamicMenu.Factory factory : context.lookup().lookupAll(DynamicMenu.Factory.class)) {
-            if (factory.getClass().getName().equals(factoryName)) {
+            if (factory.factoryId().equals(factoryName)) {
                 try {
                     return factory.create(context.lookup());
                 } catch (RuntimeException ex) {
@@ -238,7 +288,20 @@ public final class ShellMenuBar {
         return file.getAttribute(name) instanceof String value && !value.isBlank() ? value : fallback;
     }
 
-    private record MenuModel(List<Entry> entries, List<DynamicEntry> dynamic) {
+    private record MenuModel(List<EntryState> states, List<DynamicEntry> dynamic) {
+    }
+
+    private static final class EntryState {
+        private final Entry entry;
+        private List<MenuItem> rendered = List.of();
+
+        EntryState(Entry entry) {
+            this.entry = entry;
+        }
+
+        Entry entry() {
+            return entry;
+        }
     }
 
     private sealed interface Entry permits StaticEntry, DynamicEntry, SubmenuEntry {
@@ -247,15 +310,16 @@ public final class ShellMenuBar {
         boolean separatorBefore();
     }
 
-    private record StaticEntry(int position, String commandId, boolean separatorBefore) implements Entry {
+    private record StaticEntry(int position, String commandId, boolean separatorBefore,
+            MenuItem item) implements Entry {
         @Override
         public String id() {
             return commandId;
         }
     }
 
-    private record DynamicEntry(int position, String id, boolean separatorBefore, DynamicMenu content)
-            implements Entry {
+    private record DynamicEntry(int position, String id, boolean separatorBefore,
+            DynamicMenu content, Menu submenu) implements Entry {
     }
 
     private record SubmenuEntry(int position, String id, boolean separatorBefore, FileObject folder)

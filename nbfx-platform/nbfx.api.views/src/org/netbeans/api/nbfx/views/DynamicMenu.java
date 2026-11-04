@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.api.nbfx.views;
 
 import javafx.collections.ObservableList;
 import javafx.scene.control.MenuItem;
@@ -45,6 +45,16 @@ public interface DynamicMenu {
          * @return the dynamic menu; never {@code null}
          */
         DynamicMenu create(Lookup context);
+
+        /**
+         * The stable id used by the layer registration. The default is the runtime class name; a
+         * factory that is a subclass or wrapper can override it to keep the registered id stable.
+         *
+         * @return the factory id, never {@code null}
+         */
+        default String factoryId() {
+            return getClass().getName();
+        }
     }
 
     /**

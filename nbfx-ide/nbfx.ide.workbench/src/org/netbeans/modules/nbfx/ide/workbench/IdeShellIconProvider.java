@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -26,7 +28,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
-import org.netbeans.modules.nbfx.platform.shell.ShellIconProvider;
 
 /**
  * The IDE's icon resources, kept out of the generic builders. A contributed command that carries
@@ -34,7 +35,13 @@ import org.netbeans.modules.nbfx.platform.shell.ShellIconProvider;
  */
 final class IdeShellIconProvider implements ShellIconProvider {
 
+    /** The process-wide provider, so every window shares the decoded-image cache. */
+    static final IdeShellIconProvider INSTANCE = new IdeShellIconProvider();
+
     private static final Logger LOG = Logger.getLogger(IdeShellIconProvider.class.getName());
+
+    private IdeShellIconProvider() {
+    }
 
     /** Maps a command id to its icon resource (relative to this class' package). */
     private static final Map<String, String> ICONS = new HashMap<>();

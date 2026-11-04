@@ -18,6 +18,12 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
@@ -25,7 +31,6 @@ import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DispatchingCommand;
-import org.netbeans.modules.nbfx.platform.shell.ShellCommandResolver;
 import org.openide.util.Lookup;
 
 /**
@@ -34,13 +39,27 @@ import org.openide.util.Lookup;
  */
 final class IdeShellCommandResolver implements ShellCommandResolver {
 
-    private final ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+    private final ActionRegistry registry;
     private final ObservableValue<EditorDocument> mainScope;
     private final ObservableValue<Boolean> preferFile;
+    private final List<Command> scopedSink;
+    private final Map<String, Optional<Command>> scoped = new HashMap<>();
 
     IdeShellCommandResolver(ObservableValue<EditorDocument> mainScope, ObservableValue<Boolean> preferFile) {
+        this(Lookup.getDefault().lookup(ActionRegistry.class), mainScope, preferFile, null);
+    }
+
+    IdeShellCommandResolver(ActionRegistry registry, ObservableValue<EditorDocument> mainScope,
+            ObservableValue<Boolean> preferFile) {
+        this(registry, mainScope, preferFile, null);
+    }
+
+    IdeShellCommandResolver(ActionRegistry registry, ObservableValue<EditorDocument> mainScope,
+            ObservableValue<Boolean> preferFile, List<Command> scopedSink) {
+        this.registry = registry;
         this.mainScope = mainScope;
         this.preferFile = preferFile;
+        this.scopedSink = scopedSink;
     }
 
     @Override
@@ -53,9 +72,13 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
         if (registry == null) {
             return null;
         }
-        Command editor = registry.createScoped(id, mainScope)
-                .or(() -> registry.find(id))
-                .orElse(null);
+        boolean absent = !scoped.containsKey(id);
+        Command scopedCommand = scoped.computeIfAbsent(id,
+                key -> registry.createScoped(key, mainScope)).orElse(null);
+        if (absent && scopedCommand != null && scopedSink != null) {
+            scopedSink.add(scopedCommand);
+        }
+        Command editor = scopedCommand != null ? scopedCommand : registry.find(id).orElse(null);
         if (editor == null) {
             return null;
         }
@@ -81,5 +104,13 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
             default -> null;
         };
         return fileId == null || registry == null ? null : registry.find(fileId).orElse(null);
+    }
+
+    @Override
+    public void close() {
+        if (scopedSink == null) {
+            scoped.values().stream().flatMap(Optional::stream).forEach(Command::dispose);
+        }
+        scoped.clear();
     }
 }

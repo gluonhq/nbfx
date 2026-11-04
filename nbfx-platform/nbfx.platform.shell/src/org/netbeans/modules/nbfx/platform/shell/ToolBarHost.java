@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.project;
-
-import org.netbeans.api.nbfx.actions.AbstractCommand;
-import javafx.scene.input.KeyCombination;
+package org.netbeans.modules.nbfx.platform.shell;
 
 /**
- * A command that opens a registered wizard by id.
+ * A chrome that owns the main tool bars. The shell uses this capability for toolbar persistence
+ * without knowing the concrete chrome implementation; a custom chrome may implement it when it
+ * wants the standard persistence and detached-window mirroring.
  *
  * @since 1.0
  */
-final class WizardCommand extends AbstractCommand {
+public interface ToolBarHost {
 
-    private final String wizardId;
-
-    WizardCommand(String id, String text, KeyCombination accelerator, String wizardId) {
-        super(id, text, accelerator, false);
-        this.wizardId = wizardId;
-    }
-
-    @Override
-    public void run() {
-        Wizards.run(wizardId);
-    }
+    /** The main window's tool bar container. */
+    ToolBarContainer toolBars();
 }

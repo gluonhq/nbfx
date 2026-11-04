@@ -64,13 +64,19 @@
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>org.netbeans.modules.nbfx.platform.shell</code> is public.</p>
+    <p>
+      The product-facing contract and SPI package <code>org.netbeans.modules.nbfx.platform.shell.api</code>
+      is exported. <code>org.netbeans.modules.nbfx.platform.shell</code> remains public for
+      <code>ShellApplication</code> and the existing shell services until the shell application entry
+      point is split from the internal implementation.
+    </p>
   </answer>
 
   <answer id="lookup-lookup">
     <p>
       The shell resolves <code>WindowEnvironment</code>, <code>EditorContext</code> and the
-      content services from the global Lookup.
+      content services from the shell lookup; per-shell chrome contributions, command resolvers,
+      icon providers, branding and dynamic menus are resolved from the same lookup.
     </p>
   </answer>
 

@@ -19,15 +19,8 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import static org.netbeans.api.nbfx.actions.ActionIds.SELECT_PROPERTIES;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLOSE_ALL_PROJECTS;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.CLOSE_PROJECT;
 import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.FIND_IN_PROJECTS;
 import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.FIND_USAGES;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEW_FILE;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEW_PROJECT;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.NEXT_PROJECT;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.OPEN_PROJECT;
-import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.PREVIOUS_PROJECT;
 import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.REPLACE_IN_PROJECTS;
 import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_FILES;
 import static org.netbeans.modules.nbfx.ide.actions.IdeActionIds.SELECT_IN_FILES;
@@ -41,22 +34,15 @@ import org.netbeans.api.nbfx.views.MenuRegistration;
 import org.netbeans.modules.nbfx.platform.menus.Menus;
 
 /**
- * IDE-specific entries in the shell menus. The generic File/Edit/View/Window layout stays in
- * {@link Menus}; this module adds the project, usages and search entries that depend on IDE services.
+ * Workbench-owned entries in the shell menus: navigator/editor selection, search, usages and the
+ * IDE Tools submenu. Project action entries live in {@code ide.project.actions}.
  */
 @MenuRegistration(id = "Window/IDE Tools", displayName = "IDE Tools", position = 100)
 @ActionReference(id = SELECT_PROPERTIES, path = "Menus/Window/IDE Tools", position = 10)
-@ActionReference(id = NEW_PROJECT, path = "Menus/File", position = 10)
-@ActionReference(id = NEW_FILE, path = "Menus/File", position = 15)
-@ActionReference(id = OPEN_PROJECT, path = "Menus/File", position = 20)
-@ActionReference(id = CLOSE_PROJECT, path = "Menus/File", position = 40)
-@ActionReference(id = CLOSE_ALL_PROJECTS, path = "Menus/File", position = 50)
 @ActionReference(id = SELECT_PROJECTS, path = "Menus/Window", position = 10)
 @ActionReference(id = SELECT_FILES, path = "Menus/Window", position = 20)
 @ActionReference(id = SELECT_USAGES, path = "Menus/Window", position = 30)
 @ActionReference(id = SELECT_SEARCH_RESULTS, path = "Menus/Window", position = 40)
-@ActionReference(id = NEXT_PROJECT, path = "Menus/Window", position = 110, separatorBefore = true)
-@ActionReference(id = PREVIOUS_PROJECT, path = "Menus/Window", position = 120)
 @ActionReference(id = SELECT_IN_PROJECTS, path = "ContextMenus/Editor", position = 120, separatorBefore = true)
 @ActionReference(id = SELECT_IN_PROJECTS, path = "Menus/Navigate", position = 70, separatorBefore = true)
 @ActionReference(id = SELECT_IN_FILES, path = "Menus/Navigate", position = 80)

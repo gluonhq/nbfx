@@ -24,7 +24,7 @@ import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.api.nbfx.project.ProjectSourceRoots;
 import org.netbeans.api.nbfx.project.SourceRoot;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.api.nbfx.usages.EnclosingElement;
 import org.netbeans.api.nbfx.usages.QueryOptions;
 import org.netbeans.api.nbfx.usages.UsageContext;

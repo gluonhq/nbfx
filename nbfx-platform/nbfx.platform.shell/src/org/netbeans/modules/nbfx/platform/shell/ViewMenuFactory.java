@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.views.DynamicMenu;
+
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.CheckMenuItem;
@@ -25,7 +27,6 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.ToolBar;
-import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
@@ -65,15 +66,6 @@ public final class ViewMenuFactory implements DynamicMenu.Factory {
                 reset.setOnAction(event -> toolBars.resetArrangement());
                 toolbars.getItems().add(reset);
                 items.add(toolbars);
-            }
-            EditorSettings settings = context.lookup(EditorSettings.class);
-            if (settings != null) {
-                CheckMenuItem lineNumbers = new CheckMenuItem(message("Menu.view.showLineNumbers"));
-                lineNumbers.selectedProperty().bindBidirectional(settings.showLineNumbers());
-                items.add(lineNumbers);
-                CheckMenuItem breadcrumbs = new CheckMenuItem(message("Menu.view.showBreadcrumbs"));
-                breadcrumbs.selectedProperty().bindBidirectional(settings.showBreadcrumbs());
-                items.add(breadcrumbs);
             }
         }
 

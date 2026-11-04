@@ -18,6 +18,11 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
+import org.netbeans.api.nbfx.views.DynamicMenu;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -35,6 +40,8 @@ import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -83,6 +90,71 @@ public class ShellMenuBarTest {
 
 
     @Test
+    public void dynamicSectionUpdatesOnlyItsOwnRange() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = configRoot();
+            FileObject folder = createFolder(root, "NbFx/Menus/RefreshMenu");
+            try {
+                createRef(folder, "static.ref", "test.static", 10);
+                createDynamic(folder, "section.dynamic", TestFactory.class.getName(), 20);
+                TestFactory factory = new TestFactory("Dynamic");
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(factory, resolver()), Lookup.getDefault())));
+                try {
+                    Menu menu = menu(bar, "RefreshMenu");
+                    MenuItem staticItem = menu.getItems().get(0);
+                    factory.items.add(new MenuItem("More"));
+                    assertEquals(List.of("Static", "Dynamic", "More"), texts(menu));
+                    assertSame("the static item was recreated", staticItem, menu.getItems().get(0));
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void dynamicSectionSeparatorFollowsEmptiness() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = configRoot();
+            FileObject folder = createFolder(root, "NbFx/Menus/SeparatorMenu");
+            try {
+                createRef(folder, "first.ref", "test.static", 10);
+                FileObject dynamic = createData(folder, "section.dynamic");
+                set(dynamic, "factory", TestFactory.class.getName());
+                set(dynamic, "position", 20);
+                set(dynamic, "separatorBefore", true);
+                createRef(folder, "last.ref", "test.static", 30);
+
+                TestFactory factory = new TestFactory("Dynamic");
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(factory, resolver()), Lookup.getDefault())));
+                try {
+                    Menu menu = menu(bar, "SeparatorMenu");
+                    assertEquals(List.of("Static", "---", "Dynamic", "Static"),
+                            itemDescriptions(menu));
+
+                    factory.items.clear();
+                    assertEquals("an emptied section must not leave its separator",
+                            List.of("Static", "Static"), itemDescriptions(menu));
+
+                    factory.items.add(new MenuItem("More"));
+                    assertEquals("a refilled section gets its separator back",
+                            List.of("Static", "---", "More", "Static"), itemDescriptions(menu));
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
     public void submenusMergeByPositionAndSeparator() throws InterruptedException {
         FxTestSupport.onFx(() -> {
             FileObject root = configRoot();
@@ -105,6 +177,73 @@ public class ShellMenuBarTest {
                     assertNotNull("the test menu was not built", menu);
                     assertEquals(List.of("EarlySub", "Static", "---", "LateSub", "Static"),
                             itemDescriptions(menu));
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void dynamicDisplayNameBuildsASubmenu() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = configRoot();
+            FileObject folder = createFolder(root, "NbFx/Menus/SubmenuMenu");
+            try {
+                createDynamic(folder, "recent.dynamic", TestFactory.class.getName(), 10, "Recent");
+                TestFactory factory = new TestFactory("Dynamic");
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(factory, resolver()), Lookup.getDefault())));
+                try {
+                    Menu menu = menu(bar, "SubmenuMenu");
+                    Menu submenu = (Menu) menu.getItems().get(0);
+                    assertEquals("Recent", submenu.getText());
+                    assertEquals(List.of("Dynamic"), texts(submenu));
+                    factory.items.clear();
+                    assertTrue("an empty dynamic submenu must not be shown", menu.getItems().isEmpty());
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void profileFiltersMenuItems() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = configRoot();
+            FileObject folder = createFolder(root, "NbFx/Menus/ProfileMenu");
+            try {
+                createRef(folder, "static.ref", "test.static", 10);
+                createDynamic(folder, "section.dynamic", TestFactory.class.getName(), 20);
+                ShellChromeProfile profile = new ShellChromeProfile() {
+                    @Override
+                    public boolean includeMenu(String menuId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeMenuItem(String menuId, String itemId) {
+                        return !"test.static".equals(itemId);
+                    }
+
+                    @Override
+                    public boolean includeToolBar(String toolBarId) {
+                        return true;
+                    }
+                };
+                TestFactory factory = new TestFactory();
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(factory, resolver(), profile), Lookup.getDefault())));
+                try {
+                    Menu menu = menu(bar, "ProfileMenu");
+                    assertEquals(List.of("Dynamic"), texts(menu));
                 } finally {
                     bar.dispose();
                 }
@@ -171,9 +310,17 @@ public class ShellMenuBarTest {
     }
 
     private static void createDynamic(FileObject folder, String name, String factory, int position) {
+        createDynamic(folder, name, factory, position, null);
+    }
+
+    private static void createDynamic(FileObject folder, String name, String factory, int position,
+            String displayName) {
         FileObject file = createData(folder, name);
         set(file, "factory", factory);
         set(file, "position", position);
+        if (displayName != null) {
+            set(file, "displayName", displayName);
+        }
     }
 
     private static void set(FileObject file, String name, Object value) {
@@ -234,9 +381,19 @@ public class ShellMenuBarTest {
 
     private static final class TestFactory implements DynamicMenu.Factory {
 
-        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(
-                new MenuItem("Dynamic"));
+        private final ObservableList<MenuItem> items;
         private boolean disposed;
+
+        TestFactory() {
+            this("Dynamic");
+        }
+
+        TestFactory(String... texts) {
+            items = FXCollections.observableArrayList();
+            for (String text : texts) {
+                items.add(new MenuItem(text));
+            }
+        }
 
         @Override
         public DynamicMenu create(Lookup context) {

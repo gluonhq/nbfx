@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,11 +33,16 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import junit.framework.Test;
+import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.junit.NbModuleSuite;
 import org.netbeans.junit.NbTestCase;
+import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
+import org.netbeans.modules.nbfx.platform.status.StatusElement;
+import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
+import org.openide.util.Lookup;
 
 /**
  * The IDE's main window uses the generic shell chrome: the menu and tool bars come from the layer
@@ -75,11 +82,45 @@ public class AppChromeTest extends NbTestCase {
                 hasMenu(menu(menuBar, "File"), "Open Recent Project"));
         assertTrue("the Configure Window section is missing",
                 hasMenu(menu(menuBar, "Window"), "Configure Window"));
+        Menu fileMenu = menu(menuBar, "File");
+        assertTrue("New Project is missing from File", hasItem(fileMenu, "New Project"));
+        assertTrue("New File is missing from File", hasItem(fileMenu, "New File"));
+        assertTrue("Open Project is missing from File", hasItem(fileMenu, "Open Project"));
+        assertTrue("Close Project is missing from File", hasItem(fileMenu, "Close Project"));
+        assertTrue("Close All Projects is missing from File", hasItem(fileMenu, "Close All Projects"));
+        Menu windowMenu = menu(menuBar, "Window");
+        assertTrue("Next Project is missing from Window", hasItem(windowMenu, "Next Project"));
+        assertTrue("Previous Project is missing from Window", hasItem(windowMenu, "Previous Project"));
 
         assertFalse("the main window has no tool bars", chrome.toolBars().getToolBars().isEmpty());
         assertEquals(List.of("file", "clipboard", "edit", "build", "debug"),
                 chrome.toolBars().getToolBars().stream().map(toolBar -> toolBar.getId()).toList());
         assertNotNull("the main window has no status bar", chrome.bottom());
+        List<String> statusIds = StatusElementRegistry.discover().stream()
+                .map(StatusElement::id).toList();
+        assertTrue("the project status element is missing: " + statusIds, statusIds.contains("project"));
+        assertTrue("the caret status element is missing: " + statusIds, statusIds.contains("caret"));
+        assertTrue("the line-separator status element is missing: " + statusIds,
+                statusIds.contains("line-separator"));
+
+        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+        assertNotNull("no action registry", registry);
+        assertTrue("New Project is not registered",
+                registry.find(IdeActionIds.NEW_PROJECT).isPresent());
+        assertTrue("New File is not registered",
+                registry.find(IdeActionIds.NEW_FILE).isPresent());
+        assertTrue("Open Project is not registered",
+                registry.find(IdeActionIds.OPEN_PROJECT).isPresent());
+        assertTrue("Close Project is not registered",
+                registry.find(IdeActionIds.CLOSE_PROJECT).isPresent());
+        assertTrue("Close All Projects is not registered",
+                registry.find(IdeActionIds.CLOSE_ALL_PROJECTS).isPresent());
+        assertTrue("Next Project is not registered",
+                registry.find(IdeActionIds.NEXT_PROJECT).isPresent());
+        assertTrue("Previous Project is not registered",
+                registry.find(IdeActionIds.PREVIOUS_PROJECT).isPresent());
+        assertNotNull("the project lifecycle service is missing",
+                Lookup.getDefault().lookup(ProjectLifecycle.class));
     }
 
     private static ShellChrome chrome(JavaFXLaunchApp application) throws Exception {
@@ -130,6 +171,18 @@ public class AppChromeTest extends NbTestCase {
             }
         }
         return null;
+    }
+
+    private static boolean hasItem(Menu parent, String text) {
+        if (parent == null) {
+            return false;
+        }
+        for (MenuItem item : parent.getItems()) {
+            if (text.equals(item.getText())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasMenu(Menu parent, String text) {

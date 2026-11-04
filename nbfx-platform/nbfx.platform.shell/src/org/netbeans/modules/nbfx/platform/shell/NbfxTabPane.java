@@ -1187,11 +1187,12 @@ public final class NbfxTabPane extends TabPane {
 
         BorderPane root = new BorderPane(newPane);
         List<Command> scopedCommands = new ArrayList<>();
+        Region bars = null;
         WindowEnvironment environment = environment();
         if (environment != null) {
             ObservableValue<EditorDocument> activeDocument =
                     newPane.getSelectionModel().selectedItemProperty().map(NbfxTabPane::documentOf);
-            Region bars = environment.createDetachedBars(activeDocument, scopedCommands);
+            bars = environment.createDetachedBars(activeDocument, scopedCommands);
             if (bars != null) {
                 root.setTop(bars);
             }
@@ -1213,7 +1214,7 @@ public final class NbfxTabPane extends TabPane {
         });
         stage.focusedProperty().subscribe(focused ->
                 newPane.pseudoClassStateChanged(DOCK_FOCUSED, focused));
-        registerCloseOnLastTabRemoved(newPane, stage, scopedCommands);
+        registerCloseOnLastTabRemoved(newPane, stage, scopedCommands, bars);
         return stage;
     }
 
@@ -1408,7 +1409,8 @@ public final class NbfxTabPane extends TabPane {
         return documents;
     }
 
-    private static void registerCloseOnLastTabRemoved(TabPane newPane, Stage stage, List<Command> scopedCommands) {
+    private static void registerCloseOnLastTabRemoved(TabPane newPane, Stage stage,
+            List<Command> scopedCommands, Region bars) {
         Objects.requireNonNull(newPane).getTabs().addListener((ListChangeListener<Tab>) _ -> {
             if (newPane.getTabs().isEmpty()) {
                 // Check again, after the next pulse, whether the pane is still empty (it could have
@@ -1426,6 +1428,9 @@ public final class NbfxTabPane extends TabPane {
             // This window's scoped commands observe documents that outlive it, so detach them.
             scopedCommands.forEach(Command::dispose);
             scopedCommands.clear();
+            if (bars instanceof DisposableChrome chrome) {
+                chrome.dispose();
+            }
             // The window closed with tabs still in it (Save/Discard on close): those tabs are
             // gone now, so unregister their documents. If the pane was emptied by a drag-out or
             // last-tab close, documentsOf(newPane) is empty and there is nothing to unregister.

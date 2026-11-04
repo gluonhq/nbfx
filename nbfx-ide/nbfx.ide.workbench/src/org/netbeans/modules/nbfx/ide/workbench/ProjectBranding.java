@@ -18,12 +18,14 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.beans.value.ObservableValue;
+import javafx.util.Subscription;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.platform.shell.ShellBranding;
-import org.netbeans.modules.nbfx.platform.shell.ShellContext;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -36,11 +38,26 @@ public final class ProjectBranding implements ShellBranding {
 
     private final ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
     private final StringProperty title = new SimpleStringProperty(applicationName());
+    private Subscription subscription;
 
     public ProjectBranding() {
-        if (registry != null) {
-            title.set(WindowTitles.of(registry.getSelected()));
-            registry.selectedProjectProperty().subscribe(project -> title.set(WindowTitles.of(project)));
+        subscribe();
+    }
+
+    private void subscribe() {
+        if (subscription != null || registry == null) {
+            return;
+        }
+        title.set(WindowTitles.of(registry.getSelected()));
+        subscription = registry.selectedProjectProperty()
+                .subscribe(project -> title.set(WindowTitles.of(project)));
+    }
+
+    @Override
+    public void dispose() {
+        if (subscription != null) {
+            subscription.unsubscribe();
+            subscription = null;
         }
     }
 
@@ -61,6 +78,7 @@ public final class ProjectBranding implements ShellBranding {
 
     @Override
     public ObservableValue<String> titleProperty(ShellContext context) {
+        subscribe();
         return title;
     }
 }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.api;
 
 import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.Command;
@@ -52,5 +52,9 @@ public interface ShellCommandResolver {
      */
     default Command resolve(String id, ObservableValue<Boolean> preferFile) {
         return resolve(id);
+    }
+
+    /** Releases any scoped commands created by this resolver. */
+    default void close() {
     }
 }

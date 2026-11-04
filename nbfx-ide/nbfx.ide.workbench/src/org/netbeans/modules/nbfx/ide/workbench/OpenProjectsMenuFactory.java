@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.api.nbfx.views.DynamicMenu;
+
 import java.util.List;
 import java.util.function.Function;
 import javafx.collections.FXCollections;
@@ -32,7 +34,6 @@ import javafx.util.Subscription;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
-import org.netbeans.modules.nbfx.platform.shell.DynamicMenu;
 import org.openide.util.Lookup;
 
 /**

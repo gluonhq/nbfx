@@ -26,7 +26,7 @@ import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.FileContextMenuContributor;
 import org.netbeans.api.nbfx.actions.ActionRef;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
