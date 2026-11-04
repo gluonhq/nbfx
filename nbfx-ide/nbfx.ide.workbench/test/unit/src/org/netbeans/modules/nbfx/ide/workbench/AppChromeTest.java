@@ -96,6 +96,10 @@ public class AppChromeTest extends NbTestCase {
 
         ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
         assertNotNull("no action registry", registry);
+        assertTrue("New Project is not registered",
+                registry.find(IdeActionIds.NEW_PROJECT).isPresent());
+        assertTrue("New File is not registered",
+                registry.find(IdeActionIds.NEW_FILE).isPresent());
         assertTrue("Open Project is not registered",
                 registry.find(IdeActionIds.OPEN_PROJECT).isPresent());
         assertTrue("Close Project is not registered",

@@ -21,7 +21,7 @@ package org.netbeans.modules.nbfx.ide.search.query;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;

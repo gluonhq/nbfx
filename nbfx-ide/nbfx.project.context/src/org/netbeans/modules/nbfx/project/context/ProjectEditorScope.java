@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.ide.workbench;
+package org.netbeans.modules.nbfx.project.context;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;

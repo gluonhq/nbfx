@@ -44,10 +44,7 @@ final class WorkspaceCommands {
 
     /** The launcher-owned window actions and their enablement. */
     record WindowActions(
-            Runnable selectProjects, Runnable selectFiles, Runnable selectEditor, Runnable resetWindows,
-            Runnable closeDocument, ObservableValue<Boolean> closeDocumentDisabled,
-            Runnable closeAllDocuments, ObservableValue<Boolean> closeAllDisabled,
-            Runnable closeOtherDocuments, ObservableValue<Boolean> closeOtherDisabled) {
+            Runnable selectProjects, Runnable selectFiles, Runnable selectEditor, Runnable resetWindows) {
     }
 
     private WorkspaceCommands() {
@@ -66,15 +63,6 @@ final class WorkspaceCommands {
                 new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.SHORTCUT_DOWN), actions.selectEditor()));
         registry.register(new RunnableCommand(ActionIds.RESET_WINDOWS, message("CTL_ResetWindowsCommand"),
                 null, actions.resetWindows()));
-        registry.register(new RunnableCommand(ActionIds.CLOSE_DOCUMENT, message("CTL_CloseDocumentCommand"),
-                new KeyCodeCombination(KeyCode.W, KeyCombination.SHORTCUT_DOWN),
-                actions.closeDocument(), actions.closeDocumentDisabled()));
-        registry.register(new RunnableCommand(ActionIds.CLOSE_ALL_DOCUMENTS, message("CTL_CloseAllDocumentsCommand"),
-                new KeyCodeCombination(KeyCode.W, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN),
-                actions.closeAllDocuments(), actions.closeAllDisabled()));
-        registry.register(new RunnableCommand(ActionIds.CLOSE_OTHER_DOCUMENTS, message("CTL_CloseOtherDocumentsCommand"),
-                null, actions.closeOtherDocuments(), actions.closeOtherDisabled()));
-
         ObservableValue<EditorDocument> active = EditorContexts.activeDocument();
         ObservableValue<Boolean> disabled = active == null
                 ? new SimpleBooleanProperty(true)

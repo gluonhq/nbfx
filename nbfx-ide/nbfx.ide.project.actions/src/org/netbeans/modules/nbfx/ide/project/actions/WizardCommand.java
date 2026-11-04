@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.project;
+package org.netbeans.modules.nbfx.ide.project.actions;
 
 import org.netbeans.api.nbfx.actions.AbstractCommand;
+import org.netbeans.modules.nbfx.project.Wizards;
 import javafx.scene.input.KeyCombination;
 
 /**

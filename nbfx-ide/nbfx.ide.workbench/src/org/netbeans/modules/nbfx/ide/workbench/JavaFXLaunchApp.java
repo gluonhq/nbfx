@@ -31,10 +31,9 @@ import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
@@ -69,7 +68,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -487,22 +485,11 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /** Builds the Window-menu actions and their context-driven enablement, scoped to the main editor pane. */
     private WorkspaceCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
-        ObservableList<EditorDocument> documents = EditorContexts.openDocuments();
-        ObservableValue<Boolean> closeDocumentDisabled = mainScope == null
-                ? new SimpleBooleanProperty(true)
-                : Bindings.createBooleanBinding(() -> mainScope.getValue() == null, mainScope);
-        ObservableValue<Boolean> closeAllDisabled = Bindings.isEmpty(documents);
-        ObservableValue<Boolean> closeOtherDisabled = Bindings.size(documents).lessThan(2);
         return new WorkspaceCommands.WindowActions(
                 () -> selectNavigator(firstNavigatorId(0)),
                 () -> selectNavigator(firstNavigatorId(1)),
                 this::selectEditor,
-                this::resetWindows,
-                () -> DocumentCloser.closeDocument(mainScope == null ? null : mainScope.getValue()),
-                closeDocumentDisabled,
-                DocumentCloser::closeAllDocuments, closeAllDisabled,
-                () -> DocumentCloser.closeOtherDocuments(mainScope == null ? null : mainScope.getValue()),
-                closeOtherDisabled);
+                this::resetWindows);
     }
 
     /** The stable navigator id of the provider at {@code index} in natural order, or {@code null} if absent. */
