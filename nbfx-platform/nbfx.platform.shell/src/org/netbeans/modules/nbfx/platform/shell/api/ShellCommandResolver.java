@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.platform.shell.api;
 
-import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.Command;
 
 /**
@@ -41,18 +40,6 @@ public interface ShellCommandResolver {
      * @return the command, or {@code null}
      */
     Command resolve(String id);
-
-    /**
-     * Resolves the command registered under {@code id}, optionally dispatching to a file
-     * counterpart while {@code preferFile} is {@code true}.
-     *
-     * @param id         the command id
-     * @param preferFile whether file-targeted commands are preferred, or {@code null}
-     * @return the command, or {@code null}
-     */
-    default Command resolve(String id, ObservableValue<Boolean> preferFile) {
-        return resolve(id);
-    }
 
     /** Releases any scoped commands created by this resolver. */
     default void close() {
