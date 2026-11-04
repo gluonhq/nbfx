@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProvider;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
@@ -65,7 +66,7 @@ import org.openide.util.Lookup;
  * The shell registers itself as the window system's {@link WindowSink} and, via
  * {@link ShellAppProvider}, is the default application when no product provides one.
  */
-public class ShellApplication extends Application implements WindowSink {
+public class ShellApplication extends Application implements WindowSink, ShellWindow {
 
     private static final Logger LOG = Logger.getLogger(ShellApplication.class.getName());
 
@@ -218,6 +219,31 @@ public class ShellApplication extends Application implements WindowSink {
     /** The chrome installed for this shell. */
     protected final ShellChrome getChrome() {
         return chrome;
+    }
+
+    /** The stable window facade for products and contributions. */
+    public final ShellWindow getWindow() {
+        return this;
+    }
+
+    @Override
+    public final javafx.stage.Stage stage() {
+        return stage;
+    }
+
+    @Override
+    public final javafx.scene.layout.BorderPane root() {
+        return root;
+    }
+
+    @Override
+    public final javafx.scene.control.TabPane mainPane() {
+        return mainPane;
+    }
+
+    @Override
+    public final javafx.scene.Node slidingArea() {
+        return slidingArea;
     }
 
     /** The persisted shell state, for a product that contributes project/session state. */
