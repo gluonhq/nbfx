@@ -27,13 +27,12 @@ import org.netbeans.api.nbfx.views.PaneKind;
  * @param displayName   display name
  * @param kind          editor or view pane
  * @param area          hosted view area id, or empty
- * @param permanent     whether it exists for the whole session
  * @param keepWhenEmpty whether an empty pane stays visible
  * @param position      order among panes
  * @since 1.0
  */
 public record WindowPane(String id, String displayName, PaneKind kind, String area,
-        boolean permanent, boolean keepWhenEmpty, int position) {
+        boolean keepWhenEmpty, int position) {
 
     /** The pane's role value. */
     public NbfxTabPane.PaneRole role() {

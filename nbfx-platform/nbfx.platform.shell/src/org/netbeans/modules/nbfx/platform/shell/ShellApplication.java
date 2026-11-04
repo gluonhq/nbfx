@@ -323,11 +323,6 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private Map<String, NbfxTabPane> instantiatePanes(WindowComposition composition) {
         Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
         for (WindowPane pane : composition.panes()) {
-            if (!pane.permanent()) {
-                LOG.warning("Registered pane " + pane.id()
-                        + " is not permanent; only permanent panes are composed at start-up");
-                continue;
-            }
             NbfxTabPane instance = createPane(pane);
             if (instance == null) {
                 LOG.warning("No pane instance for registered pane " + pane.id());

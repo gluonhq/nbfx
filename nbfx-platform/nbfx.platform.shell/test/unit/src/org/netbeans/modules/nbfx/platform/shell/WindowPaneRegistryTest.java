@@ -41,7 +41,6 @@ public class WindowPaneRegistryTest {
         FileObject pane = root.createData("RIGHT_SIDEBAR");
         pane.setAttribute("kind", "VIEW");
         pane.setAttribute("area", "right-sidebar");
-        pane.setAttribute("permanent", true);
         pane.setAttribute("keepWhenEmpty", true);
         pane.setAttribute("position", 30);
 

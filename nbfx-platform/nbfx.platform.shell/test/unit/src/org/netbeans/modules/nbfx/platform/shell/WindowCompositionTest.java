@@ -34,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 public class WindowCompositionTest {
 
     private static WindowPane pane(String id, PaneKind kind, int position) {
-        return new WindowPane(id, id, kind, "", true, false, position);
+        return new WindowPane(id, id, kind, "", false, position);
     }
 
     @Test

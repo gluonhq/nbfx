@@ -84,7 +84,6 @@ public class PaneRegistrationProcessor extends LayerGeneratingProcessor {
         if (!registration.area().isBlank()) {
             file.stringvalue("area", registration.area());
         }
-        file.boolvalue("permanent", registration.permanent());
         file.boolvalue("keepWhenEmpty", registration.keepWhenEmpty());
         file.intvalue("position", registration.position());
         file.write();

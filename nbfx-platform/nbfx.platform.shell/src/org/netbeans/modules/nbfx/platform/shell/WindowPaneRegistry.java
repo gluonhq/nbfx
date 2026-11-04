@@ -69,7 +69,6 @@ public final class WindowPaneRegistry {
     /** The default view role among {@code panes}; never the editor pane. */
     public static NbfxTabPane.PaneRole defaultViewRole(List<WindowPane> panes) {
         return panes.stream()
-                .filter(WindowPane::permanent)
                 .filter(pane -> pane.kind() == PaneKind.VIEW)
                 .min(Comparator.comparingInt(WindowPane::position))
                 .map(WindowPane::role)
@@ -115,11 +114,10 @@ public final class WindowPaneRegistry {
         String displayName = file.getAttribute("displayName") instanceof String value
                 && !value.isBlank() ? value : id;
         String area = file.getAttribute("area") instanceof String value ? value : "";
-        boolean permanent = booleanAttribute(file, "permanent", true);
         boolean keepWhenEmpty = booleanAttribute(file, "keepWhenEmpty", false);
         int position = file.getAttribute("position") instanceof Integer value
                 ? value : Integer.MAX_VALUE;
-        return new WindowPane(id, displayName, kind, area, permanent, keepWhenEmpty, position);
+        return new WindowPane(id, displayName, kind, area, keepWhenEmpty, position);
     }
 
     private static PaneKind parseKind(Object value) {

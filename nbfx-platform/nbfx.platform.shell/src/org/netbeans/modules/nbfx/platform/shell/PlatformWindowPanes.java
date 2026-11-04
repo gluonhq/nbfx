@@ -25,9 +25,9 @@ import org.netbeans.api.nbfx.views.PaneRegistration;
  * The platform's permanent window panes, declared like product panes.
  */
 @PaneRegistration(id = "MAIN", displayName = "Editor", kind = PaneKind.EDITOR,
-        area = "editor", permanent = true, keepWhenEmpty = true, position = 10)
+        area = "editor", keepWhenEmpty = true, position = 10)
 @PaneRegistration(id = "NAVIGATOR", displayName = "Navigator", kind = PaneKind.VIEW,
-        area = "explorer", permanent = true, keepWhenEmpty = false, position = 20)
+        area = "explorer", keepWhenEmpty = false, position = 20)
 final class PlatformWindowPanes {
 
     private PlatformWindowPanes() {

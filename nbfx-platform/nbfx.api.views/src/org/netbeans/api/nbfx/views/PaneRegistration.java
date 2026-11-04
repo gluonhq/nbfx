@@ -47,9 +47,6 @@ public @interface PaneRegistration {
     /** The id of the view area this pane hosts; empty for no declared area. */
     String area() default "";
 
-    /** Whether the pane exists for the whole session, even when empty. */
-    boolean permanent() default true;
-
     /** Whether an empty permanent pane stays visible instead of hiding. */
     boolean keepWhenEmpty() default false;
 

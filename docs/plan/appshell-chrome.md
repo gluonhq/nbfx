@@ -630,7 +630,7 @@ Revised ownership:
 
 - `@AreaRegistration` owns geometry only: id, displayName, location and weight.
 - `@PaneRegistration` owns a permanent pane: id, displayName, `PaneKind`, owning area,
-  `permanent` and `keepWhenEmpty`.
+  `keepWhenEmpty` and position.
 - `@WindowLayoutRegistration` owns the initial dock tree and references the registered pane ids.
 - `WindowComposition` is a runtime resolver over the pane, area and layout registries; it is not a
   fourth registration mechanism.
@@ -656,7 +656,9 @@ Implemented:
 - `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` added; the old entry point remains
   as a compatibility path;
 - `ViewManagerService` fallback uses `WindowPaneRegistry.defaultViewRole()` instead of
-  `NAVIGATOR`.
+  `NAVIGATOR`;
+- `@PaneRegistration.permanent` was removed: every registered pane is permanent, and the only
+  transient roles are the built-in `DOCKED`, `DETACHED` and `SLIDE`.
 
 Now also implemented by the pane-instance step in section 15:
 
@@ -706,7 +708,7 @@ Implemented:
 
 Remaining follow-ups:
 
-- non-permanent pane registrations are rejected with a warning because on-demand, role-stable
-  panes have no lifecycle yet;
 - a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
-  wider window abstraction.
+  wider window abstraction;
+- on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
+  the permanent-pane model.
