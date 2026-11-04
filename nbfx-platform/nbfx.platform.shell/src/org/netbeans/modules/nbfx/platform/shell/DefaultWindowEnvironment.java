@@ -19,6 +19,10 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsProvider;
+import org.netbeans.modules.nbfx.platform.shell.api.NavigatorRevealState;
+import org.netbeans.modules.nbfx.platform.shell.api.ProjectSwitcher;
+import org.netbeans.modules.nbfx.platform.shell.api.TabHomeResolver;
 import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
 
 import java.util.List;
@@ -28,15 +32,15 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
 import org.netbeans.api.nbfx.actions.Command;
+import org.netbeans.api.nbfx.view.NavigatorRevealer;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The generic window environment: it delegates the host-specific operations to
- * {@link WindowEnvironmentContribution}s and provides a neutral fallback for detached-window
- * chrome.
+ * The generic window environment: it composes the focused window capabilities and keeps the old
+ * {@link WindowEnvironmentContribution} as a compatibility fallback.
  *
  * @since 1.0
  */
@@ -44,7 +48,12 @@ import org.openide.util.lookup.ServiceProvider;
 public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     private final Lookup services;
-    private final List<WindowEnvironmentContribution> contributions;
+    private final List<DetachedBarsProvider> detachedBars;
+    private final List<TabHomeResolver> homeResolvers;
+    private final List<ProjectSwitcher> projectSwitchers;
+    private final List<NavigatorRevealState> revealStates;
+    private final List<NavigatorRevealer> revealers;
+    private final List<WindowEnvironmentContribution> legacy;
 
     public DefaultWindowEnvironment() {
         this(Lookup.getDefault());
@@ -52,14 +61,25 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     DefaultWindowEnvironment(Lookup services) {
         this.services = Objects.requireNonNull(services, "services");
-        this.contributions = List.copyOf(services.lookupAll(WindowEnvironmentContribution.class));
+        this.detachedBars = List.copyOf(services.lookupAll(DetachedBarsProvider.class));
+        this.homeResolvers = List.copyOf(services.lookupAll(TabHomeResolver.class));
+        this.projectSwitchers = List.copyOf(services.lookupAll(ProjectSwitcher.class));
+        this.revealStates = List.copyOf(services.lookupAll(NavigatorRevealState.class));
+        this.revealers = List.copyOf(services.lookupAll(NavigatorRevealer.class));
+        this.legacy = List.copyOf(services.lookupAll(WindowEnvironmentContribution.class));
     }
 
     @Override
     public Region createDetachedBars(ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeDocument,
             List<Command> scopedCommands) {
         DetachedBarsContext context = new DetachedBarsContext(services, activeDocument, scopedCommands);
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (DetachedBarsProvider provider : detachedBars) {
+            Region bars = provider.createDetachedBars(context);
+            if (bars != null) {
+                return bars;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             Region bars = contribution.createDetachedBars(context);
             if (bars != null) {
                 return bars;
@@ -70,7 +90,12 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean revealInNavigator(FileObject file, int index) {
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (NavigatorRevealer revealer : revealers) {
+            if (revealer.reveal(file, index)) {
+                return true;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             if (contribution.revealInNavigator(file, index)) {
                 return true;
             }
@@ -80,7 +105,12 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean selectNextProject() {
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (ProjectSwitcher switcher : projectSwitchers) {
+            if (switcher.selectNext()) {
+                return true;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             if (contribution.selectNextProject()) {
                 return true;
             }
@@ -90,7 +120,12 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean selectPreviousProject() {
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (ProjectSwitcher switcher : projectSwitchers) {
+            if (switcher.selectPrevious()) {
+                return true;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             if (contribution.selectPreviousProject()) {
                 return true;
             }
@@ -100,7 +135,13 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public TabPane homeOf(Tab tab) {
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (TabHomeResolver resolver : homeResolvers) {
+            TabPane home = resolver.homeOf(tab);
+            if (home != null) {
+                return home;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             TabPane home = contribution.homeOf(tab);
             if (home != null) {
                 return home;
@@ -111,7 +152,12 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean isNavigatorRevealInProgress() {
-        for (WindowEnvironmentContribution contribution : contributions()) {
+        for (NavigatorRevealState state : revealStates) {
+            if (state.isRevealing()) {
+                return true;
+            }
+        }
+        for (WindowEnvironmentContribution contribution : legacy) {
             if (contribution.isNavigatorRevealInProgress()) {
                 return true;
             }
@@ -121,12 +167,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public void setNavigatorRevealInProgress(boolean inProgress) {
-        for (WindowEnvironmentContribution contribution : contributions()) {
-            contribution.setNavigatorRevealInProgress(inProgress);
-        }
-    }
-
-    private List<WindowEnvironmentContribution> contributions() {
-        return contributions;
+        revealStates.forEach(state -> state.setRevealing(inProgress));
+        legacy.forEach(contribution -> contribution.setNavigatorRevealInProgress(inProgress));
     }
 }
