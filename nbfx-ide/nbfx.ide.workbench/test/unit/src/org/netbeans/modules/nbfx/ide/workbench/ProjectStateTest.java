@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.ide.workbench;
 
 import java.util.List;
 import java.util.prefs.Preferences;
+import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -29,6 +30,17 @@ import static org.junit.Assert.assertNull;
  * Project state is persisted outside the generic shell, under the same preference keys.
  */
 public class ProjectStateTest {
+
+    @Test
+    public void migratesTheLegacySingleProjectSession() {
+        Preferences prefs = Preferences.userRoot().node("nbfx-project-migration-" + System.nanoTime());
+        prefs.put("project.open", "true");
+        prefs.put("project.recent", "/legacy\n");
+        ProjectState state = new ProjectState(prefs, new AppState(prefs));
+
+        assertEquals(List.of("/legacy"), state.getOpenProjects());
+        assertEquals("/legacy", state.getSelectedProject());
+    }
 
     @Test
     public void recentsOpenProjectsAndTreeStateRoundTrip() {

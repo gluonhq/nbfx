@@ -130,7 +130,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     /** The active-component state published to the global action context (the TopComponent replacement). */
     private final ActiveComponentContext activeComponents = activeComponentContext();
     /** IDE project/session state, no longer owned by the generic shell. */
-    private final ProjectState projectState = new ProjectState();
+    private final ProjectState projectState = new ProjectState(getAppState());
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {

@@ -22,7 +22,6 @@ import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 
 import org.netbeans.api.nbfx.editor.EditorSettings;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -33,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 import javafx.geometry.Orientation;
 import javafx.geometry.Rectangle2D;
@@ -64,11 +64,6 @@ public final class AppState {
     private static final String TOOLBARS_HIDDEN = "toolbars.hidden";
     private static final String VIEW_SHOW_LINE_NUMBERS = "view.showLineNumbers";
     private static final String VIEW_SHOW_BREADCRUMBS = "view.showBreadcrumbs";
-    private static final String RECENT_PROJECTS = "project.recent";
-    /** The projects that were open at exit, one path per line. */
-    private static final String PROJECT_OPEN = "project.open";
-    /** The path of the project that was selected at exit. */
-    private static final String PROJECT_SELECTED = "project.selected";
     /** The default views the user has been shown once; see {@link #getIntroducedViews()}. */
     private static final String VIEWS_INTRODUCED = "views.introduced";
     private static final String LAYOUT_NODE = "layout";
@@ -80,7 +75,7 @@ public final class AppState {
      */
     private static final String LAYOUT_SESSION_KEY = "session";
 
-    /** Legacy key of the project-independent layout, read once by {@link #migrateLegacySession()}. */
+    /** Legacy key of the project-independent layout, read once by the IDE migration. */
     private static final String LAYOUT_LEGACY_GLOBAL_KEY = "global";
 
     /** Field separator between a pane's attributes and its tabs within a serialized layout line. */
@@ -128,7 +123,6 @@ public final class AppState {
 
     public AppState(Preferences prefs) {
         this.prefs = prefs;
-        migrateLegacySession();
     }
 
     // --- Lifecycle wiring ---------------------------------------------------
@@ -293,35 +287,6 @@ public final class AppState {
         } catch (Exception ex) {
             LOG.log(Level.WARNING, "Could not flush preferences", ex);
         }
-    }
-
-    /** The most recent project path from the legacy project state; migration only. */
-    private String legacyLastProject() {
-        String raw = get(RECENT_PROJECTS, "");
-        for (String line : raw.split("\n")) {
-            if (!line.isBlank()) {
-                int tab = line.indexOf('\t');
-                return tab < 0 ? line : line.substring(0, tab);
-            }
-        }
-        return null;
-    }
-
-    /** Writes the legacy open/selected project keys; migration only. */
-    private void writeLegacyOpenProjects(List<String> paths, String selected) {
-        List<String> kept = paths == null ? List.of()
-                : paths.stream().filter(path -> path != null && !path.isBlank()).toList();
-        if (kept.isEmpty()) {
-            prefs.remove(PROJECT_OPEN);
-        } else {
-            prefs.put(PROJECT_OPEN, String.join("\n", kept));
-        }
-        if (selected == null || selected.isBlank() || !kept.contains(selected)) {
-            prefs.remove(PROJECT_SELECTED);
-        } else {
-            prefs.put(PROJECT_SELECTED, selected);
-        }
-        flush();
     }
 
     private static String expansionKey(String projectPath) {
@@ -635,6 +600,44 @@ public final class AppState {
         writeLayout(LAYOUT_SESSION_KEY, "", layout);
     }
 
+    /** Whether a session layout has already been written. */
+    public boolean hasSessionLayout() {
+        return !prefs.node(LAYOUT_NODE).get(LAYOUT_SESSION_KEY, "").isBlank();
+    }
+
+    /** Whether any legacy per-project layout is still stored. */
+    public boolean hasLegacyLayouts() {
+        try {
+            return prefs.node(LAYOUT_NODE).keys().length > 0;
+        } catch (BackingStoreException ex) {
+            return false;
+        }
+    }
+
+    /** Reads the legacy layout of {@code projectPath}, falling back to the global legacy layout. */
+    public Layout readLegacyLayout(String projectPath) {
+        Layout layout = projectPath == null ? Layout.EMPTY
+                : readLayout(expansionKey(projectPath), projectPath);
+        return layout.isEmpty() ? readLayout(LAYOUT_LEGACY_GLOBAL_KEY, "") : layout;
+    }
+
+    /** Removes the legacy layout keys. */
+    public void clearLegacyLayouts() {
+        try {
+            Preferences node = prefs.node(LAYOUT_NODE);
+            for (String key : node.keys()) {
+                node.remove(key);
+            }
+        } catch (BackingStoreException ex) {
+            LOG.log(Level.WARNING, "Could not clear legacy layouts", ex);
+        }
+    }
+
+    /** Installs the migrated session layout and persists it. */
+    public void migrateSessionLayout(Layout layout) {
+        setSessionLayout(layout);
+    }
+
     private Layout readLayout(String key, String guard) {
         String raw = prefs.node(LAYOUT_NODE).get(key, "");
         if (raw.isBlank()) {
@@ -683,42 +686,6 @@ public final class AppState {
             node.put(key, sb.toString());
         }
         flush();
-    }
-
-    // --- Migration from the single-project session -------------------------
-
-    /**
-     * Converts the state written by the single-project versions into the session format, once:
-     * the boolean {@code project.open} becomes the list of open projects, and the layout of the
-     * last project (or, failing that, the project-independent one) becomes the session layout.
-     * Every legacy per-project layout is then dropped. A userdir with no legacy state, or one
-     * already carrying a session layout, is left untouched.
-     */
-    private void migrateLegacySession() {
-        try {
-            Preferences layoutNode = prefs.node(LAYOUT_NODE);
-            String legacyOpen = prefs.get(PROJECT_OPEN, null);
-            boolean legacyFlag = "true".equals(legacyOpen) || "false".equals(legacyOpen);
-            if (!layoutNode.get(LAYOUT_SESSION_KEY, "").isBlank()
-                    || (!legacyFlag && layoutNode.keys().length == 0)) {
-                return;
-            }
-            String last = legacyLastProject();
-            Layout layout = last == null ? Layout.EMPTY : readLayout(expansionKey(last), last);
-            if (layout.isEmpty()) {
-                layout = readLayout(LAYOUT_LEGACY_GLOBAL_KEY, "");
-            }
-            for (String key : layoutNode.keys()) {
-                layoutNode.remove(key);
-            }
-            setSessionLayout(layout);
-            // A missing flag meant "open": that was its default.
-            boolean wasOpen = !"false".equals(legacyOpen);
-          writeLegacyOpenProjects(wasOpen && last != null ? List.of(last) : List.of(), last);
-            LOG.info(() -> "Migrated the legacy session state" + (last == null ? "" : " of " + last));
-        } catch (Exception ex) {
-            LOG.log(Level.WARNING, "Could not migrate the legacy session state", ex);
-        }
     }
 
     /**

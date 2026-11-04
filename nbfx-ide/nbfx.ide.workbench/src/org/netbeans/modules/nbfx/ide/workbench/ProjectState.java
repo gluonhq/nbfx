@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.prefs.Preferences;
+import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.openide.util.NbPreferences;
 
@@ -47,15 +48,57 @@ final class ProjectState implements ViewStateStore {
     private final Preferences prefs;
 
     ProjectState() {
-        this(NbPreferences.root().node(PREFS_PATH));
+        this(NbPreferences.root().node(PREFS_PATH), null);
+    }
+
+    ProjectState(AppState appState) {
+        this(NbPreferences.root().node(PREFS_PATH), appState);
     }
 
     ProjectState(Preferences prefs) {
+        this(prefs, null);
+    }
+
+    ProjectState(Preferences prefs, AppState appState) {
         this.prefs = prefs;
+        if (appState != null) {
+            migrateLegacySession(appState);
+        }
     }
 
     /** A recent project: its directory path and the resolved menu icon name (may be {@code null}). */
     public record RecentProject(String path, String iconName) {
+    }
+
+    /** Converts the single-project session written by older versions, once. */
+    private void migrateLegacySession(AppState appState) {
+        try {
+            String legacyOpen = prefs.get(PROJECT_OPEN, null);
+            boolean legacyFlag = "true".equals(legacyOpen) || "false".equals(legacyOpen);
+            if (appState.hasSessionLayout() || (!legacyFlag && !appState.hasLegacyLayouts())) {
+                return;
+            }
+            String last = legacyLastProject();
+            AppState.Layout layout = appState.readLegacyLayout(last);
+            appState.clearLegacyLayouts();
+            appState.migrateSessionLayout(layout);
+            boolean wasOpen = !"false".equals(legacyOpen);
+            setOpenProjects(wasOpen && last != null ? List.of(last) : List.of(), last);
+            LOG.info(() -> "Migrated the legacy project session" + (last == null ? "" : " of " + last));
+        } catch (Exception ex) {
+            LOG.log(Level.WARNING, "Could not migrate the legacy project session", ex);
+        }
+    }
+
+    private String legacyLastProject() {
+        String raw = get(RECENT_PROJECTS, "");
+        for (String line : raw.split("\n")) {
+            if (!line.isBlank()) {
+                int tab = line.indexOf('\t');
+                return tab < 0 ? line : line.substring(0, tab);
+            }
+        }
+        return null;
     }
 
     /** The recent projects, most-recent first. */
