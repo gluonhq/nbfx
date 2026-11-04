@@ -645,15 +645,24 @@ Required API/lifecycle decisions:
 - define `keepWhenEmpty`, persistence and minimization behavior for custom permanent panes;
 - define unknown-role behavior for persisted layouts and unknown areas for views.
 
-Implementation sequence:
+Implemented:
 
-1. move `PaneKind` to `api.views`;
-2. generalize `PaneRole` and preserve persisted-layout compatibility;
-3. add `@PaneRegistration`, processor and `WindowPaneRegistry`;
-4. register MAIN/NAVIGATOR as platform panes;
-5. add `WindowComposition` resolved from pane/area/layout registries;
-6. add `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` and keep the existing
-   constructor as a compatibility path;
-7. resolve `ViewArea` to its pane through `@PaneRegistration.area`;
-8. remove the `NAVIGATOR` fallback from `ViewManagerService`;
-9. test custom panes, areas, trees, unknown roles and restored layouts.
+- `PaneKind` moved to `api.views`;
+- `PaneRole` is a canonical value object with `PaneRole.of(id)`;
+- `@PaneRegistration` + processor + `WindowPaneRegistry`;
+- MAIN/NAVIGATOR declared as platform panes;
+- `ViewArea` resolves to its pane through `@PaneRegistration.area`;
+- `WindowComposition`/`WindowCompositionResolver`;
+- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` added; the old entry point remains
+  as a compatibility path;
+- `ViewManagerService` fallback uses `WindowPaneRegistry.defaultViewRole()` instead of
+  `NAVIGATOR`.
+
+Remaining:
+
+- `ShellApplication.createPanes()` / `JavaFXLaunchApp.createPanes()` still choose which concrete
+  panes exist; a product needs a pane-instance contribution or factory to add a custom permanent
+  pane without subclassing the shell;
+- `keepWhenEmpty` is declared but not yet applied by `DockArea`/`NbfxTabPane`;
+- `WindowComposition` is resolved but `ShellApplication` does not yet consume it to build panes;
+- unknown persisted roles and removed panes need explicit migration tests.
