@@ -49,7 +49,6 @@ import org.netbeans.modules.nbfx.platform.menus.Menus;
 @ActionReference(id = NEW_PROJECT, path = "Menus/File", position = 10)
 @ActionReference(id = NEW_FILE, path = "Menus/File", position = 15)
 @ActionReference(id = OPEN_PROJECT, path = "Menus/File", position = 20)
-@ActionReference(id = Menus.OPEN_RECENT, path = "Menus/File", position = 30)
 @ActionReference(id = CLOSE_PROJECT, path = "Menus/File", position = 40)
 @ActionReference(id = CLOSE_ALL_PROJECTS, path = "Menus/File", position = 50)
 @ActionReference(id = SELECT_PROJECTS, path = "Menus/Window", position = 10)

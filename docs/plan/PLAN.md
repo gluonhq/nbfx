@@ -317,7 +317,7 @@ consumer lands — the word *proposed* does not appear in a tier column (Decisio
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome is still missing:** `ide.workbench.ActionBars` owns menu/toolbar assembly and `JavaFXLaunchApp` owns the status bar, application menu, title and window environment. `feature/shell` (W3) extracts this into `ShellChrome`/`ShellMenuBar`/`ShellToolBars`/status-bar composition (`platform.status`)/`ShellBranding`/`DefaultWindowEnvironment`, leaving the IDE with contributions only |
+| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** `ShellChrome`/`ShellChromeProvider`/`DefaultShellChrome`, `ShellMenuBar`/`ShellToolBars`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window uses it and supplies contributions; `ActionBars` remains only for detached-window bars until that bridge is removed |
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
 | `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
@@ -351,7 +351,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 | Module | Purpose | Notes |
 |---|---|---|
 | `ide.actions` | stable IDE-only command ids (`IdeActionIds`), shared by project, file, editor, debug, search, VCS and workbench modules | new; kept below `ide.workbench` so those modules do not depend on the assembly |
-| `ide.workbench` | IDE assembly and contributions to the AppShell: app provider, launcher app, project commands, navigators (`NavigatorView`), project switching and loading, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope and `IdeMenus`; the action vocabulary lives in `ide.actions` | landed; absorbs the former `nbfx.ui` module; its `ActionBars` is transitional and moves to `platform.shell` generic chrome plus IDE menu contributions in `feature/shell`; the IDE is the AppShell's primary consumer |
+| `ide.workbench` | IDE assembly and contributions to the AppShell: app provider, launcher app, project commands, navigators (`NavigatorView`), project switching and loading, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns the project-aware editor scope and `IdeMenus`; the action vocabulary lives in `ide.actions` | landed; absorbs the former `nbfx.ui` module. The main window uses the generic shell chrome and contributes `RecentProjectsMenuFactory`, `OpenProjectsMenuFactory`, `IdeShellCommandResolver`, `IdeShellIconProvider` and `ProjectBranding`; `ActionBars` is retained only for detached windows and is the next removal target; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
 | `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions` |
@@ -440,8 +440,8 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
-| Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | registrations landed; generic builder and default chrome planned in `feature/shell`; today the only builder is `ide.workbench.ActionBars` |
-| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | planned (W3 `feature/shell`); `ShellChrome` exposes only top/bottom/dispose; required so downstream products use `ShellApplication` without an own AppShell |
+| Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections. `ActionBars` remains only for detached windows |
+| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass. Remaining: detached-window bars still bridge through `ActionBars` |
 | Status bar | `platform.status` + `api.status` | landed; `platform.shell` composes the `StatusBar`, it does not own or reimplement it |
 | Options | `platform.options` + `api.options` | landed |
 | Settings | `platform.settings` + `api.settings` | planned |
@@ -465,11 +465,12 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 **Chrome contract rules.** `ShellChrome` is a composition contract, not a second implementation:
 `Node top()`, `Node bottom()` and `void dispose()`. Concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
 controls stay inside `DefaultShellChrome` and are not part of the product SPI. Contribution contexts are
-narrow (the action registry, the active editor document and a `Lookup`); they do not expose `AppState`,
-`DockArea`, `SlidingArea` or `NbfxTabPane`. `MenuContribution`, `StatusContribution` and
+narrow (the action registry, `ActionContext` and a `Lookup`); they do not expose `AppState`,
+`DockArea`, `SlidingArea` or `NbfxTabPane`. `DynamicMenu.Factory`, `StatusContribution` and
 `WindowEnvironmentContribution` are ordered, failure-isolated and disposed with the shell. New chrome SPIs
 are T1/T2-FX API and must be covered by W2 `arch.xml`/`apichanges`/`check-api`; anything not intended for
-downstream stays in an internal package.
+downstream stays in an internal package. The detailed contracts and layer rules are in
+[`appshell-chrome.md`](appshell-chrome.md).
 
 **API placement.** The API tier is module metadata, not a cluster. The `nbfx-api` cluster is dissolved
 (W1.7, landed); each API module lives in its domain cluster:
@@ -870,6 +871,9 @@ cancellation and a memory budget — [Appendix D.5](appendix/D-bridge-and-retire
 registrations with no IDE class; `ShellChrome` exposes no concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
 in its product contract; the IDE menu/toolbar/status IDs and behaviour are unchanged; downstream adds chrome
 through registrations, not by subclassing.
+
+The detailed API/SPI contracts, layer-registration rules, use cases, UX interaction rules, test matrix and
+per-phase acceptance criteria are in [`appshell-chrome.md`](appshell-chrome.md).
 
 **W4 — IDE core.** `feature/project-model`, `feature/project-ui`,
 `refactor/nodes-model` → `refactor/nodes-usages` → `refactor/nodes-navigator` →

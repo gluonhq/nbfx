@@ -19,7 +19,12 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 
+import javafx.beans.value.ObservableValue;
+import javafx.util.Subscription;
 import org.netbeans.api.nbfx.editor.CaretInfo;
+import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.status.StatusAlignment;
+import org.netbeans.api.nbfx.status.StatusRegistration;
 import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -32,13 +37,15 @@ import javafx.scene.layout.Region;
 import org.openide.util.NbBundle;
 
 /**
- * Shows the caret position of the document being edited. Created and driven by the main window; not
- * an exported API.
+ * Shows the caret position of the document being edited. Registered as {@code caret}; it follows
+ * the globally active editor document on its own.
  */
+@StatusRegistration(id = "caret", alignment = StatusAlignment.RIGHT, position = 10)
 public final class CaretStatusElement implements StatusElementHolder {
 
     private final Label caretPosition = new Label();
     private final HBox group;
+    private Subscription subscription;
 
     /** Creates the element. Must be called on the JavaFX Application Thread. */
     public CaretStatusElement() {
@@ -52,6 +59,19 @@ public final class CaretStatusElement implements StatusElementHolder {
         group.setAlignment(Pos.CENTER_RIGHT);
         group.setMaxWidth(Region.USE_PREF_SIZE);
         setInfo(null);
+        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
+        if (activeDocument != null) {
+            subscription = activeDocument.flatMap(EditorDocument::caretInfoProperty)
+                    .subscribe(this::setInfo);
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (subscription != null) {
+            subscription.unsubscribe();
+            subscription = null;
+        }
     }
 
     @Override

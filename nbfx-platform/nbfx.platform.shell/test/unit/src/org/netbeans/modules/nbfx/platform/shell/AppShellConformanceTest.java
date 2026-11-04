@@ -63,6 +63,7 @@ public class AppShellConformanceTest {
             assertNotNull(application.getMainPane());
             assertNotNull(application.getDockArea());
             assertNotNull(application.getSlidingArea());
+            assertNotNull(application.getChrome());
             return null;
         });
     }
