@@ -16,24 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.view;
+package org.netbeans.modules.nbfx.platform.shell;
+
+import javafx.scene.Node;
+import javafx.scene.layout.Region;
+import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.api.nbfx.views.ViewRegistration;
 
 /**
- * The docked places of the main window a {@link ViewProvider view} can be shown in by default. Each
- * is a tab pane; all but {@link #LEFT} and {@link #CENTER} only exist while they hold a tab, splitting
- * the pane (or the whole window) next to them. Users may then drag the view anywhere.
+ * A registered view used by the placement conformance test.
  */
-public enum DockLocation {
-    /** The left pane, where the navigators live. */
-    LEFT,
-    /** Below the left pane. */
-    LEFT_BOTTOM,
-    /** The center pane, where the editors live. */
-    CENTER,
-    /** Below the center pane. */
-    CENTER_BOTTOM,
-    /** Along the bottom of the whole window, below the navigators and the editors. */
-    BOTTOM,
-    /** Along the right of the whole window, beside the editors. */
-    RIGHT
+@ViewRegistration(id = "conformance.registered", displayName = "Registered View",
+        area = "right-sidebar", position = 5)
+public final class RegisteredViewFixture implements ViewProvider {
+
+    @Override
+    public String getId() {
+        return "conformance.registered";
+    }
+
+    @Override
+    public String getTitle() {
+        return "Registered View";
+    }
+
+    @Override
+    public Node getView() {
+        return new Region();
+    }
 }

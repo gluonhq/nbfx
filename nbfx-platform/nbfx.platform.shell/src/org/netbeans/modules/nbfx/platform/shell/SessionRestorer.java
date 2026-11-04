@@ -389,7 +389,7 @@ public final class SessionRestorer {
                     continue;
                 }
                 TabPane target;
-                if (pane.isMinimized() && pane.role() != PaneRole.MAIN) {
+                if (pane.isMinimized() && !pane.role().isMain()) {
                     target = minimizedTarget(pane, shaped);
                     if (target != null) {
                         minimizedTargets.put(pane, target);
@@ -437,10 +437,11 @@ public final class SessionRestorer {
      * dropping them: documents to the editor pane, views to the default view pane.
      */
     static void moveTabsToFallback(List<Tab> tabs) {
+        PaneRole defaultView = ViewPlacement.defaultViewRole();
         for (Tab tab : tabs) {
             TabPane target = NbfxTabPane.documentOf(tab) != null
                     ? NbfxTabPane.paneWithRole(PaneRole.MAIN)
-                    : NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
+                    : NbfxTabPane.paneWithRole(defaultView);
             if (target != null && target != tab.getTabPane()) {
                 NbfxTabPane.moveTab(target, tab, target.getTabs().size());
             }

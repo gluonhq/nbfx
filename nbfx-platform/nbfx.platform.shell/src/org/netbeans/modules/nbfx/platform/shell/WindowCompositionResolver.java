@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
@@ -27,7 +27,8 @@ import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 
 /**
- * Resolves the first-run composition from the registered panes and the declared layout.
+ * Resolves the first-run composition from the registered panes and the declared layout. The shell
+ * is one per JVM today, so the resolver and the resulting docking area are process-wide.
  *
  * @since 1.0
  */

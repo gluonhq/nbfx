@@ -430,7 +430,7 @@ public final class AppState {
 
         /** The kind a pane of {@code role} is unless the layout says otherwise: the editor pane an editor pane. */
         static PaneKind defaultKind(NbfxTabPane.PaneRole role) {
-            return role == NbfxTabPane.PaneRole.MAIN ? PaneKind.EDITOR : PaneKind.VIEW;
+            return role.defaultKind();
         }
 
         /** This pane of {@code kind} (an editor group split off the editor pane, say). */
@@ -850,7 +850,7 @@ public final class AppState {
      * never are.
      */
     private static PaneLayout.Minimized parseMinimized(NbfxTabPane.PaneRole role, String[] head) {
-        if (head.length < 3 || role == NbfxTabPane.PaneRole.MAIN || role == NbfxTabPane.PaneRole.DETACHED) {
+        if (head.length < 3 || role.isMain() || role == NbfxTabPane.PaneRole.DETACHED) {
             return null;
         }
         Side side = parseEnum(Side.class, head[1]);

@@ -26,8 +26,8 @@ import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
-import org.netbeans.api.nbfx.view.DockLocation;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
@@ -83,6 +83,8 @@ public class AppShellConformanceTest {
                     NbfxTabPane.PaneRole.of("RIGHT_SIDEBAR"));
             assertNotNull("the registered custom pane is instantiated", sidebar);
             assertEquals(PaneKind.VIEW, NbfxTabPane.kindOf(sidebar));
+            assertSame("the registered area owns the legacy RIGHT location", sidebar,
+                    Docking.paneAt(DockLocation.RIGHT));
 
             ViewArea area = ViewAreaRegistry.find("right-sidebar").orElseThrow();
             ViewProvider view = new ViewProvider() {
@@ -107,6 +109,36 @@ public class AppShellConformanceTest {
             assertEquals(1, sidebar.getTabs().size());
             assertSame(sidebar, sidebar.getTabs().get(0).getTabPane());
 
+            manager.show(new RegisteredViewFixture());
+            Tab registeredTab = NbfxTabPane.findViewTab("conformance.registered").orElseThrow();
+            assertSame("ViewSpec places the view in its declared area", sidebar,
+                    registeredTab.getTabPane());
+
+            ViewProvider unregistered = new ViewProvider() {
+                @Override
+                public String getId() {
+                    return "conformance.unregistered";
+                }
+
+                @Override
+                public String getTitle() {
+                    return "Unregistered";
+                }
+
+                @Override
+                public Node getView() {
+                    return new Region();
+                }
+
+                @Override
+                public DockLocation getDefaultLocation() {
+                    return DockLocation.BOTTOM;
+                }
+            };
+            manager.show(unregistered);
+            Tab unregisteredTab = NbfxTabPane.findViewTab("conformance.unregistered").orElseThrow();
+            assertNotNull("an unregistered view uses its legacy location", unregisteredTab.getTabPane());
+
             ViewProvider unknownView = new ViewProvider() {
                 @Override
                 public String getId() {
@@ -123,7 +155,7 @@ public class AppShellConformanceTest {
                     return new Region();
                 }
             };
-            ViewArea unknownArea = new ViewArea("missing-area", "Missing", DockLocation.RIGHT, 0.2);
+            ViewArea unknownArea = new ViewArea("missing-area", "Missing", DockLocation.BOTTOM, 0.2);
             manager.show(unknownView, unknownArea, 0);
             Tab unknownTab = NbfxTabPane.findViewTab("conformance.unknown-area").orElseThrow();
             assertNotNull("an unknown area still finds a fallback pane", unknownTab.getTabPane());

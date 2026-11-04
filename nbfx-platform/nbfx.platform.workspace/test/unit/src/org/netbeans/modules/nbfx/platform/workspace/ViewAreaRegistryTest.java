@@ -20,8 +20,8 @@ package org.netbeans.modules.nbfx.platform.workspace;
 
 import java.io.IOException;
 import java.util.List;
-import org.netbeans.api.nbfx.view.DockLocation;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.junit.Test;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
