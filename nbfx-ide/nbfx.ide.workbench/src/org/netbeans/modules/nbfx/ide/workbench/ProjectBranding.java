@@ -41,11 +41,16 @@ public final class ProjectBranding implements ShellBranding {
     private Subscription subscription;
 
     public ProjectBranding() {
-        if (registry != null) {
-            title.set(WindowTitles.of(registry.getSelected()));
-            subscription = registry.selectedProjectProperty()
-                    .subscribe(project -> title.set(WindowTitles.of(project)));
+        subscribe();
+    }
+
+    private void subscribe() {
+        if (subscription != null || registry == null) {
+            return;
         }
+        title.set(WindowTitles.of(registry.getSelected()));
+        subscription = registry.selectedProjectProperty()
+                .subscribe(project -> title.set(WindowTitles.of(project)));
     }
 
     @Override
@@ -73,6 +78,7 @@ public final class ProjectBranding implements ShellBranding {
 
     @Override
     public ObservableValue<String> titleProperty(ShellContext context) {
+        subscribe();
         return title;
     }
 }

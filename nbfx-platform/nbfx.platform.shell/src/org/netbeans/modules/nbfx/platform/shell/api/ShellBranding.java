@@ -31,6 +31,9 @@ import org.openide.util.Lookup;
  */
 public interface ShellBranding {
 
+    /** The neutral application name used when no product branding is registered. */
+    String DEFAULT_APPLICATION_NAME = "NetBeansFX";
+
     /**
      * The precedence when several brandings are registered. The highest priority wins, so a
      * product branding can replace the neutral platform default without ambiguity.

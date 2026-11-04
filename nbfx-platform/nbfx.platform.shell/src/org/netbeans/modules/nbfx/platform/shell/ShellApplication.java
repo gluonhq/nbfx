@@ -88,7 +88,9 @@ public class ShellApplication extends Application implements WindowSink {
     private SlidingArea slidingArea;
     private BorderPane root;
     private ShellChrome chrome;
+    private ShellContext shellContext;
     private ShellBranding branding;
+    private boolean applicationMenuInstalled;
     private Subscription titleSubscription;
     private boolean stateCaptured;
 
@@ -109,6 +111,7 @@ public class ShellApplication extends Application implements WindowSink {
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
         ShellContext context = new ShellContext(shellLookup());
+        shellContext = context;
         chrome = createChrome(context);
         if (chrome.top() != null) {
             root.setTop(chrome.top());
@@ -126,7 +129,7 @@ public class ShellApplication extends Application implements WindowSink {
         sceneReady(scene);
         stage.setScene(scene);
         branding = ShellBranding.select(context.lookup()).orElse(null);
-        stage.setTitle(branding == null ? "NetBeansFX" : branding.title(context));
+        stage.setTitle(branding == null ? ShellBranding.DEFAULT_APPLICATION_NAME : branding.title(context));
         if (branding != null) {
             ObservableValue<String> title = branding.titleProperty(context);
             if (title != null) {
@@ -180,6 +183,8 @@ public class ShellApplication extends Application implements WindowSink {
         if (chrome != null) {
             chrome.dispose();
         }
+        shellContext = null;
+        applicationMenuInstalled = false;
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
@@ -284,15 +289,19 @@ public class ShellApplication extends Application implements WindowSink {
 
     /** Called after the window is showing, on the JavaFX Application Thread. */
     protected void started() {
-        ApplicationMenu menu = Lookup.getDefault().lookup(ApplicationMenu.class);
+        if (applicationMenuInstalled || shellContext == null) {
+            return;
+        }
+        ApplicationMenu menu = shellContext.lookup().lookup(ApplicationMenu.class);
         if (menu != null) {
             menu.install(this::openPreferences, this::requestQuit);
+            applicationMenuInstalled = true;
         }
     }
 
     /** Runs the Options command, so a native application menu can open the Options dialog. */
     protected final void openPreferences() {
-        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+        ActionRegistry registry = shellContext == null ? null : shellContext.actions();
         if (registry != null) {
             registry.find(ActionIds.SELECT_OPTIONS).ifPresent(Command::run);
         }

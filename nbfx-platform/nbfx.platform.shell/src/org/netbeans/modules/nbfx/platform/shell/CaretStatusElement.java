@@ -22,6 +22,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 import javafx.beans.value.ObservableValue;
 import javafx.util.Subscription;
 import org.netbeans.api.nbfx.editor.CaretInfo;
+import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.api.nbfx.status.StatusRegistration;
@@ -34,6 +35,7 @@ import javafx.scene.control.Separator;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
+import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
 /**
@@ -59,7 +61,16 @@ public final class CaretStatusElement implements StatusElementHolder {
         group.setAlignment(Pos.CENTER_RIGHT);
         group.setMaxWidth(Region.USE_PREF_SIZE);
         setInfo(null);
-        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
+    }
+
+    @Override
+    public void init(Lookup services) {
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
+        EditorContext context = services.lookup(EditorContext.class);
+        ObservableValue<EditorDocument> activeDocument = context == null ? null
+                : context.activeDocumentProperty();
         if (activeDocument != null) {
             subscription = activeDocument.flatMap(EditorDocument::caretInfoProperty)
                     .subscribe(this::setInfo);

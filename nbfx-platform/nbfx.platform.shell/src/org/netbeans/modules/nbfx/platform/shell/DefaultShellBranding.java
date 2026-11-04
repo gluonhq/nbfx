@@ -32,6 +32,6 @@ public final class DefaultShellBranding implements ShellBranding {
 
     @Override
     public String applicationName() {
-        return "NetBeansFX";
+        return ShellBranding.DEFAULT_APPLICATION_NAME;
     }
 }

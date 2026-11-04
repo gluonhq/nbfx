@@ -57,7 +57,7 @@ public final class DefaultShellChrome implements ShellChrome, ToolBarHost {
         this.top = hasMenus || hasToolBars
                 ? new VBox(menuBuilder.menuBar(), toolBarBuilder.container())
                 : null;
-        this.statusBar = new StatusBar(StatusElementRegistry.discover());
+        this.statusBar = new StatusBar(StatusElementRegistry.discover(context.lookup()));
     }
 
     /** The context this chrome was created for. */
