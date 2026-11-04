@@ -60,6 +60,8 @@ import org.netbeans.modules.nbfx.platform.workspace.WindowState;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
 import org.openide.LifecycleManager;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
+import org.openide.util.lookup.ProxyLookup;
 
 /**
  * The platform's generic JavaFX application shell: the main window, the editor pane, docking,
@@ -114,6 +116,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     public final void start(Stage stage) {
         Budget.mark("fxStart");
         this.stage = stage;
+        ShellWindowProviderService.set(this);
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
         Lookup shellLookup = shellLookup();
@@ -205,6 +208,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         }
         shellContext = null;
         applicationMenuInstalled = false;
+        ShellWindowProviderService.set(null);
         disposePanes();
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
@@ -292,7 +296,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      * @return the lookup, never {@code null}
      */
     protected Lookup shellLookup() {
-        return Lookup.getDefault();
+        return new ProxyLookup(Lookups.fixed(this), Lookup.getDefault());
     }
 
     /**

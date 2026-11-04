@@ -48,6 +48,11 @@ public record ShellContext(Lookup lookup) {
         return lookup.lookup(ActionContext.class);
     }
 
+    /** The running shell window, or {@code null} before the shell is started. */
+    public ShellWindow window() {
+        return lookup.lookup(ShellWindow.class);
+    }
+
     /** The chrome profile for this context; defaults to {@link ShellChromeProfile#ALL}. */
     public ShellChromeProfile profile() {
         ShellChromeProfile profile = lookup.lookup(ShellChromeProfile.class);
