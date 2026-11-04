@@ -555,11 +555,19 @@ Implemented after the review:
 - `ProjectEditorScope` moved to `project.context`, and affected feature modules no longer depend on
   `ide.workbench`.
 
+Detached chrome is now generic:
+
+- `ShellChromeProfile` filters menu/toolbar surfaces without changing the layer;
+- `DetachedBars`/`DetachedChromeProfile` build the detached window from `ShellMenuBar`/
+  `ShellToolBars`;
+- detached commands use the window's own document scope and are disposed with the window;
+- `ActionBars` has been deleted;
+- project action metadata now lives in `ide.project.actions`;
+- `Select Editor` and document-close commands live in `platform.shell`.
+
 Still outstanding:
 
-- detached-window bars still go through `ActionBars`; replace them with `ShellMenuBar`/
-  `ShellToolBars` and a detached chrome profile, then remove `ActionBars`;
+- project state (recent/open/selected/tree) is still in `AppState`;
 - `platform.shell` still exports its implementation package because `ShellApplication` and
   `NbfxTabPane` are not yet split from the internal package;
-- the downstream platform-only fixture with no `ShellApplication` subclass is still missing;
 - apichanges/signature-test coverage for the new API/SPI remains a W2 item.
