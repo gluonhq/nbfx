@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -42,7 +42,7 @@ import java.util.Objects;
  * @since 1.0
  */
 public record ViewSpec(String id, String displayName, String iconName,
-        ViewLocation location, int position, boolean navigator, ViewArea area,
+        DockLocation location, int position, boolean navigator, ViewArea area,
         boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
 
     public ViewSpec {

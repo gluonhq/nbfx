@@ -46,7 +46,7 @@ public class ViewsProcessorTest {
             "package demo;\n"
             + "import org.netbeans.api.nbfx.views.*;\n"
             + "@ViewRegistration(id = \"demo.view\", displayName = \"Demo View\","
-            + " location = ViewLocation.LEFT_BOTTOM, openAtStartup = true)\n"
+            + " location = DockLocation.LEFT_BOTTOM, openAtStartup = true)\n"
             + "@MenuRegistration(id = \"Navigate\", position = 40)\n"
             + "@MenuRegistration(id = \"Inspect\", path = \"ContextMenus/Editor\", position = 100,"
             + " separatorBefore = true)\n"

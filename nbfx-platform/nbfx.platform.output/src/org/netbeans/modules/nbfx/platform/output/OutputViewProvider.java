@@ -18,9 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.output;
 
-import org.netbeans.api.nbfx.views.ViewLocation;
-import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.List;
@@ -42,7 +41,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = OutputViewProvider.ID, displayName = "Output",
         iconName = "org/netbeans/modules/nbfx/platform/output/output.png",
-        location = ViewLocation.CENTER_BOTTOM, position = 30)
+        location = DockLocation.CENTER_BOTTOM, position = 30)
 public final class OutputViewProvider implements ViewProvider {
 
     /** The stable id of the view, used by the layout persistence and the view manager. */

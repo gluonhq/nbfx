@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -59,11 +59,11 @@ public class ViewRegistryTest {
 
         assertEquals(List.of("alpha", "zeta"),
                 registrations.stream().map(ViewSpec::id).toList());
-        assertEquals(ViewLocation.LEFT, registrations.get(0).location());
+        assertEquals(DockLocation.LEFT, registrations.get(0).location());
         assertTrue(registrations.get(0).navigator());
         assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertEquals("Zeta", registrations.get(1).displayName());
-        assertEquals(ViewLocation.RIGHT, registrations.get(1).location());
+        assertEquals(DockLocation.RIGHT, registrations.get(1).location());
         assertEquals(ViewArea.PROPERTIES, registrations.get(1).area());
         assertFalse(registrations.get(1).navigator());
     }
@@ -84,6 +84,18 @@ public class ViewRegistryTest {
     }
 
     @Test
+    public void fallsBackWhenALegacyLocationWasRemoved() throws IOException {
+        FileObject folder = viewFolder();
+        FileObject file = folder.createData("v", "instance");
+        file.setAttribute("location", "DETACHED");
+
+        ViewSpec registration = ViewRegistry.read(folder, List.of(view("v"))).get(0);
+
+        assertEquals(DockLocation.LEFT, registration.location());
+        assertEquals(ViewArea.EXPLORER, registration.area());
+    }
+
+    @Test
     public void fallsBackToViewDefaults() throws IOException {
         FileObject folder = viewFolder();
 
@@ -91,7 +103,7 @@ public class ViewRegistryTest {
 
         assertEquals("v", registrations.get(0).id());
         assertEquals("v", registrations.get(0).displayName());
-        assertEquals(ViewLocation.LEFT, registrations.get(0).location());
+        assertEquals(DockLocation.LEFT, registrations.get(0).location());
         assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertFalse(registrations.get(0).openAtStartup());
         assertEquals(ViewRegistration.PersistenceType.ALWAYS, registrations.get(0).persistenceType());

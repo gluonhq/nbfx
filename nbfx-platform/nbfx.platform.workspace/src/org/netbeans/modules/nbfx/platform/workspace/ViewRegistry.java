@@ -19,10 +19,9 @@
 package org.netbeans.modules.nbfx.platform.workspace;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
-import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -86,7 +85,7 @@ public final class ViewRegistry {
             FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
             String displayName = stringAttribute(file, "displayName", view.getTitle());
             String iconName = stringAttribute(file, "iconName", "");
-            ViewLocation location = locationAttribute(file, view.getDefaultLocation());
+            DockLocation location = locationAttribute(file, view.getDefaultLocation());
             int position = intAttribute(file, "position", Integer.MAX_VALUE);
             boolean navigator = booleanAttribute(file, "navigator");
             ViewArea area = areaAttribute(file, location);
@@ -123,16 +122,16 @@ public final class ViewRegistry {
         return Boolean.TRUE.equals(value);
     }
 
-    private static ViewLocation locationAttribute(FileObject file, DockLocation fallback) {
+    private static DockLocation locationAttribute(FileObject file, DockLocation fallback) {
         Object value = file == null ? null : file.getAttribute("location");
         if (value instanceof String name) {
             try {
-                return ViewLocation.valueOf(name);
+                return DockLocation.valueOf(name);
             } catch (IllegalArgumentException ex) {
                 LOG.warning("Unknown view location: " + name);
             }
         }
-        return ViewLocation.valueOf(fallback.name());
+        return DockLocation.valueOf(fallback.name());
     }
 
     /**
@@ -140,7 +139,7 @@ public final class ViewRegistry {
      * {@link ViewArea}, or the area the {@code location} docks into by default. Empty areas (never
      * declared) and unknown area ids fall back to the location's default area.
      */
-    static ViewArea areaAttribute(FileObject file, ViewLocation location) {
+    static ViewArea areaAttribute(FileObject file, DockLocation location) {
         Object value = file == null ? null : file.getAttribute("area");
         if (value instanceof String id && !id.isBlank()) {
             return ViewAreaRegistry.find(id).orElseGet(() -> defaultArea(location));
@@ -161,14 +160,13 @@ public final class ViewRegistry {
     }
 
     /** The default window area a location is docked into, mirroring the Swing modes. */
-    static ViewArea defaultArea(ViewLocation location) {
+    static ViewArea defaultArea(DockLocation location) {
         return switch (location) {
             case LEFT -> ViewArea.EXPLORER;
             case LEFT_BOTTOM -> ViewArea.NAVIGATOR;
             case CENTER -> ViewArea.EDITOR;
             case CENTER_BOTTOM, BOTTOM -> ViewArea.OUTPUT;
             case RIGHT -> ViewArea.PROPERTIES;
-            case DETACHED -> throw new IllegalArgumentException("No default area for " + location);
         };
     }
 }

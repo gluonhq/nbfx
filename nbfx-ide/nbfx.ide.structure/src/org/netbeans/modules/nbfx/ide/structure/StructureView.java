@@ -21,10 +21,9 @@ package org.netbeans.modules.nbfx.ide.structure;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionIds;
-import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import javafx.scene.Node;
@@ -43,7 +42,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = StructureView.ID, displayName = "#StructureView.title",
         iconName = "org/netbeans/modules/nbfx/ide/structure/navigator.png",
-        location = ViewLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
+        location = DockLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
 @ActionReference(id = IdeActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 50)
 public final class StructureView implements ViewProvider {
 
