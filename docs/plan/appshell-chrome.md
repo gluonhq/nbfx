@@ -748,5 +748,20 @@ Remaining follow-ups:
   wider window abstraction;
 - on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
   the permanent-pane model;
-- `ViewArea` lives in `api.nbfx.view` while the registration types live in `api.nbfx.views`; the
-  package split is still to be unified.
+- a custom pane instance is still an `NbfxTabPane`; a non-tab pane abstraction is out of scope.
+
+---
+
+## 16. View placement API consolidation
+
+`ViewArea` and `DockLocation` now live in `org.netbeans.api.nbfx.views`, next to the registration
+types. `ViewLocation` was removed: registered views use `DockLocation`, while detached windows stay
+a runtime action. `ViewSpec` no longer stores a separate location; its `location()` derives from
+`area()`, so the registered area is the only placement truth.
+
+`ViewPlacement` is the single runtime policy: registered area → area location → legacy
+`ViewProvider.getDefaultLocation()` → default view role. `ViewManagerService`,
+`JavaFXLaunchApp.homeOfView` and `SessionRestorer` use it instead of repeating the chain.
+
+The API move is recorded in `nbfx.api.views/apichanges.xml`; the module is now at specification
+version 1.4.
