@@ -183,6 +183,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         Budget.mark("usable");
         Budget.markUsable();
         started();
+        UiReady.dispatch();
         Platform.runLater(this::restoreSession);
     }
 
