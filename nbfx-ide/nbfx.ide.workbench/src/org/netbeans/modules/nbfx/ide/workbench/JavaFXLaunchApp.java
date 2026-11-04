@@ -30,6 +30,7 @@ import org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
@@ -80,6 +81,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Region;
 import javafx.stage.Window;
 import javafx.util.Subscription;
 import org.openide.filesystems.FileObject;
@@ -124,6 +126,8 @@ public class JavaFXLaunchApp extends ShellApplication {
     private final FileSelectionContext fileSelection = fileSelectionContext();
     /** Whether the treeView is focused or not. */
     private final BooleanProperty treeFocused = new SimpleBooleanProperty(false);
+    /** Whether a navigator reveal is currently moving focus. */
+    private boolean navigatorRevealInProgress;
     /** The active-component state published to the global action context (the TopComponent replacement). */
     private final ActiveComponentContext activeComponents = activeComponentContext();
 
@@ -196,22 +200,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (getSessionRestorer().startupLayout().isEmpty()) {
             // First run: no layout to restore, so the default one also holds the default views.
             introduceDefaultViews();
-        }
-
-        // Give the window system the host services it needs: the bars for detached windows, the
-        // navigator revealer, and where a tab docks back.
-        WindowEnvironmentService windowEnvironment = windowEnvironment();
-        if (windowEnvironment != null) {
-            windowEnvironment.setActionBars(actionBars);
-            windowEnvironment.setNavigatorRevealer(this::revealFileInNavigator);
-            windowEnvironment.setNavigatorFileRevealer(this::revealFileInOwningNavigator);
-            windowEnvironment.setHomeResolver(tab -> {
-                if (NbfxTabPane.documentOf(tab) != null) {
-                    TabPane mainPane = contentManager() instanceof ContentManagerService cmi ? (TabPane) cmi.getMainPane() : null;
-                    return mainPane == null ? null : NbfxTabPane.editorDockHome(mainPane, Lookup.getDefault().lookup(EditorContext.class));
-                }
-                return homeOfView(tab);
-            });
         }
 
         projectRegistry.selectedProjectProperty().subscribe(project ->
@@ -560,7 +548,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * Reveals {@code file} in the navigator provider at {@code index}, showing its tab first and
      * bringing the main window to the front.
      */
-    private void revealFileInNavigator(FileObject file, int index) {
+    void revealFileInNavigator(FileObject file, int index) {
         if (file == null) {
             return;
         }
@@ -580,7 +568,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * backs the {@code NavigatorRevealer} service so the search-results UI can show a hit without
      * knowing about the navigators itself.
      */
-    private boolean revealFileInOwningNavigator(FileObject file) {
+    boolean revealFileInOwningNavigator(FileObject file) {
         if (file == null || providers == null || providers.isEmpty()) {
             return false;
         }
@@ -867,13 +855,22 @@ public class JavaFXLaunchApp extends ShellApplication {
         java.util.logging.Logger.getLogger("org.netbeans.core.startup").setLevel(java.util.logging.Level.FINEST);
     }
 
-    /** The application host services for the window system, or {@code null} if not registered. */
-    private static WindowEnvironmentService windowEnvironment() {
-        WindowEnvironmentService environment = Lookup.getDefault().lookup(WindowEnvironmentService.class);
-        if (environment == null) {
-            LOG.warning("No WindowEnvironmentService found in the Lookup");
+    /** Builds the bars for a detached window with its own document scope. */
+    Region createDetachedBars(DetachedBarsContext context) {
+        return actionBars == null ? null
+                : actionBars.createDetachedBars(context.activeDocument(EditorDocument.class),
+                        context.scopedCommands());
+    }
+
+    /** The pane a tab docks back into by default. */
+    TabPane homeOf(Tab tab) {
+        if (NbfxTabPane.documentOf(tab) != null) {
+            TabPane main = contentManager() instanceof ContentManagerService cmi
+                    ? (TabPane) cmi.getMainPane() : null;
+            return main == null ? null
+                    : NbfxTabPane.editorDockHome(main, Lookup.getDefault().lookup(EditorContext.class));
         }
-        return environment;
+        return homeOfView(tab);
     }
 
     /** The status bar progress service, or {@code null} if not registered. */
@@ -881,12 +878,14 @@ public class JavaFXLaunchApp extends ShellApplication {
         return Lookup.getDefault().lookup(Progress.class);
     }
 
+    /** Whether a navigator reveal is in progress, so panes do not steal focus back. */
+    boolean isNavigatorRevealInProgress() {
+        return navigatorRevealInProgress;
+    }
+
     /** Marks a navigator reveal as in progress (or finished), so panes do not steal focus back. */
-    private void setNavigatorRevealInProgress(boolean inProgress) {
-        WindowEnvironmentService environment = windowEnvironment();
-        if (environment != null) {
-            environment.setNavigatorRevealInProgress(inProgress);
-        }
+    void setNavigatorRevealInProgress(boolean inProgress) {
+        navigatorRevealInProgress = inProgress;
     }
 
     /** The registry of open projects, resolved from the Lookup or a local instance if the service is not registered. */

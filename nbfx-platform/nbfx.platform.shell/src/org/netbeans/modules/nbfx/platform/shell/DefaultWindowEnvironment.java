@@ -44,6 +44,7 @@ import org.openide.util.lookup.ServiceProvider;
 public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     private final Lookup services;
+    private final List<WindowEnvironmentContribution> contributions;
 
     public DefaultWindowEnvironment() {
         this(Lookup.getDefault());
@@ -51,6 +52,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     DefaultWindowEnvironment(Lookup services) {
         this.services = Objects.requireNonNull(services, "services");
+        this.contributions = List.copyOf(services.lookupAll(WindowEnvironmentContribution.class));
     }
 
     @Override
@@ -124,7 +126,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
         }
     }
 
-    private List<? extends WindowEnvironmentContribution> contributions() {
-        return List.copyOf(services.lookupAll(WindowEnvironmentContribution.class));
+    private List<WindowEnvironmentContribution> contributions() {
+        return contributions;
     }
 }
