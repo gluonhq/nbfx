@@ -567,7 +567,8 @@ Detached chrome is now generic:
 
 Still outstanding:
 
-- project state (recent/open/selected/tree) is still in `AppState`;
-- `platform.shell` still exports its implementation package because `ShellApplication` and
-  `NbfxTabPane` are not yet split from the internal package;
+- project state moved from `AppState` to the IDE `ProjectState`, with `ViewStateStore` as the
+  generic session-restorer hook;
+- `ShellWindow` is the stable window facade; `platform.shell` still exports its implementation
+  package because `NbfxTabPane` and the remaining implementation types are not yet split;
 - apichanges/signature-test coverage for the new API/SPI remains a W2 item.
