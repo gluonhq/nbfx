@@ -33,12 +33,15 @@ import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
+import org.netbeans.modules.nbfx.platform.shell.WindowComposition;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
+import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 
@@ -542,14 +545,17 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (mainPane == null) {
             return;
         }
-        // 1. The default shape: the two permanent panes only. The detached windows empty into them
-        //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
+        // 1. The declared first-run shape. Detached windows empty into the permanent panes first
+        //    (where exactly does not matter yet); applyTree restores what is maximized or minimized
         //    and moves the docked panes' content into the editor pane.
         NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
-        getDockArea().applyTree(getDockArea().defaultTree());
-        // 2. Every tab to its default place. A view's default location below one of the permanent
-        //    panes creates its pane now, in the default shape, where it stays.
-        for (TabPane pane : List.of(navigatorPane, mainPane)) {
+        WindowComposition composition = Docking.composition();
+        DockTree tree = composition == null || composition.tree() == null
+                ? getDockArea().defaultTree() : composition.tree();
+        getDockArea().applyTree(tree);
+        // 2. Every tab to its default place. A view's registered area creates or reuses its pane
+        //    now, in the declared shape, where it stays.
+        for (TabPane pane : permanentPanes()) {
             for (Tab tab : List.copyOf(pane.getTabs())) {
                 TabPane home = NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab);
                 if (home != null && home != tab.getTabPane()) {
@@ -633,15 +639,38 @@ public class JavaFXLaunchApp extends ShellApplication {
         return ids;
     }
 
+    /** The permanent panes of the resolved composition, in composition order. */
+    private List<TabPane> permanentPanes() {
+        WindowComposition composition = Docking.composition();
+        if (composition != null) {
+            List<TabPane> panes = new ArrayList<>();
+            for (WindowPane pane : composition.panes()) {
+                NbfxTabPane resolved = Docking.primary(pane.role());
+                if (resolved != null) {
+                    panes.add(resolved);
+                }
+            }
+            return panes;
+        }
+        return List.of(navigatorPane, getMainPane());
+    }
+
     /**
-     * The pane a view tab belongs in by default: the navigator pane for a navigator (and for any tab
-     * whose view is unknown), the pane of its {@link ViewProvider#getDefaultLocation() default
-     * location} for any other view.
+     * The pane a view tab belongs in by default: the pane of its registered
+     * {@link ViewSpec#area() area}; a navigator falls back to the navigator pane, and a view without
+     * a registration falls back to its legacy {@link ViewProvider#getDefaultLocation() location}.
      */
     private TabPane homeOfView(Tab tab) {
         String id = NbfxTabPane.viewId(tab);
         if (id == null) {
             return navigatorPane;
+        }
+        ViewSpec spec = ViewRegistry.find(id);
+        if (spec != null) {
+            TabPane registered = Docking.paneOf(spec.area());
+            if (registered != null) {
+                return registered;
+            }
         }
         for (NavigatorView provider : providers) {
             if (provider.getId().equals(id)) {

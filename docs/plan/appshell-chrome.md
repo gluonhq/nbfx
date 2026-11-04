@@ -710,7 +710,9 @@ Implemented:
   headless fallback;
 - `Docking.paneAt(DockLocation)` first resolves the location through the registered default area
   and its pane, so a product can own a legacy location without editing `Docking`; the fixed
-  `NAVIGATOR`/`MAIN`/edge mapping is the fallback.
+  `NAVIGATOR`/`MAIN`/edge mapping is the fallback;
+- `Reset Windows` applies the resolved composition tree and iterates every permanent pane, and a
+  view's home resolves through its `ViewSpec` area before the legacy location.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;
