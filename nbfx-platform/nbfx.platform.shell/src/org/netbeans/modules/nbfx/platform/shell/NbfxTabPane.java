@@ -156,6 +156,11 @@ public final class NbfxTabPane extends TabPane {
             return this == MAIN;
         }
 
+        /** The kind a new pane with this role has: the main pane edits, every other hosts views. */
+        public PaneKind defaultKind() {
+            return isMain() ? PaneKind.EDITOR : PaneKind.VIEW;
+        }
+
         /** Resolves a stable role name; unknown names become product roles. */
         public static PaneRole of(String name) {
             return switch (name) {
@@ -287,7 +292,7 @@ public final class NbfxTabPane extends TabPane {
 
     /** Creates a new pane of the kind its role implies: the editor pane an editor pane, any other a view pane. */
     public NbfxTabPane(PaneRole role) {
-        this(role, role == PaneRole.MAIN ? PaneKind.EDITOR : PaneKind.VIEW);
+        this(role, role.defaultKind());
     }
 
     /** Creates a new pane with cross-pane drag and drop features and focus/active-document wiring. */
@@ -329,7 +334,7 @@ public final class NbfxTabPane extends TabPane {
         // The permanent panes join the area's split before the area is published: check again
         // once the pane is in a scene.
         sceneProperty().subscribe(scene -> updateHeaderButton());
-        if (role == PaneRole.MAIN) {
+        if (role.isMain()) {
             placeholder = new Label(NbBundle.getMessage(NbfxTabPane.class, "Tab.editor.placeholder"));
             placeholder.getStyleClass().add("nbfx-editor-placeholder");
             placeholder.setAlignment(Pos.CENTER);

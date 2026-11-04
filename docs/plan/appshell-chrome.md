@@ -714,7 +714,9 @@ Implemented:
 - `Reset Windows` applies the resolved composition tree and iterates every permanent pane, and a
   view's home resolves through its `ViewSpec` area before the legacy location;
 - `NavigatorPaneProvider` receives the session restorer, navigator views and pane sink explicitly,
-  with no dependency on `JavaFXLaunchApp`.
+  with no dependency on `JavaFXLaunchApp`;
+- `PaneRole.defaultKind()` is the single editor-pane rule: only `MAIN` defaults to
+  `PaneKind.EDITOR`, every other role to `PaneKind.VIEW`.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;

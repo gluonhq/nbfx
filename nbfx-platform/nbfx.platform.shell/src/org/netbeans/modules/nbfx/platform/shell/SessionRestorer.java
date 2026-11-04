@@ -389,7 +389,7 @@ public final class SessionRestorer {
                     continue;
                 }
                 TabPane target;
-                if (pane.isMinimized() && pane.role() != PaneRole.MAIN) {
+                if (pane.isMinimized() && !pane.role().isMain()) {
                     target = minimizedTarget(pane, shaped);
                     if (target != null) {
                         minimizedTargets.put(pane, target);
