@@ -9,6 +9,7 @@
 # nbfx-platform/nbfx.api.views
 # nbfx-platform/nbfx.api.wizard
 # nbfx-platform/nbfx.platform.shell
+# nbfx-platform/nbfx.platform.theme
 org.netbeans.api.nbfx.actions.AbstractCommand
 org.netbeans.api.nbfx.actions.ActionContext
 org.netbeans.api.nbfx.actions.ActionIds
@@ -72,6 +73,11 @@ org.netbeans.api.nbfx.project.SourceRoot
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.status.StatusAlignment
 org.netbeans.api.nbfx.status.StatusRegistration
+org.netbeans.api.nbfx.theme.ThemeToken
+org.netbeans.api.nbfx.theme.ThemeTokenProvider
+org.netbeans.api.nbfx.theme.ThemeTokenRegistration
+org.netbeans.api.nbfx.theme.ThemeTokenRegistrations
+org.netbeans.api.nbfx.theme.ThemeTokenType
 org.netbeans.api.nbfx.view.ActiveComponent
 org.netbeans.api.nbfx.view.ActiveComponentContext
 org.netbeans.api.nbfx.view.ApplicationMenu
@@ -171,3 +177,6 @@ org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution
 org.netbeans.modules.nbfx.platform.shell.spi.WindowPane
 org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext
 org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider
+org.netbeans.modules.nbfx.platform.theme.NbfxTheme
+org.netbeans.modules.nbfx.platform.theme.ThemeMenuFactory
+org.netbeans.modules.nbfx.platform.theme.ThemeTokenRegistry
