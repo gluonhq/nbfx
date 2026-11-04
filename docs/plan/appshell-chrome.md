@@ -592,13 +592,16 @@ Implemented in this increment:
 - `Docking` uses the registered explorer weight;
 - `ViewManagerService.show()` resolves `ViewSpec` and uses its area/location/position;
 - `ViewManager.show(view, area, position)` lets the startup/default-view code apply the declared
-  placement.
+  placement;
+- `@WindowLayoutRegistration` + `WindowLayoutRegistry` declare the first-run dock tree, and
+  `Docking.create` applies it when its permanent roles match.
 
 Still imperative:
 
-- `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide the permanent navigator/editor shape;
-- `Docking.create(...)` still hardcodes the two permanent roles and has no registered pane roles;
-- there is no declarative first-run window/dock composition.
+- `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide which permanent panes exist;
+- `NbfxTabPane.PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
+- custom permanent panes need a role registry before a product can declare a different window
+  shape.
 
 Target:
 
