@@ -701,7 +701,8 @@ Implemented:
 
 - `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
 - `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
-  `org.netbeans.modules.nbfx.platform.shell.spi` package;
+  `org.netbeans.modules.nbfx.platform.shell.spi` package, recorded in `arch.xml` and the shell
+  `apichanges.xml`;
 - `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
 - providers are resolved once per shell and the composition/area are process-wide;
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
