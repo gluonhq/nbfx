@@ -35,16 +35,15 @@ import org.openide.filesystems.FileObject;
 import org.openide.util.NbBundle;
 
 /**
- * Registers the workbench-owned commands: navigator/editor selection, window reset and document
- * close, plus Select in Projects/Files. Project lifecycle and build commands live in their own IDE
- * modules; the workbench only contributes what depends on the main window, its navigator panes and
- * the shared editor set.
+ * Registers the commands that depend on the main window's navigator panes: Projects/Files selection,
+ * window reset and Select in Projects/Files. Generic editor/document commands live in the platform
+ * shell; project lifecycle and build commands live in their own IDE modules.
  */
 final class WorkspaceCommands {
 
     /** The launcher-owned window actions and their enablement. */
     record WindowActions(
-            Runnable selectProjects, Runnable selectFiles, Runnable selectEditor, Runnable resetWindows) {
+            Runnable selectProjects, Runnable selectFiles, Runnable resetWindows) {
     }
 
     private WorkspaceCommands() {
@@ -59,8 +58,6 @@ final class WorkspaceCommands {
                 new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN), actions.selectProjects()));
         registry.register(new RunnableCommand(IdeActionIds.SELECT_FILES, message("CTL_SelectFilesCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.SHORTCUT_DOWN), actions.selectFiles()));
-        registry.register(new RunnableCommand(ActionIds.SELECT_EDITOR, message("CTL_SelectEditorCommand"),
-                new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.SHORTCUT_DOWN), actions.selectEditor()));
         registry.register(new RunnableCommand(ActionIds.RESET_WINDOWS, message("CTL_ResetWindowsCommand"),
                 null, actions.resetWindows()));
         ObservableValue<EditorDocument> active = EditorContexts.activeDocument();

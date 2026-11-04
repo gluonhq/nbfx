@@ -30,7 +30,9 @@ import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
+import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -49,6 +51,9 @@ public final class ShellCommandsProvider implements CommandsProvider {
         ObservableValue<Boolean> empty = Bindings.isEmpty(documents);
         ObservableValue<Boolean> fewerThanTwo = Bindings.size(documents).lessThan(2);
         return List.of(
+                new RunnableCommand(ActionIds.SELECT_EDITOR, message("CTL_SelectEditorCommand"),
+                        new KeyCodeCombination(KeyCode.DIGIT0, KeyCombination.SHORTCUT_DOWN),
+                        ShellCommandsProvider::selectEditor),
                 new RunnableCommand(ActionIds.CLOSE_DOCUMENT, message("CTL_CloseDocumentCommand"),
                         new KeyCodeCombination(KeyCode.W, KeyCombination.SHORTCUT_DOWN),
                         () -> DocumentCloser.closeDocument(activeDocument()), empty),
@@ -57,6 +62,13 @@ public final class ShellCommandsProvider implements CommandsProvider {
                         DocumentCloser::closeAllDocuments, empty),
                 new RunnableCommand(ActionIds.CLOSE_OTHER_DOCUMENTS, message("CTL_CloseOtherDocumentsCommand"),
                         null, () -> DocumentCloser.closeOtherDocuments(activeDocument()), fewerThanTwo));
+    }
+
+    private static void selectEditor() {
+        ContentManager content = Lookup.getDefault().lookup(ContentManager.class);
+        if (content != null) {
+            content.focusActiveEditor();
+        }
     }
 
     private static EditorDocument activeDocument() {

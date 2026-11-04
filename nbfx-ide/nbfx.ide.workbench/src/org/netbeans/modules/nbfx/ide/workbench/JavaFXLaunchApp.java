@@ -479,7 +479,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         return new WorkspaceCommands.WindowActions(
                 () -> selectNavigator(firstNavigatorId(0)),
                 () -> selectNavigator(firstNavigatorId(1)),
-                this::selectEditor,
                 this::resetWindows);
     }
 
@@ -605,13 +604,6 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Focuses the main editor pane's selected tab so its caret blinks. */
-    private void selectEditor() {
-        ContentManager cm = contentManager();
-        if (cm != null) {
-            cm.focusActiveEditor();
-        }
-    }
-
     /**
      * Restores the default layout, the way NetBeans' Reset Windows puts every window back in its
      * default mode: the layout is first collapsed to the default arrangement of the navigator and
