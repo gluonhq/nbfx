@@ -195,6 +195,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
         Budget.mark("usable");
         Budget.markUsable();
+        installApplicationMenu();
         started();
         UiReady.dispatch();
         Platform.runLater(this::restoreSession);
@@ -411,8 +412,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     protected void sceneReady(Scene scene) {
     }
 
-    /** Called after the window is showing, on the JavaFX Application Thread. */
-    protected void started() {
+    /** Installs the platform application menu once the window is showing. */
+    private void installApplicationMenu() {
         if (applicationMenuInstalled || shellContext == null) {
             return;
         }
@@ -421,6 +422,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             menu.install(this::openPreferences, this::requestQuit);
             applicationMenuInstalled = true;
         }
+    }
+
+    /**
+     * Called after the window is showing, on the JavaFX Application Thread, before the
+     * {@code @OnUiReady} tasks. Kept as a subclass compatibility hook; product contributions use
+     * {@link org.netbeans.modules.nbfx.platform.shell.api.OnUiReady} instead.
+     */
+    protected void started() {
     }
 
     /** Runs the Options command, so a native application menu can open the Options dialog. */
