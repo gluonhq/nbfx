@@ -20,8 +20,11 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
+import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import java.util.logging.Logger;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -44,7 +47,12 @@ public class ViewManagerService implements ViewManager {
             NbfxTabPane.focusDocument(existing);
             return;
         }
-        TabPane target = Docking.paneAt(view.getDefaultLocation());
+        ViewSpec spec = ViewRegistry.find(view.getId());
+        ViewArea area = spec == null ? null : spec.area();
+        TabPane target = area == null ? null : Docking.paneOf(area);
+        if (target == null) {
+            target = Docking.paneAt(spec == null ? view.getDefaultLocation() : area.location());
+        }
         if (target == null) {
             // The dock area is not built (headless), or lacks the location's permanent pane: fall
             // back to the navigator pane.
@@ -55,8 +63,31 @@ public class ViewManagerService implements ViewManager {
             return;
         }
         Tab tab = ViewTabs.create(view, view.getDescription());
-        NbfxTabPane.attachTab(target, tab);
+        NbfxTabPane.attachTabAt(target, tab, insertionIndex(target, spec, view.getId()));
         NbfxTabPane.focusDocument(tab);
+    }
+
+    /** The position of a new view tab among the view tabs already in {@code target}. */
+    private static int insertionIndex(TabPane target, ViewSpec spec, String id) {
+        if (spec == null) {
+            return target.getTabs().size();
+        }
+        int position = spec.position();
+        for (int i = 0; i < target.getTabs().size(); i++) {
+            String otherId = NbfxTabPane.viewId(target.getTabs().get(i));
+            if (otherId == null) {
+                continue;
+            }
+            ViewSpec other = ViewRegistry.find(otherId);
+            if (other == null) {
+                continue;
+            }
+            if (other.position() > position
+                    || (other.position() == position && other.id().compareTo(id) > 0)) {
+                return i;
+            }
+        }
+        return target.getTabs().size();
     }
 
     @Override
