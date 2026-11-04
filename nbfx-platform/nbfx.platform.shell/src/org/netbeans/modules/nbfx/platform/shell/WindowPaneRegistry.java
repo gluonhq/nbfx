@@ -27,6 +27,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.views.PaneKind;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 

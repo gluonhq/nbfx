@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
 import java.util.Optional;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 
 /**

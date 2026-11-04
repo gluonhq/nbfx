@@ -41,6 +41,7 @@ import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.file.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
 import javafx.application.Platform;

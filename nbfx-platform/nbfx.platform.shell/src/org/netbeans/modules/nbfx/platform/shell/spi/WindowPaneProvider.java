@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.spi;
+
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 
 /**
  * Creates the concrete pane for a registered {@link WindowPane}. Products register a provider in
  * the lookup when the pane needs product services; a subclass can instead override
- * {@link ShellApplication#createPane(WindowPane)}. The editor pane is always resolved through the
+ * {@link ShellApplication#createPane(WindowPane, WindowPaneContext)}. The editor pane is always resolved through the
  * content manager and never through a provider.
  *
  * @since 1.0

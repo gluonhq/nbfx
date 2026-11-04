@@ -50,6 +50,9 @@ import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSink;
 import org.netbeans.modules.nbfx.platform.workspace.WindowState;
@@ -108,7 +111,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
         Lookup shellLookup = shellLookup();
-        WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition, this);
+        WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition.panes(), this);
         Map<String, NbfxTabPane> panes = instantiatePanes(composition, paneContext);
         if (panes.isEmpty()) {
             throw new IllegalStateException("The shell has no primary pane");

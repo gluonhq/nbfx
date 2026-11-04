@@ -23,6 +23,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
@@ -72,16 +75,16 @@ public class WindowPaneProviderTest {
             WindowPane compositionPane = new WindowPane("RIGHT_SIDEBAR", "Right", PaneKind.VIEW,
                     "right-sidebar", false, 30);
             WindowComposition composition = new WindowComposition(List.of(compositionPane), null);
-            WindowPaneContext context = new WindowPaneContext(lookup, composition, shell);
+            WindowPaneContext context = new WindowPaneContext(lookup, composition.panes(), shell);
 
             NbfxTabPane pane = shell.createPane(compositionPane, context);
 
             assertSame(high.created, pane);
             assertNull(low.created);
             assertEquals(PaneRole.of("RIGHT_SIDEBAR"), NbfxTabPane.roleOf(pane));
-            assertSame(composition, seen.get().composition());
+            assertEquals(composition.panes(), seen.get().panes());
             assertSame(shell, seen.get().window());
-            assertEquals(composition, context.composition());
+            assertEquals(composition.panes(), context.panes());
             return null;
         });
     }

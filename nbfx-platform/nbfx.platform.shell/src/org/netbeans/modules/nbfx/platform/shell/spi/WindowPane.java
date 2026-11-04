@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.spi;
 
 import org.netbeans.api.nbfx.views.PaneKind;
+import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 
 /**
  * A declared permanent window pane.

@@ -22,6 +22,7 @@ import java.util.List;
 import org.junit.Test;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;

@@ -678,8 +678,9 @@ the concrete instances imperatively. This step makes the shell consume the compo
 Ownership:
 
 - `WindowComposition` is the single source of registered permanent panes and the first-run tree.
-- A `WindowPaneProvider` (or the `ShellApplication.createPane(WindowPane)` hook) supplies concrete
-  instances for declared panes; the hook wins over providers, providers win over the default.
+- A `WindowPaneProvider` (or the
+  `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook) supplies concrete instances
+  for declared panes; the hook wins over providers, providers win over the default.
 - The editor pane stays special: an `EDITOR` registration resolves through `ContentManager`, never
   through a provider.
 - `keepWhenEmpty` is a `DockHost` decision; `Docking` answers it from `WindowPaneRegistry`.
@@ -699,7 +700,11 @@ Implementation sequence:
 Implemented:
 
 - `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
-- `WindowPaneContext` carries the shell lookup, the resolved composition and the shell window;
+- `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
+  `org.netbeans.modules.nbfx.platform.shell.spi` package;
+- `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
+- `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
+  contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;
 - `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
   to `Docking.create`;

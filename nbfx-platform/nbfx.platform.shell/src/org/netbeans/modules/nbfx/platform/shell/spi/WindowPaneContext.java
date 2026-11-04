@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.spi;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
@@ -25,22 +26,27 @@ import org.openide.util.Lookup;
 
 /**
  * The narrow context a {@link WindowPaneProvider} receives while the shell is being composed. It
- * carries the lookup the shell uses for contributions and the resolved composition, so a provider
- * does not have to reach for the global lookup.
+ * carries the lookup the shell uses for contributions and the registered panes of the resolved
+ * composition, so a provider does not have to reach for the global lookup.
  * <p>
  * The shell window is available once the window structure exists; during pane creation the
  * {@link #window() window} is the shell facade but its root and main pane are not assigned yet.
  *
- * @param lookup      the shell lookup
- * @param composition the resolved first-run composition
- * @param window      the shell window facade, or {@code null}
+ * @param lookup the shell lookup
+ * @param panes  the registered panes of the resolved composition
+ * @param window the shell window facade, or {@code null}
  * @since 1.0
  */
-public record WindowPaneContext(Lookup lookup, WindowComposition composition, ShellWindow window) {
+public record WindowPaneContext(Lookup lookup, List<WindowPane> panes, ShellWindow window) {
 
     public WindowPaneContext {
         Objects.requireNonNull(lookup, "lookup");
-        Objects.requireNonNull(composition, "composition");
+        panes = List.copyOf(panes);
+    }
+
+    /** The registered pane with {@code id}, if declared. */
+    public Optional<WindowPane> pane(String id) {
+        return panes.stream().filter(pane -> pane.id().equalsIgnoreCase(id)).findFirst();
     }
 
     /** The shell window once it is available. */
