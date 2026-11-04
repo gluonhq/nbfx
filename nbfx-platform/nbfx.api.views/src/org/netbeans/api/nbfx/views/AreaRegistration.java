@@ -23,7 +23,6 @@ import java.lang.annotation.Repeatable;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import org.netbeans.api.nbfx.view.DockLocation;
 
 /**
  * Declares a view area in the layer. An area is a named docking destination such as the explorer,

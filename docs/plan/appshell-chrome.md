@@ -655,9 +655,10 @@ Implemented:
 - MAIN/NAVIGATOR declared as platform panes;
 - `ViewArea` resolves to its pane through `@PaneRegistration.area`;
 - `WindowComposition`/`WindowCompositionResolver`;
-- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` added; the old entry point remains
-  as a compatibility path. `DockArea` takes an explicit main role, so the pane order can follow the
-  declared composition tree without changing which pane owns content; `Docking` passes `MAIN`;
+- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` is the only creation path; the old
+  `create(NbfxTabPane...)` entry point was removed. `DockArea` takes an explicit main role, so the
+  pane order can follow the declared composition tree without changing which pane owns content;
+  `Docking` passes `MAIN`;
 - `WindowPaneRegistry.discover()` is cached and invalidated by a `FileChangeListener`; a
   registration with a reserved non-permanent role (`DOCKED`, `DETACHED`, `SLIDE`) is rejected;
 - `PaneRole.of` rejects names that are not `\w+`, so corrupt persisted pane lines are ignored;
@@ -707,8 +708,26 @@ Implemented:
 
 - `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
 - `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
-  `org.netbeans.modules.nbfx.platform.shell.spi` package;
+  `org.netbeans.modules.nbfx.platform.shell.spi` package, recorded in `arch.xml` and the shell
+  `apichanges.xml`;
 - `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
+- providers are resolved once per shell and the composition/area are process-wide;
+- `Docking` retains the resolved `WindowComposition`; area, `keepWhenEmpty`, default-view and
+  fallback placement resolve against that snapshot, with `WindowPaneRegistry` only as the
+  headless fallback;
+- `Docking.paneAt(DockLocation)` first resolves the location through the registered default area
+  and its pane, so a product can own a legacy location without editing `Docking`; the fixed
+  `NAVIGATOR`/`MAIN`/edge mapping is the fallback;
+- `Reset Windows` applies the resolved composition tree and iterates every permanent pane, and a
+  view's home resolves through its `ViewSpec` area before the legacy location;
+- `NavigatorPaneProvider` receives the session restorer, navigator views and pane sink explicitly,
+  with no dependency on `JavaFXLaunchApp`;
+- `PaneRole.defaultKind()` is the single editor-pane rule: only `MAIN` defaults to
+  `PaneKind.EDITOR`, every other role to `PaneKind.VIEW`;
+- persistence ordering also uses the resolved composition, so runtime placement and capture no
+  longer re-read `WindowPaneRegistry` once the shell has started;
+- the one-shell-per-JVM invariant is documented on `ShellApplication` and `Docking`; restarting a
+  shell in the same JVM would reuse the static docking area and pane registry.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;
@@ -727,11 +746,41 @@ Implemented:
 - `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane;
 - the platform conformance fixture registers a custom pane and area in the test layer, starts the
   shell with them and shows a view in the custom pane;
-- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown.
+- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown;
+- `ViewManagerService` resolves a missing area and position from the registered `ViewSpec`; an
+  unknown area falls back to its location and then to the default view pane;
+- the default view role falls back to the built-in navigator only when no view pane is declared,
+  and that fallback is documented and tested.
 
 Remaining follow-ups:
 
 - a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
   wider window abstraction;
 - on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
-  the permanent-pane model.
+  the permanent-pane model;
+- a custom pane instance is still an `NbfxTabPane`; a non-tab pane abstraction is out of scope.
+
+---
+
+## 16. View placement API consolidation
+
+`ViewArea` and `DockLocation` now live in `org.netbeans.api.nbfx.views`, next to the registration
+types. `ViewLocation` was removed: registered views use `DockLocation`, while detached windows stay
+a runtime action. `ViewSpec` no longer stores a separate location; its `location()` derives from
+`area()`, so the registered area is the only placement truth.
+
+`ViewPlacement` is the single runtime policy: registered area → area location → legacy
+`ViewProvider.getDefaultLocation()` → default view role. `ViewManagerService`,
+`JavaFXLaunchApp.homeOfView` and `SessionRestorer` use it instead of repeating the chain. If an
+explicit area resolves to no pane, the legacy view location is still tried before the default
+view role.
+
+`Docking` snapshots the location-to-area and area-to-pane mappings from the resolved composition
+when it builds the area, so `paneAt`/`paneOf` no longer read the configuration filesystem on every
+call. `Reset Windows` takes one view catalog (registrations plus providers) for the whole pass and
+uses `Docking.defaultTree()` instead of rebuilding the same fallback chain. `ViewManagerService`
+treats an explicit `Integer.MAX_VALUE` position as “append”; only the no-position overload takes
+the registered `ViewSpec.position()`.
+
+The API move is recorded in `nbfx.api.views/apichanges.xml`; the module is now at specification
+version 1.4.

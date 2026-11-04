@@ -389,7 +389,7 @@ public final class SessionRestorer {
                     continue;
                 }
                 TabPane target;
-                if (pane.isMinimized() && pane.role() != PaneRole.MAIN) {
+                if (pane.isMinimized() && !pane.role().isMain()) {
                     target = minimizedTarget(pane, shaped);
                     if (target != null) {
                         minimizedTargets.put(pane, target);
@@ -403,7 +403,7 @@ public final class SessionRestorer {
                     LOG.info("Pane " + pane.role() + " is no longer registered; moving its tabs");
                     moveTabsToFallback(tabs,
                             NbfxTabPane.paneWithRole(PaneRole.MAIN),
-                            NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole()));
+                            NbfxTabPane.paneWithRole(ViewPlacement.defaultViewRole()));
                     continue;
                 }
                 // Only tabs that are not already in place are moved, so re-applying an unchanged

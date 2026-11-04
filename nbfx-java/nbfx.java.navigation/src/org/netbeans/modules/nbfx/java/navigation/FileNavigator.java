@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation;
 
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewProvider;
 
@@ -52,7 +52,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class, position=20)
 @ViewRegistration(displayName = "Files",
         iconName = "org/netbeans/modules/nbfx/java/navigation/filesTab.png",
-        location = ViewLocation.LEFT, position = 20, navigator = true)
+        location = DockLocation.LEFT, position = 20, navigator = true)
 public class FileNavigator extends AbstractNavigatorProvider<FileObject> {
 
     static final Logger LOG = Logger.getLogger(FileNavigator.class.getName());

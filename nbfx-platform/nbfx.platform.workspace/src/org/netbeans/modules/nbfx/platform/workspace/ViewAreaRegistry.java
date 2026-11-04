@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 import org.netbeans.api.nbfx.layer.LayerPaths;
-import org.netbeans.api.nbfx.view.DockLocation;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
@@ -63,7 +63,7 @@ public final class ViewAreaRegistry {
     public static Optional<ViewArea> defaultFor(DockLocation location) {
         return discover().stream()
                 .filter(area -> area.location() == location)
-                .min(Comparator.comparingInt(area -> position(area.id())));
+                .findFirst();
     }
 
     /** Reads the area folders below {@code folder}; package-visible for tests. */
@@ -116,12 +116,6 @@ public final class ViewAreaRegistry {
             return null;
         }
         return new ViewArea(folder.getName(), displayName, location, weight);
-    }
-
-    private static int position(String id) {
-        FileObject folder = FileUtil.getConfigFile(LayerPaths.VIEW_AREAS);
-        FileObject area = folder == null ? null : folder.getFileObject(id);
-        return intAttribute(area, "position", Integer.MAX_VALUE);
     }
 
     private static int intAttribute(FileObject file, String name, int fallback) {

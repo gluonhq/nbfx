@@ -18,6 +18,7 @@
  */
 package org.netbeans.api.nbfx.view;
 
+import org.netbeans.api.nbfx.views.DockLocation;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;

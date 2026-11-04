@@ -80,6 +80,22 @@
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="DockHost"/>
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="DockArea"/>
         </change>
+        <change id="view.spec.derived.location">
+            <api name="netbeansfx_windows"/>
+            <summary>View placement derives from the registered area.</summary>
+            <version major="1" minor="3"/>
+            <date day="6" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="no" modification="yes" removal="yes" semantic="incompatible"/>
+            <description>
+                Removes the separate <code>ViewSpec.location</code> component: the location is now
+                derived from the registered <code>ViewArea</code>, and placement uses the resolved
+                composition. A legacy <code>BOTTOM</code> view keeps a dedicated bottom area rather
+                than silently becoming the center-bottom output area.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewSpec"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewRegistry"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
