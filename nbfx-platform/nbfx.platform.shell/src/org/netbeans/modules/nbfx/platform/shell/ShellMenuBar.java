@@ -33,6 +33,7 @@ import org.netbeans.api.nbfx.actions.ActionRef;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.views.DynamicMenu;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
 import org.openide.filesystems.FileObject;
@@ -51,12 +52,14 @@ public final class ShellMenuBar {
             ? LayerPaths.DYNAMIC_SUFFIX.substring(1) : LayerPaths.DYNAMIC_SUFFIX;
 
     private final ShellContext context;
+    private final ShellChromeProfile profile;
     private final Map<FileObject, MenuModel> models = new IdentityHashMap<>();
     private final Map<FileObject, Menu> menus = new IdentityHashMap<>();
     private final MenuBar menuBar;
 
     public ShellMenuBar(ShellContext context) {
         this.context = context;
+        this.profile = context.profile();
         this.menuBar = build();
     }
 
@@ -84,7 +87,7 @@ public final class ShellMenuBar {
         if (root != null) {
             List<FileObject> folders = new ArrayList<>();
             for (FileObject child : root.getChildren()) {
-                if (child.isFolder()) {
+                if (child.isFolder() && profile.includeMenu(child.getName())) {
                     folders.add(child);
                 }
             }
@@ -99,7 +102,7 @@ public final class ShellMenuBar {
             }
         }
         MenuBar bar = new MenuBar(topLevel.toArray(Menu[]::new));
-        bar.setUseSystemMenuBar(true);
+        bar.setUseSystemMenuBar(profile.useSystemMenuBar());
         return bar;
     }
 
@@ -187,6 +190,9 @@ public final class ShellMenuBar {
     private MenuModel model(FileObject folder, Menu owner) {
         List<Entry> entries = new ArrayList<>();
         for (ActionRef ref : ActionLayerReader.read(folder)) {
+            if (!profile.includeMenuItem(folder.getName(), ref.actionId())) {
+                continue;
+            }
             entries.add(new StaticEntry(ref.position(), ref.actionId(), ref.separatorBefore(),
                     menuItem(ref.actionId())));
         }
@@ -196,7 +202,7 @@ public final class ShellMenuBar {
 
         List<FileObject> subfolders = new ArrayList<>();
         for (FileObject child : folder.getChildren()) {
-            if (child.isFolder()) {
+            if (child.isFolder() && profile.includeMenu(child.getName())) {
                 subfolders.add(child);
             }
         }
@@ -218,6 +224,9 @@ public final class ShellMenuBar {
         List<DynamicEntry> entries = new ArrayList<>();
         for (FileObject child : folder.getChildren()) {
             if (!child.isData() || !child.hasExt(DYNAMIC_EXT)) {
+                continue;
+            }
+            if (!profile.includeMenuItem(folder.getName(), child.getName())) {
                 continue;
             }
             String factoryName = stringAttribute(child, "factory", "");

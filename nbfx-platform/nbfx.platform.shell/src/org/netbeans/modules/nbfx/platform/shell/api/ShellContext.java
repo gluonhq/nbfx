@@ -49,6 +49,12 @@ public record ShellContext(Lookup lookup) {
         return lookup.lookup(ActionContext.class);
     }
 
+    /** The chrome profile for this context; defaults to {@link ShellChromeProfile#ALL}. */
+    public ShellChromeProfile profile() {
+        ShellChromeProfile profile = lookup.lookup(ShellChromeProfile.class);
+        return profile == null ? ShellChromeProfile.ALL : profile;
+    }
+
     /**
      * Resolves the command registered under {@code id}. A {@link ShellCommandResolver} in the
      * lookup takes precedence; otherwise the registry is consulted.

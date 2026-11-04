@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
 import org.netbeans.api.nbfx.views.DynamicMenu;
@@ -130,6 +131,46 @@ public class ShellMenuBarTest {
                     assertEquals(List.of("Dynamic"), texts(submenu));
                     factory.items.clear();
                     assertTrue("an empty dynamic submenu must not be shown", menu.getItems().isEmpty());
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void profileFiltersMenuItems() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = configRoot();
+            FileObject folder = createFolder(root, "NbFx/Menus/ProfileMenu");
+            try {
+                createRef(folder, "static.ref", "test.static", 10);
+                createDynamic(folder, "section.dynamic", TestFactory.class.getName(), 20);
+                ShellChromeProfile profile = new ShellChromeProfile() {
+                    @Override
+                    public boolean includeMenu(String menuId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeMenuItem(String menuId, String itemId) {
+                        return !"test.static".equals(itemId);
+                    }
+
+                    @Override
+                    public boolean includeToolBar(String toolBarId) {
+                        return true;
+                    }
+                };
+                TestFactory factory = new TestFactory();
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(factory, resolver(), profile), Lookup.getDefault())));
+                try {
+                    Menu menu = menu(bar, "ProfileMenu");
+                    assertEquals(List.of("Dynamic"), texts(menu));
                 } finally {
                     bar.dispose();
                 }
