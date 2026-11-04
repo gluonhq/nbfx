@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.platform.workspace;
 
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.Objects;
 

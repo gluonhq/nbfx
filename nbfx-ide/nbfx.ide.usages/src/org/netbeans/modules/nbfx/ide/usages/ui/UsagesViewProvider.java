@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.ide.usages.ui;
 
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
-import org.netbeans.api.nbfx.view.DockLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.ide.usages.model.UsagesModel;

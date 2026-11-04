@@ -117,7 +117,7 @@ public class ViewsProcessorTest {
     private static final String AREA_SOURCE =
             "package demo;\n"
             + "import org.netbeans.api.nbfx.views.*;\n"
-            + "import org.netbeans.api.nbfx.view.DockLocation;\n"
+            + "import org.netbeans.api.nbfx.views.DockLocation;\n"
             + "@AreaRegistration(id = \"right-sidebar\", displayName = \"Right Sidebar\","
             + " location = DockLocation.RIGHT, weight = 0.25, position = 10)\n"
             + "public class DemoArea {}\n";

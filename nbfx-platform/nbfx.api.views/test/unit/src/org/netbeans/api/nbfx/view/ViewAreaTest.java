@@ -18,6 +18,9 @@
  */
 package org.netbeans.api.nbfx.view;
 
+import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewArea;
+
 import java.util.Optional;
 import org.junit.Test;
 

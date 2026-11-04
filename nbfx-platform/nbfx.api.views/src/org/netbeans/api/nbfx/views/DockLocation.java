@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.view;
+package org.netbeans.api.nbfx.views;
 
 /**
- * The docked places of the main window a {@link ViewProvider view} can be shown in by default. Each
+ * The docked places of the main window a {@link org.netbeans.api.nbfx.view.ViewProvider view} can be shown in by default. Each
  * is a tab pane; all but {@link #LEFT} and {@link #CENTER} only exist while they hold a tab, splitting
  * the pane (or the whole window) next to them. Users may then drag the view anywhere.
  */

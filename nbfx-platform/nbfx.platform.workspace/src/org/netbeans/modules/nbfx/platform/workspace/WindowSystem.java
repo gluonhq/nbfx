@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.workspace;
 
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.ViewArea;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

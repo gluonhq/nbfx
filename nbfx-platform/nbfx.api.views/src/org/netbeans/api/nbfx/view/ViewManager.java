@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.view;
 
+import org.netbeans.api.nbfx.views.ViewArea;
+
 /**
  * Shows and hides {@link ViewProvider views}. The implementation lives in the launcher and is
  * registered in the global {@code Lookup}; it owns the tab of each view and knows which pane - or
