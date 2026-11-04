@@ -653,8 +653,8 @@ Implemented:
 - MAIN/NAVIGATOR declared as platform panes;
 - `ViewArea` resolves to its pane through `@PaneRegistration.area`;
 - `WindowComposition`/`WindowCompositionResolver`;
-- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` added; the old entry point remains
-  as a compatibility path;
+- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` is the only creation path; the old
+  `create(NbfxTabPane...)` entry point was removed;
 - `ViewManagerService` fallback uses `WindowPaneRegistry.defaultViewRole()` instead of
   `NAVIGATOR`;
 - `@PaneRegistration.permanent` was removed: every registered pane is permanent, and the only

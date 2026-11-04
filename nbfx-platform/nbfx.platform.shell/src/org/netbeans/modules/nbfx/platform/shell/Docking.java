@@ -82,23 +82,6 @@ public final class Docking implements DockHost<TabPane> {
     private Docking() {}
 
     /**
-     * Creates the application's area from the given permanent panes, using the resolved declarative
-     * composition for the first-run tree. Kept as the compatibility path while products migrate to
-     * {@link #create(WindowComposition, Map)}.
-     */
-    public static DockArea<TabPane> create(NbfxTabPane... primaries) {
-        Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
-        for (NbfxTabPane primary : primaries) {
-            PaneRole role = NbfxTabPane.roleOf(primary);
-            if (!role.isPermanent()) {
-                throw new IllegalArgumentException("Not a permanent pane: " + role);
-            }
-            panes.put(role.name(), primary);
-        }
-        return create(WindowCompositionResolver.resolve(), panes);
-    }
-
-    /**
      * Creates the application's area from a resolved composition and the concrete permanent panes,
      * replacing any previous one.
      *
