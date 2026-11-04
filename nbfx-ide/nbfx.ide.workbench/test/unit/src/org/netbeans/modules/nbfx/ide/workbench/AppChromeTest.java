@@ -39,6 +39,8 @@ import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
+import org.netbeans.modules.nbfx.platform.status.StatusElement;
+import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
 import org.openide.util.Lookup;
 
 /**
@@ -84,6 +86,12 @@ public class AppChromeTest extends NbTestCase {
         assertEquals(List.of("file", "clipboard", "edit", "build", "debug"),
                 chrome.toolBars().getToolBars().stream().map(toolBar -> toolBar.getId()).toList());
         assertNotNull("the main window has no status bar", chrome.bottom());
+        List<String> statusIds = StatusElementRegistry.discover().stream()
+                .map(StatusElement::id).toList();
+        assertTrue("the project status element is missing: " + statusIds, statusIds.contains("project"));
+        assertTrue("the caret status element is missing: " + statusIds, statusIds.contains("caret"));
+        assertTrue("the line-separator status element is missing: " + statusIds,
+                statusIds.contains("line-separator"));
 
         ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
         assertNotNull("no action registry", registry);
