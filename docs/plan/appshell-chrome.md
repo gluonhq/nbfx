@@ -783,3 +783,43 @@ The remaining review items were closed as follows:
 - `nbfx.api.project`, `nbfx.api.views` and `nbfx.platform.shell` have API history entries;
 - `ant check-api` verifies exported packages and public top-level types for the governed modules,
   using `docs/plan/api-snapshot.txt`. This is a type-level gate until a sigtest baseline is added.
+
+---
+
+## 18. Declarative upstream lifecycle
+
+A product no longer needs to subclass `ShellApplication` for the standard lifecycle seams.
+
+- `ShellWindowProvider` publishes the running `ShellWindow` in the global lookup; `ShellContext`
+  exposes the same window to context-aware contributions.
+- `@OnUiReady` is the nbfx counterpart of NetBeans `@OnShowing`: it writes to the nbfx-owned
+  `NbFx/UIReady` named-service path and runs on the FX thread after the shell is showing.
+  `org.openide.windows` remains forbidden by the purity guard.
+- `WindowSystemListener` services are discovered from the lookup for load/save notifications.
+- `ShellBranding` now supplies icons, minimum size, root style classes and scene stylesheets.
+- The default ApplicationMenu is installed by the shell, not by the protected `started()` hook;
+  `started()` remains a compatibility seam before the UI-ready tasks.
+
+Startup order:
+
+```text
+@OnStart
+  -> ShellApplication.start
+  -> composition / panes / chrome / scene
+  -> ShellBranding appearance
+  -> protected sceneReady
+  -> show
+  -> install ApplicationMenu
+  -> protected started
+  -> @OnUiReady
+  -> restoreSession
+```
+
+Shutdown:
+
+```text
+WindowSystemListener.saveStarted / saveCompleted
+  -> ShellApplication.stop
+  -> @OnStop
+  -> LifecycleManager.exit
+```

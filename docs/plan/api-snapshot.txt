@@ -129,6 +129,7 @@ org.netbeans.modules.nbfx.platform.shell.ShellApplication
 org.netbeans.modules.nbfx.platform.shell.ShellCommandsProvider
 org.netbeans.modules.nbfx.platform.shell.ShellMenuBar
 org.netbeans.modules.nbfx.platform.shell.ShellToolBars
+org.netbeans.modules.nbfx.platform.shell.ShellWindowProviderService
 org.netbeans.modules.nbfx.platform.shell.SlidingArea
 org.netbeans.modules.nbfx.platform.shell.SplitEntry
 org.netbeans.modules.nbfx.platform.shell.StatusElementSupport
@@ -154,6 +155,7 @@ org.netbeans.modules.nbfx.platform.shell.WindowPaneRegistry
 org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext
 org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsProvider
 org.netbeans.modules.nbfx.platform.shell.api.NavigatorRevealState
+org.netbeans.modules.nbfx.platform.shell.api.OnUiReady
 org.netbeans.modules.nbfx.platform.shell.api.ProjectSwitcher
 org.netbeans.modules.nbfx.platform.shell.api.ShellBranding
 org.netbeans.modules.nbfx.platform.shell.api.ShellChrome
@@ -163,6 +165,7 @@ org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver
 org.netbeans.modules.nbfx.platform.shell.api.ShellContext
 org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider
 org.netbeans.modules.nbfx.platform.shell.api.ShellWindow
+org.netbeans.modules.nbfx.platform.shell.api.ShellWindowProvider
 org.netbeans.modules.nbfx.platform.shell.api.TabHomeResolver
 org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution
 org.netbeans.modules.nbfx.platform.shell.spi.WindowPane
