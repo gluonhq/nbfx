@@ -25,12 +25,14 @@ import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
+import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SequencedMap;
 import java.util.logging.Logger;
 import javafx.beans.binding.Bindings;
@@ -79,11 +81,12 @@ public final class Docking implements DockHost<TabPane> {
     private Docking() {}
 
     /**
-     * Creates the application's area from the given permanent panes (the navigator pane, the editor
-     * pane, or both, in that order), replacing any previous one.
+     * Creates the application's area from the given permanent panes, using the resolved declarative
+     * composition for the first-run tree. Kept as the compatibility path while products migrate to
+     * {@link #create(WindowComposition, Map)}.
      */
     public static DockArea<TabPane> create(NbfxTabPane... primaries) {
-        SequencedMap<String, TabPane> panes = new LinkedHashMap<>();
+        Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
         for (NbfxTabPane primary : primaries) {
             PaneRole role = NbfxTabPane.roleOf(primary);
             if (!role.isPermanent()) {
@@ -91,11 +94,32 @@ public final class Docking implements DockHost<TabPane> {
             }
             panes.put(role.name(), primary);
         }
+        return create(WindowCompositionResolver.resolve(), panes);
+    }
+
+    /**
+     * Creates the application's area from a resolved composition and the concrete permanent panes,
+     * replacing any previous one.
+     *
+     * @param composition the registered panes and first-run tree
+     * @param primaries   the concrete panes keyed by role name
+     */
+    public static DockArea<TabPane> create(WindowComposition composition,
+            Map<String, NbfxTabPane> primaries) {
+        SequencedMap<String, TabPane> panes = new LinkedHashMap<>();
+        for (Map.Entry<String, NbfxTabPane> entry : primaries.entrySet()) {
+            PaneRole role = NbfxTabPane.roleOf(entry.getValue());
+            if (!role.isPermanent()) {
+                throw new IllegalArgumentException("Not a permanent pane: " + role);
+            }
+            panes.put(role.name(), entry.getValue());
+        }
         double explorerWeight = ViewAreaRegistry.find("explorer")
                 .map(ViewArea::weight).orElse(ViewArea.EXPLORER.weight());
         List<Double> dividers = panes.size() == 2 ? List.of(explorerWeight) : List.of();
         area = new DockArea<>(new Docking(), panes, dividers);
-        WindowLayoutRegistry.defaultTree().ifPresent(tree -> {
+        if (composition != null && composition.tree() != null) {
+            DockTree tree = composition.tree();
             boolean valid = tree.hasDistinctPrimaries()
                     && tree.leaves().stream().allMatch(leaf ->
                             !leaf.isPrimary() || panes.containsKey(leaf.primary()));
@@ -105,7 +129,7 @@ public final class Docking implements DockHost<TabPane> {
                 LOG.warning("Ignoring window layout with unknown permanent pane roles: "
                         + DockTrees.format(tree));
             }
-        });
+        }
         slides = new SlidingArea(area);
         return area;
     }
@@ -186,9 +210,11 @@ public final class Docking implements DockHost<TabPane> {
         return (NbfxTabPane) pane;
     }
 
-    /** The pane an {@link ViewArea area} lives in; see {@link #paneAt(DockLocation)}. */
+    /** The pane an {@link ViewArea area} lives in, using its declared pane role when available. */
     public static NbfxTabPane paneOf(ViewArea area) {
-        return paneAt(area.location());
+        return WindowPaneRegistry.areaPane(area.id())
+                .map(pane -> primary(pane.role()))
+                .orElseGet(() -> paneAt(area.location()));
     }
 
     @Override

@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
@@ -61,7 +60,7 @@ public class ViewManagerService implements ViewManager {
         if (target == null) {
             // The dock area is not built (headless), or lacks the location's permanent pane: fall
             // back to the navigator pane.
-            target = NbfxTabPane.paneWithRole(PaneRole.NAVIGATOR);
+            target = NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
         }
         if (target == null) {
             LOG.warning(() -> "No pane to show the view " + view.getId() + " in");
