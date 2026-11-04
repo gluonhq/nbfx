@@ -959,6 +959,10 @@ public final class DockArea<N extends Node> extends StackPane {
             absorbNeighbourInto(primary);
             return;
         }
+        if (host.keepWhenEmpty(primary)) {
+            LOG.fine(() -> "Kept the empty " + roleOf(primary) + " pane");
+            return;
+        }
         Anchor<N> anchor = anchorFor(primary);
         if (anchor == null) {
             return;

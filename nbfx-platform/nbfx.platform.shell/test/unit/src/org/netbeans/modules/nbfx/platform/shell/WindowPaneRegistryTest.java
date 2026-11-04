@@ -30,7 +30,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Window panes merge the built-ins with layer declarations.
+ * Window panes are discovered from layer declarations, with MAIN as the only editor pane.
  */
 public class WindowPaneRegistryTest {
 
@@ -47,12 +47,30 @@ public class WindowPaneRegistryTest {
 
         List<WindowPane> panes = WindowPaneRegistry.read(root);
 
-        assertTrue(panes.stream().anyMatch(p -> p.id().equals("MAIN") && p.kind() == PaneKind.EDITOR));
-        assertTrue(panes.stream().anyMatch(p -> p.id().equals("NAVIGATOR")));
-        WindowPane sidebar = panes.stream().filter(p -> p.id().equals("RIGHT_SIDEBAR"))
-                .findFirst().orElseThrow();
+        assertEquals(1, panes.size());
+        WindowPane sidebar = panes.get(0);
         assertEquals("right-sidebar", sidebar.area());
         assertTrue(sidebar.keepWhenEmpty());
         assertTrue(panes.stream().anyMatch(p -> p.area().equals("right-sidebar")));
+    }
+
+    @Test
+    public void discoversThePlatformPanes() {
+        List<WindowPane> panes = WindowPaneRegistry.discover();
+
+        WindowPane main = panes.stream().filter(p -> p.id().equals("MAIN")).findFirst().orElseThrow();
+        assertEquals(PaneKind.EDITOR, main.kind());
+        assertTrue(main.keepWhenEmpty());
+        assertTrue(panes.stream().anyMatch(p -> p.id().equals("NAVIGATOR")));
+    }
+
+    @Test
+    public void onlyMainMayBeAnEditorPane() throws IOException {
+        FileSystem fs = FileUtil.createMemoryFileSystem();
+        FileObject root = FileUtil.createFolder(fs.getRoot(), "NbFx/WindowPanes");
+        FileObject pane = root.createData("SECOND_EDITOR");
+        pane.setAttribute("kind", "EDITOR");
+
+        assertTrue(WindowPaneRegistry.read(root).isEmpty());
     }
 }

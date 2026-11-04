@@ -31,8 +31,8 @@ import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
 /**
- * Discovers permanent window panes from {@code NbFx/WindowPanes}, merging the built-in MAIN and
- * NAVIGATOR panes with product declarations.
+ * Discovers permanent window panes from {@code NbFx/WindowPanes}. The platform declares MAIN and
+ * NAVIGATOR there like any other pane, so registrations are the single source of truth.
  *
  * @since 1.0
  */
@@ -43,7 +43,7 @@ public final class WindowPaneRegistry {
     private WindowPaneRegistry() {
     }
 
-    /** All declared panes, built-ins first, then by position and id. */
+    /** All declared panes, by position and id. */
     public static List<WindowPane> discover() {
         return read(FileUtil.getConfigFile(LayerPaths.WINDOW_PANES));
     }
@@ -63,7 +63,12 @@ public final class WindowPaneRegistry {
 
     /** The default role for showing a view when no area resolves; never the editor pane. */
     public static NbfxTabPane.PaneRole defaultViewRole() {
-        return discover().stream()
+        return defaultViewRole(discover());
+    }
+
+    /** The default view role among {@code panes}; never the editor pane. */
+    public static NbfxTabPane.PaneRole defaultViewRole(List<WindowPane> panes) {
+        return panes.stream()
                 .filter(WindowPane::permanent)
                 .filter(pane -> pane.kind() == PaneKind.VIEW)
                 .min(Comparator.comparingInt(WindowPane::position))
@@ -74,10 +79,6 @@ public final class WindowPaneRegistry {
     /** Reads panes from {@code folder}; package-visible for tests. */
     static List<WindowPane> read(FileObject folder) {
         Map<String, WindowPane> panes = new LinkedHashMap<>();
-        panes.put("MAIN", new WindowPane("MAIN", "Editor", PaneKind.EDITOR, "editor",
-                true, true, 10));
-        panes.put("NAVIGATOR", new WindowPane("NAVIGATOR", "Navigator", PaneKind.VIEW, "explorer",
-                true, false, 20));
         if (folder != null) {
             for (FileObject child : folder.getChildren()) {
                 WindowPane pane = readPane(child);
@@ -103,6 +104,12 @@ public final class WindowPaneRegistry {
         PaneKind kind = parseKind(file.getAttribute("kind"));
         if (kind == null) {
             LOG.warning("Pane " + id + " has an unknown kind");
+            return null;
+        }
+        if ("MAIN".equals(id)) {
+            kind = PaneKind.EDITOR;
+        } else if (kind == PaneKind.EDITOR) {
+            LOG.warning("Pane " + id + " is an editor pane; only MAIN may be one");
             return null;
         }
         String displayName = file.getAttribute("displayName") instanceof String value

@@ -658,14 +658,12 @@ Implemented:
 - `ViewManagerService` fallback uses `WindowPaneRegistry.defaultViewRole()` instead of
   `NAVIGATOR`.
 
-Remaining:
+Now also implemented by the pane-instance step in section 15:
 
-- `ShellApplication.createPanes()` / `JavaFXLaunchApp.createPanes()` still choose which concrete
-  panes exist; a product needs a pane-instance contribution or factory to add a custom permanent
-  pane without subclassing the shell;
-- `keepWhenEmpty` is declared but not yet applied by `DockArea`/`NbfxTabPane`;
-- `WindowComposition` is resolved but `ShellApplication` does not yet consume it to build panes;
-- unknown persisted roles and removed panes need explicit migration tests.
+- `ShellApplication` consumes `WindowComposition` and lets `createPane(WindowPane)` or a
+  `WindowPaneProvider` supply the concrete instance;
+- `keepWhenEmpty` is honored by `DockArea` through `DockHost`;
+- unknown persisted roles move their tabs to the editor/default view pane.
 
 ---
 
@@ -694,3 +692,21 @@ Implementation sequence:
 5. honor `keepWhenEmpty` in `DockArea`;
 6. move tabs of an unknown persisted role to the editor/default view pane instead of dropping them;
 7. test provider selection, keep-when-empty and unknown-role migration.
+
+Implemented:
+
+- `WindowPaneProvider` + `ShellApplication.createPane(WindowPane)` hook;
+- `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
+  to `Docking.create`;
+- `JavaFXLaunchApp` overrides only the navigator pane and no longer owns a pane list;
+- the registry no longer hardcodes MAIN/NAVIGATOR; the platform layer is the single declaration;
+- `PlatformWindowLayout` declares the first-run tree explicitly;
+- `DockHost.keepWhenEmpty` keeps an empty permanent pane visible when its registration asks for it;
+- `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane.
+
+Remaining follow-ups:
+
+- non-permanent pane registrations are rejected with a warning because on-demand, role-stable
+  panes have no lifecycle yet;
+- a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
+  wider window abstraction.

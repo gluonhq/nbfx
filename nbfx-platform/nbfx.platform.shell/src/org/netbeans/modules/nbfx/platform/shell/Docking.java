@@ -243,6 +243,14 @@ public final class Docking implements DockHost<TabPane> {
         lending.set(pane);
     }
 
+    /** Whether the registered pane {@code pane} stays visible when empty. */
+    @Override
+    public boolean keepWhenEmpty(TabPane pane) {
+        return WindowPaneRegistry.find(NbfxTabPane.roleOf(pane).name())
+                .map(WindowPane::keepWhenEmpty)
+                .orElse(false);
+    }
+
     /** A pane is empty when it holds no tab and none of its tabs is slid in from a sliding side. */
     @Override
     public ObservableValue<Boolean> isEmpty(TabPane pane) {

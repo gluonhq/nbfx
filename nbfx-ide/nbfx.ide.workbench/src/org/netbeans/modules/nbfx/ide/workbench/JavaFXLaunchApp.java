@@ -33,6 +33,7 @@ import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
+import org.netbeans.modules.nbfx.platform.shell.WindowPane;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
@@ -178,18 +179,11 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     @Override
-    protected List<NbfxTabPane> createPanes() {
-        List<NbfxTabPane> panes = new ArrayList<>();
-        panes.add(createNavigator());
-        ContentManager contentManager = contentManager();
-        if (contentManager == null) {
-            LOG.severe("We have no content manager!!");
-        } else if (contentManager instanceof ContentManagerService cmi && cmi.getMainPane() instanceof NbfxTabPane editor) {
-            panes.add(editor);
-        } else {
-            LOG.severe("We have competing content managers!");
+    protected NbfxTabPane createPane(WindowPane pane) {
+        if (NbfxTabPane.PaneRole.NAVIGATOR.name().equals(pane.id())) {
+            return createNavigator();
         }
-        return panes;
+        return super.createPane(pane);
     }
 
     @Override
