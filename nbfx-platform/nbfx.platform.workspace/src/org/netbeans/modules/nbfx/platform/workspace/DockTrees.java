@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 import javafx.geometry.Orientation;
@@ -35,9 +36,14 @@ import javafx.geometry.Orientation;
  * <p>
  * Text form: a leaf is {@code P:ROLE} (a permanent pane) or {@code L} (a docked one); a split is
  * {@code V[dividers](children)} or {@code H[dividers](children)}, dividers and children
- * comma-separated, e.g. {@code H[0.2200](P:NAVIGATOR,V[0.6500](P:MAIN,L))}.
+ * comma-separated, e.g. {@code H[0.2200](P:NAVIGATOR,V[0.6500](P:MAIN,L))}. Empty brackets
+ * ({@code H[](...)}) mean the dividers are derived from the registered area weights with
+ * {@link #resolveDividers(DockTree, java.util.function.Function)}.
  */
 public final class DockTrees {
+
+    /** A divider position that is resolved from the registered area weights. */
+    public static final double DERIVE = Double.NaN;
 
     private DockTrees() {}
 
@@ -69,6 +75,79 @@ public final class DockTrees {
                 text.append(')');
             }
         }
+    }
+
+    /**
+     * Replaces every {@link #DERIVE missing} divider with one derived from the child area weights.
+     * Explicit dividers are kept: a split with all its dividers set is an override. A leaf without
+     * an area, or with an area weight of {@code 1.0}, is flexible and takes a share of the
+     * remaining space; side areas keep their declared weight.
+     *
+     * @param tree       the tree to resolve
+     * @param areaWeight the weight of a leaf's role, or {@code null} when it has no area
+     * @return the tree with concrete dividers
+     */
+    public static DockTree resolveDividers(DockTree tree, Function<String, Double> areaWeight) {
+        if (tree instanceof DockTree.Leaf) {
+            return tree;
+        }
+        DockTree.Split split = (DockTree.Split) tree;
+        List<DockTree> children = split.children().stream()
+                .map(child -> resolveDividers(child, areaWeight))
+                .toList();
+        if (split.dividers().stream().noneMatch(divider -> divider.isNaN())) {
+            return new DockTree.Split(split.orientation(), children, split.dividers());
+        }
+        return new DockTree.Split(split.orientation(), children, dividersOf(sharesOf(children, areaWeight)));
+    }
+
+    /** The share of each child, from its fixed area weight plus an equal part of the remainder. */
+    private static List<Double> sharesOf(List<DockTree> children, Function<String, Double> areaWeight) {
+        List<Double> fixed = new ArrayList<>();
+        List<Boolean> flexible = new ArrayList<>();
+        double fixedTotal = 0;
+        for (DockTree child : children) {
+            Weight weight = weightOf(child, areaWeight);
+            fixed.add(weight.fixed());
+            flexible.add(weight.flexible());
+            fixedTotal += weight.fixed();
+        }
+        long flexibleCount = flexible.stream().filter(Boolean::booleanValue).count();
+        double remaining = Math.max(0, 1 - fixedTotal);
+        double flexibleShare = flexibleCount == 0 ? 0 : remaining / flexibleCount;
+        List<Double> shares = new ArrayList<>();
+        for (int i = 0; i < children.size(); i++) {
+            shares.add(fixed.get(i) + (flexible.get(i) ? flexibleShare : 0));
+        }
+        double total = shares.stream().mapToDouble(Double::doubleValue).sum();
+        if (total <= 0) {
+            return children.stream().map(_ -> 1.0 / children.size()).toList();
+        }
+        return shares.stream().map(share -> share / total).toList();
+    }
+
+    private record Weight(double fixed, boolean flexible) {}
+
+    private static Weight weightOf(DockTree tree, Function<String, Double> areaWeight) {
+        if (tree instanceof DockTree.Leaf leaf) {
+            if (!leaf.isPrimary()) {
+                return new Weight(0, true);
+            }
+            Double weight = areaWeight.apply(leaf.primary());
+            if (weight == null || weight.isNaN() || weight <= 0 || weight >= 1) {
+                return new Weight(0, true);
+            }
+            return new Weight(weight, false);
+        }
+        DockTree.Split split = (DockTree.Split) tree;
+        double fixed = 0;
+        boolean flexible = false;
+        for (DockTree child : split.children()) {
+            Weight weight = weightOf(child, areaWeight);
+            fixed += weight.fixed();
+            flexible |= weight.flexible();
+        }
+        return new Weight(fixed, flexible);
     }
 
     /** Parses the text form of a tree, returning {@code null} if it is malformed. */
@@ -121,6 +200,13 @@ public final class DockTrees {
                     }
                     if (next != ',') {
                         throw new IllegalArgumentException("Unexpected '" + next + "'");
+                    }
+                }
+                if (dividers.isEmpty() && children.size() > 1) {
+                    // Empty brackets mean: derive the initial dividers from the registered area
+                    // weights once the pane declarations are known.
+                    for (int i = 0; i < children.size() - 1; i++) {
+                        dividers.add(DERIVE);
                     }
                 }
                 return new Split(c == 'V' ? Orientation.VERTICAL : Orientation.HORIZONTAL, children, dividers);

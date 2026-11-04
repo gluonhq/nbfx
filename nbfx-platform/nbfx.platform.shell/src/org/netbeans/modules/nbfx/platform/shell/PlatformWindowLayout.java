@@ -21,11 +21,11 @@ package org.netbeans.modules.nbfx.platform.shell;
 import org.netbeans.api.nbfx.views.WindowLayoutRegistration;
 
 /**
- * The platform's first-run tree: the navigator left of the editor at the explorer area's weight.
- * Products add panes to it by declaring their own {@code default} layout in the layer, which
- * overrides this one.
+ * The platform's first-run tree: the navigator left of the editor. The empty brackets mean the
+ * initial divider comes from the explorer area's declared weight; products add panes to it by
+ * declaring their own {@code default} layout in the layer, which overrides this one.
  */
-@WindowLayoutRegistration(id = "default", tree = "H[0.3000](P:NAVIGATOR,P:MAIN)")
+@WindowLayoutRegistration(id = "default", tree = "H[](P:NAVIGATOR,P:MAIN)")
 final class PlatformWindowLayout {
 
     private PlatformWindowLayout() {

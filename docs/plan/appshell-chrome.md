@@ -710,7 +710,9 @@ Implemented:
   to `Docking.create`;
 - `JavaFXLaunchApp` overrides only the navigator pane and no longer owns a pane list;
 - the registry no longer hardcodes MAIN/NAVIGATOR; the platform layer is the single declaration;
-- `PlatformWindowLayout` declares the first-run tree explicitly;
+- `PlatformWindowLayout` declares the first-run structure with `H[](P:NAVIGATOR,P:MAIN)`; the
+  initial divider is derived from the registered explorer area weight, and explicit dividers still
+  override derived ones through `DockTrees.resolveDividers`;
 - `DockHost.keepWhenEmpty` keeps an empty permanent pane visible when its registration asks for it;
 - `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane.
 

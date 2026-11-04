@@ -18,7 +18,12 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.List;
+import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
+import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
+import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 
 /**
@@ -33,7 +38,23 @@ public final class WindowCompositionResolver {
 
     /** The current first-run composition. */
     public static WindowComposition resolve() {
-        DockTree tree = WindowLayoutRegistry.defaultTree().orElse(null);
-        return new WindowComposition(WindowPaneRegistry.discover(), tree);
+        List<WindowPane> panes = WindowPaneRegistry.discover();
+        DockTree tree = WindowLayoutRegistry.defaultTree()
+                .map(layout -> DockTrees.resolveDividers(layout,
+                        role -> areaWeight(role, panes)))
+                .orElse(null);
+        return new WindowComposition(panes, tree);
+    }
+
+    /** The declared weight of the area a registered pane hosts, or {@code null}. */
+    private static Double areaWeight(String role, List<WindowPane> panes) {
+        return panes.stream()
+                .filter(pane -> pane.role().name().equals(role))
+                .map(WindowPane::area)
+                .filter(area -> !area.isBlank())
+                .flatMap(area -> ViewAreaRegistry.find(area).stream())
+                .map(ViewArea::weight)
+                .findFirst()
+                .orElse(null);
     }
 }

@@ -23,8 +23,10 @@ import org.junit.Test;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -46,6 +48,14 @@ public class WindowCompositionTest {
 
         assertTrue(composition.pane("RIGHT_SIDEBAR").isPresent());
         assertEquals(PaneRole.MAIN, composition.pane("main").orElseThrow().role());
+    }
+
+    @Test
+    public void firstRunDividersComeFromAreaWeights() {
+        WindowComposition composition = WindowCompositionResolver.resolve();
+
+        assertNotNull(composition.tree());
+        assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(composition.tree()));
     }
 
     @Test
