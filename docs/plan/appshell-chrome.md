@@ -583,15 +583,21 @@ Still outstanding:
 The action/menu/toolbar/status/view **leaves** are registration-driven, but the window
 **composition** is still mostly imperative.
 
-Current gaps:
+Implemented in this increment:
+
+- `@AreaRegistration` and `AreaRegistrationProcessor`;
+- `ViewAreaRegistry` merges layer-declared areas with the platform defaults;
+- `PlatformViewAreas` declares the default areas in the layer;
+- `@ViewRegistration.area` resolves custom areas through the registry;
+- `Docking` uses the registered explorer weight;
+- `ViewManagerService.show()` resolves `ViewSpec` and uses its area/location/position;
+- `ViewManager.show(view, area, position)` lets the startup/default-view code apply the declared
+  placement.
+
+Still imperative:
 
 - `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide the permanent navigator/editor shape;
-- `Docking.create(...)` hardcodes the permanent panes and split weight;
-- `ViewArea` is a closed set of default areas;
-- `@ViewRegistration.area` can only resolve to those defaults;
-- `ViewManagerService.show()` uses `ViewProvider.getDefaultLocation()` instead of the
-  registered `ViewSpec.location/area/position`;
-- `introduceDefaultViews()` calls `ViewManager.show()` imperatively;
+- `Docking.create(...)` still hardcodes the two permanent roles and has no registered pane roles;
 - there is no declarative first-run window/dock composition.
 
 Target:
