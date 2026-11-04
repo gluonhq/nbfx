@@ -716,7 +716,9 @@ Implemented:
 - `NavigatorPaneProvider` receives the session restorer, navigator views and pane sink explicitly,
   with no dependency on `JavaFXLaunchApp`;
 - `PaneRole.defaultKind()` is the single editor-pane rule: only `MAIN` defaults to
-  `PaneKind.EDITOR`, every other role to `PaneKind.VIEW`.
+  `PaneKind.EDITOR`, every other role to `PaneKind.VIEW`;
+- persistence ordering also uses the resolved composition, so runtime placement and capture no
+  longer re-read `WindowPaneRegistry` once the shell has started.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;

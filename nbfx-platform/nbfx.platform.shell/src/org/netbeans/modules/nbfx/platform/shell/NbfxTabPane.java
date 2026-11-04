@@ -1359,7 +1359,11 @@ public final class NbfxTabPane extends TabPane {
         if (area != null) {
             panes.addAll(area.leaves());
         }
-        for (WindowPane registered : WindowPaneRegistry.discover()) {
+        WindowComposition composition = Docking.composition();
+        List<WindowPane> registeredPanes = composition != null
+                ? composition.panes()
+                : WindowPaneRegistry.discover();
+        for (WindowPane registered : registeredPanes) {
             TabPane pane = paneWithRole(registered.role());
             if (pane != null && !panes.contains(pane)) {
                 panes.add(pane);
