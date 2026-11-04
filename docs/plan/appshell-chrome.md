@@ -765,3 +765,21 @@ a runtime action. `ViewSpec` no longer stores a separate location; its `location
 
 The API move is recorded in `nbfx.api.views/apichanges.xml`; the module is now at specification
 version 1.4.
+
+---
+
+## 17. Historical shell cleanup
+
+The remaining review items were closed as follows:
+
+- the generic command resolver no longer exposes `preferFile`; file/editor dispatch stays inside
+  `IdeShellCommandResolver`;
+- `ProjectOpener.open()` owns the Open Project directory chooser and its owner window, and project
+  commands disable themselves when their lifecycle/opener services are absent;
+- `WindowEnvironmentContribution` is deprecated in favour of the focused
+  `DetachedBarsProvider`, `TabHomeResolver`, `ProjectSwitcher`, `NavigatorRevealState` and
+  `NavigatorRevealer` capabilities;
+- `ShellIconProvider` is the documented fallback for commands without a `Command.getIcon()`;
+- `nbfx.api.project`, `nbfx.api.views` and `nbfx.platform.shell` have API history entries;
+- `ant check-api` verifies exported packages and public top-level types for the governed modules,
+  using `docs/plan/api-snapshot.txt`. This is a type-level gate until a sigtest baseline is added.

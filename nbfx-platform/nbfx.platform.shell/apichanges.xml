@@ -44,6 +44,25 @@
             <class package="org.netbeans.modules.nbfx.platform.shell.spi" name="WindowPaneProvider"/>
             <class package="org.netbeans.modules.nbfx.platform.shell.spi" name="WindowPaneContext"/>
         </change>
+        <change id="window.environment.capabilities">
+            <api name="netbeansfx_shell"/>
+            <summary>Focused window environment capabilities.</summary>
+            <version major="1" minor="5"/>
+            <date day="4" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" deprecation="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DetachedBarsProvider</code>, <code>TabHomeResolver</code>,
+                <code>ProjectSwitcher</code> and <code>NavigatorRevealState</code>, composes them
+                independently, and deprecates the broad <code>WindowEnvironmentContribution</code>
+                as the compatibility fallback.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api" name="DetachedBarsProvider"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api" name="TabHomeResolver"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ProjectSwitcher"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api" name="NavigatorRevealState"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api" name="WindowEnvironmentContribution"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
