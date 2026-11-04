@@ -18,12 +18,21 @@
  */
 package org.netbeans.modules.nbfx.platform.theme;
 
+import javafx.application.ColorScheme;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
 /** Basic display-name contract for theme ids. */
 public class NbfxThemeTest {
+
+    @Test
+    public void bundledThemesDeclareTheirScheme() {
+        assertEquals(ColorScheme.LIGHT, NbfxTheme.colorScheme("light"));
+        assertEquals(ColorScheme.DARK, NbfxTheme.colorScheme("dark"));
+        assertEquals(ColorScheme.DARK, NbfxTheme.colorScheme("solarized-dark"));
+        assertEquals(ColorScheme.DARK, NbfxTheme.colorScheme("high-contrast"));
+    }
 
     @Test
     public void displayNamesAreReadable() {

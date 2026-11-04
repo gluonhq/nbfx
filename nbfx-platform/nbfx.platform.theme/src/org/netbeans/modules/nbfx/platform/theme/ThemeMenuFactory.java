@@ -24,6 +24,7 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.RadioMenuItem;
 import javafx.scene.control.ToggleGroup;
+import org.netbeans.api.nbfx.theme.ThemeMode;
 import org.netbeans.api.nbfx.views.DynamicMenu;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
 import org.openide.util.Lookup;
@@ -58,15 +59,32 @@ public final class ThemeMenuFactory implements DynamicMenu.Factory {
 
         private void refresh() {
             menu.getItems().clear();
-            ToggleGroup group = new ToggleGroup();
+            ToggleGroup modes = new ToggleGroup();
+            RadioMenuItem system = modeItem("Menu.view.theme.system", ThemeMode.SYSTEM, modes);
+            RadioMenuItem light = modeItem("Menu.view.theme.light", ThemeMode.LIGHT, modes);
+            RadioMenuItem dark = modeItem("Menu.view.theme.dark", ThemeMode.DARK, modes);
+            system.setSelected(NbfxTheme.mode() == ThemeMode.SYSTEM);
+            light.setSelected(NbfxTheme.mode() == ThemeMode.LIGHT);
+            dark.setSelected(NbfxTheme.mode() == ThemeMode.DARK);
+            menu.getItems().addAll(system, light, dark);
+            menu.getItems().add(new javafx.scene.control.SeparatorMenuItem());
+
+            ToggleGroup themes = new ToggleGroup();
             String current = NbfxTheme.current();
             for (String id : NbfxTheme.themes()) {
                 RadioMenuItem item = new RadioMenuItem(NbfxTheme.displayName(id));
-                item.setToggleGroup(group);
+                item.setToggleGroup(themes);
                 item.setSelected(id.equals(current));
                 item.setOnAction(event -> NbfxTheme.setTheme(id));
                 menu.getItems().add(item);
             }
+        }
+
+        private static RadioMenuItem modeItem(String key, ThemeMode mode, ToggleGroup group) {
+            RadioMenuItem item = new RadioMenuItem(NbBundle.getMessage(ThemeMenuFactory.class, key));
+            item.setToggleGroup(group);
+            item.setOnAction(event -> NbfxTheme.setMode(mode));
+            return item;
         }
 
         @Override

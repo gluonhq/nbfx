@@ -118,6 +118,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         Budget.mark("fxStart");
         this.stage = stage;
         ShellWindowProviderService.set(this);
+        NbfxTheme.install();
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
         Lookup shellLookup = shellLookup();
@@ -226,6 +227,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         shellContext = null;
         applicationMenuInstalled = false;
         ShellWindowProviderService.set(null);
+        NbfxTheme.dispose();
         disposePanes();
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
