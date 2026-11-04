@@ -575,3 +575,37 @@ Still outstanding:
 - apichanges/signature-test coverage for the new API/SPI remains a W2 item;
 - `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
   navigator/dock internals.
+
+---
+
+## 13. Declarative view and window composition
+
+The action/menu/toolbar/status/view **leaves** are registration-driven, but the window
+**composition** is still mostly imperative.
+
+Current gaps:
+
+- `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide the permanent navigator/editor shape;
+- `Docking.create(...)` hardcodes the permanent panes and split weight;
+- `ViewArea` is a closed set of default areas;
+- `@ViewRegistration.area` can only resolve to those defaults;
+- `ViewManagerService.show()` uses `ViewProvider.getDefaultLocation()` instead of the
+  registered `ViewSpec.location/area/position`;
+- `introduceDefaultViews()` calls `ViewManager.show()` imperatively;
+- there is no declarative first-run window/dock composition.
+
+Target:
+
+1. `@AreaRegistration` declares areas (`id`, `displayName`, `location`, `weight`); processors write
+   `NbFx/ViewAreas/<id>` and `ViewAreaRegistry` merges platform defaults with contributions.
+2. `ViewRegistry` resolves `ViewRegistration.area` against the area registry, not only the fixed
+   `ViewArea` constants.
+3. `ViewManagerService.show()` resolves `ViewSpec` and places the view at its declared
+   `area`/`location`/`position`; the provider method is only a fallback.
+4. `@WindowLayoutRegistration`/a `WindowComposition` model declares permanent panes, initial dock
+   tree and area weights; `Docking.create(composition)` replaces the hardcoded navigator/editor
+   shape.
+5. `introduceDefaultViews()` applies the declared composition; persisted layout still wins through
+   `SessionRestorer`.
+6. Conformance tests cover a custom area, a custom area weight, a view placed in it, and a
+   declarative first-run layout.
