@@ -25,7 +25,9 @@ import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
+import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -93,6 +95,17 @@ public final class Docking implements DockHost<TabPane> {
                 .map(ViewArea::weight).orElse(ViewArea.EXPLORER.weight());
         List<Double> dividers = panes.size() == 2 ? List.of(explorerWeight) : List.of();
         area = new DockArea<>(new Docking(), panes, dividers);
+        WindowLayoutRegistry.defaultTree().ifPresent(tree -> {
+            boolean valid = tree.hasDistinctPrimaries()
+                    && tree.leaves().stream().allMatch(leaf ->
+                            !leaf.isPrimary() || panes.containsKey(leaf.primary()));
+            if (valid) {
+                area.applyTree(tree);
+            } else {
+                LOG.warning("Ignoring window layout with unknown permanent pane roles: "
+                        + DockTrees.format(tree));
+            }
+        });
         slides = new SlidingArea(area);
         return area;
     }

@@ -135,6 +135,24 @@ public class ViewsProcessorTest {
         assertTrue(xml, xml.contains("doublevalue=\"0.25\" name=\"weight\""));
     }
 
+
+    @Test
+    public void generatesWindowLayoutFragment() throws Exception {
+        String source =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.views.*;\n"
+                + "@WindowLayoutRegistration(id = \"default\","
+                + " tree = \"H[0.3000](P:NAVIGATOR,P:MAIN)\")\n"
+                + "public class DemoLayout {}\n";
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.WindowLayoutRegistrationProcessor",
+                Map.of("demo/DemoLayout.java", source));
+
+        assertLayerPath(xml, LayerPaths.WINDOW_LAYOUTS);
+        assertTrue(xml, xml.contains("name=\"default\""));
+        assertTrue(xml, xml.contains("tree\" stringvalue=\"H[0.3000](P:NAVIGATOR,P:MAIN)\""));
+    }
+
     private static void assertLayerPath(String xml, String path) {
         for (String segment : path.split("/")) {
             assertTrue("layer path " + path + " missing segment " + segment + " in:\n" + xml,
