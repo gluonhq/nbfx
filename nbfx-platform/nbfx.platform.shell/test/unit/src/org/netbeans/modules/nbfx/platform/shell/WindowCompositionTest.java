@@ -51,6 +51,14 @@ public class WindowCompositionTest {
     }
 
     @Test
+    public void defaultViewRoleFallsBackToNavigatorWithoutViewPanes() {
+        WindowComposition composition = new WindowComposition(List.of(
+                pane("MAIN", PaneKind.EDITOR, 10)), null);
+
+        assertEquals(PaneRole.NAVIGATOR, composition.defaultViewRole());
+    }
+
+    @Test
     public void firstRunDividersComeFromAreaWeights() {
         WindowComposition composition = WindowCompositionResolver.resolve();
 

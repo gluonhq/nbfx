@@ -720,7 +720,9 @@ Implemented:
   shell with them and shows a view in the custom pane;
 - tests cover a view tab whose pane role disappeared and a view whose declared area is unknown;
 - `ViewManagerService` resolves a missing area and position from the registered `ViewSpec`; an
-  unknown area falls back to its location and then to the default view pane.
+  unknown area falls back to its location and then to the default view pane;
+- the default view role falls back to the built-in navigator only when no view pane is declared,
+  and that fallback is documented and tested.
 
 Remaining follow-ups:
 

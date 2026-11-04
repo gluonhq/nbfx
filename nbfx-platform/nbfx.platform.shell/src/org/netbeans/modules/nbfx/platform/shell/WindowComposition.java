@@ -41,7 +41,10 @@ public record WindowComposition(List<WindowPane> panes, DockTree tree) {
         return panes.stream().filter(pane -> pane.id().equalsIgnoreCase(id)).findFirst();
     }
 
-    /** The default role for a view when no area resolves; never the editor pane. */
+    /**
+     * The default role for a view when no area resolves; never the editor pane, and the built-in
+     * navigator role when the composition declares no view pane.
+     */
     public NbfxTabPane.PaneRole defaultViewRole() {
         return WindowPaneRegistry.defaultViewRole(panes);
     }
