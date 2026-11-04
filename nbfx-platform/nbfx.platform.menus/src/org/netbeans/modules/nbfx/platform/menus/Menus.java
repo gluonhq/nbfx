@@ -42,7 +42,7 @@ import org.netbeans.api.nbfx.views.MenuRegistration;
 /**
  * Declares the generic application shell menus and their platform entries in the layer, so the window
  * is assembled from registrations rather than hard-coded lists. The processor turns each reference into
- * an {@code NbFx/Menus/<menu>/*.ref} layer entry that the window's {@code ActionBars} reads.
+ * an {@code NbFx/Menus/<menu>/*.ref} layer entry that the shell's menu builder reads.
  * <p>
  * IDE-specific entries (projects, usages, search, build, debug) live in {@code ide.workbench.IdeMenus}.
  * This class carries metadata only; it is never instantiated.

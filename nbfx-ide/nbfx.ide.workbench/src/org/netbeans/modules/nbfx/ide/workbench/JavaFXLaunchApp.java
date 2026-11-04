@@ -96,7 +96,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     private Collection<? extends NavigatorView> providers;
     private NbfxTabPane navigatorPane;
     /** Still owns the detached-window bars while those move to the shell builders. */
-    private ActionBars actionBars;
+    private org.netbeans.modules.nbfx.platform.shell.ToolBarHost mainToolBars;
     private final ProjectRegistry projectRegistry = projectRegistry();
     /** The running application, so services (e.g. the project opener) can reach it. */
     private static volatile JavaFXLaunchApp instance;
@@ -131,21 +131,12 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {
-        // The main window is built by the generic shell from the layer and contributions. ActionBars
-        // stays temporarily for the detached-window bars, which the window environment still asks it
-        // to create.
-        actionBars = new ActionBars();
-        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
-                this::clearRecentProjects, this::projectIcon);
-        actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
-        actionBars.configureFileDispatch(treeFocused);
-
         ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
         WorkspaceCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
                 windowActions(mainScope),
                 file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
         DefaultShellChrome chrome = new DefaultShellChrome(context);
-        actionBars.useToolBars(chrome.toolBars());
+        mainToolBars = chrome;
         return chrome;
     }
 
@@ -844,9 +835,7 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /** Builds the bars for a detached window with its own document scope. */
     Region createDetachedBars(DetachedBarsContext context) {
-        return actionBars == null ? null
-                : actionBars.createDetachedBars(context.activeDocument(EditorDocument.class),
-                        context.scopedCommands());
+        return DetachedBars.create(context, mainToolBars);
     }
 
     /** The pane a tab docks back into by default. */

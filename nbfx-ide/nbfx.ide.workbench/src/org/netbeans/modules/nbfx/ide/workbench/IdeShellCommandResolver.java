@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.ide.workbench;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javafx.beans.value.ObservableValue;
@@ -41,17 +42,24 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
     private final ActionRegistry registry;
     private final ObservableValue<EditorDocument> mainScope;
     private final ObservableValue<Boolean> preferFile;
+    private final List<Command> scopedSink;
     private final Map<String, Optional<Command>> scoped = new HashMap<>();
 
     IdeShellCommandResolver(ObservableValue<EditorDocument> mainScope, ObservableValue<Boolean> preferFile) {
-        this(Lookup.getDefault().lookup(ActionRegistry.class), mainScope, preferFile);
+        this(Lookup.getDefault().lookup(ActionRegistry.class), mainScope, preferFile, null);
     }
 
     IdeShellCommandResolver(ActionRegistry registry, ObservableValue<EditorDocument> mainScope,
             ObservableValue<Boolean> preferFile) {
+        this(registry, mainScope, preferFile, null);
+    }
+
+    IdeShellCommandResolver(ActionRegistry registry, ObservableValue<EditorDocument> mainScope,
+            ObservableValue<Boolean> preferFile, List<Command> scopedSink) {
         this.registry = registry;
         this.mainScope = mainScope;
         this.preferFile = preferFile;
+        this.scopedSink = scopedSink;
     }
 
     @Override
@@ -64,8 +72,12 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
         if (registry == null) {
             return null;
         }
+        boolean absent = !scoped.containsKey(id);
         Command scopedCommand = scoped.computeIfAbsent(id,
                 key -> registry.createScoped(key, mainScope)).orElse(null);
+        if (absent && scopedCommand != null && scopedSink != null) {
+            scopedSink.add(scopedCommand);
+        }
         Command editor = scopedCommand != null ? scopedCommand : registry.find(id).orElse(null);
         if (editor == null) {
             return null;
@@ -96,7 +108,9 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
 
     @Override
     public void close() {
-        scoped.values().stream().flatMap(Optional::stream).forEach(Command::dispose);
+        if (scopedSink == null) {
+            scoped.values().stream().flatMap(Optional::stream).forEach(Command::dispose);
+        }
         scoped.clear();
     }
 }
