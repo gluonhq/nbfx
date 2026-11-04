@@ -159,7 +159,8 @@ public class JavaFXLaunchApp extends ShellApplication {
                 new RecentProjectsMenuFactory(projectState::getRecentProjects, this::openProject,
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon),
-                new NavigatorPaneProvider(this)),
+                new NavigatorPaneProvider(getSessionRestorer(),
+                        providers == null ? List.of() : providers, this::setNavigatorPane)),
                 super.shellLookup());
     }
 
@@ -316,16 +317,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         navigatorPane = pane;
     }
 
-    /** The resolved navigator views, for the navigator pane provider. */
-    Collection<? extends NavigatorView> navigatorProviders() {
-        return providers;
-    }
-
-    /** The session restorer, for the navigator pane provider. */
-    SessionRestorer sessionRestorer() {
-        return getSessionRestorer();
-    }
-
     @Override
     protected Tab viewTabFor(String viewId) {
         return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
@@ -356,10 +347,7 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /** Builds a navigator tab for {@code provider}, whose tooltip names the shortcut selecting it. */
     Tab createNavigatorTab(NavigatorView provider) {
-        int index = new ArrayList<>(providers).indexOf(provider);
-        return ViewTabs.create(provider, NbBundle.getMessage(JavaFXLaunchApp.class,
-                "Tab.navigator.tooltip", provider.getDescription(),
-                NbfxTabPane.SYM_SHIFT, NbfxTabPane.SYM_CMD, String.valueOf(index + 1)));
+        return NavigatorPaneProvider.createTab(provider, providers);
     }
 
     /** Providers ordered by {@code order} (persisted ids); unknown providers keep their natural order at the end. */
