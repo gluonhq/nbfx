@@ -1353,8 +1353,8 @@ public final class NbfxTabPane extends TabPane {
         if (area != null) {
             panes.addAll(area.leaves());
         }
-        for (PaneRole role : List.of(PaneRole.NAVIGATOR, PaneRole.MAIN)) {
-            TabPane pane = paneWithRole(role);
+        for (WindowPane registered : WindowPaneRegistry.discover()) {
+            TabPane pane = paneWithRole(registered.role());
             if (pane != null && !panes.contains(pane)) {
                 panes.add(pane);
             }
