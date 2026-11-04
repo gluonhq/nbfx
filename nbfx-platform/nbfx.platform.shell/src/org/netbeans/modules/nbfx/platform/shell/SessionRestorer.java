@@ -436,7 +436,7 @@ public final class SessionRestorer {
      * Moves the tabs of a pane whose role is no longer registered to their natural home instead of
      * dropping them: documents to the editor pane, views to the default view pane.
      */
-    private static void moveTabsToFallback(List<Tab> tabs) {
+    static void moveTabsToFallback(List<Tab> tabs) {
         for (Tab tab : tabs) {
             TabPane target = NbfxTabPane.documentOf(tab) != null
                     ? NbfxTabPane.paneWithRole(PaneRole.MAIN)

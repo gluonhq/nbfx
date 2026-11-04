@@ -716,7 +716,8 @@ Implemented:
 - `DockHost.keepWhenEmpty` keeps an empty permanent pane visible when its registration asks for it;
 - `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane;
 - the platform conformance fixture registers a custom pane and area in the test layer, starts the
-  shell with them and shows a view in the custom pane.
+  shell with them and shows a view in the custom pane;
+- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown.
 
 Remaining follow-ups:
 
