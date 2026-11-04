@@ -79,6 +79,8 @@ public class ViewRegistryTest {
         ViewSpec registration = ViewRegistry.read(folder, List.of(view("v"))).get(0);
 
         assertEquals(ViewArea.OUTPUT, registration.area());
+        assertEquals("the area owns the location", DockLocation.CENTER_BOTTOM,
+                registration.location());
         assertTrue(registration.openAtStartup());
         assertEquals(ViewRegistration.PersistenceType.ONLY_OPENED, registration.persistenceType());
     }

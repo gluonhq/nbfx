@@ -31,7 +31,6 @@ import java.util.Objects;
  * @param id               the view id (the layer file's base name)
  * @param displayName      the tab title
  * @param iconName         the icon resource name, or an empty string
- * @param location         where the view is docked the first time it is shown
  * @param position         the position relative to the other views
  * @param navigator        whether the view is a navigator docked at start-up
  * @param area             the window area the view is docked into, resolved from the declared id or
@@ -42,16 +41,20 @@ import java.util.Objects;
  * @since 1.0
  */
 public record ViewSpec(String id, String displayName, String iconName,
-        DockLocation location, int position, boolean navigator, ViewArea area,
+        int position, boolean navigator, ViewArea area,
         boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
 
     public ViewSpec {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(iconName, "iconName");
-        Objects.requireNonNull(location, "location");
         Objects.requireNonNull(area, "area");
         Objects.requireNonNull(persistenceType, "persistenceType");
         Objects.requireNonNull(view, "view");
+    }
+
+    /** Where the view is docked first, derived from its registered area. */
+    public DockLocation location() {
+        return area.location();
     }
 }

@@ -91,7 +91,7 @@ public final class ViewRegistry {
             ViewArea area = areaAttribute(file, location);
             boolean openAtStartup = booleanAttribute(file, "openAtStartup");
             PersistenceType persistenceType = persistenceAttribute(file);
-            registrations.add(new ViewSpec(id, displayName, iconName, location, position,
+            registrations.add(new ViewSpec(id, displayName, iconName, position,
                     navigator, area, openAtStartup, persistenceType, view));
         }
         return sort(registrations);
