@@ -107,6 +107,11 @@ public class AppShellConformanceTest {
             assertEquals(1, sidebar.getTabs().size());
             assertSame(sidebar, sidebar.getTabs().get(0).getTabPane());
 
+            manager.show(new RegisteredViewFixture());
+            Tab registeredTab = NbfxTabPane.findViewTab("conformance.registered").orElseThrow();
+            assertSame("ViewSpec places the view in its declared area", sidebar,
+                    registeredTab.getTabPane());
+
             ViewProvider unknownView = new ViewProvider() {
                 @Override
                 public String getId() {

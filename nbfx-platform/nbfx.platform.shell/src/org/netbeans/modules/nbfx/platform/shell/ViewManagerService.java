@@ -53,13 +53,21 @@ public class ViewManagerService implements ViewManager {
             NbfxTabPane.focusDocument(existing);
             return;
         }
+        ViewSpec spec = ViewRegistry.find(view.getId());
+        if (area == null && spec != null) {
+            area = spec.area();
+            if (position == Integer.MAX_VALUE) {
+                position = spec.position();
+            }
+        }
         TabPane target = area == null ? null : Docking.paneOf(area);
         if (target == null) {
+            // A legacy view without a registered area, or an area whose declaration vanished: fall
+            // back to the location, then to the default view pane. The tab is never dropped when a
+            // registered area is missing.
             target = Docking.paneAt(area == null ? view.getDefaultLocation() : area.location());
         }
         if (target == null) {
-            // The dock area is not built (headless), or lacks the location's permanent pane: fall
-            // back to the navigator pane.
             target = NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
         }
         if (target == null) {

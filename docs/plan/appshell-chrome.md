@@ -718,11 +718,15 @@ Implemented:
 - `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane;
 - the platform conformance fixture registers a custom pane and area in the test layer, starts the
   shell with them and shows a view in the custom pane;
-- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown.
+- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown;
+- `ViewManagerService` resolves a missing area and position from the registered `ViewSpec`; an
+  unknown area falls back to its location and then to the default view pane.
 
 Remaining follow-ups:
 
 - a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
   wider window abstraction;
 - on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
-  the permanent-pane model.
+  the permanent-pane model;
+- `ViewArea` lives in `api.nbfx.view` while the registration types live in `api.nbfx.views`; the
+  package split is still to be unified.
