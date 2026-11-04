@@ -24,7 +24,10 @@ import javafx.scene.layout.Region;
 import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.api.nbfx.view.NavigatorRevealer;
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsProvider;
+import org.netbeans.modules.nbfx.platform.shell.api.NavigatorRevealState;
+import org.netbeans.modules.nbfx.platform.shell.api.ProjectSwitcher;
+import org.netbeans.modules.nbfx.platform.shell.api.TabHomeResolver;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
@@ -35,25 +38,19 @@ import org.openide.util.lookup.ServiceProviders;
  * running shell, which owns the navigators, detached bars, tab homes and reveal state.
  */
 @ServiceProviders({
-    @ServiceProvider(service = WindowEnvironmentContribution.class),
+    @ServiceProvider(service = DetachedBarsProvider.class),
+    @ServiceProvider(service = TabHomeResolver.class),
+    @ServiceProvider(service = ProjectSwitcher.class),
+    @ServiceProvider(service = NavigatorRevealState.class),
     @ServiceProvider(service = NavigatorRevealer.class)
 })
-public final class WindowEnvironmentService implements WindowEnvironmentContribution, NavigatorRevealer {
+public final class WindowEnvironmentService implements DetachedBarsProvider, TabHomeResolver,
+        ProjectSwitcher, NavigatorRevealState, NavigatorRevealer {
 
     @Override
     public Region createDetachedBars(DetachedBarsContext context) {
         JavaFXLaunchApp app = JavaFXLaunchApp.instance();
         return app == null ? null : app.createDetachedBars(context);
-    }
-
-    @Override
-    public boolean revealInNavigator(FileObject file, int index) {
-        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
-        if (app == null || file == null) {
-            return false;
-        }
-        app.revealFileInNavigator(file, index);
-        return true;
     }
 
     @Override
@@ -63,7 +60,17 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
     }
 
     @Override
-    public boolean selectNextProject() {
+    public boolean reveal(FileObject file, int index) {
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app == null || file == null) {
+            return false;
+        }
+        app.revealFileInNavigator(file, index);
+        return true;
+    }
+
+    @Override
+    public boolean selectNext() {
         ProjectLifecycle lifecycle = lookupLifecycle();
         if (lifecycle == null) {
             return false;
@@ -73,7 +80,7 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
     }
 
     @Override
-    public boolean selectPreviousProject() {
+    public boolean selectPrevious() {
         ProjectLifecycle lifecycle = lookupLifecycle();
         if (lifecycle == null) {
             return false;
@@ -89,16 +96,16 @@ public final class WindowEnvironmentService implements WindowEnvironmentContribu
     }
 
     @Override
-    public boolean isNavigatorRevealInProgress() {
+    public boolean isRevealing() {
         JavaFXLaunchApp app = JavaFXLaunchApp.instance();
         return app != null && app.isNavigatorRevealInProgress();
     }
 
     @Override
-    public void setNavigatorRevealInProgress(boolean inProgress) {
+    public void setRevealing(boolean revealing) {
         JavaFXLaunchApp app = JavaFXLaunchApp.instance();
         if (app != null) {
-            app.setNavigatorRevealInProgress(inProgress);
+            app.setNavigatorRevealInProgress(revealing);
         }
     }
 
