@@ -75,6 +75,24 @@ public final class AppShellGuard {
                 }
             }
         }
+        Path api = platform.resolve("nbfx.platform.shell/src/org/netbeans/modules/nbfx/platform/shell/api");
+        if (Files.isDirectory(api)) {
+            try (Stream<Path> files = Files.walk(api)) {
+                for (Path file : (Iterable<Path>) files
+                        .filter(path -> path.toString().endsWith(".java"))::iterator) {
+                    String text = Files.readString(file, StandardCharsets.UTF_8);
+                    for (String forbidden : List.of(
+                            "org.netbeans.api.nbfx.editor.",
+                            "org.netbeans.api.nbfx.project.",
+                            "org.netbeans.modules.nbfx.project.",
+                            "org.netbeans.modules.nbfx.ide.")) {
+                        if (text.contains("import " + forbidden)) {
+                            violations.add(root.relativize(file) + ": API imports " + forbidden + "*");
+                        }
+                    }
+                }
+            }
+        }
         if (violations.isEmpty()) {
             System.out.println("[appshell] OK: platform modules contain no IDE/project/Java imports");
             return;
