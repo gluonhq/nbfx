@@ -40,9 +40,7 @@ public class ViewManagerService implements ViewManager {
 
     @Override
     public void show(ViewProvider view) {
-        ViewSpec spec = ViewRegistry.find(view.getId());
-        show(view, spec == null ? null : spec.area(),
-                spec == null ? Integer.MAX_VALUE : spec.position());
+        show(view, null, Integer.MAX_VALUE);
     }
 
     @Override
@@ -54,26 +52,10 @@ public class ViewManagerService implements ViewManager {
             return;
         }
         ViewSpec spec = ViewRegistry.find(view.getId());
-        if (area == null && spec != null) {
-            area = spec.area();
-            if (position == Integer.MAX_VALUE) {
-                position = spec.position();
-            }
+        if (position == Integer.MAX_VALUE && spec != null) {
+            position = spec.position();
         }
-        TabPane target = area == null ? null : Docking.paneOf(area);
-        if (target == null) {
-            // A legacy view without a registered area, or an area whose declaration vanished: fall
-            // back to the location, then to the default view pane. The tab is never dropped when a
-            // registered area is missing.
-            target = Docking.paneAt(area == null ? view.getDefaultLocation() : area.location());
-        }
-        if (target == null) {
-            WindowComposition composition = Docking.composition();
-            NbfxTabPane.PaneRole fallback = composition == null
-                    ? WindowPaneRegistry.defaultViewRole()
-                    : composition.defaultViewRole();
-            target = NbfxTabPane.paneWithRole(fallback);
-        }
+        TabPane target = ViewPlacement.homeFor(spec, view, area);
         if (target == null) {
             LOG.warning(() -> "No pane to show the view " + view.getId() + " in");
             return;

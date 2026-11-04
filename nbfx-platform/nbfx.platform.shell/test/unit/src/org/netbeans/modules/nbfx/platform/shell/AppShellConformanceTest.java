@@ -114,6 +114,31 @@ public class AppShellConformanceTest {
             assertSame("ViewSpec places the view in its declared area", sidebar,
                     registeredTab.getTabPane());
 
+            ViewProvider unregistered = new ViewProvider() {
+                @Override
+                public String getId() {
+                    return "conformance.unregistered";
+                }
+
+                @Override
+                public String getTitle() {
+                    return "Unregistered";
+                }
+
+                @Override
+                public Node getView() {
+                    return new Region();
+                }
+
+                @Override
+                public DockLocation getDefaultLocation() {
+                    return DockLocation.BOTTOM;
+                }
+            };
+            manager.show(unregistered);
+            Tab unregisteredTab = NbfxTabPane.findViewTab("conformance.unregistered").orElseThrow();
+            assertNotNull("an unregistered view uses its legacy location", unregisteredTab.getTabPane());
+
             ViewProvider unknownView = new ViewProvider() {
                 @Override
                 public String getId() {

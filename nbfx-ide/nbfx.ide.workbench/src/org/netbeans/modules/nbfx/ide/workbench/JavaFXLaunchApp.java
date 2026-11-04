@@ -39,6 +39,7 @@ import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
+import org.netbeans.modules.nbfx.platform.shell.ViewPlacement;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
@@ -653,20 +654,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (id == null) {
             return navigatorPane;
         }
-        ViewSpec spec = ViewRegistry.find(id);
-        if (spec != null) {
-            TabPane registered = Docking.paneOf(spec.area());
-            if (registered != null) {
-                return registered;
-            }
-        }
-        for (NavigatorView provider : providers) {
-            if (provider.getId().equals(id)) {
-                return navigatorPane;
-            }
-        }
-        ViewProvider view = viewById(id);
-        TabPane home = view == null ? null : Docking.paneAt(view.getDefaultLocation());
+        TabPane home = ViewPlacement.homeFor(ViewRegistry.find(id), viewById(id));
         return home != null ? home : navigatorPane;
     }
 
