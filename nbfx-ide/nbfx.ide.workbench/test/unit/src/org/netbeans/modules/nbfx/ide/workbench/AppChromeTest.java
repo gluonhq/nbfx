@@ -82,6 +82,15 @@ public class AppChromeTest extends NbTestCase {
                 hasMenu(menu(menuBar, "File"), "Open Recent Project"));
         assertTrue("the Configure Window section is missing",
                 hasMenu(menu(menuBar, "Window"), "Configure Window"));
+        Menu fileMenu = menu(menuBar, "File");
+        assertTrue("New Project is missing from File", hasItem(fileMenu, "New Project"));
+        assertTrue("New File is missing from File", hasItem(fileMenu, "New File"));
+        assertTrue("Open Project is missing from File", hasItem(fileMenu, "Open Project"));
+        assertTrue("Close Project is missing from File", hasItem(fileMenu, "Close Project"));
+        assertTrue("Close All Projects is missing from File", hasItem(fileMenu, "Close All Projects"));
+        Menu windowMenu = menu(menuBar, "Window");
+        assertTrue("Next Project is missing from Window", hasItem(windowMenu, "Next Project"));
+        assertTrue("Previous Project is missing from Window", hasItem(windowMenu, "Previous Project"));
 
         assertFalse("the main window has no tool bars", chrome.toolBars().getToolBars().isEmpty());
         assertEquals(List.of("file", "clipboard", "edit", "build", "debug"),
@@ -162,6 +171,18 @@ public class AppChromeTest extends NbTestCase {
             }
         }
         return null;
+    }
+
+    private static boolean hasItem(Menu parent, String text) {
+        if (parent == null) {
+            return false;
+        }
+        for (MenuItem item : parent.getItems()) {
+            if (text.equals(item.getText())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static boolean hasMenu(Menu parent, String text) {
