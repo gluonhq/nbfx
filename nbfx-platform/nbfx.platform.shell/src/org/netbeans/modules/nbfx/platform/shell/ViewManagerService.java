@@ -68,7 +68,11 @@ public class ViewManagerService implements ViewManager {
             target = Docking.paneAt(area == null ? view.getDefaultLocation() : area.location());
         }
         if (target == null) {
-            target = NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
+            WindowComposition composition = Docking.composition();
+            NbfxTabPane.PaneRole fallback = composition == null
+                    ? WindowPaneRegistry.defaultViewRole()
+                    : composition.defaultViewRole();
+            target = NbfxTabPane.paneWithRole(fallback);
         }
         if (target == null) {
             LOG.warning(() -> "No pane to show the view " + view.getId() + " in");

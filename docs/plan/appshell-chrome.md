@@ -705,6 +705,9 @@ Implemented:
   `apichanges.xml`;
 - `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
 - providers are resolved once per shell and the composition/area are process-wide;
+- `Docking` retains the resolved `WindowComposition`; area, `keepWhenEmpty`, default-view and
+  fallback placement resolve against that snapshot, with `WindowPaneRegistry` only as the
+  headless fallback.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;

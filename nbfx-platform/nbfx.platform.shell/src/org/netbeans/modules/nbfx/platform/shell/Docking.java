@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.SequencedMap;
 import java.util.logging.Logger;
 import javafx.beans.binding.Bindings;
@@ -71,6 +72,8 @@ public final class Docking implements DockHost<TabPane> {
     static final boolean LOG_LAYOUT = false;
 
     private static DockArea<TabPane> area;
+    /** The composition the shell started with; runtime placement resolves against it. */
+    private static WindowComposition composition;
     /** The area with the sliding sides around it: what the window shows. */
     private static SlidingArea slides;
     /**
@@ -90,6 +93,7 @@ public final class Docking implements DockHost<TabPane> {
      */
     public static DockArea<TabPane> create(WindowComposition composition,
             Map<String, NbfxTabPane> primaries) {
+        Docking.composition = composition;
         SequencedMap<String, TabPane> panes = new LinkedHashMap<>();
         for (Map.Entry<String, NbfxTabPane> entry : primaries.entrySet()) {
             PaneRole role = NbfxTabPane.roleOf(entry.getValue());
@@ -162,6 +166,11 @@ public final class Docking implements DockHost<TabPane> {
         return slides;
     }
 
+    /** The composition the shell started with, or {@code null} before the area is created. */
+    public static WindowComposition composition() {
+        return composition;
+    }
+
     /** The permanent pane playing {@code role} in the application's area, or {@code null} if there is none. */
     public static NbfxTabPane primary(PaneRole role) {
         return area == null ? null : (NbfxTabPane) area.primary(role.name());
@@ -196,8 +205,11 @@ public final class Docking implements DockHost<TabPane> {
 
     /** The pane an {@link ViewArea area} lives in, using its declared pane role when available. */
     public static NbfxTabPane paneOf(ViewArea area) {
-        return WindowPaneRegistry.areaPane(area.id())
-                .map(pane -> primary(pane.role()))
+        WindowComposition current = composition;
+        Optional<WindowPane> registered = current == null
+                ? WindowPaneRegistry.areaPane(area.id())
+                : current.paneForArea(area.id());
+        return registered.map(pane -> primary(pane.role()))
                 .orElseGet(() -> paneAt(area.location()));
     }
 
@@ -228,11 +240,18 @@ public final class Docking implements DockHost<TabPane> {
     }
 
     /** Whether the registered pane {@code pane} stays visible when empty. */
+    public static boolean keepsWhenEmpty(TabPane pane) {
+        WindowComposition current = composition;
+        String role = NbfxTabPane.roleOf(pane).name();
+        Optional<WindowPane> registered = current == null
+                ? WindowPaneRegistry.find(role)
+                : current.pane(role);
+        return registered.map(WindowPane::keepWhenEmpty).orElse(false);
+    }
+
     @Override
     public boolean keepWhenEmpty(TabPane pane) {
-        return WindowPaneRegistry.find(NbfxTabPane.roleOf(pane).name())
-                .map(WindowPane::keepWhenEmpty)
-                .orElse(false);
+        return keepsWhenEmpty(pane);
     }
 
     /** A pane is empty when it holds no tab and none of its tabs is slid in from a sliding side. */

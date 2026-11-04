@@ -437,10 +437,14 @@ public final class SessionRestorer {
      * dropping them: documents to the editor pane, views to the default view pane.
      */
     static void moveTabsToFallback(List<Tab> tabs) {
+        WindowComposition composition = Docking.composition();
+        PaneRole defaultView = composition == null
+                ? WindowPaneRegistry.defaultViewRole()
+                : composition.defaultViewRole();
         for (Tab tab : tabs) {
             TabPane target = NbfxTabPane.documentOf(tab) != null
                     ? NbfxTabPane.paneWithRole(PaneRole.MAIN)
-                    : NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
+                    : NbfxTabPane.paneWithRole(defaultView);
             if (target != null && target != tab.getTabPane()) {
                 NbfxTabPane.moveTab(target, tab, target.getTabs().size());
             }

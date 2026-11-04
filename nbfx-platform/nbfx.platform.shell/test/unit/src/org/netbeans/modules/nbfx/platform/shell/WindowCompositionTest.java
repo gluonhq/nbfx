@@ -40,14 +40,28 @@ public class WindowCompositionTest {
         return new WindowPane(id, id, kind, "", false, position);
     }
 
+    private static WindowPane pane(String id, PaneKind kind, String area, int position) {
+        return new WindowPane(id, id, kind, area, false, position);
+    }
+
     @Test
     public void resolvesPaneByRoleName() {
         WindowComposition composition = new WindowComposition(List.of(
                 pane("MAIN", PaneKind.EDITOR, 10),
-                pane("RIGHT_SIDEBAR", PaneKind.VIEW, 30)), null);
+                pane("RIGHT_SIDEBAR", PaneKind.VIEW, "right-sidebar", 30)), null);
 
         assertTrue(composition.pane("RIGHT_SIDEBAR").isPresent());
         assertEquals(PaneRole.MAIN, composition.pane("main").orElseThrow().role());
+    }
+
+    @Test
+    public void resolvesThePaneHostingAnArea() {
+        WindowComposition composition = new WindowComposition(List.of(
+                pane("MAIN", PaneKind.EDITOR, 10),
+                pane("RIGHT_SIDEBAR", PaneKind.VIEW, "right-sidebar", 30)), null);
+
+        assertEquals("RIGHT_SIDEBAR", composition.paneForArea("right-sidebar").orElseThrow().id());
+        assertTrue(composition.paneForArea("missing").isEmpty());
     }
 
     @Test
