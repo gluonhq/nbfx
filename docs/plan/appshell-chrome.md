@@ -662,8 +662,9 @@ Implemented:
 
 Now also implemented by the pane-instance step in section 15:
 
-- `ShellApplication` consumes `WindowComposition` and lets `createPane(WindowPane)` or a
-  `WindowPaneProvider` supply the concrete instance;
+- `ShellApplication` consumes `WindowComposition` and lets
+  `createPane(WindowPane, WindowPaneContext)` or a `WindowPaneProvider` supply the concrete
+  instance;
 - `keepWhenEmpty` is honored by `DockArea` through `DockHost`;
 - unknown persisted roles move their tabs to the editor/default view pane.
 
@@ -697,7 +698,9 @@ Implementation sequence:
 
 Implemented:
 
-- `WindowPaneProvider` + `ShellApplication.createPane(WindowPane)` hook;
+- `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
+- `WindowPaneContext` carries the shell lookup, the resolved composition and the shell window;
+- providers may release their pane through `disposePane`, which the shell calls on stop;
 - `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
   to `Docking.create`;
 - `JavaFXLaunchApp` overrides only the navigator pane and no longer owns a pane list;

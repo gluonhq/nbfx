@@ -38,8 +38,18 @@ public interface WindowPaneProvider {
      * shell's default) handle it. The returned pane must carry {@link WindowPane#role() the declared
      * role}; the window composition and persisted layouts are keyed by it.
      *
-     * @param pane the declaration to instantiate
+     * @param pane    the declaration to instantiate
+     * @param context the narrow shell context
      * @return the pane, or {@code null} to decline
      */
-    NbfxTabPane createPane(WindowPane pane);
+    NbfxTabPane createPane(WindowPane pane, WindowPaneContext context);
+
+    /**
+     * Called once {@code pane}, created by this provider, is no longer needed. The default does
+     * nothing; a provider that owns resources should release them here.
+     *
+     * @param pane the pane this provider created
+     */
+    default void disposePane(NbfxTabPane pane) {
+    }
 }

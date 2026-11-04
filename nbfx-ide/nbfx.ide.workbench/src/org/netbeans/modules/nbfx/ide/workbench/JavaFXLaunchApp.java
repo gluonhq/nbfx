@@ -34,6 +34,7 @@ import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.platform.shell.WindowPane;
+import org.netbeans.modules.nbfx.platform.shell.WindowPaneContext;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
@@ -179,11 +180,11 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     @Override
-    protected NbfxTabPane createPane(WindowPane pane) {
+    protected NbfxTabPane createPane(WindowPane pane, WindowPaneContext context) {
         if (NbfxTabPane.PaneRole.NAVIGATOR.name().equals(pane.id())) {
             return createNavigator();
         }
-        return super.createPane(pane);
+        return super.createPane(pane, context);
     }
 
     @Override
