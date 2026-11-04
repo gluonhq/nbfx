@@ -563,12 +563,15 @@ Detached chrome is now generic:
 - detached commands use the window's own document scope and are disposed with the window;
 - `ActionBars` has been deleted;
 - project action metadata now lives in `ide.project.actions`;
-- `Select Editor` and document-close commands live in `platform.shell`.
+- `Select Editor` and document-close commands live in `platform.shell`;
+- project state moved from `AppState` to the IDE `ProjectState`, with `ViewStateStore` as the
+  generic session-restorer hook; legacy migration also lives in `ProjectState`;
+- `ShellWindow` is the stable window facade.
 
 Still outstanding:
 
-- project state moved from `AppState` to the IDE `ProjectState`, with `ViewStateStore` as the
-  generic session-restorer hook;
-- `ShellWindow` is the stable window facade; `platform.shell` still exports its implementation
-  package because `NbfxTabPane` and the remaining implementation types are not yet split;
-- apichanges/signature-test coverage for the new API/SPI remains a W2 item.
+- `platform.shell` still exports its implementation package because `NbfxTabPane` and the
+  remaining implementation types are not yet split;
+- apichanges/signature-test coverage for the new API/SPI remains a W2 item;
+- `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
+  navigator/dock internals.

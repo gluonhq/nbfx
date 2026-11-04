@@ -440,8 +440,8 @@ AppShell, individual services, or another composition. "State" is honest: `lande
 | Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
-| Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections. `ActionBars` remains only for detached windows |
-| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass. Remaining: detached-window bars still bridge through `ActionBars` |
+| Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections; detached windows use `DetachedBars` with a reduced profile |
+| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. Remaining: implementation-package export until the tab-pane/docking types are split. |
 | Status bar | `platform.status` + `api.status` | landed; `platform.shell` composes the `StatusBar`, it does not own or reimplement it |
 | Options | `platform.options` + `api.options` | landed |
 | Settings | `platform.settings` + `api.settings` | planned |
@@ -1131,7 +1131,8 @@ add a row when a PR lands and update the affected chapter in the same change.
 
 **Current status:** W0, W1, W1.5, W1.6, and the AppShell boundary (#85–#93) are on `main`. The remaining
 W1.7 PRs #94–#96 add the platform-only build/delivery guard, the first AppShell conformance fixture and the
-documentation refresh. W1.7's boundary is done, but **the default shell still lacks generic chrome**: the
-menu/toolbar/status/application-menu/branding/window-environment code is still `ide.workbench.ActionBars` and
-`JavaFXLaunchApp`. Closing that gap is the first W3 `feature/shell` work, not a downstream responsibility.
+documentation refresh. W1.7's boundary is done and the generic shell chrome has landed: `platform.shell` builds the
+main and detached menus/tool bars from the layer, composes the status bar, owns branding, the
+application menu and the window environment, and `ide.workbench` contributes only IDE behavior.
+`ActionBars` is gone. The remaining W3 work is the final API/package boundary and W2 governance.
 The module and source counts are in [`figures.md`](figures.md), not in this table.
