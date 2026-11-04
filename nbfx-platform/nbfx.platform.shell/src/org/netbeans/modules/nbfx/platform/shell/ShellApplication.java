@@ -135,6 +135,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         root = new BorderPane(slidingArea);
         ShellContext context = new ShellContext(shellLookup);
         shellContext = context;
+        branding = ShellBranding.select(context.lookup()).orElse(null);
+        if (branding != null) {
+            root.getStyleClass().addAll(branding.rootStyleClasses());
+        }
         chrome = createChrome(context);
         if (chrome.top() != null) {
             root.setTop(chrome.top());
@@ -149,9 +153,18 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
+        if (branding != null) {
+            scene.getStylesheets().addAll(branding.sceneStylesheets());
+            stage.getIcons().setAll(branding.icons());
+            if (branding.minimumWidth() > 0) {
+                stage.setMinWidth(branding.minimumWidth());
+            }
+            if (branding.minimumHeight() > 0) {
+                stage.setMinHeight(branding.minimumHeight());
+            }
+        }
         sceneReady(scene);
         stage.setScene(scene);
-        branding = ShellBranding.select(context.lookup()).orElse(null);
         stage.setTitle(branding == null ? ShellBranding.DEFAULT_APPLICATION_NAME : branding.title(context));
         if (branding != null) {
             ObservableValue<String> title = branding.titleProperty(context);
