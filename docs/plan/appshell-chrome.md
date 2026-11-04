@@ -714,7 +714,9 @@ Implemented:
   initial divider is derived from the registered explorer area weight, and explicit dividers still
   override derived ones through `DockTrees.resolveDividers`;
 - `DockHost.keepWhenEmpty` keeps an empty permanent pane visible when its registration asks for it;
-- `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane.
+- `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane;
+- the platform conformance fixture registers a custom pane and area in the test layer, starts the
+  shell with them and shows a view in the custom pane.
 
 Remaining follow-ups:
 
