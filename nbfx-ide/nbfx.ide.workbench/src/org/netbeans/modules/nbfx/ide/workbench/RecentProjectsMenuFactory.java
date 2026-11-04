@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.shell.api.DynamicMenu;
+import org.netbeans.api.nbfx.views.DynamicMenu;
 
 import java.io.File;
 import java.util.List;

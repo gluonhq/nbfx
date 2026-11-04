@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.DynamicMenu;
+import org.netbeans.api.nbfx.views.DynamicMenu;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;

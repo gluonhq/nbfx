@@ -24,6 +24,7 @@ import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.views.DynamicMenu;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistrations;
 import org.openide.filesystems.annotations.LayerBuilder.File;
@@ -74,6 +75,17 @@ public class DynamicMenuRegistrationProcessor extends LayerGeneratingProcessor {
             throws LayerGenerationException {
         if (!(element instanceof TypeElement type)) {
             throw new LayerGenerationException("@DynamicMenuRegistration is only valid on a type", element);
+        }
+        TypeElement factoryType = processingEnv.getElementUtils()
+                .getTypeElement(DynamicMenu.Factory.class.getCanonicalName());
+        if (factoryType == null
+                || !processingEnv.getTypeUtils().isAssignable(type.asType(), factoryType.asType())) {
+            throw new LayerGenerationException(
+                    "@DynamicMenuRegistration type must implement DynamicMenu.Factory", element);
+        }
+        if (registration.path().isBlank() || registration.id().isBlank()) {
+            throw new LayerGenerationException(
+                    "@DynamicMenuRegistration requires a non-empty path and id", element);
         }
         String factory = processingEnv.getElementUtils().getBinaryName(type).toString();
         String path = registration.path();

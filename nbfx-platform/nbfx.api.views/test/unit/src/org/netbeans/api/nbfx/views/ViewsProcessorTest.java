@@ -80,6 +80,39 @@ public class ViewsProcessorTest {
         assertLayerPath(xml, LayerPaths.CONTEXT_MENUS);
     }
 
+
+    private static final String DYNAMIC_SOURCE =
+            "package demo;\n"
+            + "import org.netbeans.api.nbfx.views.*;\n"
+            + "import org.openide.util.Lookup;\n"
+            + "import javafx.collections.FXCollections;\n"
+            + "import javafx.collections.ObservableList;\n"
+            + "import javafx.scene.control.MenuItem;\n"
+            + "@DynamicMenuRegistration(path = \"Menus/File\", id = \"recent\", position = 30,"
+            + " displayName = \"Recent\", separatorBefore = true)\n"
+            + "public class DemoDynamic implements DynamicMenu.Factory {\n"
+            + "    public DynamicMenu create(Lookup context) {\n"
+            + "        return new DynamicMenu() {\n"
+            + "            public ObservableList<MenuItem> items() {\n"
+            + "                return FXCollections.observableArrayList();\n"
+            + "            }\n"
+            + "        };\n"
+            + "    }\n"
+            + "}\n";
+
+    @Test
+    public void generatesDynamicMenuFragment() throws Exception {
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.DynamicMenuRegistrationProcessor",
+                Map.of("demo/DemoDynamic.java", DYNAMIC_SOURCE));
+
+        assertLayerPath(xml, LayerPaths.MENUS);
+        assertTrue(xml, xml.contains("name=\"recent.dynamic\""));
+        assertTrue(xml, xml.contains("factory\" stringvalue=\"demo.DemoDynamic\""));
+        assertTrue(xml, xml.contains("displayName\" stringvalue=\"Recent\""));
+        assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"separatorBefore\""));
+    }
+
     private static void assertLayerPath(String xml, String path) {
         for (String segment : path.split("/")) {
             assertTrue("layer path " + path + " missing segment " + segment + " in:\n" + xml,
