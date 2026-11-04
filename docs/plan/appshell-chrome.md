@@ -707,7 +707,10 @@ Implemented:
 - providers are resolved once per shell and the composition/area are process-wide;
 - `Docking` retains the resolved `WindowComposition`; area, `keepWhenEmpty`, default-view and
   fallback placement resolve against that snapshot, with `WindowPaneRegistry` only as the
-  headless fallback.
+  headless fallback;
+- `Docking.paneAt(DockLocation)` first resolves the location through the registered default area
+  and its pane, so a product can own a legacy location without editing `Docking`; the fixed
+  `NAVIGATOR`/`MAIN`/edge mapping is the fallback.
 - `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
   contract for now;
 - providers may release their pane through `disposePane`, which the shell calls on stop;

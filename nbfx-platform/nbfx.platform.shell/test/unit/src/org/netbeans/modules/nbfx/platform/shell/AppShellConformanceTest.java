@@ -83,6 +83,8 @@ public class AppShellConformanceTest {
                     NbfxTabPane.PaneRole.of("RIGHT_SIDEBAR"));
             assertNotNull("the registered custom pane is instantiated", sidebar);
             assertEquals(PaneKind.VIEW, NbfxTabPane.kindOf(sidebar));
+            assertSame("the registered area owns the legacy RIGHT location", sidebar,
+                    Docking.paneAt(DockLocation.RIGHT));
 
             ViewArea area = ViewAreaRegistry.find("right-sidebar").orElseThrow();
             ViewProvider view = new ViewProvider() {
@@ -128,7 +130,7 @@ public class AppShellConformanceTest {
                     return new Region();
                 }
             };
-            ViewArea unknownArea = new ViewArea("missing-area", "Missing", DockLocation.RIGHT, 0.2);
+            ViewArea unknownArea = new ViewArea("missing-area", "Missing", DockLocation.BOTTOM, 0.2);
             manager.show(unknownView, unknownArea, 0);
             Tab unknownTab = NbfxTabPane.findViewTab("conformance.unknown-area").orElseThrow();
             assertNotNull("an unknown area still finds a fallback pane", unknownTab.getTabPane());

@@ -189,6 +189,14 @@ public final class Docking implements DockHost<TabPane> {
         if (area == null) {
             return null;
         }
+        // A registered area at this location wins over the fixed legacy mapping; a product can
+        // therefore move the meaning of LEFT/RIGHT without changing Docking.
+        NbfxTabPane declared = ViewAreaRegistry.defaultFor(location)
+                .map(Docking::registeredPaneFor)
+                .orElse(null);
+        if (declared != null) {
+            return declared;
+        }
         TabPane pane = switch (location) {
             case LEFT -> primary(PaneRole.NAVIGATOR);
             case CENTER -> primary(PaneRole.MAIN);
@@ -205,12 +213,17 @@ public final class Docking implements DockHost<TabPane> {
 
     /** The pane an {@link ViewArea area} lives in, using its declared pane role when available. */
     public static NbfxTabPane paneOf(ViewArea area) {
+        NbfxTabPane declared = registeredPaneFor(area);
+        return declared != null ? declared : paneAt(area.location());
+    }
+
+    /** The registered pane hosting {@code area}, or {@code null} when no pane declares it. */
+    private static NbfxTabPane registeredPaneFor(ViewArea area) {
         WindowComposition current = composition;
         Optional<WindowPane> registered = current == null
                 ? WindowPaneRegistry.areaPane(area.id())
                 : current.paneForArea(area.id());
-        return registered.map(pane -> primary(pane.role()))
-                .orElseGet(() -> paneAt(area.location()));
+        return registered.map(pane -> primary(pane.role())).orElse(null);
     }
 
     @Override
