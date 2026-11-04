@@ -25,6 +25,7 @@ import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
+import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,7 +89,9 @@ public final class Docking implements DockHost<TabPane> {
             }
             panes.put(role.name(), primary);
         }
-        List<Double> dividers = panes.size() == 2 ? List.of(ViewArea.EXPLORER.weight()) : List.of();
+        double explorerWeight = ViewAreaRegistry.find("explorer")
+                .map(ViewArea::weight).orElse(ViewArea.EXPLORER.weight());
+        List<Double> dividers = panes.size() == 2 ? List.of(explorerWeight) : List.of();
         area = new DockArea<>(new Docking(), panes, dividers);
         slides = new SlidingArea(area);
         return area;

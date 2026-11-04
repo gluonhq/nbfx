@@ -143,7 +143,7 @@ public final class ViewRegistry {
     static ViewArea areaAttribute(FileObject file, ViewLocation location) {
         Object value = file == null ? null : file.getAttribute("area");
         if (value instanceof String id && !id.isBlank()) {
-            return ViewArea.lookUp(id).orElseGet(() -> defaultArea(location));
+            return ViewAreaRegistry.find(id).orElseGet(() -> defaultArea(location));
         }
         return defaultArea(location);
     }

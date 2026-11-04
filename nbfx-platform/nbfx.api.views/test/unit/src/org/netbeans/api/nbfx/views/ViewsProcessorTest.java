@@ -113,6 +113,28 @@ public class ViewsProcessorTest {
         assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"separatorBefore\""));
     }
 
+
+    private static final String AREA_SOURCE =
+            "package demo;\n"
+            + "import org.netbeans.api.nbfx.views.*;\n"
+            + "import org.netbeans.api.nbfx.view.DockLocation;\n"
+            + "@AreaRegistration(id = \"right-sidebar\", displayName = \"Right Sidebar\","
+            + " location = DockLocation.RIGHT, weight = 0.25, position = 10)\n"
+            + "public class DemoArea {}\n";
+
+    @Test
+    public void generatesViewAreaFragment() throws Exception {
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.AreaRegistrationProcessor",
+                Map.of("demo/DemoArea.java", AREA_SOURCE));
+
+        assertLayerPath(xml, LayerPaths.VIEW_AREAS);
+        assertTrue(xml, xml.contains("name=\"right-sidebar\""));
+        assertTrue(xml, xml.contains("displayName\" stringvalue=\"Right Sidebar\""));
+        assertTrue(xml, xml.contains("location\" stringvalue=\"RIGHT\""));
+        assertTrue(xml, xml.contains("doublevalue=\"0.25\" name=\"weight\""));
+    }
+
     private static void assertLayerPath(String xml, String path) {
         for (String segment : path.split("/")) {
             assertTrue("layer path " + path + " missing segment " + segment + " in:\n" + xml,
