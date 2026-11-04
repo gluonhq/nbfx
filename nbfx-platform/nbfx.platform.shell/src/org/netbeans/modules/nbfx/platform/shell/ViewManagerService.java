@@ -41,17 +41,22 @@ public class ViewManagerService implements ViewManager {
 
     @Override
     public void show(ViewProvider view) {
+        ViewSpec spec = ViewRegistry.find(view.getId());
+        show(view, spec == null ? null : spec.area(),
+                spec == null ? Integer.MAX_VALUE : spec.position());
+    }
+
+    @Override
+    public void show(ViewProvider view, ViewArea area, int position) {
         Tab existing = NbfxTabPane.findViewTab(view.getId()).orElse(null);
         if (existing != null) {
             NbfxTabPane.selectTabAndMoveToFront(existing);
             NbfxTabPane.focusDocument(existing);
             return;
         }
-        ViewSpec spec = ViewRegistry.find(view.getId());
-        ViewArea area = spec == null ? null : spec.area();
         TabPane target = area == null ? null : Docking.paneOf(area);
         if (target == null) {
-            target = Docking.paneAt(spec == null ? view.getDefaultLocation() : area.location());
+            target = Docking.paneAt(area == null ? view.getDefaultLocation() : area.location());
         }
         if (target == null) {
             // The dock area is not built (headless), or lacks the location's permanent pane: fall
@@ -63,16 +68,12 @@ public class ViewManagerService implements ViewManager {
             return;
         }
         Tab tab = ViewTabs.create(view, view.getDescription());
-        NbfxTabPane.attachTabAt(target, tab, insertionIndex(target, spec, view.getId()));
+        NbfxTabPane.attachTabAt(target, tab, insertionIndex(target, position, view.getId()));
         NbfxTabPane.focusDocument(tab);
     }
 
     /** The position of a new view tab among the view tabs already in {@code target}. */
-    private static int insertionIndex(TabPane target, ViewSpec spec, String id) {
-        if (spec == null) {
-            return target.getTabs().size();
-        }
-        int position = spec.position();
+    private static int insertionIndex(TabPane target, int position, String id) {
         for (int i = 0; i < target.getTabs().size(); i++) {
             String otherId = NbfxTabPane.viewId(target.getTabs().get(i));
             if (otherId == null) {

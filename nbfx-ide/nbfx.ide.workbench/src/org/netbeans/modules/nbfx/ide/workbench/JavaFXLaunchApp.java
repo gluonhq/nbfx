@@ -673,7 +673,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         for (ViewSpec registration : ViewRegistry.discover()) {
             ViewProvider view = registration.openAtStartup() ? viewById(registration.id()) : null;
             if (view != null && !manager.isShowing(view)) {
-                manager.show(view);
+                manager.show(view, registration.area(), registration.position());
             }
         }
         getAppState().setIntroducedViews(defaultViewIds());
@@ -701,7 +701,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             ViewProvider view = registration.openAtStartup() && !introduced.contains(registration.id())
                     ? viewById(registration.id()) : null;
             if (view != null && !manager.isShowing(view)) {
-                manager.show(view);
+                manager.show(view, registration.area(), registration.position());
             }
         }
         introduced.addAll(defaults);
