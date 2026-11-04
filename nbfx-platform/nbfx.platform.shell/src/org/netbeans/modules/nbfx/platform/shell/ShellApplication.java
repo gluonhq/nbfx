@@ -81,7 +81,7 @@ public class ShellApplication extends Application implements WindowSink {
     private double restoreWidth = AppState.DEFAULT_WIDTH, restoreHeight = AppState.DEFAULT_HEIGHT;
 
     private final AppState appState = new AppState();
-    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor);
+    private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor, this::viewStateStore);
 
     private NbfxTabPane mainPane;
     private DockArea<TabPane> dockArea;
@@ -228,6 +228,14 @@ public class ShellApplication extends Application implements WindowSink {
     /** The session restorer, for a product that restores or captures its own session. */
     protected final SessionRestorer getSessionRestorer() {
         return sessionRestorer;
+    }
+
+    /**
+     * The product's project-tree state store. The default discards tree state; a product that owns
+     * projects overrides this to persist expansion and selection.
+     */
+    protected ViewStateStore viewStateStore() {
+        return ViewStateStore.NONE;
     }
 
     /**

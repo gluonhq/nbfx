@@ -32,7 +32,6 @@ import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
-import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
@@ -44,12 +43,12 @@ import org.openide.util.NbBundle;
 @DynamicMenuRegistration(path = "Menus/File", id = "open-recent", position = 30)
 final class RecentProjectsMenuFactory implements DynamicMenu.Factory {
 
-    private final Supplier<List<AppState.RecentProject>> recentProjects;
+    private final Supplier<List<ProjectState.RecentProject>> recentProjects;
     private final Consumer<File> openProject;
     private final Runnable clearRecent;
     private final BiFunction<File, String, Node> projectIcon;
 
-    RecentProjectsMenuFactory(Supplier<List<AppState.RecentProject>> recentProjects,
+    RecentProjectsMenuFactory(Supplier<List<ProjectState.RecentProject>> recentProjects,
             Consumer<File> openProject, Runnable clearRecent,
             BiFunction<File, String, Node> projectIcon) {
         this.recentProjects = recentProjects;
@@ -75,14 +74,14 @@ final class RecentProjectsMenuFactory implements DynamicMenu.Factory {
 
         private void rebuild() {
             menu.getItems().clear();
-            List<AppState.RecentProject> recent = recentProjects.get();
+            List<ProjectState.RecentProject> recent = recentProjects.get();
             if (recent == null || recent.isEmpty()) {
                 MenuItem empty = new MenuItem(message("Menu.openRecent.empty"));
                 empty.setDisable(true);
                 menu.getItems().add(empty);
                 return;
             }
-            for (AppState.RecentProject project : recent) {
+            for (ProjectState.RecentProject project : recent) {
                 File dir = new File(project.path());
                 MenuItem item = new MenuItem(dir.getName());
                 // Project names are user data: an underscore in one must not become a mnemonic.

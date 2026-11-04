@@ -71,8 +71,6 @@ public final class AppState {
     private static final String PROJECT_SELECTED = "project.selected";
     /** The default views the user has been shown once; see {@link #getIntroducedViews()}. */
     private static final String VIEWS_INTRODUCED = "views.introduced";
-    private static final String TREE_EXPANDED_NODE = "tree.expanded";
-    private static final String TREE_SELECTED_NODE = "tree.selected";
     private static final String LAYOUT_NODE = "layout";
 
     /**
@@ -96,8 +94,6 @@ public final class AppState {
     /** Stands for an anchor <em>into</em> a leaf (no side) in a minimized pane's serialized form. */
     private static final String ANCHOR_INTO = "INTO";
 
-    private static final String[] EMPTY_LINES = new String[0];
-
     /** Default main-window size used when nothing is persisted. */
     public static final double DEFAULT_WIDTH = 1200;
     public static final double DEFAULT_HEIGHT = 800;
@@ -105,9 +101,6 @@ public final class AppState {
     /** Default detached-window size used when a persisted one is off-screen or invalid. */
     private static final double DEFAULT_DETACHED_WIDTH = 900;
     private static final double DEFAULT_DETACHED_HEIGHT = 650;
-
-    /** Maximum number of recent projects retained. */
-    static final int MAX_RECENT_PROJECTS = 10;
 
     private final Preferences prefs;
 
@@ -227,57 +220,6 @@ public final class AppState {
     /** A main-window geometry snapshot: position ({@code NaN} when unknown), size and maximized flag. */
     public record WindowBounds(double x, double y, double width, double height, boolean maximized) {}
 
-    // --- Recent projects ----------------------------------------------------
-
-    /** A recent project: its directory path and the resolved menu icon name (may be {@code null}). */
-    public record RecentProject(String path, String iconName) {}
-
-    /** The recent projects, most-recent first. */
-    public List<RecentProject> getRecentProjects() {
-        String raw = get(RECENT_PROJECTS, "");
-        if (raw.isBlank()) {
-            return List.of();
-        }
-        List<RecentProject> list = new ArrayList<>();
-        for (String line : raw.split("\n")) {
-            if (line.isBlank()) {
-                continue;
-            }
-            int tab = line.indexOf('\t');
-            if (tab < 0) {
-                list.add(new RecentProject(line, null));
-            } else {
-                String iconName = line.substring(tab + 1);
-                list.add(new RecentProject(line.substring(0, tab), iconName.isBlank() ? null : iconName));
-            }
-        }
-        return list;
-    }
-
-    /** The most recently opened project path, or {@code null} if none. */
-    String getLastProject() {
-        List<RecentProject> recent = getRecentProjects();
-        return recent.isEmpty() ? null : recent.getFirst().path();
-    }
-
-    /**
-     * The projects that were open when the application last exited, in the order they were opened.
-     * Empty when none was open (or on first run).
-     */
-    public List<String> getOpenProjects() {
-        String raw = get(PROJECT_OPEN, "");
-        if (raw.isBlank()) {
-            return List.of();
-        }
-        List<String> paths = new ArrayList<>();
-        for (String line : raw.split("\n")) {
-            if (!line.isBlank()) {
-                paths.add(line);
-            }
-        }
-        return List.copyOf(paths);
-    }
-
     /**
      * The ids of the views registered to open at start-up that have already been introduced: docked
      * once at their default location. A default view added by a newer version is missing from a
@@ -301,155 +243,6 @@ public final class AppState {
             prefs.remove(VIEWS_INTRODUCED);
         } else {
             prefs.put(VIEWS_INTRODUCED, String.join("\n", ids));
-        }
-        flush();
-    }
-
-    /** The path of the project that was selected when the application last exited, or {@code null}. */
-    public String getSelectedProject() {
-        String selected = get(PROJECT_SELECTED, "");
-        return selected.isBlank() ? null : selected;
-    }
-
-    /**
-     * Records the projects that are currently open and which one is selected, so the next launch
-     * reopens exactly this session. Persisted immediately (rather than only at exit) so that a
-     * project the user closed is not brought back by a crash.
-     */
-    public void setOpenProjects(List<String> paths, String selected) {
-        List<String> kept = paths == null ? List.of()
-                : paths.stream().filter(path -> path != null && !path.isBlank()).toList();
-        if (kept.isEmpty()) {
-            prefs.remove(PROJECT_OPEN);
-        } else {
-            prefs.put(PROJECT_OPEN, String.join("\n", kept));
-        }
-        if (selected == null || selected.isBlank() || !kept.contains(selected)) {
-            prefs.remove(PROJECT_SELECTED);
-        } else {
-            prefs.put(PROJECT_SELECTED, selected);
-        }
-        flush();
-    }
-
-    /**
-     * Removes the persisted per-project state (tree expansion and selection) of the given project,
-     * so a subsequent open starts fresh at the project root. The session layout is shared by every
-     * project and is left alone. A {@code null} project is ignored.
-     */
-    public void clearProjectState(File project) {
-        if (project == null) {
-            return;
-        }
-        String key = expansionKey(project.getPath());
-        prefs.node(TREE_EXPANDED_NODE).remove(key);
-        prefs.node(TREE_SELECTED_NODE).remove(key);
-        flush();
-    }
-
-    /** Records a project as the most recent, de-duplicating and bounding the list. */
-    public void addRecentProject(String path, String iconName) {
-        if (path == null || path.isBlank()) {
-            return;
-        }
-        List<RecentProject> list = new ArrayList<>(getRecentProjects());
-        list.removeIf(rp -> rp.path().equals(path));
-        list.addFirst(new RecentProject(path, iconName));
-        while (list.size() > MAX_RECENT_PROJECTS) {
-            list.removeLast();
-        }
-        prefs.put(RECENT_PROJECTS, serialize(list));
-        flush();
-    }
-
-    /** Removes a project from the recent list (e.g. when its directory no longer exists). */
-    public void removeRecentProject(String path) {
-        List<RecentProject> list = new ArrayList<>(getRecentProjects());
-        if (list.removeIf(rp -> rp.path().equals(path))) {
-            prefs.put(RECENT_PROJECTS, serialize(list));
-            flush();
-        }
-    }
-
-    public void clearRecentProjects() {
-        prefs.remove(RECENT_PROJECTS);
-        flush();
-    }
-
-    // --- Project tree expansion --------------------------------------------
-
-    /**
-     * The persisted expanded-node identifiers for {@code projectPath}, or empty if none.
-     * Expansion is stored per project in a dedicated preferences child node, keyed by a stable
-     * hash of the project path.
-     */
-    public List<String> getExpandedNodes(String projectPath) {
-        String[] lines = projectLines(TREE_EXPANDED_NODE, projectPath, 1);
-        List<String> list = new ArrayList<>();
-        for (int i = 1; i < lines.length; i++) {
-            if (!lines[i].isBlank()) {
-                list.add(lines[i]);
-            }
-        }
-        return list;
-    }
-
-    /**
-     * Reads the per-project payload stored under {@code childNode}, split into lines. The project
-     * path is embedded as the first line and re-checked here, guarding against collisions of the
-     * hashed {@link #expansionKey}. Returns an empty array when the entry is absent, too short, or
-     * belongs to another project.
-     */
-    private String[] projectLines(String childNode, String projectPath, int minLines) {
-        if (projectPath == null) {
-            return EMPTY_LINES;
-        }
-        String raw = prefs.node(childNode).get(expansionKey(projectPath), "");
-        if (raw.isBlank()) {
-            return EMPTY_LINES;
-        }
-        String[] lines = raw.split("\n", -1);
-        if (lines.length < minLines || !projectPath.equals(lines[0])) {
-            return EMPTY_LINES;
-        }
-        return lines;
-    }
-
-    /** Persists the expanded-node identifiers for {@code projectPath}. */
-    void setExpandedNodes(String projectPath, List<String> nodes) {
-        if (projectPath == null) {
-            return;
-        }
-        Preferences node = prefs.node(TREE_EXPANDED_NODE);
-        String key = expansionKey(projectPath);
-        if (nodes == null || nodes.isEmpty()) {
-            node.remove(key);
-        } else {
-            node.put(key, projectPath + "\n" + String.join("\n", nodes));
-        }
-        flush();
-    }
-
-    /** The persisted selected-node identifier for {@code projectPath}, or {@code null} if none. */
-    public String getSelectedNode(String projectPath) {
-        String[] lines = projectLines(TREE_SELECTED_NODE, projectPath, 2);
-        if (lines.length < 2 || lines[1].isBlank()) {
-            return null;
-        }
-        return lines[1];
-    }
-
-    /** Persists the selected-node identifier for {@code projectPath}. */
-    void setSelectedNode(String projectPath, String nodeId) {
-        if (projectPath == null) {
-            return;
-        }
-        Preferences node = prefs.node(TREE_SELECTED_NODE);
-        String key = expansionKey(projectPath);
-        if (nodeId == null || nodeId.isBlank()) {
-            node.remove(key);
-        } else {
-            node.put(key, projectPath + "\n" + nodeId);
         }
         flush();
     }
@@ -502,18 +295,33 @@ public final class AppState {
         }
     }
 
-    private static String serialize(List<RecentProject> list) {
-        StringBuilder sb = new StringBuilder();
-        for (RecentProject rp : list) {
-            if (!sb.isEmpty()) {
-                sb.append('\n');
-            }
-            sb.append(rp.path());
-            if (rp.iconName() != null && !rp.iconName().isBlank()) {
-                sb.append('\t').append(rp.iconName());
+    /** The most recent project path from the legacy project state; migration only. */
+    private String legacyLastProject() {
+        String raw = get(RECENT_PROJECTS, "");
+        for (String line : raw.split("\n")) {
+            if (!line.isBlank()) {
+                int tab = line.indexOf('\t');
+                return tab < 0 ? line : line.substring(0, tab);
             }
         }
-        return sb.toString();
+        return null;
+    }
+
+    /** Writes the legacy open/selected project keys; migration only. */
+    private void writeLegacyOpenProjects(List<String> paths, String selected) {
+        List<String> kept = paths == null ? List.of()
+                : paths.stream().filter(path -> path != null && !path.isBlank()).toList();
+        if (kept.isEmpty()) {
+            prefs.remove(PROJECT_OPEN);
+        } else {
+            prefs.put(PROJECT_OPEN, String.join("\n", kept));
+        }
+        if (selected == null || selected.isBlank() || !kept.contains(selected)) {
+            prefs.remove(PROJECT_SELECTED);
+        } else {
+            prefs.put(PROJECT_SELECTED, selected);
+        }
+        flush();
     }
 
     private static String expansionKey(String projectPath) {
@@ -895,7 +703,7 @@ public final class AppState {
                     || (!legacyFlag && layoutNode.keys().length == 0)) {
                 return;
             }
-            String last = getLastProject();
+            String last = legacyLastProject();
             Layout layout = last == null ? Layout.EMPTY : readLayout(expansionKey(last), last);
             if (layout.isEmpty()) {
                 layout = readLayout(LAYOUT_LEGACY_GLOBAL_KEY, "");
@@ -906,7 +714,7 @@ public final class AppState {
             setSessionLayout(layout);
             // A missing flag meant "open": that was its default.
             boolean wasOpen = !"false".equals(legacyOpen);
-          setOpenProjects(wasOpen && last != null ? List.of(last) : List.of(), last);
+          writeLegacyOpenProjects(wasOpen && last != null ? List.of(last) : List.of(), last);
             LOG.info(() -> "Migrated the legacy session state" + (last == null ? "" : " of " + last));
         } catch (Exception ex) {
             LOG.log(Level.WARNING, "Could not migrate the legacy session state", ex);

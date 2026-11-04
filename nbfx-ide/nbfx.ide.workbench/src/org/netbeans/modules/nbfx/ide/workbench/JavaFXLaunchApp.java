@@ -36,6 +36,7 @@ import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
@@ -128,6 +129,8 @@ public class JavaFXLaunchApp extends ShellApplication {
     private boolean navigatorRevealInProgress;
     /** The active-component state published to the global action context (the TopComponent replacement). */
     private final ActiveComponentContext activeComponents = activeComponentContext();
+    /** IDE project/session state, no longer owned by the generic shell. */
+    private final ProjectState projectState = new ProjectState();
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {
@@ -141,11 +144,16 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     @Override
+    protected ViewStateStore viewStateStore() {
+        return projectState;
+    }
+
+    @Override
     protected Lookup shellLookup() {
         return new ProxyLookup(Lookups.fixed(
                 new IdeShellCommandResolver(mainPaneActiveDocument(), treeFocused),
                 new IdeShellIconProvider(),
-                new RecentProjectsMenuFactory(getAppState()::getRecentProjects, this::openProject,
+                new RecentProjectsMenuFactory(projectState::getRecentProjects, this::openProject,
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon)),
                 super.shellLookup());
@@ -937,7 +945,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     private void persistSession() {
         OpenProject selected = projectRegistry.getSelected();
-        getAppState().setOpenProjects(
+        projectState.setOpenProjects(
                 projectRegistry.getOpenProjects().stream().map(OpenProject::getPath).toList(),
                 selected == null ? null : selected.getPath());
     }
@@ -951,7 +959,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (dir == null || !dir.isDirectory()) {
             LOG.warning("Project directory does not exist: " + dir);
             if (dir != null) {
-                getAppState().removeRecentProject(dir.getPath());
+                projectState.removeRecentProject(dir.getPath());
             }
             return;
         }
@@ -986,8 +994,8 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Read with the normalized path, the same key the state was captured under, and stash the
         // pending expansion/selection on the views before opening: they mirror the registry and build
         // a project's tree as soon as it is opened, applying this pending state.
-        List<String> expandedPaths = getAppState().getExpandedNodes(projectDir.getPath());
-        String selectedPath = getAppState().getSelectedNode(projectDir.getPath());
+        List<String> expandedPaths = projectState.getExpandedNodes(projectDir.getPath());
+        String selectedPath = projectState.getSelectedNode(projectDir.getPath());
         for (NavigatorView provider : providers) {
             provider.restoreExpandedPaths(rootFileObject, expandedPaths);
             provider.restoreSelectedPath(rootFileObject, selectedPath);
@@ -1100,7 +1108,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         rootWatcher.watch(project);
         ProjectIconProvider icons = Lookup.getDefault().lookup(ProjectIconProvider.class);
         String iconName = icons == null ? null : icons.iconName(rootFileObject);
-        getAppState().addRecentProject(dir.getPath(), iconName);
+        projectState.addRecentProject(dir.getPath(), iconName);
         persistSession();
         // The persisted layout describes the whole window across every project of the session, so it
         // is applied once - when the last of them has loaded. A project opened later comes up empty:
@@ -1163,7 +1171,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         projectRegistry.close(project);
         // Only this project's file-operation history goes: the other projects keep theirs.
         FileUndoManager.getDefault().clear(path);
-        getAppState().clearProjectState(new File(path));
+        projectState.clearProjectState(new File(path));
         persistSession();
     }
 
@@ -1195,7 +1203,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Closing the registry makes the views drop every project's tree (they observe it).
         projectRegistry.closeAll();
         for (OpenProject project : projects) {
-            getAppState().clearProjectState(new File(project.getPath()));
+            projectState.clearProjectState(new File(project.getPath()));
         }
         persistSession();
     }
@@ -1211,7 +1219,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                 return;
             }
             closeProject(project, false);
-            getAppState().removeRecentProject(project.getPath());
+            projectState.removeRecentProject(project.getPath());
             });
     }
 
@@ -1226,7 +1234,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     private void clearRecentProjects() {
-        getAppState().clearRecentProjects();
+        projectState.clearRecentProjects();
     }
 
     /**
@@ -1293,12 +1301,12 @@ public class JavaFXLaunchApp extends ShellApplication {
      * gone are pruned.
      */
     private void restoreSessionProjects() {
-        List<String> projects = getAppState().getOpenProjects();
+        List<String> projects = projectState.getOpenProjects();
         if (projects.isEmpty()) {
             introduceDefaultViews();
             return;
         }
-        sessionSelected = getAppState().getSelectedProject();
+        sessionSelected = projectState.getSelectedProject();
         List<File> dirs = new ArrayList<>();
         for (String path : projects) {
             File dir = FileUtil.normalizeFile(new File(path));
@@ -1307,7 +1315,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                 pendingSessionProjects.add(dir.getPath());
             } else {
                 LOG.info("Project of the last session no longer exists, pruning: " + path);
-                getAppState().removeRecentProject(path);
+                projectState.removeRecentProject(path);
             }
         }
         if (dirs.isEmpty()) {
