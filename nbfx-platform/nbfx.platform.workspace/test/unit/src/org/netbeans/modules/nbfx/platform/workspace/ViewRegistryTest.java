@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.workspace;
 
 import org.netbeans.api.nbfx.views.ViewLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
+import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.io.IOException;
@@ -40,6 +41,14 @@ import org.openide.filesystems.FileUtil;
  * @since 1.0
  */
 public class ViewRegistryTest {
+
+    @Test
+    public void bottomLocationKeepsItsBottomArea() {
+        ViewArea area = ViewRegistry.defaultArea(ViewLocation.BOTTOM);
+
+        assertEquals("bottom", area.id());
+        assertEquals(DockLocation.BOTTOM, area.location());
+    }
 
     @Test
     public void readsAttributesAndOrders() throws IOException {

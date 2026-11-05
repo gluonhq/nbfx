@@ -216,6 +216,8 @@ public final class DockArea<N extends Node> extends StackPane {
      * a strong reference it would be collected and its subscribers never called again.
      */
     private final Map<N, ObservableValue<Boolean>> emptiness = new HashMap<>();
+    /** Whether empty docked panes are kept until the initial layout has been filled. */
+    private boolean retainEmptyDockedPanes;
 
     /**
      * Where a pane that is out of the area goes back: next to its former neighbour on its
@@ -471,6 +473,26 @@ public final class DockArea<N extends Node> extends StackPane {
         Node built = root;
         Platform.runLater(() -> applyDividers(built, tree));
         return leaves();
+    }
+
+    /**
+     * Keeps empty docked panes alive while an initial layout is being filled, so a declared tree's
+     * leaves are still there when the views that belong in them arrive. Releasing the retention
+     * removes any leaf that is still empty.
+     *
+     * @param retain whether to keep empty docked panes
+     */
+    public void retainEmptyDockedPanes(boolean retain) {
+        retainEmptyDockedPanes = retain;
+        if (!retain) {
+            Platform.runLater(() -> {
+                for (N pane : List.copyOf(leaves())) {
+                    if (!isPrimary(pane)) {
+                        removeIfEmpty(pane);
+                    }
+                }
+            });
+        }
     }
 
     /** Whether {@code tree} names only permanent roles this area has panes for, each at most once. */
@@ -901,7 +923,7 @@ public final class DockArea<N extends Node> extends StackPane {
     }
 
     private void removeIfEmpty(N pane) {
-        if (isPrimary(pane) || !isEmpty(pane)) {
+        if (retainEmptyDockedPanes || isPrimary(pane) || !isEmpty(pane)) {
             return;
         }
         if (minimized.contains(pane)) {

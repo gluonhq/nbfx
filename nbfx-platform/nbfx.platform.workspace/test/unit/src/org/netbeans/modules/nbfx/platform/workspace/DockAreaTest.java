@@ -229,6 +229,28 @@ public class DockAreaTest {
     }
 
     @Test
+    public void emptyDockedPanesCanBeRetainedUntilTheLayoutIsFilled() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        StackPane docked = onFx(() -> {
+            f.area.retainEmptyDockedPanes(true);
+            List<StackPane> leaves = f.area.applyTree(DockTrees.parse("H[0.3000](P:NAVIGATOR,L)"));
+            return leaves.get(1);
+        });
+        pulse();
+        onFx(() -> {
+            assertTrue("the retained docked leaf disappeared", f.area.contains(docked));
+            f.area.retainEmptyDockedPanes(false);
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            assertFalse("the released empty docked leaf stayed", f.area.contains(docked));
+            assertTrue(f.host.disposed.contains(docked));
+            return null;
+        });
+    }
+
+    @Test
     public void applyTreeRestoresMinimizedPanesFirst() throws Exception {
         Fixture f = onFx(Fixture::new);
         onFx(() -> {

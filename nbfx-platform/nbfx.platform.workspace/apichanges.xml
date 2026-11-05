@@ -45,6 +45,21 @@
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewSpec"/>
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewRegistry"/>
         </change>
+        <change id="view.areas.layouts">
+            <api name="netbeansfx_windows"/>
+            <summary>Declarative view areas and first-run window layouts.</summary>
+            <version major="1" minor="1"/>
+            <date day="6" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ViewAreaRegistry</code> and <code>WindowLayoutRegistry</code>, which read
+                the registered view areas and the declared first-run dock tree from the layer, and
+                lets view placement derive from the registered area.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewAreaRegistry"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="WindowLayoutRegistry"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

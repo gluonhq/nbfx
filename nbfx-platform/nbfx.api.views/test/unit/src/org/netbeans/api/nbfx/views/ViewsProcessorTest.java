@@ -113,6 +113,46 @@ public class ViewsProcessorTest {
         assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"separatorBefore\""));
     }
 
+
+    private static final String AREA_SOURCE =
+            "package demo;\n"
+            + "import org.netbeans.api.nbfx.views.*;\n"
+            + "import org.netbeans.api.nbfx.view.DockLocation;\n"
+            + "@AreaRegistration(id = \"right-sidebar\", displayName = \"Right Sidebar\","
+            + " location = DockLocation.RIGHT, weight = 0.25, position = 10)\n"
+            + "public class DemoArea {}\n";
+
+    @Test
+    public void generatesViewAreaFragment() throws Exception {
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.AreaRegistrationProcessor",
+                Map.of("demo/DemoArea.java", AREA_SOURCE));
+
+        assertLayerPath(xml, LayerPaths.VIEW_AREAS);
+        assertTrue(xml, xml.contains("name=\"right-sidebar\""));
+        assertTrue(xml, xml.contains("displayName\" stringvalue=\"Right Sidebar\""));
+        assertTrue(xml, xml.contains("location\" stringvalue=\"RIGHT\""));
+        assertTrue(xml, xml.contains("doublevalue=\"0.25\" name=\"weight\""));
+    }
+
+
+    @Test
+    public void generatesWindowLayoutFragment() throws Exception {
+        String source =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.views.*;\n"
+                + "@WindowLayoutRegistration(id = \"default\","
+                + " tree = \"H[0.3000](P:NAVIGATOR,P:MAIN)\")\n"
+                + "public class DemoLayout {}\n";
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.WindowLayoutRegistrationProcessor",
+                Map.of("demo/DemoLayout.java", source));
+
+        assertLayerPath(xml, LayerPaths.WINDOW_LAYOUTS);
+        assertTrue(xml, xml.contains("name=\"default\""));
+        assertTrue(xml, xml.contains("tree\" stringvalue=\"H[0.3000](P:NAVIGATOR,P:MAIN)\""));
+    }
+
     private static void assertLayerPath(String xml, String path) {
         for (String segment : path.split("/")) {
             assertTrue("layer path " + path + " missing segment " + segment + " in:\n" + xml,

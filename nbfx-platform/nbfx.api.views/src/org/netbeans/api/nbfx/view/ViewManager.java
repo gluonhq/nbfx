@@ -31,6 +31,18 @@ public interface ViewManager {
      */
     void show(ViewProvider view);
 
+    /**
+     * Shows {@code view} at an explicitly declared area and position. The default delegates to
+     * {@link #show(ViewProvider)} for implementations that do not support explicit placement.
+     *
+     * @param view     the view to show
+     * @param area     the declared area, or {@code null} to use the view's default
+     * @param position the position among the views in the area
+     */
+    default void show(ViewProvider view, ViewArea area, int position) {
+        show(view);
+    }
+
     /** Closes the tab of {@code view}, wherever it is; does nothing if it has none. */
     void hide(ViewProvider view);
 
