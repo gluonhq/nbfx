@@ -44,6 +44,22 @@
             <class package="org.netbeans.modules.nbfx.platform.status" name="StatusElementRegistry"/>
             <class package="org.netbeans.modules.nbfx.platform.status" name="FxStatusBar"/>
         </change>
+        <change id="status.shell.context">
+            <api name="netbeansfx_status"/>
+            <summary>Status elements receive the shell lookup.</summary>
+            <version major="1" minor="1"/>
+            <date day="6" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>StatusElementHolder.init(Lookup)</code> and the
+                <code>StatusElementRegistry.discover(Lookup)</code> overloads, so status elements can
+                resolve their services from the shell's lookup and release them in
+                <code>dispose()</code>.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.status" name="StatusElementHolder"/>
+            <class package="org.netbeans.modules.nbfx.platform.status" name="StatusElementRegistry"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

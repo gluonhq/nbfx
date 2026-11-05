@@ -56,6 +56,9 @@ public final class LayerPaths {
     /** Registered status bar elements, by id. */
     public static final String STATUS = "NbFx/Status";
 
+    /** Registered theme token default stylesheets, by id. */
+    public static final String THEME_TOKENS = "NbFx/ThemeTokens";
+
     /** Registered property editors, by value type. */
     public static final String PROPERTY_EDITORS = "NbFx/PropertyEditors";
 

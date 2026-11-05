@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.editor.breadcrumbs;
 
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.editor.ElementIcons;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import javafx.scene.Node;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -85,6 +86,7 @@ final class BreadcrumbsPopup extends PopupControl {
                 BreadcrumbsPopup.class.getResource("breadcrumbs-popup.css")).toExternalForm());
         getStyleClass().add("breadcrumbs-popup");
         getScene().setRoot(root);
+        NbfxTheme.apply(getScene());
     }
 
     /**

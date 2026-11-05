@@ -825,3 +825,46 @@ WindowSystemListener.saveStarted / saveCompleted
   -> @OnStop
   -> LifecycleManager.exit
 ```
+
+---
+
+## 19. Theming and CSS token providers
+
+The theme implementation is based on PR #83 by Geertjan Wielenga (`@geertjanw`), adapted to the
+current platform shell. The CSS token values and bundled light/dark/solarized/high-contrast
+themes come from that PR.
+
+What landed:
+
+- `nbfx.platform.theme` with `NbfxTheme` and the bundled theme files;
+- `ThemeTokenProvider` and `@ThemeTokenRegistration` for component CSS token defaults;
+- `ThemeTokenRegistry` resolves token-default stylesheets through the owning module class loader;
+- token defaults are applied before the selected theme, and the theme stays last;
+- `NbfxTheme` is brandable through `theme.properties`;
+- the shell, editor and popups reapply the theme on scene attach;
+- `ThemeMenuFactory` contributes View > Theme as a dynamic menu;
+- shell/editor CSS and `TokenCategory` now use the `-nbfx-*` token vocabulary.
+
+`.root` is the token contract. Component CSS may add namespaced tokens on `.root`; a theme that
+predates the component still gets the component default because the default sheet is applied before
+the theme.
+
+---
+
+## 20. OS light/dark theme mode
+
+Theme selection now uses the JavaFX 26 platform colors:
+
+- `Platform.getPreferences().colorSchemeProperty()` reports the OS light/dark scheme;
+- `Scene.getPreferences().setColorScheme(...)` overrides the scene scheme and drives the native
+  title bar on Windows/macOS.
+
+`ThemeMode` is `SYSTEM`, `LIGHT` or `DARK`. System mode chooses the branded light/dark theme pair;
+explicit mode keeps the selected theme and sets the scene scheme to match it. The View > Theme menu
+offers Follow System, Light, Dark and the individual theme files.
+
+User themes may declare a sidecar `<id>.properties` with `scheme=dark`; otherwise they default to
+light. The OS listener is installed with the shell and disposed on stop. Shell, editor, popup,
+detached and dialog scenes register for theme updates.
+
+Linux native title-bar behavior remains platform-dependent and is documented as a limitation.
