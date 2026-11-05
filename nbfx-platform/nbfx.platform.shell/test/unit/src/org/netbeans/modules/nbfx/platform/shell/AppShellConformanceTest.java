@@ -20,21 +20,32 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import javafx.scene.Node;
+import javafx.scene.control.Tab;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.view.DockLocation;
+import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.view.ViewManager;
+import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
+import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.actions.ActionRegistryImpl;
 import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
 import org.netbeans.modules.nbfx.platform.nodes.PropertySheet;
 import org.netbeans.modules.nbfx.platform.nodes.SimpleFxProperty;
 import org.netbeans.modules.nbfx.platform.nodes.SimpleFxPropertySet;
 import org.netbeans.modules.nbfx.platform.output.ConsoleOutput;
+import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
+import org.openide.util.Lookup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -67,6 +78,56 @@ public class AppShellConformanceTest {
             assertNotNull(application.getChrome().bottom());
             assertSame(application.getMainPane(), application.getWindow().mainPane());
             assertSame(application.getRoot(), application.getWindow().root());
+
+            NbfxTabPane sidebar = (NbfxTabPane) Docking.primary(
+                    NbfxTabPane.PaneRole.of("RIGHT_SIDEBAR"));
+            assertNotNull("the registered custom pane is instantiated", sidebar);
+            assertEquals(PaneKind.VIEW, NbfxTabPane.kindOf(sidebar));
+
+            ViewArea area = ViewAreaRegistry.find("right-sidebar").orElseThrow();
+            ViewProvider view = new ViewProvider() {
+                @Override
+                public String getId() {
+                    return "conformance.custom";
+                }
+
+                @Override
+                public String getTitle() {
+                    return "Custom";
+                }
+
+                @Override
+                public Node getView() {
+                    return new Region();
+                }
+            };
+            ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
+            assertNotNull(manager);
+            manager.show(view, area, 0);
+            assertEquals(1, sidebar.getTabs().size());
+            assertSame(sidebar, sidebar.getTabs().get(0).getTabPane());
+
+            ViewProvider unknownView = new ViewProvider() {
+                @Override
+                public String getId() {
+                    return "conformance.unknown-area";
+                }
+
+                @Override
+                public String getTitle() {
+                    return "Unknown Area";
+                }
+
+                @Override
+                public Node getView() {
+                    return new Region();
+                }
+            };
+            ViewArea unknownArea = new ViewArea("missing-area", "Missing", DockLocation.RIGHT, 0.2);
+            manager.show(unknownView, unknownArea, 0);
+            Tab unknownTab = NbfxTabPane.findViewTab("conformance.unknown-area").orElseThrow();
+            assertNotNull("an unknown area still finds a fallback pane", unknownTab.getTabPane());
+            assertNotSame(sidebar, unknownTab.getTabPane());
             return null;
         });
     }

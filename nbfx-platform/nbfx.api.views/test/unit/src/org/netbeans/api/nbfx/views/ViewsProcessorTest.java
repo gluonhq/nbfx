@@ -153,6 +153,26 @@ public class ViewsProcessorTest {
         assertTrue(xml, xml.contains("tree\" stringvalue=\"H[0.3000](P:NAVIGATOR,P:MAIN)\""));
     }
 
+
+    @Test
+    public void generatesWindowPaneFragment() throws Exception {
+        String source =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.views.*;\n"
+                + "@PaneRegistration(id = \"RIGHT_SIDEBAR\", displayName = \"Right Sidebar\","
+                + " kind = PaneKind.VIEW, area = \"right-sidebar\", keepWhenEmpty = true,"
+                + " position = 30)\n"
+                + "public class DemoPane {}\n";
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.views.processors.PaneRegistrationProcessor",
+                Map.of("demo/DemoPane.java", source));
+
+        assertLayerPath(xml, LayerPaths.WINDOW_PANES);
+        assertTrue(xml, xml.contains("name=\"RIGHT_SIDEBAR\""));
+        assertTrue(xml, xml.contains("area\" stringvalue=\"right-sidebar\""));
+        assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"keepWhenEmpty\""));
+    }
+
     private static void assertLayerPath(String xml, String path) {
         for (String segment : path.split("/")) {
             assertTrue("layer path " + path + " missing segment " + segment + " in:\n" + xml,

@@ -50,6 +50,9 @@ public final class LayerPaths {
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 
+    /** Registered permanent window panes, by id. */
+    public static final String WINDOW_PANES = "NbFx/WindowPanes";
+
     /** Registered status bar elements, by id. */
     public static final String STATUS = "NbFx/Status";
 
