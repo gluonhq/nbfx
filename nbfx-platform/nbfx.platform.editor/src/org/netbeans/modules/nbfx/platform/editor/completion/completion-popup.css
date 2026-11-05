@@ -17,10 +17,10 @@
  * under the License.
  */
 .completion-popup-root {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 6;
-    -fx-border-color: #C8CDD5;
+    -fx-border-color: -nbfx-popup-border;
     -fx-border-radius: 6;
     -fx-border-width: 1;
     -fx-padding: 2;
@@ -28,15 +28,15 @@
 }
 
 .completion-popup-root > .completion-popup-list {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-bg;
     -fx-background-insets: 0;
     -fx-padding: 0;
     -fx-effect: null;
 }
 
 .completion-popup-root > .completion-popup-list > .placeholder > .completion-popup-placeholder {
-    -fx-background-color: #DCEBFA;
-    -fx-text-fill: #0B57D0;
+    -fx-background-color: -nbfx-popup-selected;
+    -fx-text-fill: -nbfx-popup-selected-text;
     -fx-font-size: 12px;
     -fx-padding: 6 8 6 8;
     -fx-alignment: center;
@@ -44,8 +44,8 @@
 }
 
 .completion-popup-root > .completion-popup-footer {
-    -fx-text-fill: #6B7280;
-    -fx-fill: #6B7280;
+    -fx-text-fill: -nbfx-popup-muted;
+    -fx-fill: -nbfx-popup-muted;
     -fx-font-size: 11px;
     -fx-padding: 4 8 6 8;
 }
@@ -71,41 +71,41 @@
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .scroll-bar:vertical > .thumb {
-    -fx-background-color: #6B7280;
+    -fx-background-color: -nbfx-popup-muted;
     -fx-background-insets: 3 2 3 2;
     -fx-background-radius: 16;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-bg;
     -fx-padding: 0;
-    -fx-text-fill: #1F2328;
+    -fx-text-fill: -nbfx-popup-text;
     -fx-min-height: 24;
     -fx-pref-height: 24;
     -fx-max-height: 24;
-    -fx-selection-bar: #DCEBFA;
+    -fx-selection-bar: -nbfx-popup-selected;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-bg;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
-    -fx-background-color: #F3F7FB;
+    -fx-background-color: -nbfx-popup-hover;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected,
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover,
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:focused:selected {
-    -fx-background-color: #DCEBFA;
-    -fx-text-fill: #0B57D0;
+    -fx-background-color: -nbfx-popup-selected;
+    -fx-text-fill: -nbfx-popup-selected-text;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected > .completion-popup-row > .completion-popup-text,
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:focused:selected > .completion-popup-row > .completion-popup-text,
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected > .completion-popup-row > .completion-popup-detail,
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:focused:selected > .completion-popup-row > .completion-popup-detail {
-    -fx-fill: #0B57D0;
+    -fx-fill: -nbfx-popup-selected-text;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell:separator {
@@ -126,7 +126,7 @@
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell > .completion-popup-row > .completion-popup-text {
     -fx-font-family: "Monospaced";
     -fx-font-size: 13px;
-    -fx-fill: #1F2328;
+    -fx-fill: -nbfx-popup-text;
 }
 
 .completion-popup-row > .completion-popup-text:emphasized,
@@ -138,7 +138,7 @@
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell > .completion-popup-row > .completion-popup-detail {
     -fx-font-family: "Monospaced";
     -fx-font-size: 11px;
-    -fx-fill: #6B7280;
+    -fx-fill: -nbfx-popup-muted;
 }
 
 .completion-popup-root > .completion-popup-list > .virtual-flow > .clipped-container > .sheet > .list-cell > .completion-popup-separator {
@@ -146,7 +146,7 @@
     -fx-pref-height: 1;
     -fx-max-height: 1;
     -fx-max-width: 1000;
-    -fx-background-color: #D7DCE3;
+    -fx-background-color: -nbfx-popup-separator;
     -fx-background-insets: 0 12 0 12;
 }
 

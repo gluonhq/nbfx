@@ -28,6 +28,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.openide.util.NbBundle;
 
 /**
@@ -73,6 +74,7 @@ public final class CloseConfirmation {
             alert.getButtonTypes().setAll(DISCARD, CANCEL);
         }
 
+        NbfxTheme.apply(alert.getDialogPane());
         ButtonType choice = alert.showAndWait().orElse(CANCEL);
         if (choice == DISCARD) {
             return true;
@@ -140,6 +142,7 @@ public final class CloseConfirmation {
         error.setTitle(message("CloseConfirmation.error.title"));
         error.setHeaderText(message("CloseConfirmation.error.header"));
         error.setContentText(String.join("\n", failures));
+        NbfxTheme.apply(error.getDialogPane());
         error.showAndWait();
         return false;
     }

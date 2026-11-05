@@ -17,43 +17,27 @@
  * under the License.
  */
 .code-editor {
-    -code-keyword-color: #336BDD;
-    -code-keyword-directive-color: blue;
-    -code-string-color: #1E9347;
-    -code-comment-color: #969696;
-    -code-field-color: #CE54B8;
-    -code-method-color: black;
-    -code-class-color: black;
-    -code-css-selector-color: #007c00;
-    -code-css-property-color: blue;
-    -code-xml-tag-color: #336BDD;
-    -code-xml-attribute-color: #CE54B8;
-    -code-xml-value-color: #CE7B00;
-    -code-xml-doctype-color: #00007C;
-    -code-xml-cdata-color: #7C6200;
-    -code-xml-pi-color: #00007C;
-    -code-hyperlink-color: #0000FF;
     -fx-padding: 0;
 }
 
 .brace {
-    -fx-fill: #CCFFCC;
+    -fx-fill: -nbfx-editor-brace;
     -fx-stroke-width: 0;
 }
 .brace-error {
-    -fx-fill: #D83636;
+    -fx-fill: -nbfx-editor-brace-error;
     -fx-stroke-width: 0;
 }
 
 .occurrence {
-    -fx-fill: #D7E6CB;
-    -fx-stroke: #D7E6CB;
+    -fx-fill: -nbfx-editor-occurrence;
+    -fx-stroke: -nbfx-editor-occurrence;
     -fx-stroke-width: 1;
 }
 
 .search-match {
-    -fx-fill: #FFB442;
-    -fx-stroke: #FFB442;
+    -fx-fill: -nbfx-editor-search-match;
+    -fx-stroke: -nbfx-editor-search-match;
     -fx-stroke-width: 1;
 }
 
@@ -63,11 +47,11 @@
 }
 
 .squiggly-error {
-    -fx-stroke: red;
+    -fx-stroke: -nbfx-editor-squiggle-error;
     -fx-stroke-width: 1;
 }
 .squiggly-warning {
-    -fx-stroke: #FFA500;
+    -fx-stroke: -nbfx-editor-squiggle-warning;
     -fx-stroke-width: 1;
 }
 
@@ -75,39 +59,39 @@
     -fx-font: 13px "Monospaced";
     -fx-padding: 0;
     -fx-content-padding: 5 20 5 20;
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-editor-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
 }
 
 .code-editor > .code-area-wrapper > .code-area:focused {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-editor-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow {
-    -fx-background-color: white, #F9F4E0;
+    -fx-background-color: -nbfx-editor-bg, -nbfx-editor-line;
     -fx-background-insets: 0, 1;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-editor-bg;
     -fx-background-insets: 0;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content > .caret-line {
-    -fx-fill: #F9F4E0;
+    -fx-fill: -nbfx-editor-line;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content > .selection-highlight {
-    -fx-fill: #89BCED;
+    -fx-fill: -nbfx-editor-selection;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .left-side {
-    -fx-background-color: #E9E8E2;
+    -fx-background-color: -nbfx-editor-gutter;
 }
 
 /* Read-only editor */
@@ -115,17 +99,17 @@
 .code-editor:readonly > .code-area-wrapper > .code-area:focused,
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .vport,
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .vport > .content {
-    -fx-background-color: #F2F2F2;
+    -fx-background-color: -nbfx-editor-readonly-bg;
 }
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow {
-    -fx-background-color: #F2F2F2, #E8E8E8;
+    -fx-background-color: -nbfx-editor-readonly-bg, -nbfx-editor-readonly-line;
     -fx-background-insets: 0, 1;
 }
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .vport > .content > .caret-line {
-    -fx-fill: #E8E8E8;
+    -fx-fill: -nbfx-editor-readonly-line;
 }
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .left-side {
-    -fx-background-color: #DFDEDA;
+    -fx-background-color: -nbfx-editor-readonly-gutter;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .left-side > .line-number-decorator {
@@ -141,7 +125,7 @@
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal:focused,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical:focused {
-    -fx-background-color: #F5F5F5;
+    -fx-background-color: -nbfx-track;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical > .track,
@@ -151,7 +135,7 @@
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal > .track,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical > .track {
-    -fx-background-color: #F5F5F5;
+    -fx-background-color: -nbfx-track;
     -fx-border-width: 0;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
@@ -160,7 +144,7 @@
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal:focused > .track,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical:focused > .track {
-    -fx-background-color: #EDEDED;
+    -fx-background-color: -nbfx-track-focused;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal > .increment-button,
@@ -185,32 +169,32 @@
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal > .thumb,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical > .thumb {
-    -fx-background-color: transparent, #CFCFCF;
+    -fx-background-color: transparent, -nbfx-thumb;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 20;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal:hover > .thumb,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical:hover > .thumb {
-    -fx-background-color: transparent, #B6B6B6;
+    -fx-background-color: transparent, -nbfx-thumb-hover;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:horizontal:pressed > .thumb,
 .code-editor > .code-area-wrapper > .code-area > .vflow > .scroll-bar:vertical:pressed > .thumb {
-    -fx-background-color: transparent, #9C9C9C;
+    -fx-background-color: transparent, -nbfx-thumb-pressed;
 }
 
 /* Highlight line */
 
 .code-editor > .code-area-wrapper > .overlay-highlight > .line-highlight {
-    -fx-background-color: rgba(255, 214, 102, 0.45);
+    -fx-background-color: -nbfx-editor-line-band;
 }
 
 /* Search bar */
 
 .code-editor > .editor-side-bars > .search-bar {
-    -fx-background-color: #F5F5F5;
-    -fx-border-color: #E0E0E0 transparent transparent transparent;
+    -fx-background-color: -nbfx-track;
+    -fx-border-color: -nbfx-editor-bar-border transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
     -fx-padding: 2 2 2 6;
     -fx-spacing: 2;
@@ -218,7 +202,7 @@
 
 .code-editor > .editor-side-bars > .search-bar > .search-label {
     -fx-font-size: 0.9em;
-    -fx-text-fill: #333333;
+    -fx-text-fill: -nbfx-editor-text;
     -fx-padding: 0 4 0 0;
     -fx-min-width: 30;
     -fx-pref-width: 30;
@@ -241,18 +225,18 @@
 
 .code-editor > .editor-side-bars > .search-bar > .search-check {
     -fx-font-size: 0.9em;
-    -fx-text-fill: #333333;
+    -fx-text-fill: -nbfx-editor-text;
     -fx-padding: 0 6 0 4;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-field:not-found > .text-field,
 .code-editor > .editor-side-bars > .search-bar > .search-field > .text-field:not-found {
-    -fx-text-fill: #C62828;
+    -fx-text-fill: -nbfx-editor-text-error;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-field > .text-field:invalid {
-    -fx-text-fill: #C62828;
-    -fx-background-color: #FFECEC;
+    -fx-text-fill: -nbfx-editor-text-error;
+    -fx-background-color: -nbfx-editor-error-bg;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button {
@@ -262,16 +246,16 @@
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button:hover {
-    -fx-background-color: #E0E0E0;
+    -fx-background-color: -nbfx-hover;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button:armed,
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button:selected {
-    -fx-background-color: #D0D0D0;
+    -fx-background-color: -nbfx-pressed;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button:selected:hover {
-    -fx-background-color: #C4C4C4;
+    -fx-background-color: -nbfx-editor-button-selected-hover;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-tool-button:disabled {
@@ -284,37 +268,37 @@
 
 .code-editor > .editor-side-bars > .search-bar > .search-counter {
     -fx-font-size: 0.85em;
-    -fx-text-fill: #666666;
+    -fx-text-fill: -nbfx-text-muted;
     -fx-padding: 0 4 0 8;
 }
 
 .code-editor > .editor-side-bars > .search-bar:not-found > .search-counter {
-    -fx-text-fill: #C62828;
+    -fx-text-fill: -nbfx-editor-text-error;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-close {
     -fx-background-color: transparent;
     -fx-background-radius: 3;
     -fx-font-size: 0.9em;
-    -fx-text-fill: #666666;
+    -fx-text-fill: -nbfx-text-muted;
     -fx-padding: 1 5 1 5;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-close:hover {
-    -fx-background-color: #E0A0A0;
-    -fx-text-fill: white;
+    -fx-background-color: -nbfx-danger-soft;
+    -fx-text-fill: -nbfx-on-accent;
 }
 
 .code-editor > .editor-side-bars > .search-bar > .search-close:armed {
-    -fx-background-color: #C88080;
-    -fx-text-fill: white;
+    -fx-background-color: -nbfx-danger-pressed;
+    -fx-text-fill: -nbfx-on-accent;
 }
 
 /* Breadcrumbs bar */
 
 .code-editor > .editor-side-bars > .breadcrumb-bar {
-    -fx-background-color: #F5F5F5;
-    -fx-border-color: #E0E0E0 transparent transparent transparent;
+    -fx-background-color: -nbfx-track;
+    -fx-border-color: -nbfx-editor-bar-border transparent transparent transparent;
     -fx-border-width: 1 0 0 0;
     -fx-padding: 1 2 1 4;
     -fx-alignment: center-left;
@@ -326,17 +310,17 @@
 
 .code-editor > .editor-side-bars > .breadcrumb-bar > .path > .breadcrumb-item {
     -fx-font-size: 0.85em;
-    -fx-text-fill: #333333;
+    -fx-text-fill: -nbfx-editor-text;
     -fx-padding: 1 3 1 3;
 }
 
 .code-editor > .editor-side-bars > .breadcrumb-bar > .path > .breadcrumb-item:hover {
-    -fx-background-color: #E4E6EB;
+    -fx-background-color: -nbfx-editor-crumb-hover;
 }
 
 .code-editor > .editor-side-bars > .breadcrumb-bar > .path > .breadcrumb-separator {
     -fx-font-size: 1.05em;
-    -fx-text-fill: #9C9C9C;
+    -fx-text-fill: -nbfx-editor-separator;
     -fx-padding: 1 1 1 1;
 }
 
@@ -344,16 +328,16 @@
     -fx-background-color: transparent;
     -fx-background-radius: 3;
     -fx-font-size: 0.9em;
-    -fx-text-fill: #666666;
+    -fx-text-fill: -nbfx-text-muted;
     -fx-padding: 1 5 1 5;
 }
 
 .code-editor > .editor-side-bars > .breadcrumb-bar > .breadcrumb-close:hover {
-    -fx-background-color: #E0A0A0;
-    -fx-text-fill: white;
+    -fx-background-color: -nbfx-danger-soft;
+    -fx-text-fill: -nbfx-on-accent;
 }
 
 .code-editor > .editor-side-bars > .breadcrumb-bar > .breadcrumb-close:armed {
-    -fx-background-color: #C88080;
-    -fx-text-fill: white;
+    -fx-background-color: -nbfx-danger-pressed;
+    -fx-text-fill: -nbfx-on-accent;
 }
