@@ -191,6 +191,8 @@ public final class DockArea<N extends Node> extends StackPane {
     private final DockHost<N> host;
     /** The permanent panes by role, in default left-to-right order. */
     private final SequencedMap<String, N> primaries = new LinkedHashMap<>();
+    /** The role of the pane that keeps content when a shape is rebuilt; never {@code null} when there are primaries. */
+    private final String mainRole;
     private final List<Double> defaultDividers;
     private Node root;
     /**
@@ -278,6 +280,20 @@ public final class DockArea<N extends Node> extends StackPane {
      * @param defaultDividers the divider positions of the default shape, or empty for equal shares
      */
     public DockArea(DockHost<N> host, SequencedMap<String, N> primaries, List<Double> defaultDividers) {
+        this(host, primaries, defaultDividers,
+                primaries.isEmpty() ? null : primaries.lastEntry().getKey());
+    }
+
+    /**
+     * Creates the area as the constructor above, with {@code mainRole} naming the pane where a
+     * reshaped area collects the components of the panes it disposes of. The main pane no longer
+     * has to be the last one in the map, so a declared composition tree can order its permanent
+     * leaves freely.
+     *
+     * @param mainRole the role of the main pane; must name one of {@code primaries}
+     */
+    public DockArea(DockHost<N> host, SequencedMap<String, N> primaries, List<Double> defaultDividers,
+            String mainRole) {
         this.host = Objects.requireNonNull(host);
         if (primaries.isEmpty()) {
             throw new IllegalArgumentException("An area needs a permanent pane");
@@ -285,6 +301,10 @@ public final class DockArea<N extends Node> extends StackPane {
         if (!defaultDividers.isEmpty() && defaultDividers.size() != primaries.size() - 1) {
             throw new IllegalArgumentException(defaultDividers.size() + " dividers for " + primaries.size() + " panes");
         }
+        if (mainRole == null || !primaries.containsKey(mainRole)) {
+            throw new IllegalArgumentException("The main role names no permanent pane: " + mainRole);
+        }
+        this.mainRole = mainRole;
         primaries.forEach((role, primary) -> {
             if (!role.matches("\\w+") || this.primaries.containsValue(primary)) {
                 throw new IllegalArgumentException("Not a distinct permanent pane with a word as role: " + role);
@@ -369,9 +389,14 @@ public final class DockArea<N extends Node> extends StackPane {
         return null;
     }
 
-    /** The main pane: the last permanent one (see the constructor). */
+    /** The main pane: the one the constructor names as {@code mainRole}. */
     public N mainPane() {
-        return primaries.lastEntry().getValue();
+        return primaries.get(mainRole);
+    }
+
+    /** The role of the main pane. */
+    public String mainRole() {
+        return mainRole;
     }
 
     /** Whether {@code pane} is currently one of this area's panes, permanent or docked (a hidden or minimized pane is not). */
@@ -981,6 +1006,10 @@ public final class DockArea<N extends Node> extends StackPane {
             absorbNeighbourInto(primary);
             return;
         }
+        if (host.keepWhenEmpty(primary)) {
+            LOG.fine(() -> "Kept the empty " + roleOf(primary) + " pane");
+            return;
+        }
         Anchor<N> anchor = anchorFor(primary);
         if (anchor == null) {
             return;
@@ -1228,7 +1257,7 @@ public final class DockArea<N extends Node> extends StackPane {
      * any other along the right), with the share the default shape gives it. A minimized primary
      * stays out: only {@link #restore} brings it back.
      */
-    private void showPrimary(N primary) {
+    public void showPrimary(N primary) {
         if (!isPrimaryHidden(primary) || minimized.contains(primary)) {
             return;
         }

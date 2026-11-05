@@ -620,3 +620,118 @@ Target:
    `SessionRestorer`.
 6. Conformance tests cover a custom area, a custom area weight, a view placed in it, and a
    declarative first-run layout.
+
+---
+
+## 14. Revised permanent-pane composition plan
+
+The declarative layer now covers view metadata, custom areas and the first-run dock tree. The
+remaining composition is the permanent pane itself.
+
+Revised ownership:
+
+- `@AreaRegistration` owns geometry only: id, displayName, location and weight.
+- `@PaneRegistration` owns a permanent pane: id, displayName, `PaneKind`, owning area,
+  `keepWhenEmpty` and position.
+- `@WindowLayoutRegistration` owns the initial dock tree and references the registered pane ids.
+- `WindowComposition` is a runtime resolver over the pane, area and layout registries; it is not a
+  fourth registration mechanism.
+
+Required API/lifecycle decisions:
+
+- move `PaneKind` from `NbfxTabPane` to `api.views` so pane registrations can use it;
+- make `PaneRole` a canonical value object with built-in `MAIN`, `NAVIGATOR`, `DOCKED`, `DETACHED`
+  and `SLIDE`, plus `PaneRole.of(id)` for registered roles;
+- keep the editor `MAIN` pane special: it is supplied by `ContentManager` and is the only
+  `PaneKind.EDITOR` pane;
+- define `keepWhenEmpty`, persistence and minimization behavior for custom permanent panes;
+- define unknown-role behavior for persisted layouts and unknown areas for views.
+
+Implemented:
+
+- `PaneKind` moved to `api.views`;
+- `PaneRole` is a canonical value object with `PaneRole.of(id)`;
+- `@PaneRegistration` + processor + `WindowPaneRegistry`;
+- MAIN/NAVIGATOR declared as platform panes;
+- `ViewArea` resolves to its pane through `@PaneRegistration.area`;
+- `WindowComposition`/`WindowCompositionResolver`;
+- `Docking.create(WindowComposition, Map<String, NbfxTabPane>)` added; the old entry point remains
+  as a compatibility path. `DockArea` takes an explicit main role, so the pane order can follow the
+  declared composition tree without changing which pane owns content; `Docking` passes `MAIN`;
+- `WindowPaneRegistry.discover()` is cached and invalidated by a `FileChangeListener`; a
+  registration with a reserved non-permanent role (`DOCKED`, `DETACHED`, `SLIDE`) is rejected;
+- `PaneRole.of` rejects names that are not `\w+`, so corrupt persisted pane lines are ignored;
+- `ViewManagerService` fallback uses `WindowPaneRegistry.defaultViewRole()` instead of
+  `NAVIGATOR`;
+- `@PaneRegistration.permanent` was removed: every registered pane is permanent, and the only
+  transient roles are the built-in `DOCKED`, `DETACHED` and `SLIDE`.
+
+Now also implemented by the pane-instance step in section 15:
+
+- `ShellApplication` consumes `WindowComposition` and lets
+  `createPane(WindowPane, WindowPaneContext)` or a `WindowPaneProvider` supply the concrete
+  instance;
+- `keepWhenEmpty` is honored by `DockArea` through `DockHost`;
+- unknown persisted roles move their tabs to the editor/default view pane.
+
+---
+
+## 15. Pane-instance composition plan
+
+`WindowComposition` describes which panes exist and how they start out, but the shell still chose
+the concrete instances imperatively. This step makes the shell consume the composition.
+
+Ownership:
+
+- `WindowComposition` is the single source of registered permanent panes and the first-run tree.
+- A `WindowPaneProvider` (or the
+  `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook) supplies concrete instances
+  for declared panes; the hook wins over providers, providers win over the default.
+- The editor pane stays special: an `EDITOR` registration resolves through `ContentManager`, never
+  through a provider.
+- `keepWhenEmpty` is a `DockHost` decision; `Docking` answers it from `WindowPaneRegistry`.
+
+Implementation sequence:
+
+1. add `WindowPaneProvider` and a protected `createPane(WindowPane)` hook;
+2. have `ShellApplication.start()` build its panes from the resolved composition and pass the
+   composition to `Docking.create`;
+3. replace `JavaFXLaunchApp.createPanes()` with a navigator `createPane` override;
+4. remove the hardcoded pane factory from the shell and the duplicate built-in pane defaults from
+   the registry;
+5. honor `keepWhenEmpty` in `DockArea`;
+6. move tabs of an unknown persisted role to the editor/default view pane instead of dropping them;
+7. test provider selection, keep-when-empty and unknown-role migration.
+
+Implemented:
+
+- `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
+- `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
+  `org.netbeans.modules.nbfx.platform.shell.spi` package;
+- `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
+- `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
+  contract for now;
+- providers may release their pane through `disposePane`, which the shell calls on stop;
+- `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
+  to `Docking.create`;
+- `NavigatorPaneProvider` in `ide.workbench` creates and fills the navigator pane; the
+  application subclass no longer owns pane-specific composition;
+- the registry no longer hardcodes MAIN/NAVIGATOR; the platform layer is the single declaration;
+- `PlatformWindowLayout` declares the first-run structure with `H[](P:NAVIGATOR,P:MAIN)`; the
+  initial divider is derived from the registered explorer area weight, and explicit dividers still
+  override derived ones through `DockTrees.resolveDividers`;
+- `DockHost.keepWhenEmpty` keeps an empty permanent pane visible when its registration asks for it;
+  a keep-when-empty pane that the declared tree omits is re-shown after the tree is applied;
+- a provider that returns a pane with a role other than the declared `WindowPane.role()` is
+  rejected with a warning and replaced by a default pane of the declared kind;
+- `SessionRestorer` moves tabs of an unknown persisted role to the editor/default view pane;
+- the platform conformance fixture registers a custom pane and area in the test layer, starts the
+  shell with them and shows a view in the custom pane;
+- tests cover a view tab whose pane role disappeared and a view whose declared area is unknown.
+
+Remaining follow-ups:
+
+- a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
+  wider window abstraction;
+- on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
+  the permanent-pane model.

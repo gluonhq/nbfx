@@ -55,10 +55,30 @@
             <description>
                 Adds <code>ViewAreaRegistry</code> and <code>WindowLayoutRegistry</code>, which read
                 the registered view areas and the declared first-run dock tree from the layer, and
-                lets view placement derive from the registered area.
+                lets view placement derive from the registered area. Adds
+                <code>DockTrees.resolveDividers</code> so a layout can derive missing dividers from
+                the declared area weights.
             </description>
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewAreaRegistry"/>
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="WindowLayoutRegistry"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="DockTrees"/>
+        </change>
+        <change id="window.pane.composition">
+            <api name="netbeansfx_windows"/>
+            <summary>Composable permanent panes and first-run window composition.</summary>
+            <version major="1" minor="2"/>
+            <date day="6" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DockHost.keepWhenEmpty</code>, so a product can keep an empty permanent
+                pane in the area, and lets a declared window layout drive the initial pane
+                composition. Adds a <code>DockArea</code> constructor with an explicit main role,
+                so the pane order can follow the declared tree and no longer decides which pane
+                receives content when a shape is rebuilt.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="DockHost"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="DockArea"/>
         </change>
     </changes>
     <htmlcontents>

@@ -23,6 +23,7 @@ import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
+import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import java.util.List;
@@ -44,6 +45,11 @@ public class AppStateLayoutTest {
 
     private static final TabEntry PROJECTS = new TabEntry(TabKind.VIEW, "projects", 0, 0, 0);
     private static final TabEntry EDITOR = new TabEntry(TabKind.EDITOR, "/tmp/A.java", 3, 4, 5);
+
+    @Test
+    public void corruptPaneRoleIsIgnored() {
+        assertNull(AppState.parsePane("BAD-ROLE\tNaN\tNaN\tNaN\tNaN\t0\tVIEW\rprojects\r0\r0\r0"));
+    }
 
     @Test
     public void minimizedPaneRoundTrips() {
@@ -88,17 +94,17 @@ public class AppStateLayoutTest {
 
     @Test
     public void editorKindOfADockedPaneRoundTrips() {
-        PaneLayout pane = PaneLayout.docked(PaneRole.DOCKED, List.of(EDITOR), 0).withKind(NbfxTabPane.PaneKind.EDITOR);
+        PaneLayout pane = PaneLayout.docked(PaneRole.DOCKED, List.of(EDITOR), 0).withKind(PaneKind.EDITOR);
 
         PaneLayout read = AppState.parsePane(AppState.serialize(pane));
 
         assertNotNull(read);
-        assertEquals(NbfxTabPane.PaneKind.EDITOR, read.kind());
+        assertEquals(PaneKind.EDITOR, read.kind());
         assertTrue("the kind is written only when it is not the role's default",
                 AppState.serialize(pane).startsWith("DOCKED#EDITOR\t"));
         assertEquals("a docked pane is a view pane unless the layout says otherwise",
-                NbfxTabPane.PaneKind.VIEW, AppState.parsePane("DOCKED\tNaN\tNaN\tNaN\tNaN\t0\tVIEW\rprojects\r0\r0\r0").kind());
-        assertEquals(NbfxTabPane.PaneKind.EDITOR, PaneLayout.docked(PaneRole.MAIN, List.of(EDITOR), 0).kind());
+                PaneKind.VIEW, AppState.parsePane("DOCKED\tNaN\tNaN\tNaN\tNaN\t0\tVIEW\rprojects\r0\r0\r0").kind());
+        assertEquals(PaneKind.EDITOR, PaneLayout.docked(PaneRole.MAIN, List.of(EDITOR), 0).kind());
     }
 
     @Test

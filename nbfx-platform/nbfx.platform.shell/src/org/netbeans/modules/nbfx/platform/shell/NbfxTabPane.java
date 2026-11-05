@@ -37,9 +37,11 @@ import java.util.logging.Logger;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.file.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
 import javafx.application.Platform;
@@ -111,42 +113,82 @@ public final class NbfxTabPane extends TabPane {
      * The role a pane plays in the window layout. Tabs of either kind (editor or navigator) may be
      * dragged into any pane, so the role describes the <em>pane</em>, never the tabs it holds. It is
      * the only stable identity a pane has and is what layout persistence is keyed on.
+     * <p>
+     * The built-in roles are canonical singletons. Product roles are obtained with {@link #of(String)}
+     * and compared by their stable name, so a persisted layout survives a module reload.
      */
-    public enum PaneRole {
+    public static final class PaneRole {
+
         /** The docked navigator pane in the main window; exactly one exists. */
-        NAVIGATOR,
+        public static final PaneRole NAVIGATOR = new PaneRole("NAVIGATOR", true);
         /** The docked editor pane in the main window; exactly one exists. */
-        MAIN,
+        public static final PaneRole MAIN = new PaneRole("MAIN", true);
         /** A pane docked in the main window next to the permanent panes; exists only while it holds a tab. */
-        DOCKED,
+        public static final PaneRole DOCKED = new PaneRole("DOCKED", false);
         /** A pane living in its own detached window; any number may exist. */
-        DETACHED,
+        public static final PaneRole DETACHED = new PaneRole("DETACHED", false);
         /**
          * The pane a tab of a minimized pane slides in to (see {@link SlidingArea}); exactly one
          * exists, holding the slid-in tab on loan from its group, and it is never persisted.
          */
-        SLIDE;
+        public static final PaneRole SLIDE = new PaneRole("SLIDE", false);
+
+        private final String name;
+        private final boolean permanent;
+
+        private PaneRole(String name, boolean permanent) {
+            this.name = name;
+            this.permanent = permanent;
+        }
+
+        /** The stable name used in persisted layouts and layer roles. */
+        public String name() {
+            return name;
+        }
 
         /** Whether a pane with this role exists for the whole session, even empty. */
         public boolean isPermanent() {
-            return this == MAIN || this == NAVIGATOR;
+            return permanent;
         }
-    }
 
-    /**
-     * The kind of a pane in the dock area, as a NetBeans mode is of the editor or the view kind: an
-     * {@link #EDITOR} pane can be maximized (its header carries Maximize Window), a {@link #VIEW}
-     * pane minimized to a sliding side (Minimize Window Group) - never both. The kind is the pane's,
-     * not its tabs': the editor pane stays maximizable with a tool view dragged into it, and an
-     * editor dragged next to the Projects pane joins a minimizable group. A pane docked next to an
-     * editor pane is an editor pane; one docked along a side of the area, or next to a view pane, a
-     * view pane.
-     */
-    public enum PaneKind {
-        /** A tool-window pane: minimizable. */
-        VIEW,
-        /** An editor pane: maximizable. */
-        EDITOR
+        /** Whether this is the main editor pane. */
+        public boolean isMain() {
+            return this == MAIN;
+        }
+
+        /**
+         * Resolves a stable role name; unknown names become product roles.
+         *
+         * @throws IllegalArgumentException if {@code name} is null or not a word
+         */
+        public static PaneRole of(String name) {
+            if (name == null || !name.matches("\\w+")) {
+                throw new IllegalArgumentException("Invalid pane role name: " + name);
+            }
+            return switch (name) {
+                case "MAIN" -> MAIN;
+                case "NAVIGATOR" -> NAVIGATOR;
+                case "DOCKED" -> DOCKED;
+                case "DETACHED" -> DETACHED;
+                case "SLIDE" -> SLIDE;
+                default -> new PaneRole(name, true);
+            };
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            return other instanceof PaneRole role && name.equals(role.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     /** Custom drag board data format used to identify internal tab drags. */
@@ -1298,7 +1340,7 @@ public final class NbfxTabPane extends TabPane {
     /** The single pane playing {@code role}, or {@code null} if it does not exist (yet). */
     public static TabPane paneWithRole(PaneRole role) {
         for (TabPane pane : TAB_PANES) {
-            if (roleOf(pane) == role) {
+            if (role.equals(roleOf(pane))) {
                 return pane;
             }
         }
@@ -1319,8 +1361,8 @@ public final class NbfxTabPane extends TabPane {
         if (area != null) {
             panes.addAll(area.leaves());
         }
-        for (PaneRole role : List.of(PaneRole.NAVIGATOR, PaneRole.MAIN)) {
-            TabPane pane = paneWithRole(role);
+        for (WindowPane registered : WindowPaneRegistry.discover()) {
+            TabPane pane = paneWithRole(registered.role());
             if (pane != null && !panes.contains(pane)) {
                 panes.add(pane);
             }
