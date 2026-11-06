@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -30,6 +32,6 @@ public final class DefaultShellBranding implements ShellBranding {
 
     @Override
     public String applicationName() {
-        return "NetBeansFX";
+        return ShellBranding.DEFAULT_APPLICATION_NAME;
     }
 }

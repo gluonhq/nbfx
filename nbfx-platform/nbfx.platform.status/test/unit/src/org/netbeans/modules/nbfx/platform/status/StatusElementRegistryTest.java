@@ -20,8 +20,12 @@ package org.netbeans.modules.nbfx.platform.status;
 
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import javafx.scene.Node;
+import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import org.junit.Test;
 
 /**
@@ -54,6 +58,31 @@ public class StatusElementRegistryTest {
         List<StatusElement> sorted = StatusElementRegistry.sort(List.of(second, first));
 
         assertEquals(List.of("a", "z"), sorted.stream().map(StatusElement::id).toList());
+    }
+
+    @Test
+    public void initializesAdditionalElementsWithTheShellLookup() {
+        AtomicReference<Lookup> received = new AtomicReference<>();
+        StatusElementHolder holder = new StatusElementHolder() {
+            @Override
+            public String getId() {
+                return "contextual";
+            }
+
+            @Override
+            public void init(Lookup services) {
+                received.set(services);
+            }
+
+            @Override
+            public Node getNode() {
+                return null;
+            }
+        };
+        Lookup services = Lookups.fixed();
+        StatusElementRegistry.discover(List.of(
+                new StatusElement("contextual", StatusAlignment.LEFT, 1, holder)), services);
+        assertSame(services, received.get());
     }
 
     private static StatusElement element(String id, StatusAlignment alignment, int position) {

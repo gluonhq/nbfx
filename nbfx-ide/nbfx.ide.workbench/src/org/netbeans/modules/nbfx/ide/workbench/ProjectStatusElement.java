@@ -50,7 +50,14 @@ public final class ProjectStatusElement implements StatusElementHolder {
         group = new HBox(label, separator);
         group.getStyleClass().addAll("status-bar-project-group");
         setProject(null);
-        ProjectRegistry registry = Lookup.getDefault().lookup(ProjectRegistry.class);
+    }
+
+    @Override
+    public void init(Lookup services) {
+        if (subscription != null) {
+            subscription.unsubscribe();
+        }
+        ProjectRegistry registry = services.lookup(ProjectRegistry.class);
         if (registry != null) {
             subscription = registry.selectedProjectProperty()
                     .subscribe(project -> setProject(project == null ? null : project.getDisplayName()));

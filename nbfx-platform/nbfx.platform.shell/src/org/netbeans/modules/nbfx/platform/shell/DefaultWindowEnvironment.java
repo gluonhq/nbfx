@@ -18,7 +18,12 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+
 import java.util.List;
+import java.util.Objects;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
@@ -38,14 +43,24 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = WindowEnvironment.class)
 public final class DefaultWindowEnvironment implements WindowEnvironment {
 
+    private final Lookup services;
+    private final Lookup.Result<WindowEnvironmentContribution> contributions;
+
+    public DefaultWindowEnvironment() {
+        this(Lookup.getDefault());
+    }
+
+    DefaultWindowEnvironment(Lookup services) {
+        this.services = Objects.requireNonNull(services, "services");
+        this.contributions = services.lookupResult(WindowEnvironmentContribution.class);
+    }
+
     @Override
-    public Region createDetachedBars(javafx.beans.value.ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeDocument,
+    public Region createDetachedBars(ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeDocument,
             List<Command> scopedCommands) {
-        // The legacy WindowEnvironment signature is still used by the current window system; a
-        // contribution may supply bars from its own chrome. The generic shell does not create
-        // editor-scoped commands here.
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
-            Region bars = contribution.createDetachedBars(Lookup.getDefault(), scopedCommands);
+        DetachedBarsContext context = new DetachedBarsContext(services, activeDocument, scopedCommands);
+        for (WindowEnvironmentContribution contribution : contributions()) {
+            Region bars = contribution.createDetachedBars(context);
             if (bars != null) {
                 return bars;
             }
@@ -55,7 +70,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean revealInNavigator(FileObject file, int index) {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             if (contribution.revealInNavigator(file, index)) {
                 return true;
             }
@@ -65,7 +80,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean selectNextProject() {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             if (contribution.selectNextProject()) {
                 return true;
             }
@@ -75,7 +90,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean selectPreviousProject() {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             if (contribution.selectPreviousProject()) {
                 return true;
             }
@@ -85,7 +100,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public TabPane homeOf(Tab tab) {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             TabPane home = contribution.homeOf(tab);
             if (home != null) {
                 return home;
@@ -96,7 +111,7 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public boolean isNavigatorRevealInProgress() {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             if (contribution.isNavigatorRevealInProgress()) {
                 return true;
             }
@@ -106,8 +121,12 @@ public final class DefaultWindowEnvironment implements WindowEnvironment {
 
     @Override
     public void setNavigatorRevealInProgress(boolean inProgress) {
-        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+        for (WindowEnvironmentContribution contribution : contributions()) {
             contribution.setNavigatorRevealInProgress(inProgress);
         }
+    }
+
+    private Iterable<? extends WindowEnvironmentContribution> contributions() {
+        return contributions.allInstances();
     }
 }

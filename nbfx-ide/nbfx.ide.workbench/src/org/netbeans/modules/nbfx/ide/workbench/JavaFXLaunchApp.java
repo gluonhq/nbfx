@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+
 import javafx.collections.FXCollections;
 import javafx.beans.property.SimpleObjectProperty;
 import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
@@ -27,14 +30,13 @@ import org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
-import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
+import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.platform.shell.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.ShellChrome;
-import org.netbeans.modules.nbfx.ide.workbench.ProjectEditorScope;
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
+import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
@@ -67,8 +69,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ChangeListener;
@@ -80,7 +80,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
-import javafx.stage.DirectoryChooser;
+import javafx.scene.layout.Region;
 import javafx.stage.Window;
 import javafx.util.Subscription;
 import org.openide.filesystems.FileObject;
@@ -97,12 +97,10 @@ public class JavaFXLaunchApp extends ShellApplication {
     private Collection<? extends NavigatorView> providers;
     private NbfxTabPane navigatorPane;
     /** Still owns the detached-window bars while those move to the shell builders. */
-    private ActionBars actionBars;
+    private org.netbeans.modules.nbfx.platform.shell.ToolBarHost mainToolBars;
     private final ProjectRegistry projectRegistry = projectRegistry();
     /** The running application, so services (e.g. the project opener) can reach it. */
     private static volatile JavaFXLaunchApp instance;
-    /** Whether at least one project is currently open; drives Close Project enablement. */
-    private final BooleanBinding projectOpen = Bindings.isNotEmpty(projectRegistry.getOpenProjects());
     /** The projects whose trees are still loading; several can load at once. */
     private final ProjectLoads loads = new ProjectLoads();
     /** The task reported while projects load; separate from builds, which own their own task. */
@@ -127,36 +125,35 @@ public class JavaFXLaunchApp extends ShellApplication {
     private final FileSelectionContext fileSelection = fileSelectionContext();
     /** Whether the treeView is focused or not. */
     private final BooleanProperty treeFocused = new SimpleBooleanProperty(false);
+    /** Whether a navigator reveal is currently moving focus. */
+    private boolean navigatorRevealInProgress;
     /** The active-component state published to the global action context (the TopComponent replacement). */
     private final ActiveComponentContext activeComponents = activeComponentContext();
+    /** IDE project/session state, no longer owned by the generic shell. */
+    private final ProjectState projectState = new ProjectState(getAppState());
 
     @Override
     protected ShellChrome createChrome(ShellContext context) {
-        // The main window is built by the generic shell from the layer and contributions. ActionBars
-        // stays temporarily for the detached-window bars, which the window environment still asks it
-        // to create.
-        actionBars = new ActionBars();
-        actionBars.configureRecentProjects(getAppState()::getRecentProjects, this::openProject,
-                this::clearRecentProjects, this::projectIcon);
-        actionBars.configureProjectSwitching(projectRegistry, projectSwitcher, this::projectIcon);
-        actionBars.configureFileDispatch(treeFocused);
-
         ObservableValue<EditorDocument> mainScope = mainPaneActiveDocument();
-        IdeCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
-                this::openProject, this::closeProject, this::closeAllProjects, projectOpen.not(),
-                windowActions(mainScope), projectSwitcher,
+        WorkspaceCommands.register(Lookup.getDefault().lookup(ActionRegistry.class),
+                windowActions(mainScope),
                 file -> revealFileInNavigator(file, 0), file -> revealFileInNavigator(file, 1));
         DefaultShellChrome chrome = new DefaultShellChrome(context);
-        actionBars.useToolBars(chrome.toolBars());
+        mainToolBars = chrome;
         return chrome;
+    }
+
+    @Override
+    protected ViewStateStore viewStateStore() {
+        return projectState;
     }
 
     @Override
     protected Lookup shellLookup() {
         return new ProxyLookup(Lookups.fixed(
                 new IdeShellCommandResolver(mainPaneActiveDocument(), treeFocused),
-                new IdeShellIconProvider(),
-                new RecentProjectsMenuFactory(getAppState()::getRecentProjects, this::openProject,
+                IdeShellIconProvider.INSTANCE,
+                new RecentProjectsMenuFactory(projectState::getRecentProjects, this::openProject,
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon)),
                 super.shellLookup());
@@ -200,23 +197,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (getSessionRestorer().startupLayout().isEmpty()) {
             // First run: no layout to restore, so the default one also holds the default views.
             introduceDefaultViews();
-        }
-
-        // Give the window system the host services it needs: the bars for detached windows, the
-        // navigator revealer, and where a tab docks back.
-        WindowEnvironmentService windowEnvironment = windowEnvironment();
-        if (windowEnvironment != null) {
-            windowEnvironment.setActionBars(actionBars);
-            windowEnvironment.setNavigatorRevealer(this::revealFileInNavigator);
-            windowEnvironment.setNavigatorFileRevealer(this::revealFileInOwningNavigator);
-            windowEnvironment.setHomeResolver(tab -> {
-                if (NbfxTabPane.documentOf(tab) != null) {
-                    TabPane mainPane = contentManager() instanceof ContentManagerService cmi ? (TabPane) cmi.getMainPane() : null;
-                    return mainPane == null ? null : NbfxTabPane.editorDockHome(mainPane, Lookup.getDefault().lookup(EditorContext.class));
-                }
-                return homeOfView(tab);
-            });
-            windowEnvironment.setProjectSwitcher(projectSwitcher);
         }
 
         projectRegistry.selectedProjectProperty().subscribe(project ->
@@ -503,23 +483,11 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Builds the Window-menu actions and their context-driven enablement, scoped to the main editor pane. */
-    private IdeCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
-        ObservableList<EditorDocument> documents = EditorContexts.openDocuments();
-        ObservableValue<Boolean> closeDocumentDisabled = mainScope == null
-                ? new SimpleBooleanProperty(true)
-                : Bindings.createBooleanBinding(() -> mainScope.getValue() == null, mainScope);
-        ObservableValue<Boolean> closeAllDisabled = Bindings.isEmpty(documents);
-        ObservableValue<Boolean> closeOtherDisabled = Bindings.size(documents).lessThan(2);
-        return new IdeCommands.WindowActions(
+    private WorkspaceCommands.WindowActions windowActions(ObservableValue<EditorDocument> mainScope) {
+        return new WorkspaceCommands.WindowActions(
                 () -> selectNavigator(firstNavigatorId(0)),
                 () -> selectNavigator(firstNavigatorId(1)),
-                this::selectEditor,
-                this::resetWindows,
-                () -> DocumentCloser.closeDocument(mainScope == null ? null : mainScope.getValue()),
-                closeDocumentDisabled,
-                DocumentCloser::closeAllDocuments, closeAllDisabled,
-                () -> DocumentCloser.closeOtherDocuments(mainScope == null ? null : mainScope.getValue()),
-                closeOtherDisabled);
+                this::resetWindows);
     }
 
     /** The stable navigator id of the provider at {@code index} in natural order, or {@code null} if absent. */
@@ -565,7 +533,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * Reveals {@code file} in the navigator provider at {@code index}, showing its tab first and
      * bringing the main window to the front.
      */
-    private void revealFileInNavigator(FileObject file, int index) {
+    void revealFileInNavigator(FileObject file, int index) {
         if (file == null) {
             return;
         }
@@ -585,7 +553,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * backs the {@code NavigatorRevealer} service so the search-results UI can show a hit without
      * knowing about the navigators itself.
      */
-    private boolean revealFileInOwningNavigator(FileObject file) {
+    boolean revealFileInOwningNavigator(FileObject file) {
         if (file == null || providers == null || providers.isEmpty()) {
             return false;
         }
@@ -644,13 +612,6 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Focuses the main editor pane's selected tab so its caret blinks. */
-    private void selectEditor() {
-        ContentManager cm = contentManager();
-        if (cm != null) {
-            cm.focusActiveEditor();
-        }
-    }
-
     /**
      * Restores the default layout, the way NetBeans' Reset Windows puts every window back in its
      * default mode: the layout is first collapsed to the default arrangement of the navigator and
@@ -872,13 +833,20 @@ public class JavaFXLaunchApp extends ShellApplication {
         java.util.logging.Logger.getLogger("org.netbeans.core.startup").setLevel(java.util.logging.Level.FINEST);
     }
 
-    /** The application host services for the window system, or {@code null} if not registered. */
-    private static WindowEnvironmentService windowEnvironment() {
-        WindowEnvironmentService environment = Lookup.getDefault().lookup(WindowEnvironmentService.class);
-        if (environment == null) {
-            LOG.warning("No WindowEnvironmentService found in the Lookup");
+    /** Builds the bars for a detached window with its own document scope. */
+    Region createDetachedBars(DetachedBarsContext context) {
+        return DetachedBars.create(context, mainToolBars);
+    }
+
+    /** The pane a tab docks back into by default. */
+    TabPane homeOf(Tab tab) {
+        if (NbfxTabPane.documentOf(tab) != null) {
+            TabPane main = contentManager() instanceof ContentManagerService cmi
+                    ? (TabPane) cmi.getMainPane() : null;
+            return main == null ? null
+                    : NbfxTabPane.editorDockHome(main, Lookup.getDefault().lookup(EditorContext.class));
         }
-        return environment;
+        return homeOfView(tab);
     }
 
     /** The status bar progress service, or {@code null} if not registered. */
@@ -886,12 +854,14 @@ public class JavaFXLaunchApp extends ShellApplication {
         return Lookup.getDefault().lookup(Progress.class);
     }
 
+    /** Whether a navigator reveal is in progress, so panes do not steal focus back. */
+    boolean isNavigatorRevealInProgress() {
+        return navigatorRevealInProgress;
+    }
+
     /** Marks a navigator reveal as in progress (or finished), so panes do not steal focus back. */
-    private void setNavigatorRevealInProgress(boolean inProgress) {
-        WindowEnvironmentService environment = windowEnvironment();
-        if (environment != null) {
-            environment.setNavigatorRevealInProgress(inProgress);
-        }
+    void setNavigatorRevealInProgress(boolean inProgress) {
+        navigatorRevealInProgress = inProgress;
     }
 
     /** The registry of open projects, resolved from the Lookup or a local instance if the service is not registered. */
@@ -975,22 +945,10 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     private void persistSession() {
         OpenProject selected = projectRegistry.getSelected();
-        getAppState().setOpenProjects(
+        projectState.setOpenProjects(
                 projectRegistry.getOpenProjects().stream().map(OpenProject::getPath).toList(),
                 selected == null ? null : selected.getPath());
     }
-
-    void openProject() {
-        DirectoryChooser dirChooser = new DirectoryChooser();
-        dirChooser.setTitle("Open Project");
-        File selectedDir = dirChooser.showDialog(getStage());
-        if (selectedDir != null) {
-            openProject(selectedDir);
-        } else {
-            LOG.warning("No directory selected");
-        }
-    }
-
 
     /**
      * Opens {@code dir} <em>alongside</em> the projects already open: every navigator view gains a
@@ -1001,7 +959,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (dir == null || !dir.isDirectory()) {
             LOG.warning("Project directory does not exist: " + dir);
             if (dir != null) {
-                getAppState().removeRecentProject(dir.getPath());
+                projectState.removeRecentProject(dir.getPath());
             }
             return;
         }
@@ -1036,8 +994,8 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Read with the normalized path, the same key the state was captured under, and stash the
         // pending expansion/selection on the views before opening: they mirror the registry and build
         // a project's tree as soon as it is opened, applying this pending state.
-        List<String> expandedPaths = getAppState().getExpandedNodes(projectDir.getPath());
-        String selectedPath = getAppState().getSelectedNode(projectDir.getPath());
+        List<String> expandedPaths = projectState.getExpandedNodes(projectDir.getPath());
+        String selectedPath = projectState.getSelectedNode(projectDir.getPath());
         for (NavigatorView provider : providers) {
             provider.restoreExpandedPaths(rootFileObject, expandedPaths);
             provider.restoreSelectedPath(rootFileObject, selectedPath);
@@ -1150,7 +1108,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         rootWatcher.watch(project);
         ProjectIconProvider icons = Lookup.getDefault().lookup(ProjectIconProvider.class);
         String iconName = icons == null ? null : icons.iconName(rootFileObject);
-        getAppState().addRecentProject(dir.getPath(), iconName);
+        projectState.addRecentProject(dir.getPath(), iconName);
         persistSession();
         // The persisted layout describes the whole window across every project of the session, so it
         // is applied once - when the last of them has loaded. A project opened later comes up empty:
@@ -1182,11 +1140,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      * Closing a project resets all persisted state for it, so it is not reopened on the next launch and,
      * if picked from Recent Projects, opens fresh at the project root.
      */
-    private void closeProject() {
-        closeProject(projectRegistry.getSelected());
-    }
-
-    private void closeProject(OpenProject project) {
+    void closeProject(OpenProject project) {
         closeProject(project, true);
     }
 
@@ -1217,16 +1171,16 @@ public class JavaFXLaunchApp extends ShellApplication {
         projectRegistry.close(project);
         // Only this project's file-operation history goes: the other projects keep theirs.
         FileUndoManager.getDefault().clear(path);
-        getAppState().clearProjectState(new File(path));
+        projectState.clearProjectState(new File(path));
         persistSession();
     }
 
     /**
      * Closes every open project without closing the application. Same contract as
-     * {@link #closeProject()}, applied to all of them: a single unsaved-changes confirmation, then
+     * {@link #closeProject(OpenProject)}, applied to all of them: a single unsaved-changes confirmation, then
      * each project's navigator root and persisted state are dropped.
      */
-    private void closeAllProjects() {
+    void closeAllProjects() {
         List<OpenProject> projects = List.copyOf(projectRegistry.getOpenProjects());
         if (projects.isEmpty()) {
             return;
@@ -1249,7 +1203,7 @@ public class JavaFXLaunchApp extends ShellApplication {
         // Closing the registry makes the views drop every project's tree (they observe it).
         projectRegistry.closeAll();
         for (OpenProject project : projects) {
-            getAppState().clearProjectState(new File(project.getPath()));
+            projectState.clearProjectState(new File(project.getPath()));
         }
         persistSession();
     }
@@ -1265,12 +1219,22 @@ public class JavaFXLaunchApp extends ShellApplication {
                 return;
             }
             closeProject(project, false);
-            getAppState().removeRecentProject(project.getPath());
+            projectState.removeRecentProject(project.getPath());
             });
     }
 
+    /** Selects and reveals the next open project, wrapping around. */
+    void selectNextProject() {
+        projectSwitcher.next();
+    }
+
+    /** Selects and reveals the previous open project, wrapping around. */
+    void selectPreviousProject() {
+        projectSwitcher.previous();
+    }
+
     private void clearRecentProjects() {
-        getAppState().clearRecentProjects();
+        projectState.clearRecentProjects();
     }
 
     /**
@@ -1337,12 +1301,12 @@ public class JavaFXLaunchApp extends ShellApplication {
      * gone are pruned.
      */
     private void restoreSessionProjects() {
-        List<String> projects = getAppState().getOpenProjects();
+        List<String> projects = projectState.getOpenProjects();
         if (projects.isEmpty()) {
             introduceDefaultViews();
             return;
         }
-        sessionSelected = getAppState().getSelectedProject();
+        sessionSelected = projectState.getSelectedProject();
         List<File> dirs = new ArrayList<>();
         for (String path : projects) {
             File dir = FileUtil.normalizeFile(new File(path));
@@ -1351,7 +1315,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                 pendingSessionProjects.add(dir.getPath());
             } else {
                 LOG.info("Project of the last session no longer exists, pruning: " + path);
-                getAppState().removeRecentProject(path);
+                projectState.removeRecentProject(path);
             }
         }
         if (dirs.isEmpty()) {

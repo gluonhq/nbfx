@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
+
 import java.io.File;
 import java.util.List;
 import java.util.Objects;

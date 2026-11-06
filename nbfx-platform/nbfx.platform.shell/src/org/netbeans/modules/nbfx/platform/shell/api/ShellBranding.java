@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.shell;
+package org.netbeans.modules.nbfx.platform.shell.api;
 
+import java.util.Comparator;
+import java.util.Optional;
 import javafx.beans.value.ObservableValue;
-import javafx.scene.Node;
+import org.openide.util.Lookup;
 
 /**
  * The product's application identity: name, window title and optional icon. A product registers an
@@ -28,6 +30,9 @@ import javafx.scene.Node;
  * @since 1.0
  */
 public interface ShellBranding {
+
+    /** The neutral application name used when no product branding is registered. */
+    String DEFAULT_APPLICATION_NAME = "NetBeansFX";
 
     /**
      * The precedence when several brandings are registered. The highest priority wins, so a
@@ -47,11 +52,6 @@ public interface ShellBranding {
         return applicationName();
     }
 
-    /** The application icon, or {@code null}. */
-    default Node icon(ShellContext context) {
-        return null;
-    }
-
     /**
      * A live title for {@code context}, or {@code null} when the title does not change. The shell
      * follows it after the initial {@link #title(ShellContext) title}.
@@ -61,5 +61,23 @@ public interface ShellBranding {
      */
     default ObservableValue<String> titleProperty(ShellContext context) {
         return null;
+    }
+
+    /** Releases any listeners held by this branding. */
+    default void dispose() {
+    }
+
+    /**
+     * Selects the branding with the highest priority; equal priorities are ordered by class name so
+     * the result is deterministic.
+     *
+     * @param lookup the shell lookup
+     * @return the selected branding, or empty
+     */
+    static Optional<ShellBranding> select(Lookup lookup) {
+        return lookup.lookupAll(ShellBranding.class).stream()
+                .map(branding -> (ShellBranding) branding)
+                .max(Comparator.comparingInt(ShellBranding::priority)
+                        .thenComparing(branding -> branding.getClass().getName()));
     }
 }

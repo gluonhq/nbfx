@@ -20,24 +20,128 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.List;
 import javafx.scene.control.Button;
 import javafx.scene.control.ToolBar;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The generic tool bar builder skips a bar with no resolvable commands, so its drag handle cannot
- * make an empty bar look populated.
+ * Tool bars follow the chrome profile: excluded bars are absent, a non-movable profile has no
+ * leading drag handle, and a bar with no resolvable commands is omitted entirely.
  */
 public class ShellToolBarsTest {
+
+    @Test
+    public void profileFiltersToolBarsAndDragHandle() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = FileUtil.getConfigRoot();
+            FileObject folder = createFolder(root, "NbFx/Toolbars/profilebar");
+            try {
+                createRef(folder, "action.ref", "test.action");
+
+                ShellChromeProfile noHandles = new ShellChromeProfile() {
+                    @Override
+                    public boolean includeMenu(String menuId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeMenuItem(String menuId, String itemId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeToolBar(String toolBarId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean movableToolBars() {
+                        return false;
+                    }
+                };
+                ShellToolBars bars = new ShellToolBars(new ShellContext(
+                        Lookups.fixed(resolver(), noHandles)));
+                ToolBar bar = bars.container().getToolBars().get(0);
+                assertEquals(1, bar.getItems().size());
+                assertTrue(bar.getItems().get(0) instanceof Button);
+
+                ShellChromeProfile excluded = new ShellChromeProfile() {
+                    @Override
+                    public boolean includeMenu(String menuId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeMenuItem(String menuId, String itemId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeToolBar(String toolBarId) {
+                        return false;
+                    }
+                };
+                ShellToolBars none = new ShellToolBars(new ShellContext(
+                        Lookups.fixed(resolver(), excluded)));
+                assertTrue(none.container().getToolBars().isEmpty());
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void profileFiltersToolBarItems() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            FileObject root = FileUtil.getConfigRoot();
+            FileObject folder = createFolder(root, "NbFx/Toolbars/filteredbar");
+            try {
+                createRef(folder, "action.ref", "test.action");
+
+                ShellChromeProfile profile = new ShellChromeProfile() {
+                    @Override
+                    public boolean includeMenu(String menuId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeMenuItem(String menuId, String itemId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeToolBar(String toolBarId) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean includeToolBarItem(String toolBarId, String itemId) {
+                        return !"test.action".equals(itemId);
+                    }
+                };
+                ShellToolBars bars = new ShellToolBars(new ShellContext(
+                        Lookups.fixed(resolver(), profile)));
+                assertTrue("a bar whose items are all filtered out must be skipped",
+                        bars.container().getToolBars().isEmpty());
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
 
     @Test
     public void emptyToolBarsAreSkipped() throws InterruptedException {
@@ -48,12 +152,12 @@ public class ShellToolBarsTest {
             try {
                 createRef(full, "action.ref", "test.action");
 
-                ShellToolBars bars = new ShellToolBars(
-                        new ShellContext(Lookups.fixed(resolver())));
+                ShellToolBars bars = new ShellToolBars(new ShellContext(
+                        Lookups.fixed(resolver())));
 
-                assertEquals(List.of("fullbar"), bars.container().getToolBars().stream()
-                        .map(ToolBar::getId).toList());
+                assertEquals(1, bars.container().getToolBars().size());
                 ToolBar bar = bars.container().getToolBars().get(0);
+                assertEquals("fullbar", bar.getId());
                 assertEquals(2, bar.getItems().size());
                 assertTrue(bar.getItems().get(0).getStyleClass().contains("toolbar-drag-handle"));
                 assertTrue(bar.getItems().get(1) instanceof Button);

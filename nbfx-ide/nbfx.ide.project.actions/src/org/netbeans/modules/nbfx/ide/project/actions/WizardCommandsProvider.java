@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.project;
+package org.netbeans.modules.nbfx.ide.project.actions;
 
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
+import org.netbeans.modules.nbfx.project.NewFileWizard;
+import org.netbeans.modules.nbfx.project.NewProjectWizard;
+import org.netbeans.modules.nbfx.project.Wizards;
 
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
@@ -37,7 +40,7 @@ import org.openide.util.lookup.ServiceProvider;
  * @since 1.0
  */
 @ServiceProvider(service = CommandsProvider.class)
-public final class ProjectCommandsProvider implements CommandsProvider {
+public final class WizardCommandsProvider implements CommandsProvider {
 
     @Override
     public Collection<Command> createCommands() {
@@ -51,6 +54,6 @@ public final class ProjectCommandsProvider implements CommandsProvider {
     }
 
     private static String message(String key) {
-        return NbBundle.getMessage(ProjectCommandsProvider.class, key);
+        return NbBundle.getMessage(WizardCommandsProvider.class, key);
     }
 }

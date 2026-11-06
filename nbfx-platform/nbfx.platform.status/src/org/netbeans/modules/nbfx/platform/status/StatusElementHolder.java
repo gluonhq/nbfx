@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.status;
 
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import javafx.scene.Node;
+import org.openide.util.Lookup;
 
 /**
  * One element of the JavaFX status bar: the caret position, the line separator, the selected
@@ -52,6 +53,15 @@ public interface StatusElementHolder {
      */
     default int position() {
         return 0;
+    }
+
+    /**
+     * Initializes the element with the shell services. Called before the status bar creates the
+     * node; the default does nothing.
+     *
+     * @param services the shell lookup
+     */
+    default void init(Lookup services) {
     }
 
     /** The JavaFX node shown in the status bar. Must be called on the JavaFX Application Thread. */

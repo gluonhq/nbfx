@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.project;
+package org.netbeans.modules.nbfx.ide.project.actions;
 
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 

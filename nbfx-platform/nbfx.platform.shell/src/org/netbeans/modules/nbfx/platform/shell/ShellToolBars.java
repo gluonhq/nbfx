@@ -18,6 +18,10 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -39,10 +43,12 @@ import org.openide.filesystems.FileUtil;
 public final class ShellToolBars {
 
     private final ShellContext context;
+    private final ShellChromeProfile profile;
     private final ToolBarContainer container;
 
     public ShellToolBars(ShellContext context) {
         this.context = context;
+        this.profile = context.profile();
         this.container = build();
     }
 
@@ -57,7 +63,7 @@ public final class ShellToolBars {
         if (root != null) {
             List<FileObject> folders = new ArrayList<>();
             for (FileObject child : root.getChildren()) {
-                if (child.isFolder()) {
+                if (child.isFolder() && profile.includeToolBar(child.getName())) {
                     folders.add(child);
                 }
             }
@@ -81,6 +87,9 @@ public final class ShellToolBars {
         bar.setAccessibleText(displayName);
         List<Button> buttons = new ArrayList<>();
         for (ActionRef ref : ActionLayerReader.read(folder)) {
+            if (!profile.includeToolBarItem(folder.getName(), ref.actionId())) {
+                continue;
+            }
             Command command = context.command(ref.actionId());
             if (command != null) {
                 buttons.add(button(command));
@@ -89,11 +98,13 @@ public final class ShellToolBars {
         if (buttons.isEmpty()) {
             return bar;
         }
-        Label handle = new Label("\u22ee");
-        handle.getStyleClass().add("toolbar-drag-handle");
-        handle.setFocusTraversable(false);
-        handle.setTooltip(new Tooltip(displayName));
-        bar.getItems().add(handle);
+        if (profile.movableToolBars()) {
+            Label handle = new Label("\u22ee");
+            handle.getStyleClass().add("toolbar-drag-handle");
+            handle.setFocusTraversable(false);
+            handle.setTooltip(new Tooltip(displayName));
+            bar.getItems().add(handle);
+        }
         bar.getItems().addAll(buttons);
         return bar;
     }

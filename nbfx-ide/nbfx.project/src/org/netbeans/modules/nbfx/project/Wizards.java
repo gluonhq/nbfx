@@ -27,12 +27,13 @@ import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
  *
  * @since 1.0
  */
-final class Wizards {
+public final class Wizards {
 
     private Wizards() {
     }
 
-    static void run(String id) {
+    /** Runs the wizard with {@code id}. */
+    public static void run(String id) {
         Wizard wizard = WizardRegistry.find(id);
         if (wizard != null) {
             WizardDialog.show(wizard);

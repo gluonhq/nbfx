@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
+
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.modules.nbfx.platform.nodes.PropertiesProvider;
 import org.netbeans.modules.nbfx.platform.nodes.Property;
