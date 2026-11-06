@@ -577,3 +577,46 @@ Still outstanding:
 - apichanges/signature-test coverage for the new API/SPI remains a W2 item;
 - `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
   navigator/dock internals.
+
+---
+
+## 13. Declarative view and window composition
+
+The action/menu/toolbar/status/view **leaves** are registration-driven, but the window
+**composition** is still mostly imperative.
+
+Implemented in this increment:
+
+- `@AreaRegistration` and `AreaRegistrationProcessor`;
+- `ViewAreaRegistry` merges layer-declared areas with the platform defaults;
+- `PlatformViewAreas` declares the default areas in the layer;
+- `@ViewRegistration.area` resolves custom areas through the registry;
+- `Docking` uses the registered explorer weight;
+- `ViewManagerService.show()` resolves `ViewSpec` and uses its area/location/position;
+- `ViewManager.show(view, area, position)` lets the startup/default-view code apply the declared
+  placement;
+- `@WindowLayoutRegistration` + `WindowLayoutRegistry` declare the first-run dock tree, and
+  `Docking.create` applies it when its permanent roles match.
+
+Still imperative:
+
+- `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide which permanent panes exist;
+- `NbfxTabPane.PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
+- custom permanent panes need a role registry before a product can declare a different window
+  shape.
+
+Target:
+
+1. `@AreaRegistration` declares areas (`id`, `displayName`, `location`, `weight`); processors write
+   `NbFx/ViewAreas/<id>` and `ViewAreaRegistry` merges platform defaults with contributions.
+2. `ViewRegistry` resolves `ViewRegistration.area` against the area registry, not only the fixed
+   `ViewArea` constants.
+3. `ViewManagerService.show()` resolves `ViewSpec` and places the view at its declared
+   `area`/`location`/`position`; the provider method is only a fallback.
+4. `@WindowLayoutRegistration`/a `WindowComposition` model declares permanent panes, initial dock
+   tree and area weights; `Docking.create(composition)` replaces the hardcoded navigator/editor
+   shape.
+5. `introduceDefaultViews()` applies the declared composition; persisted layout still wins through
+   `SessionRestorer`.
+6. Conformance tests cover a custom area, a custom area weight, a view placed in it, and a
+   declarative first-run layout.

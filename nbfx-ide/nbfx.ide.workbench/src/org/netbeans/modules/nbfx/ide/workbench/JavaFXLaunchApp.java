@@ -35,6 +35,7 @@ import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
+import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
@@ -632,7 +633,11 @@ public class JavaFXLaunchApp extends ShellApplication {
         //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
         //    and moves the docked panes' content into the editor pane.
         NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
-        getDockArea().applyTree(getDockArea().defaultTree());
+        DockTree tree = Docking.defaultTree();
+        if (tree == null || !getDockArea().accepts(tree)) {
+            tree = getDockArea().defaultTree();
+        }
+        getDockArea().applyTree(tree);
         // 2. Every tab to its default place. A view's default location below one of the permanent
         //    panes creates its pane now, in the default shape, where it stays.
         for (TabPane pane : List.of(navigatorPane, mainPane)) {
@@ -666,17 +671,21 @@ public class JavaFXLaunchApp extends ShellApplication {
      * module that reaches its instance from the Lookup talks to the content on screen.
      */
     private void showDefaultViews() {
-        ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
-        if (manager == null) {
-            return;
-        }
-        for (ViewSpec registration : ViewRegistry.discover()) {
-            ViewProvider view = registration.openAtStartup() ? viewById(registration.id()) : null;
-            if (view != null && !manager.isShowing(view)) {
-                manager.show(view);
+        try {
+            ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
+            if (manager == null) {
+                return;
             }
+            for (ViewSpec registration : ViewRegistry.discover()) {
+                ViewProvider view = registration.openAtStartup() ? viewById(registration.id()) : null;
+                if (view != null && !manager.isShowing(view)) {
+                    manager.show(view, registration.area(), registration.position());
+                }
+            }
+            getAppState().setIntroducedViews(defaultViewIds());
+        } finally {
+            Docking.completeStartupLayout();
         }
-        getAppState().setIntroducedViews(defaultViewIds());
     }
 
     /**
@@ -688,24 +697,28 @@ public class JavaFXLaunchApp extends ShellApplication {
      * still lives in {@link AppState}/{@link SessionRestorer}.
      */
     private void introduceDefaultViews() {
-        Set<String> introduced = getAppState().getIntroducedViews();
-        Set<String> defaults = defaultViewIds();
-        if (introduced.containsAll(defaults)) {
-            return;
-        }
-        ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
-        if (manager == null) {
-            return;
-        }
-        for (ViewSpec registration : ViewRegistry.discover()) {
-            ViewProvider view = registration.openAtStartup() && !introduced.contains(registration.id())
-                    ? viewById(registration.id()) : null;
-            if (view != null && !manager.isShowing(view)) {
-                manager.show(view);
+        try {
+            Set<String> introduced = getAppState().getIntroducedViews();
+            Set<String> defaults = defaultViewIds();
+            if (introduced.containsAll(defaults)) {
+                return;
             }
+            ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
+            if (manager == null) {
+                return;
+            }
+            for (ViewSpec registration : ViewRegistry.discover()) {
+                ViewProvider view = registration.openAtStartup() && !introduced.contains(registration.id())
+                        ? viewById(registration.id()) : null;
+                if (view != null && !manager.isShowing(view)) {
+                    manager.show(view, registration.area(), registration.position());
+                }
+            }
+            introduced.addAll(defaults);
+            getAppState().setIntroducedViews(introduced);
+        } finally {
+            Docking.completeStartupLayout();
         }
-        introduced.addAll(defaults);
-        getAppState().setIntroducedViews(introduced);
     }
 
     /** The ids of the non-navigator views registered to open at start-up, in registration order. */
@@ -1374,6 +1387,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             }
             introduceDefaultViews();
             persistSession();
+            Docking.completeStartupLayout();
         });
     }
 

@@ -20,8 +20,13 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
+import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -38,13 +43,25 @@ public class ViewManagerService implements ViewManager {
 
     @Override
     public void show(ViewProvider view) {
+        Map<String, ViewSpec> specs = specsById();
+        ViewSpec spec = specs.get(view.getId());
+        show(view, spec == null ? null : spec.area(),
+                spec == null ? Integer.MAX_VALUE : spec.position(), specs);
+    }
+
+    @Override
+    public void show(ViewProvider view, ViewArea area, int position) {
+        show(view, area, position, specsById());
+    }
+
+    private void show(ViewProvider view, ViewArea area, int position, Map<String, ViewSpec> specs) {
         Tab existing = NbfxTabPane.findViewTab(view.getId()).orElse(null);
         if (existing != null) {
             NbfxTabPane.selectTabAndMoveToFront(existing);
             NbfxTabPane.focusDocument(existing);
             return;
         }
-        TabPane target = Docking.paneAt(view.getDefaultLocation());
+        TabPane target = area == null ? Docking.paneAt(view.getDefaultLocation()) : Docking.paneOf(area);
         if (target == null) {
             // The dock area is not built (headless), or lacks the location's permanent pane: fall
             // back to the navigator pane.
@@ -55,8 +72,37 @@ public class ViewManagerService implements ViewManager {
             return;
         }
         Tab tab = ViewTabs.create(view, view.getDescription());
-        NbfxTabPane.attachTab(target, tab);
+        NbfxTabPane.attachTabAt(target, tab, insertionIndex(target, position, view.getId(), specs));
         NbfxTabPane.focusDocument(tab);
+    }
+
+    /** The registrations of all views, once per show call. */
+    private static Map<String, ViewSpec> specsById() {
+        Map<String, ViewSpec> specs = new LinkedHashMap<>();
+        for (ViewSpec spec : ViewRegistry.discover()) {
+            specs.put(spec.id(), spec);
+        }
+        return specs;
+    }
+
+    /** The position of a new view tab among the view tabs already in {@code target}. */
+    private static int insertionIndex(TabPane target, int position, String id,
+            Map<String, ViewSpec> specs) {
+        for (int i = 0; i < target.getTabs().size(); i++) {
+            String otherId = NbfxTabPane.viewId(target.getTabs().get(i));
+            if (otherId == null) {
+                continue;
+            }
+            ViewSpec other = specs.get(otherId);
+            if (other == null) {
+                continue;
+            }
+            if (other.position() > position
+                    || (other.position() == position && other.id().compareTo(id) > 0)) {
+                return i;
+            }
+        }
+        return target.getTabs().size();
     }
 
     @Override

@@ -375,6 +375,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (!sessionRestorer.startupLayout().isEmpty()) {
             sessionRestorer.restoreSession(null);
         }
+        Docking.completeStartupLayout();
     }
 
     private static NbfxTabPane createMainPane() {

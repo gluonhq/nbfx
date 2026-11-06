@@ -563,7 +563,10 @@ public final class SessionRestorer {
      */
     private static DockTree fallbackTree(DockArea<TabPane> area, List<PaneLayout> docked) {
         long dockedCount = docked.stream().filter(pane -> pane.role() == PaneRole.DOCKED).count();
-        DockTree base = area.defaultTree();
+        DockTree base = Docking.defaultTree();
+        if (base == null || !area.accepts(base)) {
+            base = area.defaultTree();
+        }
         if (dockedCount == 0) {
             return base;
         }

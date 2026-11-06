@@ -44,6 +44,12 @@ public final class LayerPaths {
     /** Registered tool views, by id. */
     public static final String VIEWS = "NbFx/Views";
 
+    /** Registered view areas, by id. */
+    public static final String VIEW_AREAS = "NbFx/ViewAreas";
+
+    /** Registered first-run window layouts, by id. */
+    public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
+
     /** Registered status bar elements, by id. */
     public static final String STATUS = "NbFx/Status";
 

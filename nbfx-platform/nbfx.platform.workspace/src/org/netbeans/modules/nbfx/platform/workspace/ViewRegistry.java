@@ -46,6 +46,9 @@ import org.openide.util.lookup.Lookups;
 public final class ViewRegistry {
 
     private static final Logger LOG = Logger.getLogger(ViewRegistry.class.getName());
+    /** The fallback area for the legacy whole-window bottom location, which has no mode. */
+    private static final ViewArea BOTTOM_AREA =
+            new ViewArea("bottom", "Bottom", DockLocation.BOTTOM, 0.3d);
 
     private ViewRegistry() {
     }
@@ -143,7 +146,7 @@ public final class ViewRegistry {
     static ViewArea areaAttribute(FileObject file, ViewLocation location) {
         Object value = file == null ? null : file.getAttribute("area");
         if (value instanceof String id && !id.isBlank()) {
-            return ViewArea.lookUp(id).orElseGet(() -> defaultArea(location));
+            return ViewAreaRegistry.find(id).orElseGet(() -> defaultArea(location));
         }
         return defaultArea(location);
     }
@@ -166,7 +169,8 @@ public final class ViewRegistry {
             case LEFT -> ViewArea.EXPLORER;
             case LEFT_BOTTOM -> ViewArea.NAVIGATOR;
             case CENTER -> ViewArea.EDITOR;
-            case CENTER_BOTTOM, BOTTOM -> ViewArea.OUTPUT;
+            case CENTER_BOTTOM -> ViewArea.OUTPUT;
+            case BOTTOM -> BOTTOM_AREA;
             case RIGHT -> ViewArea.PROPERTIES;
             case DETACHED -> throw new IllegalArgumentException("No default area for " + location);
         };

@@ -25,6 +25,10 @@ import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
+import org.netbeans.modules.nbfx.platform.workspace.DockTree;
+import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
+import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -88,8 +92,21 @@ public final class Docking implements DockHost<TabPane> {
             }
             panes.put(role.name(), primary);
         }
-        List<Double> dividers = panes.size() == 2 ? List.of(ViewArea.EXPLORER.weight()) : List.of();
+        double explorerWeight = ViewAreaRegistry.find("explorer")
+                .map(ViewArea::weight).orElse(ViewArea.EXPLORER.weight());
+        List<Double> dividers = panes.size() == 2 ? List.of(explorerWeight) : List.of();
         area = new DockArea<>(new Docking(), panes, dividers);
+        // Keep the declared tree's empty docked leaves alive until the initial views arrive.
+        area.retainEmptyDockedPanes(true);
+        WindowLayoutRegistry.defaultTree().ifPresent(tree -> {
+            DockTree resolved = DockTrees.resolveDividers(tree, Docking::areaWeight);
+            if (area.accepts(resolved)) {
+                area.applyTree(resolved);
+            } else {
+                LOG.warning("Ignoring window layout with unknown permanent pane roles: "
+                        + DockTrees.format(tree));
+            }
+        });
         slides = new SlidingArea(area);
         return area;
     }
@@ -97,6 +114,33 @@ public final class Docking implements DockHost<TabPane> {
     /** The application's area, or {@code null} before it is created (or headless). */
     public static DockArea<TabPane> area() {
         return area;
+    }
+
+    /** The declared first-run tree, or the area's default shape when no tree is declared. */
+    public static DockTree defaultTree() {
+        return WindowLayoutRegistry.defaultTree()
+                .orElseGet(() -> area == null ? null : area.defaultTree());
+    }
+
+    /**
+     * Releases empty docked panes retained while the initial views were being placed. Call once
+     * the first-run views and any session layout have arrived.
+     */
+    public static void completeStartupLayout() {
+        if (area != null) {
+            area.retainEmptyDockedPanes(false);
+        }
+    }
+
+    /** The declared weight of the area hosted by a permanent pane role, or {@code null}. */
+    private static Double areaWeight(String role) {
+        String areaId = switch (role) {
+            case "NAVIGATOR" -> "explorer";
+            case "MAIN" -> "editor";
+            default -> null;
+        };
+        return areaId == null ? null
+                : ViewAreaRegistry.find(areaId).map(ViewArea::weight).orElse(null);
     }
 
     /**
