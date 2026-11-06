@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
@@ -51,7 +54,11 @@ public class ShellSmokeTest {
             NbfxTabPane navigator = new NbfxTabPane(PaneRole.NAVIGATOR);
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
 
-            DockArea<TabPane> area = Docking.create(navigator, main);
+            Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
+            panes.put(PaneRole.NAVIGATOR.name(), navigator);
+            panes.put(PaneRole.MAIN.name(), main);
+            DockArea<TabPane> area = Docking.create(
+                    new WindowComposition(List.of(), null), panes);
             assertNotNull("dock area", area);
             assertNotNull("sliding area", Docking.slides());
             assertSame(navigator, Docking.primary(PaneRole.NAVIGATOR));

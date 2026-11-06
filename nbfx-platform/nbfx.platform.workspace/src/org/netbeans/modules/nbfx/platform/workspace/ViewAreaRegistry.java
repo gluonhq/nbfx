@@ -26,8 +26,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 import org.netbeans.api.nbfx.layer.LayerPaths;
-import org.netbeans.api.nbfx.view.DockLocation;
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 

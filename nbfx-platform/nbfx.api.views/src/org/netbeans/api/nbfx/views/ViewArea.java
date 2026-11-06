@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.view;
+package org.netbeans.api.nbfx.views;
 
 import java.util.List;
 import java.util.Objects;
@@ -27,7 +27,7 @@ import java.util.Optional;
  * *.wsmode}): a permanent region with a default {@link #location()} and {@link #weight()} that views
  * are docked into. The {@linkplain #defaults() default areas} mirror the Swing {@code editor},
  * {@code explorer}, {@code navigator}, {@code properties} and {@code output} modes, so views that
- * declare a {@link ViewProvider#getDefaultLocation() location} end up where the desktop expectations
+ * declare a {@link org.netbeans.api.nbfx.view.ViewProvider#getDefaultLocation() location} end up where the desktop expectations
  * put them.
  *
  * <p>Kept deliberately lightweight for the MVP: menus and layout proportions derive from the weights

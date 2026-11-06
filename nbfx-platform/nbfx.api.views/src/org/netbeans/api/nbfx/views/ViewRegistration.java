@@ -50,7 +50,7 @@ public @interface ViewRegistration {
     String iconName() default "";
 
     /** Where the view is docked the first time it is shown. */
-    ViewLocation location() default ViewLocation.LEFT;
+    DockLocation location() default DockLocation.LEFT;
 
     /** The position of the view relative to the other views in the same location. */
     int position() default Integer.MAX_VALUE;

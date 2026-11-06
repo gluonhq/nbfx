@@ -65,10 +65,12 @@
 
   <answer id="deploy-packages">
     <p>
-      The product-facing contract and SPI package <code>org.netbeans.modules.nbfx.platform.shell.api</code>
-      is exported. <code>org.netbeans.modules.nbfx.platform.shell</code> remains public for
-      <code>ShellApplication</code> and the existing shell services until the shell application entry
-      point is split from the internal implementation.
+      The product-facing contract and SPI packages
+      <code>org.netbeans.modules.nbfx.platform.shell.api</code> and
+      <code>org.netbeans.modules.nbfx.platform.shell.spi</code> are exported.
+      <code>org.netbeans.modules.nbfx.platform.shell</code> remains public for
+      <code>ShellApplication</code>, <code>NbfxTabPane</code> and the existing shell services until
+      the shell application entry point is split from the internal implementation.
     </p>
   </answer>
 

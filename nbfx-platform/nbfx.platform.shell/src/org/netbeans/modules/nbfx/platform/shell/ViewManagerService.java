@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
@@ -42,30 +42,23 @@ public class ViewManagerService implements ViewManager {
 
     @Override
     public void show(ViewProvider view) {
-        Map<String, ViewSpec> specs = specsById();
-        ViewSpec spec = specs.get(view.getId());
-        show(view, spec == null ? null : spec.area(),
-                spec == null ? Integer.MAX_VALUE : spec.position(), specs);
+        show(view, null, Integer.MAX_VALUE);
     }
 
     @Override
     public void show(ViewProvider view, ViewArea area, int position) {
-        show(view, area, position, specsById());
-    }
-
-    private void show(ViewProvider view, ViewArea area, int position, Map<String, ViewSpec> specs) {
+        Map<String, ViewSpec> specs = specsById();
         Tab existing = NbfxTabPane.findViewTab(view.getId()).orElse(null);
         if (existing != null) {
             NbfxTabPane.selectTabAndMoveToFront(existing);
             NbfxTabPane.focusDocument(existing);
             return;
         }
-        TabPane target = area == null ? Docking.paneAt(view.getDefaultLocation()) : Docking.paneOf(area);
-        if (target == null) {
-            // The dock area is not built (headless), or lacks the location's permanent pane: fall
-            // back to the navigator pane.
-            target = NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
+        ViewSpec spec = specs.get(view.getId());
+        if (position == Integer.MAX_VALUE && spec != null) {
+            position = spec.position();
         }
+        TabPane target = ViewPlacement.homeFor(spec, view, area);
         if (target == null) {
             LOG.warning(() -> "No pane to show the view " + view.getId() + " in");
             return;

@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
-import org.netbeans.api.nbfx.view.DockLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.AreaRegistration;
 
 /**

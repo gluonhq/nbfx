@@ -19,30 +19,21 @@
 package org.netbeans.api.nbfx.views;
 
 /**
- * The default docking location of a JavaFX view.
- *
- * @since 1.0
+ * The docked places of the main window a {@link org.netbeans.api.nbfx.view.ViewProvider view} can be shown in by default. Each
+ * is a tab pane; all but {@link #LEFT} and {@link #CENTER} only exist while they hold a tab, splitting
+ * the pane (or the whole window) next to them. Users may then drag the view anywhere.
  */
-public enum ViewLocation {
-
-    /** Docked in the navigator column on the left. */
+public enum DockLocation {
+    /** The left pane, where the navigators live. */
     LEFT,
-
-    /** Docked left, below the other left-docked views. */
+    /** Below the left pane. */
     LEFT_BOTTOM,
-
-    /** The central editor area. */
+    /** The center pane, where the editors live. */
     CENTER,
-
-    /** The central area, below the editors. */
+    /** Below the center pane. */
     CENTER_BOTTOM,
-
-    /** Docked at the bottom, full width. */
+    /** Along the bottom of the whole window, below the navigators and the editors. */
     BOTTOM,
-
-    /** Docked on the right. */
-    RIGHT,
-
-    /** Not docked; shown in its own window when first opened. */
-    DETACHED
+    /** Along the right of the whole window, beside the editors. */
+    RIGHT
 }
