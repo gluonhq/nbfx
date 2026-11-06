@@ -400,7 +400,8 @@ public final class SessionRestorer {
                             : NbfxTabPane.paneWithRole(pane.role());
                 }
                 if (target == null) {
-                    LOG.warning("No " + pane.role() + " pane to restore into");
+                    LOG.info("Pane " + pane.role() + " is no longer registered; moving its tabs");
+                    moveTabsToFallback(tabs);
                     continue;
                 }
                 // Only tabs that are not already in place are moved, so re-applying an unchanged
@@ -429,6 +430,21 @@ public final class SessionRestorer {
         maximizeRecorded(layout, dockedTargets);
         Docking.logLayout("restoring the session");
         return focusTarget;
+    }
+
+    /**
+     * Moves the tabs of a pane whose role is no longer registered to their natural home instead of
+     * dropping them: documents to the editor pane, views to the default view pane.
+     */
+    static void moveTabsToFallback(List<Tab> tabs) {
+        for (Tab tab : tabs) {
+            TabPane target = NbfxTabPane.documentOf(tab) != null
+                    ? NbfxTabPane.paneWithRole(PaneRole.MAIN)
+                    : NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
+            if (target != null && target != tab.getTabPane()) {
+                NbfxTabPane.moveTab(target, tab, target.getTabs().size());
+            }
+        }
     }
 
     /** Maximizes again the pane the layout had maximized, once every pane is in place. */

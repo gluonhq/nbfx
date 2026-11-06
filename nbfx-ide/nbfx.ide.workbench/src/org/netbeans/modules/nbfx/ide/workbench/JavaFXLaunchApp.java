@@ -156,7 +156,8 @@ public class JavaFXLaunchApp extends ShellApplication {
                 IdeShellIconProvider.INSTANCE,
                 new RecentProjectsMenuFactory(projectState::getRecentProjects, this::openProject,
                         this::clearRecentProjects, this::projectIcon),
-                new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon)),
+                new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon),
+                new NavigatorPaneProvider(this)),
                 super.shellLookup());
     }
 
@@ -176,21 +177,6 @@ public class JavaFXLaunchApp extends ShellApplication {
             provider.setOnProjectLoaded(this::onProjectLoaded);
             provider.setOnProjectLoadFailed(this::onProjectLoadFailed);
         }
-    }
-
-    @Override
-    protected List<NbfxTabPane> createPanes() {
-        List<NbfxTabPane> panes = new ArrayList<>();
-        panes.add(createNavigator());
-        ContentManager contentManager = contentManager();
-        if (contentManager == null) {
-            LOG.severe("We have no content manager!!");
-        } else if (contentManager instanceof ContentManagerService cmi && cmi.getMainPane() instanceof NbfxTabPane editor) {
-            panes.add(editor);
-        } else {
-            LOG.severe("We have competing content managers!");
-        }
-        return panes;
     }
 
     @Override
@@ -317,87 +303,27 @@ public class JavaFXLaunchApp extends ShellApplication {
         return dirs;
     }
 
-    private NbfxTabPane createNavigator() {
-        navigatorPane = new NbfxTabPane(NbfxTabPane.PaneRole.NAVIGATOR);
-        // Every persisted navigator tab is docked here first, whichever pane the layout last put it
-        // in; opening a project then redistributes them (restoreLayout). This keeps every navigator
-        // view reachable even when no project is ever opened.
-        AppState.Layout layout = getSessionRestorer().startupLayout();
-        // On the first run there is no persisted layout, so the order and the set of navigators come
-        // from the layer (position and navigator flag declared with @ViewRegistration); afterwards
-        // the persisted order, which the user arranged, wins.
-        List<String> order = navigatorIdsOf(layout);
-        if (layout.isEmpty()) {
-            order = registeredNavigatorIds();
-        }
-        for (NavigatorView provider : orderedProviders(order)) {
-            // A provider missing from a persisted layout was closed by the user; Reset Windows brings
-            // it back. Only the absence of any layout at all (first run) docks every provider - an
-            // empty order means the user closed them all, and docking them here would flash them into
-            // the pane until the project's own layout removed them again.
-            if (layout.isEmpty() || order.contains(provider.getId())) {
-                NbfxTabPane.attachTab(navigatorPane, createNavigatorTab(provider));
-            }
-        }
-        String selected = navigatorSelectedOf(layout);
-        if (selected != null) {
-            for (Tab tab : navigatorPane.getTabs()) {
-                if (selected.equals(NbfxTabPane.viewId(tab))) {
-                    navigatorPane.getSelectionModel().select(tab);
-                    break;
-                }
-            }
-        }
-        return navigatorPane;
-    }
-
-    /** The view provider ids held by {@code layout}, in pane order then tab order. */
-    private static List<String> navigatorIdsOf(AppState.Layout layout) {
-        List<String> ids = new ArrayList<>();
-        for (AppState.PaneLayout pane : layout.panes()) {
-            for (AppState.TabEntry tab : pane.tabs()) {
-                if (tab.kind() == AppState.TabKind.VIEW) {
-                    ids.add(tab.id());
-                }
-            }
-        }
-        return ids;
-    }
-
-    /**
-     * The ids of the navigators registered in the layer, in declared position order, so the first
-     * run docks them where {@code @ViewRegistration} says. Views that are not navigators, and
-     * navigators not declared in the layer, are not included.
-     */
-    private static List<String> registeredNavigatorIds() {
-        List<String> ids = new ArrayList<>();
-        for (ViewSpec registration : ViewRegistry.discover()) {
-            if (registration.navigator()) {
-                ids.add(registration.id());
-            }
-        }
-        return ids;
-    }
-
-    /** The navigator provider selected in {@code layout}'s navigator pane, or {@code null}. */
-    private static String navigatorSelectedOf(AppState.Layout layout) {
-        for (AppState.PaneLayout pane : layout.panes()) {
-            if (pane.role() != NbfxTabPane.PaneRole.NAVIGATOR) {
-                continue;
-            }
-            AppState.TabEntry active = pane.activeIndex() >= 0 && pane.activeIndex() < pane.tabs().size()
-                    ? pane.tabs().get(pane.activeIndex()) : null;
-            return active != null && active.kind() == AppState.TabKind.VIEW ? active.id() : null;
-        }
-        return null;
-    }
-
     /**
      * The tab of the view identified by {@code viewId}: the live one, wherever it currently is, or a
      * freshly built one if that view has no tab. Navigators are looked up first, then every other
      * {@link ViewProvider} published in the Lookup. Returns {@code null} for an unknown view (one
      * persisted by an earlier run but no longer installed).
      */
+    /** The navigator pane, once the navigator provider has created it. */
+    void setNavigatorPane(NbfxTabPane pane) {
+        navigatorPane = pane;
+    }
+
+    /** The resolved navigator views, for the navigator pane provider. */
+    Collection<? extends NavigatorView> navigatorProviders() {
+        return providers;
+    }
+
+    /** The session restorer, for the navigator pane provider. */
+    SessionRestorer sessionRestorer() {
+        return getSessionRestorer();
+    }
+
     @Override
     protected Tab viewTabFor(String viewId) {
         return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
@@ -427,7 +353,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** Builds a navigator tab for {@code provider}, whose tooltip names the shortcut selecting it. */
-    private Tab createNavigatorTab(NavigatorView provider) {
+    Tab createNavigatorTab(NavigatorView provider) {
         int index = new ArrayList<>(providers).indexOf(provider);
         return ViewTabs.create(provider, NbBundle.getMessage(JavaFXLaunchApp.class,
                 "Tab.navigator.tooltip", provider.getDescription(),
@@ -456,18 +382,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         navigators.sort(Comparator.comparingInt(view -> positions.getOrDefault(view.getId(), Integer.MAX_VALUE)));
         return navigators;
     }
-
-    private List<NavigatorView> orderedProviders(List<String> order) {
-        List<NavigatorView> ordered = new ArrayList<>(providers);
-        if (!order.isEmpty()) {
-            ordered.sort(Comparator.comparingInt(p -> {
-                int i = order.indexOf(p.getId());
-                return i < 0 ? Integer.MAX_VALUE : i;
-            }));
-        }
-        return ordered;
-    }
-
 
     /**
      * The window's dock area: the navigator pane left of the editor pane - the navigator pane alone

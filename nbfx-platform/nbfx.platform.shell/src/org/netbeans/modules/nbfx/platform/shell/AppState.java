@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
+import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 
 import org.netbeans.api.nbfx.editor.EditorSettings;
@@ -409,7 +410,7 @@ public final class AppState {
      * Tabs of both kinds may appear in any pane, since the user can drag them freely between panes.
      */
     public record PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
-                      List<TabEntry> tabs, int activeIndex, Minimized minimized, NbfxTabPane.PaneKind kind) {
+                      List<TabEntry> tabs, int activeIndex, Minimized minimized, PaneKind kind) {
 
         public PaneLayout {
             kind = kind != null ? kind : defaultKind(role);
@@ -428,12 +429,12 @@ public final class AppState {
         }
 
         /** The kind a pane of {@code role} is unless the layout says otherwise: the editor pane an editor pane. */
-        static NbfxTabPane.PaneKind defaultKind(NbfxTabPane.PaneRole role) {
-            return role == NbfxTabPane.PaneRole.MAIN ? NbfxTabPane.PaneKind.EDITOR : NbfxTabPane.PaneKind.VIEW;
+        static PaneKind defaultKind(NbfxTabPane.PaneRole role) {
+            return role == NbfxTabPane.PaneRole.MAIN ? PaneKind.EDITOR : PaneKind.VIEW;
         }
 
         /** This pane of {@code kind} (an editor group split off the editor pane, say). */
-        public PaneLayout withKind(NbfxTabPane.PaneKind kind) {
+        public PaneLayout withKind(PaneKind kind) {
             return new PaneLayout(role, x, y, width, height, tabs, activeIndex, minimized, kind);
         }
 
@@ -816,11 +817,14 @@ public final class AppState {
         }
         String[] head = f[0].split(MINIMIZED_SEP, -1);
         String[] roleAndKind = head[0].split(KIND_SEP, -1);
-        NbfxTabPane.PaneRole role = parseEnum(NbfxTabPane.PaneRole.class, roleAndKind[0]);
+        if (roleAndKind[0].isBlank()) {
+            return null;
+        }
+        NbfxTabPane.PaneRole role = NbfxTabPane.PaneRole.of(roleAndKind[0].trim());
         if (role == null) {
             return null;
         }
-        NbfxTabPane.PaneKind kind = roleAndKind.length > 1 ? parseEnum(NbfxTabPane.PaneKind.class, roleAndKind[1]) : null;
+        PaneKind kind = roleAndKind.length > 1 ? parseEnum(PaneKind.class, roleAndKind[1]) : null;
         PaneLayout.Minimized minimized = parseMinimized(role, head);
         List<TabEntry> tabs = new ArrayList<>();
         for (int i = 6; i < f.length; i++) {

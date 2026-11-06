@@ -62,6 +62,15 @@ public interface DockHost<N extends Node> {
     void moveContent(N from, N into);
 
     /**
+     * Whether an empty permanent {@code pane} stays in the area instead of hiding. A pane that is
+     * kept shows its empty content, so a product can use it as a fixed landing area. By default
+     * empty permanent panes hide, as in the classic window system.
+     */
+    default boolean keepWhenEmpty(N pane) {
+        return false;
+    }
+
+    /**
      * Whether the docked {@code pane} is of a kind with the main pane - an editor group beside the
      * editor pane, say - so that the main pane and such panes in the horizontal splits around it make
      * up the main pane's <em>area</em>: an emptied main pane takes such a neighbour over, so that two
