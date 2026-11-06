@@ -19,16 +19,16 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import org.netbeans.api.nbfx.actions.Command;
-import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.view.NavigatorRevealer;
-import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
+import org.netbeans.modules.nbfx.platform.shell.WindowEnvironmentContribution;
 import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import javafx.beans.value.ObservableValue;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
+import org.openide.util.Lookup;
 import org.openide.filesystems.FileObject;
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -40,10 +40,10 @@ import org.openide.util.lookup.ServiceProviders;
  * instance (obtained through the Lookup) while starting up.
  */
 @ServiceProviders({
-    @ServiceProvider(service = WindowEnvironment.class),
+    @ServiceProvider(service = WindowEnvironmentContribution.class),
     @ServiceProvider(service = NavigatorRevealer.class)
 })
-public final class WindowEnvironmentService implements WindowEnvironment, NavigatorRevealer {
+public final class WindowEnvironmentService implements WindowEnvironmentContribution, NavigatorRevealer {
 
     private ActionBars actionBars;
     private BiConsumer<FileObject, Integer> navigatorRevealer;
@@ -78,9 +78,9 @@ public final class WindowEnvironmentService implements WindowEnvironment, Naviga
     }
 
     @Override
-    public Region createDetachedBars(ObservableValue<EditorDocument> activeDocument,
-            List<Command> scopedCommands) {
-        return actionBars == null ? null : actionBars.createDetachedBars(activeDocument, scopedCommands);
+    public Region createDetachedBars(Lookup context, List<Command> scopedCommands) {
+        return actionBars == null ? null
+                : actionBars.createDetachedBars(EditorContexts.activeDocument(), scopedCommands);
     }
 
     @Override

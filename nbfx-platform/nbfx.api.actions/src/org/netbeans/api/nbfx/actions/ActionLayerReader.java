@@ -163,8 +163,10 @@ public final class ActionLayerReader {
 
     /** Whether {@code folder} contains an action reference, directly or nested in a child folder. */
     private static boolean hasContent(FileObject folder) {
+        String dynamicExt = LayerPaths.DYNAMIC_SUFFIX.startsWith(".")
+                ? LayerPaths.DYNAMIC_SUFFIX.substring(1) : LayerPaths.DYNAMIC_SUFFIX;
         for (FileObject child : folder.getChildren()) {
-            if (child.isData() && child.hasExt(REF_EXT)) {
+            if (child.isData() && (child.hasExt(REF_EXT) || child.hasExt(dynamicExt))) {
                 return true;
             }
             if (child.isFolder() && hasContent(child)) {

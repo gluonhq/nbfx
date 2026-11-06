@@ -18,11 +18,13 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
@@ -30,8 +32,13 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.util.Subscription;
+import org.netbeans.api.nbfx.actions.ActionIds;
+import org.netbeans.api.nbfx.actions.ActionRegistry;
+import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorSettings;
+import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
@@ -75,6 +82,8 @@ public class ShellApplication extends Application implements WindowSink {
     private DockArea<TabPane> dockArea;
     private SlidingArea slidingArea;
     private BorderPane root;
+    private ShellChrome chrome;
+    private Subscription titleSubscription;
     private boolean stateCaptured;
 
     @Override
@@ -93,12 +102,33 @@ public class ShellApplication extends Application implements WindowSink {
         dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
+        ShellContext context = new ShellContext(shellLookup());
+        chrome = createChrome(context);
+        if (chrome.top() != null) {
+            root.setTop(chrome.top());
+        }
+        if (chrome.bottom() != null) {
+            root.setBottom(chrome.bottom());
+        }
+        if (chrome instanceof DefaultShellChrome defaultChrome) {
+            appState.initToolbars(defaultChrome.toolBars());
+        }
         decorate(root);
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
         sceneReady(scene);
         stage.setScene(scene);
+        ShellBranding branding = context.lookup().lookupAll(ShellBranding.class).stream()
+                .max(Comparator.comparingInt(ShellBranding::priority))
+                .orElse(null);
+        stage.setTitle(branding == null ? "NetBeansFX" : branding.title(context));
+        if (branding != null) {
+            ObservableValue<String> title = branding.titleProperty(context);
+            if (title != null) {
+                titleSubscription = title.subscribe(stage::setTitle);
+            }
+        }
         stage.setOnCloseRequest(event -> {
             if (!requestQuit()) {
                 event.consume();
@@ -135,6 +165,13 @@ public class ShellApplication extends Application implements WindowSink {
             windowSystem.save();
         }
         appState.save();
+        if (titleSubscription != null) {
+            titleSubscription.unsubscribe();
+            titleSubscription = null;
+        }
+        if (chrome != null) {
+            chrome.dispose();
+        }
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
@@ -165,6 +202,11 @@ public class ShellApplication extends Application implements WindowSink {
         return root;
     }
 
+    /** The chrome installed for this shell. */
+    protected final ShellChrome getChrome() {
+        return chrome;
+    }
+
     /** The persisted shell state, for a product that contributes project/session state. */
     protected final AppState getAppState() {
         return appState;
@@ -173,6 +215,31 @@ public class ShellApplication extends Application implements WindowSink {
     /** The session restorer, for a product that restores or captures its own session. */
     protected final SessionRestorer getSessionRestorer() {
         return sessionRestorer;
+    }
+
+    /**
+     * The lookup exposed to the chrome and its dynamic contributions. The default is the global
+     * lookup; a product overrides this to add per-shell services (its command resolver, dynamic
+     * menu factories, branding and so on).
+     *
+     * @return the lookup, never {@code null}
+     */
+    protected Lookup shellLookup() {
+        return Lookup.getDefault();
+    }
+
+    /**
+     * Creates the chrome for this shell. The default resolves the highest-priority
+     * {@link ShellChromeProvider}; a product may override this method directly.
+     *
+     * @param context the shell context
+     * @return the chrome, never {@code null}
+     */
+    protected ShellChrome createChrome(ShellContext context) {
+        return Lookup.getDefault().lookupAll(ShellChromeProvider.class).stream()
+                .max(Comparator.comparingInt(ShellChromeProvider::priority))
+                .map(provider -> provider.create(context))
+                .orElse(ShellChrome.NONE);
     }
 
     /** Called before the primary panes are created, on the JavaFX Application Thread. */
@@ -209,6 +276,18 @@ public class ShellApplication extends Application implements WindowSink {
 
     /** Called after the window is showing, on the JavaFX Application Thread. */
     protected void started() {
+        ApplicationMenu menu = Lookup.getDefault().lookup(ApplicationMenu.class);
+        if (menu != null) {
+            menu.install(this::openPreferences, this::requestQuit);
+        }
+    }
+
+    /** Runs the Options command, so a native application menu can open the Options dialog. */
+    protected final void openPreferences() {
+        ActionRegistry registry = Lookup.getDefault().lookup(ActionRegistry.class);
+        if (registry != null) {
+            registry.find(ActionIds.SELECT_OPTIONS).ifPresent(Command::run);
+        }
     }
 
     /** Called during shutdown, before the platform exits, on the JavaFX Application Thread. */

@@ -1,0 +1,113 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.netbeans.modules.nbfx.platform.shell;
+
+import java.util.List;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.layout.Region;
+import org.netbeans.api.nbfx.actions.Command;
+import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.openide.filesystems.FileObject;
+import org.openide.util.Lookup;
+import org.openide.util.lookup.ServiceProvider;
+
+/**
+ * The generic window environment: it delegates the host-specific operations to
+ * {@link WindowEnvironmentContribution}s and provides a neutral fallback for detached-window
+ * chrome.
+ *
+ * @since 1.0
+ */
+@ServiceProvider(service = WindowEnvironment.class)
+public final class DefaultWindowEnvironment implements WindowEnvironment {
+
+    @Override
+    public Region createDetachedBars(javafx.beans.value.ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeDocument,
+            List<Command> scopedCommands) {
+        // The legacy WindowEnvironment signature is still used by the current window system; a
+        // contribution may supply bars from its own chrome. The generic shell does not create
+        // editor-scoped commands here.
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            Region bars = contribution.createDetachedBars(Lookup.getDefault(), scopedCommands);
+            if (bars != null) {
+                return bars;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean revealInNavigator(FileObject file, int index) {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            if (contribution.revealInNavigator(file, index)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean selectNextProject() {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            if (contribution.selectNextProject()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public boolean selectPreviousProject() {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            if (contribution.selectPreviousProject()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public TabPane homeOf(Tab tab) {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            TabPane home = contribution.homeOf(tab);
+            if (home != null) {
+                return home;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isNavigatorRevealInProgress() {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            if (contribution.isNavigatorRevealInProgress()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void setNavigatorRevealInProgress(boolean inProgress) {
+        for (WindowEnvironmentContribution contribution : Lookup.getDefault().lookupAll(WindowEnvironmentContribution.class)) {
+            contribution.setNavigatorRevealInProgress(inProgress);
+        }
+    }
+}

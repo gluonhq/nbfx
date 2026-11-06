@@ -19,6 +19,11 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 
+import javafx.beans.value.ObservableValue;
+import javafx.util.Subscription;
+import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.status.StatusAlignment;
+import org.netbeans.api.nbfx.status.StatusRegistration;
 import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
 import java.util.function.Consumer;
 import javafx.geometry.Orientation;
@@ -35,15 +40,17 @@ import javafx.scene.layout.Region;
 import org.openide.util.NbBundle;
 
 /**
- * Names the line separator of the document being edited and changes it from a popup. Created and
- * driven by the main window; not an exported API.
+ * Names the line separator of the document being edited and changes it from a popup. Registered as
+ * {@code line-separator}; it follows the globally active editor document on its own.
  */
+@StatusRegistration(id = "line-separator", alignment = StatusAlignment.RIGHT, position = 20)
 public final class LineSeparatorStatusElement implements StatusElementHolder {
 
     private final Label lineSeparator = new Label();
     private final HBox group;
     private final ContextMenu menu = new ContextMenu();
     private Consumer<String> onChange;
+    private Subscription subscription;
 
     /** Creates the element. Must be called on the JavaFX Application Thread. */
     public LineSeparatorStatusElement() {
@@ -68,6 +75,25 @@ public final class LineSeparatorStatusElement implements StatusElementHolder {
             menu.getItems().add(item);
         }
         group.setOnMouseClicked(_ -> menu.show(group, Side.TOP, 0, 0));
+        ObservableValue<EditorDocument> activeDocument = EditorContexts.activeDocument();
+        if (activeDocument != null) {
+            subscription = activeDocument.flatMap(EditorDocument::lineSeparatorProperty)
+                    .subscribe(this::setSeparator);
+            setOnChange(value -> {
+                EditorDocument document = activeDocument.getValue();
+                if (document != null) {
+                    document.setLineSeparator(value);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void dispose() {
+        if (subscription != null) {
+            subscription.unsubscribe();
+            subscription = null;
+        }
     }
 
     @Override

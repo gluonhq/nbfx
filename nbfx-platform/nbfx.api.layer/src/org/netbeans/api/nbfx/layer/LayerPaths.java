@@ -62,6 +62,9 @@ public final class LayerPaths {
     /** The file-name suffix used for action references in the menu/tool bar folders. */
     public static final String REF_SUFFIX = ".ref";
 
+    /** The file-name suffix used for dynamic menu sections in the menu folders. */
+    public static final String DYNAMIC_SUFFIX = ".dynamic";
+
     private LayerPaths() {
     }
 }

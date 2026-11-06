@@ -36,7 +36,7 @@ import org.netbeans.api.nbfx.views.MenuRegistration;
  * <p>
  * This class carries metadata only; it is never instantiated.
  */
-@MenuRegistration(id = "Build", position = 40)
+@MenuRegistration(id = "Build", displayName = "#Menu.build", position = 40)
 @ActionReference(id = BUILD, path = "Menus/Build", position = 10)
 @ActionReference(id = CLEAN_BUILD, path = "Menus/Build", position = 20)
 @ActionReference(id = CLEAN, path = "Menus/Build", position = 30, separatorBefore = true)

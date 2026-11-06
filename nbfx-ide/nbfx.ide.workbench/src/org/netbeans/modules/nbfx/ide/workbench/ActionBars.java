@@ -144,6 +144,14 @@ public final class ActionBars {
     private ToolBarContainer toolBarContainer;
 
     /**
+     * Uses {@code container} as the main window's tool bars, so detached windows mirror their
+     * visibility. The main window may be built by the generic shell instead of this class.
+     */
+    public void useToolBars(ToolBarContainer container) {
+        this.toolBarContainer = container;
+    }
+
+    /**
      * Collects the window-scoped commands created while a single window's bars are being built.
      * FX-thread confined; only non-null for the duration of {@link #createDetachedBars}.
      */

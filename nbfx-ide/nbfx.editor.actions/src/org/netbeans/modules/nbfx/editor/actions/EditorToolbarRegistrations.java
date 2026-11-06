@@ -36,8 +36,8 @@ import org.netbeans.api.nbfx.views.ToolbarRegistration;
  * <p>
  * This class carries metadata only; it is never instantiated.
  */
-@ToolbarRegistration(id = "clipboard", position = 20)
-@ToolbarRegistration(id = "edit", position = 30)
+@ToolbarRegistration(id = "clipboard", displayName = "Clipboard", position = 20)
+@ToolbarRegistration(id = "edit", displayName = "Edit", position = 30)
 @ActionReference(id = SAVE, path = "Toolbars/file", position = 30)
 @ActionReference(id = SAVE_ALL, path = "Toolbars/file", position = 40)
 @ActionReference(id = CUT, path = "Toolbars/clipboard", position = 10)
