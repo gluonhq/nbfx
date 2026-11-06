@@ -19,7 +19,6 @@
 package org.netbeans.modules.nbfx.platform.shell.api;
 
 import java.util.Objects;
-import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
@@ -49,6 +48,11 @@ public record ShellContext(Lookup lookup) {
         return lookup.lookup(ActionContext.class);
     }
 
+    /** The running shell window, or {@code null} before the shell is started. */
+    public ShellWindow window() {
+        return lookup.lookup(ShellWindow.class);
+    }
+
     /** The chrome profile for this context; defaults to {@link ShellChromeProfile#ALL}. */
     public ShellChromeProfile profile() {
         ShellChromeProfile profile = lookup.lookup(ShellChromeProfile.class);
@@ -63,21 +67,9 @@ public record ShellContext(Lookup lookup) {
      * @return the command, or {@code null}
      */
     public Command command(String id) {
-        return command(id, null);
-    }
-
-    /**
-     * Resolves the command registered under {@code id}, allowing a resolver to dispatch to a file
-     * counterpart while {@code preferFile} is {@code true}.
-     *
-     * @param id         the command id
-     * @param preferFile whether file-targeted commands are preferred, or {@code null}
-     * @return the command, or {@code null}
-     */
-    public Command command(String id, ObservableValue<Boolean> preferFile) {
         ShellCommandResolver resolver = lookup.lookup(ShellCommandResolver.class);
         if (resolver != null) {
-            Command resolved = resolver.resolve(id, preferFile);
+            Command resolved = resolver.resolve(id);
             if (resolved != null) {
                 return resolved;
             }

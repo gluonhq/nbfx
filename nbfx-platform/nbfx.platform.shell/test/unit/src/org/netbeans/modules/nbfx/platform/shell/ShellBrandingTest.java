@@ -38,6 +38,16 @@ public class ShellBrandingTest {
     }
 
     @Test
+    public void appearanceDefaultsAreEmpty() {
+        ShellBranding branding = new LowBranding();
+        assertEquals(0, branding.minimumWidth(), 0);
+        assertEquals(0, branding.minimumHeight(), 0);
+        assertEquals(0, branding.icons().size());
+        assertEquals(0, branding.rootStyleClasses().size());
+        assertEquals(0, branding.sceneStylesheets().size());
+    }
+
+    @Test
     public void equalPrioritiesAreDeterministic() {
         String first = ShellBranding.select(Lookups.fixed(new HighBrandingB(), new HighBrandingA()))
                 .orElseThrow().applicationName();

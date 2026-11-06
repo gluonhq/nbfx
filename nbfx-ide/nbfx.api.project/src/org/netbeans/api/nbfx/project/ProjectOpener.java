@@ -30,6 +30,12 @@ import org.openide.filesystems.FileObject;
  */
 public interface ProjectOpener {
 
+    /**
+     * Shows a directory chooser owned by the running shell and opens the selected project. The
+     * implementation owns the dialog and its owner window.
+     */
+    void open();
+
     /** Opens the project rooted at {@code root}. A no-op when the application is not running. */
     void open(FileObject root);
 }
