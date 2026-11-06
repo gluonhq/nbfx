@@ -10,3 +10,4 @@ nbfx-platform/nbfx.api.property
 nbfx-platform/nbfx.api.options
 nbfx-ide/nbfx.api.project
 nbfx-platform/nbfx.platform.shell
+nbfx-platform/nbfx.platform.theme
