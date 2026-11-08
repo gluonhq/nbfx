@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 
-import org.netbeans.api.nbfx.view.ViewArea;
+import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
@@ -60,12 +60,8 @@ public class ViewManagerService implements ViewManager {
             NbfxTabPane.focusDocument(existing);
             return;
         }
-        TabPane target = area == null ? Docking.paneAt(view.getDefaultLocation()) : Docking.paneOf(area);
-        if (target == null) {
-            // The dock area is not built (headless), or lacks the location's permanent pane: fall
-            // back to the navigator pane.
-            target = NbfxTabPane.paneWithRole(WindowPaneRegistry.defaultViewRole());
-        }
+        ViewSpec spec = specs.get(view.getId());
+        TabPane target = ViewPlacement.homeFor(spec, view, area);
         if (target == null) {
             LOG.warning(() -> "No pane to show the view " + view.getId() + " in");
             return;

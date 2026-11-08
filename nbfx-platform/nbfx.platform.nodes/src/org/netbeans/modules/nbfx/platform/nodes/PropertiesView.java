@@ -18,11 +18,10 @@
  */
 package org.netbeans.modules.nbfx.platform.nodes;
 
-import org.netbeans.api.nbfx.views.ViewLocation;
+import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.view.DockLocation;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.ArrayList;
@@ -44,7 +43,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = PropertiesView.ID, displayName = "Properties",
-        location = ViewLocation.RIGHT, position = 100)
+        location = DockLocation.RIGHT, position = 100)
 public final class PropertiesView implements ViewProvider {
 
     /** The stable id of the view. */

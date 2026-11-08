@@ -37,7 +37,7 @@ import java.util.Objects;
  *       module disappeared.</li>
  * </ul>
  *
- * @param areas      the dock areas, in the {@link org.netbeans.api.nbfx.view.ViewArea#defaults()
+ * @param areas      the dock areas, in the {@link org.netbeans.api.nbfx.views.ViewArea#defaults()
  *                   default area order}
  * @param x          the main-window x
  * @param y          the main-window y

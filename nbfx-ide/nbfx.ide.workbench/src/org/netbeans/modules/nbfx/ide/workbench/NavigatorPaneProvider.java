@@ -19,16 +19,21 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.function.Consumer;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
+import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import javafx.scene.control.Tab;
+import org.openide.util.NbBundle;
 
 /**
  * Creates the IDE navigator pane and fills it from the persisted layout or the registered
@@ -37,10 +42,16 @@ import javafx.scene.control.Tab;
  */
 final class NavigatorPaneProvider implements WindowPaneProvider {
 
-    private final JavaFXLaunchApp app;
+    private final SessionRestorer sessionRestorer;
+    private final List<NavigatorView> providers;
+    private final Consumer<NbfxTabPane> paneSink;
 
-    NavigatorPaneProvider(JavaFXLaunchApp app) {
-        this.app = app;
+    NavigatorPaneProvider(SessionRestorer sessionRestorer,
+            Collection<? extends NavigatorView> providers,
+            Consumer<NbfxTabPane> paneSink) {
+        this.sessionRestorer = sessionRestorer;
+        this.providers = List.copyOf(providers);
+        this.paneSink = paneSink;
     }
 
     @Override
@@ -50,11 +61,11 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
 
     private NbfxTabPane createNavigator() {
         NbfxTabPane navigator = new NbfxTabPane(PaneRole.NAVIGATOR);
-        app.setNavigatorPane(navigator);
+        paneSink.accept(navigator);
         // Every persisted navigator tab is docked here first, whichever pane the layout last put it
         // in; opening a project then redistributes them (restoreLayout). This keeps every navigator
         // view reachable even when no project is ever opened.
-        AppState.Layout layout = app.sessionRestorer().startupLayout();
+        AppState.Layout layout = sessionRestorer.startupLayout();
         // On the first run there is no persisted layout, so the order and the set of navigators come
         // from the layer (position and navigator flag declared with @ViewRegistration); afterwards
         // the persisted order, which the user arranged, wins.
@@ -68,7 +79,7 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
             // empty order means the user closed them all, and docking them here would flash them into
             // the pane until the project's own layout removed them again.
             if (layout.isEmpty() || order.contains(provider.getId())) {
-                NbfxTabPane.attachTab(navigator, app.createNavigatorTab(provider));
+                NbfxTabPane.attachTab(navigator, createTab(provider, providers));
             }
         }
         String selected = navigatorSelectedOf(layout);
@@ -124,9 +135,17 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
         return null;
     }
 
+    /** Builds a navigator tab for {@code provider}, naming its shortcut in the tooltip. */
+    static Tab createTab(NavigatorView provider, Collection<? extends NavigatorView> providers) {
+        int index = new ArrayList<>(providers).indexOf(provider);
+        return ViewTabs.create(provider, NbBundle.getMessage(NavigatorPaneProvider.class,
+                "Tab.navigator.tooltip", provider.getDescription(),
+                NbfxTabPane.SYM_SHIFT, NbfxTabPane.SYM_CMD, String.valueOf(index + 1)));
+    }
+
     /** Providers ordered by {@code order} (persisted ids); unknown providers keep their natural order at the end. */
     private List<NavigatorView> orderedProviders(List<String> order) {
-        List<NavigatorView> ordered = new ArrayList<>(app.navigatorProviders());
+        List<NavigatorView> ordered = new ArrayList<>(providers);
         if (!order.isEmpty()) {
             ordered.sort((first, second) -> {
                 int firstIndex = order.indexOf(first.getId());

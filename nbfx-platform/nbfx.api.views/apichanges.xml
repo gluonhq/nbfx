@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<?xml-stylesheet type="text/xml" href="../../nbbuild/javadoctools/apichanges.xsl"?>
+<!DOCTYPE apichanges PUBLIC "-//NetBeans//DTD API changes list 1.0//EN" "../../nbbuild/javadoctools/apichanges.dtd">
+<apichanges>
+    <apidefs>
+        <apidef name="netbeansfx_views">NetBeansFX View API</apidef>
+    </apidefs>
+    <changes>
+        <change id="view.placement.types">
+            <api name="netbeansfx_views"/>
+            <summary>One view placement type and package.</summary>
+            <version major="1" minor="4"/>
+            <date day="4" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="no" modification="yes" removal="yes" semantic="incompatible"/>
+            <description>
+                Moves <code>ViewArea</code> and <code>DockLocation</code> into
+                <code>org.netbeans.api.nbfx.views</code>, removes the duplicate
+                <code>ViewLocation</code> enum, and makes <code>ViewRegistration.location()</code>
+                use <code>DockLocation</code>. Detached windows remain a runtime action rather than
+                a registered location. <code>ViewSpec.location()</code> is derived from its area.
+            </description>
+            <class package="org.netbeans.api.nbfx.views" name="ViewArea"/>
+            <class package="org.netbeans.api.nbfx.views" name="DockLocation"/>
+            <class package="org.netbeans.api.nbfx.views" name="ViewRegistration"/>
+        </change>
+    </changes>
+    <htmlcontents>
+        <head>
+            <title>Change History for the NetBeansFX View API</title>
+        </head>
+        <body>
+            <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
+            <h1>Introduction</h1>
+            <p>This document lists changes made to the <a href="@TOP@">NetBeansFX View API</a>.</p>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.views"/>
+            <hr/><p>@FOOTER@</p>
+        </body>
+    </htmlcontents>
+</apichanges>

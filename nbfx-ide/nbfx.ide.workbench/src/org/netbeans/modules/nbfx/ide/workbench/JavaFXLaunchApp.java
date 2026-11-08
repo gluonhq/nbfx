@@ -33,13 +33,17 @@ import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
+import org.netbeans.modules.nbfx.platform.shell.WindowComposition;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
+import org.netbeans.modules.nbfx.platform.shell.ViewPlacement;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
+import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 
@@ -157,7 +161,8 @@ public class JavaFXLaunchApp extends ShellApplication {
                 new RecentProjectsMenuFactory(projectState::getRecentProjects, this::openProject,
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon),
-                new NavigatorPaneProvider(this)),
+                new NavigatorPaneProvider(getSessionRestorer(),
+                        providers == null ? List.of() : providers, this::setNavigatorPane)),
                 super.shellLookup());
     }
 
@@ -308,15 +313,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         navigatorPane = pane;
     }
 
-    /** The resolved navigator views, for the navigator pane provider. */
-    Collection<? extends NavigatorView> navigatorProviders() {
-        return providers;
-    }
-
-    /** The session restorer, for the navigator pane provider. */
-    SessionRestorer sessionRestorer() {
-        return getSessionRestorer();
-    }
 
     /**
      * The tab of the view identified by {@code viewId}: the live one, wherever it currently is, or a
@@ -354,13 +350,9 @@ public class JavaFXLaunchApp extends ShellApplication {
 
     /** Builds a navigator tab for {@code provider}, whose tooltip names the shortcut selecting it. */
     Tab createNavigatorTab(NavigatorView provider) {
-        int index = new ArrayList<>(providers).indexOf(provider);
-        return ViewTabs.create(provider, NbBundle.getMessage(JavaFXLaunchApp.class,
-                "Tab.navigator.tooltip", provider.getDescription(),
-                NbfxTabPane.SYM_SHIFT, NbfxTabPane.SYM_CMD, String.valueOf(index + 1)));
+        return NavigatorPaneProvider.createTab(provider, providers);
     }
 
-    /** Providers ordered by {@code order} (persisted ids); unknown providers keep their natural order at the end. */
     /**
      * The navigator views: the {@link ViewProvider}s whose {@code @ViewRegistration} marks them as
      * navigators, ordered by their declared position. Resolved from the global {@code Lookup} - the
@@ -539,8 +531,8 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (mainPane == null) {
             return;
         }
-        // 1. The default shape: the two permanent panes only. The detached windows empty into them
-        //    (where exactly does not matter yet), applyTree restores what is maximized or minimized
+        // 1. The declared first-run shape. Detached windows empty into the permanent panes first
+        //    (where exactly does not matter yet); applyTree restores what is maximized or minimized
         //    and moves the docked panes' content into the editor pane.
         NbfxTabPane.redockAll(tab -> NbfxTabPane.documentOf(tab) != null ? mainPane : navigatorPane);
         DockTree tree = Docking.defaultTree();
@@ -548,11 +540,12 @@ public class JavaFXLaunchApp extends ShellApplication {
             tree = getDockArea().defaultTree();
         }
         getDockArea().applyTree(tree);
-        // 2. Every tab to its default place. A view's default location below one of the permanent
-        //    panes creates its pane now, in the default shape, where it stays.
-        for (TabPane pane : List.of(navigatorPane, mainPane)) {
+        // 2. Every tab to its default place. A view's registered area creates or reuses its pane
+        //    now, in the declared shape, where it stays.
+        ViewCatalog catalog = catalog();
+        for (TabPane pane : permanentPanes()) {
             for (Tab tab : List.copyOf(pane.getTabs())) {
-                TabPane home = NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab);
+                TabPane home = NbfxTabPane.documentOf(tab) != null ? mainPane : homeOfView(tab, catalog);
                 if (home != null && home != tab.getTabPane()) {
                     NbfxTabPane.moveTab(home, tab, home.getTabs().size());
                 }
@@ -586,13 +579,14 @@ public class JavaFXLaunchApp extends ShellApplication {
             if (manager == null) {
                 return;
             }
-            for (ViewSpec registration : ViewRegistry.discover()) {
-                ViewProvider view = registration.openAtStartup() ? viewById(registration.id()) : null;
+            ViewCatalog catalog = catalog();
+            for (ViewSpec registration : catalog.specs) {
+                ViewProvider view = registration.openAtStartup() ? catalog.views.get(registration.id()) : null;
                 if (view != null && !manager.isShowing(view)) {
                     manager.show(view, registration.area(), registration.position());
                 }
             }
-            getAppState().setIntroducedViews(defaultViewIds());
+            getAppState().setIntroducedViews(defaultViewIds(catalog.specs));
         } finally {
             Docking.completeStartupLayout();
         }
@@ -608,8 +602,9 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     private void introduceDefaultViews() {
         try {
+            ViewCatalog catalog = catalog();
             Set<String> introduced = getAppState().getIntroducedViews();
-            Set<String> defaults = defaultViewIds();
+            Set<String> defaults = defaultViewIds(catalog.specs);
             if (introduced.containsAll(defaults)) {
                 return;
             }
@@ -617,9 +612,9 @@ public class JavaFXLaunchApp extends ShellApplication {
             if (manager == null) {
                 return;
             }
-            for (ViewSpec registration : ViewRegistry.discover()) {
+            for (ViewSpec registration : catalog.specs) {
                 ViewProvider view = registration.openAtStartup() && !introduced.contains(registration.id())
-                        ? viewById(registration.id()) : null;
+                        ? catalog.views.get(registration.id()) : null;
                 if (view != null && !manager.isShowing(view)) {
                     manager.show(view, registration.area(), registration.position());
                 }
@@ -632,9 +627,9 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     /** The ids of the non-navigator views registered to open at start-up, in registration order. */
-    private static Set<String> defaultViewIds() {
+    private static Set<String> defaultViewIds(List<ViewSpec> specs) {
         Set<String> ids = new LinkedHashSet<>();
-        for (ViewSpec registration : ViewRegistry.discover()) {
+        for (ViewSpec registration : specs) {
             if (registration.openAtStartup() && !registration.navigator()) {
                 ids.add(registration.id());
             }
@@ -642,24 +637,59 @@ public class JavaFXLaunchApp extends ShellApplication {
         return ids;
     }
 
+    /** The permanent panes of the resolved composition, in composition order. */
+    private List<TabPane> permanentPanes() {
+        WindowComposition composition = Docking.composition();
+        if (composition != null) {
+            List<TabPane> panes = new ArrayList<>();
+            for (WindowPane pane : composition.panes()) {
+                NbfxTabPane resolved = Docking.primary(pane.role());
+                if (resolved != null) {
+                    panes.add(resolved);
+                }
+            }
+            return panes;
+        }
+        return List.of(navigatorPane, getMainPane());
+    }
+
     /**
-     * The pane a view tab belongs in by default: the navigator pane for a navigator (and for any tab
-     * whose view is unknown), the pane of its {@link ViewProvider#getDefaultLocation() default
-     * location} for any other view.
+     * The pane a view tab belongs in by default: the pane of its registered
+     * {@link ViewSpec#area() area}; a navigator falls back to the navigator pane, and a view without
+     * a registration falls back to its legacy {@link ViewProvider#getDefaultLocation() location}.
      */
     private TabPane homeOfView(Tab tab) {
+        return homeOfView(tab, catalog());
+    }
+
+    private TabPane homeOfView(Tab tab, ViewCatalog catalog) {
         String id = NbfxTabPane.viewId(tab);
         if (id == null) {
             return navigatorPane;
         }
-        for (NavigatorView provider : providers) {
-            if (provider.getId().equals(id)) {
-                return navigatorPane;
-            }
-        }
-        ViewProvider view = viewById(id);
-        TabPane home = view == null ? null : Docking.paneAt(view.getDefaultLocation());
+        TabPane home = ViewPlacement.homeFor(catalog.byId.get(id), catalog.views.get(id));
         return home != null ? home : navigatorPane;
+    }
+
+    /** One snapshot of the view registrations and providers for a placement operation. */
+    private static ViewCatalog catalog() {
+        List<ViewSpec> specs = ViewRegistry.discover();
+        Map<String, ViewSpec> byId = new HashMap<>();
+        for (ViewSpec spec : specs) {
+            byId.put(spec.id(), spec);
+        }
+        Map<String, ViewProvider> views = new HashMap<>();
+        for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
+            views.putIfAbsent(view.getId(), view);
+        }
+        for (ViewSpec spec : specs) {
+            views.putIfAbsent(spec.id(), spec.view());
+        }
+        return new ViewCatalog(specs, byId, views);
+    }
+
+    private record ViewCatalog(List<ViewSpec> specs, Map<String, ViewSpec> byId,
+            Map<String, ViewProvider> views) {
     }
 
     /**

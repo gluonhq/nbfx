@@ -113,7 +113,11 @@ public final class WindowPaneRegistry {
         return defaultViewRole(discover());
     }
 
-    /** The default view role among {@code panes}; never the editor pane. */
+    /**
+     * The default view role among {@code panes}; never the editor pane. Falls back to the built-in
+     * navigator role when no permanent view pane is declared, which keeps a view placeable even in
+     * a partially configured shell.
+     */
     public static NbfxTabPane.PaneRole defaultViewRole(List<WindowPane> panes) {
         return panes.stream()
                 .filter(pane -> pane.kind() == PaneKind.VIEW)

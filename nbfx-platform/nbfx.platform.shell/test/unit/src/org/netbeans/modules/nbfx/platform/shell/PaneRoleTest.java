@@ -48,6 +48,13 @@ public class PaneRoleTest {
     }
 
     @Test
+    public void mainIsTheOnlyEditorKind() {
+        assertEquals(org.netbeans.api.nbfx.views.PaneKind.EDITOR, PaneRole.MAIN.defaultKind());
+        assertEquals(org.netbeans.api.nbfx.views.PaneKind.VIEW, PaneRole.NAVIGATOR.defaultKind());
+        assertEquals(org.netbeans.api.nbfx.views.PaneKind.VIEW, PaneRole.of("RIGHT_SIDEBAR").defaultKind());
+    }
+
+    @Test
     public void productRolesCompareByStableName() {
         PaneRole first = PaneRole.of("RIGHT_SIDEBAR");
         PaneRole second = PaneRole.of("RIGHT_SIDEBAR");
