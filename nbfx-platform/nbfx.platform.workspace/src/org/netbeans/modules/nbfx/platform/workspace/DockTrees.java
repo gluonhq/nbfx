@@ -36,7 +36,9 @@ import javafx.geometry.Orientation;
  * <p>
  * Text form: a leaf is {@code P:ROLE} (a permanent pane) or {@code L} (a docked one); a split is
  * {@code V[dividers](children)} or {@code H[dividers](children)}, dividers and children
- * comma-separated, e.g. {@code H[0.2200](P:NAVIGATOR,V[0.6500](P:MAIN,L))}.
+ * comma-separated, e.g. {@code H[0.2200](P:NAVIGATOR,V[0.6500](P:MAIN,L))}. Empty brackets
+ * ({@code H[](...)}) mean the dividers are derived from the registered area weights with
+ * {@link #resolveDividers(DockTree, java.util.function.Function)}.
  */
 public final class DockTrees {
 

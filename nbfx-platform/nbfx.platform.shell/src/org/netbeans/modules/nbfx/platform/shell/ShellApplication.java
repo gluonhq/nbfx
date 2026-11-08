@@ -25,8 +25,10 @@ import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
 
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -46,7 +48,11 @@ import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
+import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSink;
 import org.netbeans.modules.nbfx.platform.workspace.WindowState;
@@ -58,8 +64,9 @@ import org.openide.util.Lookup;
  * The platform's generic JavaFX application shell: the main window, the editor pane, docking,
  * sliding sides, the persisted window layout and the window-system lifecycle. A product extends it
  * and adds its own panes, chrome, views and services through the hooks called from {@link #start}:
- * {@link #prepare()}, {@link #createPanes()}, {@link #decorate(BorderPane)}, {@link #sceneReady(Scene)}
- * and {@link #started()}, in that order, then {@link #restoreSession()}. {@link #captureSession()}
+ * {@link #prepare()}, {@link #createPane(WindowPane, WindowPaneContext)}, {@link #decorate(BorderPane)},
+ * {@link #sceneReady(Scene)} and {@link #started()}, in that order, then
+ * {@link #restoreSession()}. {@link #captureSession()}
  * and {@link #stopping()} run during shutdown. This class itself knows no project, IDE or Java
  * concept.
  * <p>
@@ -94,24 +101,29 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private boolean applicationMenuInstalled;
     private Subscription titleSubscription;
     private boolean stateCaptured;
+    /** Providers that created a pane, so their resources are released with the shell. */
+    private final Map<NbfxTabPane, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
 
     @Override
     public final void start(Stage stage) {
         Budget.mark("fxStart");
         this.stage = stage;
         prepare();
-        List<NbfxTabPane> panes = createPanes();
+        WindowComposition composition = WindowCompositionResolver.resolve();
+        Lookup shellLookup = shellLookup();
+        WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition.panes(), this);
+        Map<String, NbfxTabPane> panes = instantiatePanes(composition, paneContext);
         if (panes.isEmpty()) {
             throw new IllegalStateException("The shell has no primary pane");
         }
-        mainPane = panes.stream()
-                .filter(pane -> NbfxTabPane.roleOf(pane) == NbfxTabPane.PaneRole.MAIN)
-                .findFirst()
-                .orElse(panes.get(0));
-        dockArea = Docking.create(panes.toArray(new NbfxTabPane[0]));
+        mainPane = panes.get(NbfxTabPane.PaneRole.MAIN.name());
+        if (mainPane == null) {
+            mainPane = panes.values().iterator().next();
+        }
+        dockArea = Docking.create(composition, panes);
         slidingArea = Docking.slides();
         root = new BorderPane(slidingArea);
-        ShellContext context = new ShellContext(shellLookup());
+        ShellContext context = new ShellContext(shellLookup);
         shellContext = context;
         chrome = createChrome(context);
         if (chrome.top() != null) {
@@ -186,6 +198,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         }
         shellContext = null;
         applicationMenuInstalled = false;
+        disposePanes();
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
@@ -294,13 +307,67 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     }
 
     /**
-     * The primary panes of the window, the main editor pane first or in any order. The default is
-     * the editor pane alone; a product adds its navigator panes here.
+     * Instantiates a registered permanent pane. The default resolves the editor pane through the
+     * content manager, then asks the highest-priority {@link WindowPaneProvider}, then creates a
+     * plain pane of the declared kind. A product that owns a pane's content overrides this; the
+     * default provider path is for products that only register a custom pane.
      *
-     * @return the primary panes; must not be empty
+     * @param pane    the declared pane
+     * @param context the narrow shell context
+     * @return the concrete pane, never {@code null}
      */
-    protected List<NbfxTabPane> createPanes() {
-        return List.of(createMainPane());
+    protected NbfxTabPane createPane(WindowPane pane, WindowPaneContext context) {
+        if (pane.role().isMain() || pane.kind() == PaneKind.EDITOR) {
+            return createMainPane();
+        }
+        for (WindowPaneProvider provider : context.lookup()
+                .lookupAll(WindowPaneProvider.class).stream()
+                .sorted(Comparator.comparingInt(WindowPaneProvider::priority).reversed())
+                .toList()) {
+            NbfxTabPane instance = provider.createPane(pane, context);
+            if (instance != null) {
+                paneProviders.put(instance, provider);
+                return instance;
+            }
+        }
+        return new NbfxTabPane(pane.role(), pane.kind());
+    }
+
+    /** Instantiates the composition's permanent panes, keyed by role name. */
+    Map<String, NbfxTabPane> instantiatePanes(WindowComposition composition,
+            WindowPaneContext context) {
+        Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
+        for (WindowPane pane : composition.panes()) {
+            NbfxTabPane.PaneRole declared = pane.role();
+            NbfxTabPane instance = createPane(pane, context);
+            if (instance == null) {
+                LOG.warning("No pane instance for registered pane " + pane.id());
+                continue;
+            }
+            if (!declared.equals(NbfxTabPane.roleOf(instance))) {
+                LOG.warning("Pane provider returned role " + NbfxTabPane.roleOf(instance)
+                        + " for declared pane " + pane.id() + "; using a default pane");
+                WindowPaneProvider provider = paneProviders.remove(instance);
+                if (provider != null) {
+                    provider.disposePane(instance);
+                }
+                instance = new NbfxTabPane(declared, pane.kind());
+            }
+            panes.put(declared.name(), instance);
+        }
+        return panes;
+    }
+
+    /** Releases panes created by providers; a provider that owns resources cleans up here. */
+    private void disposePanes() {
+        for (Map.Entry<NbfxTabPane, WindowPaneProvider> entry : paneProviders.entrySet()) {
+            try {
+                entry.getValue().disposePane(entry.getKey());
+            } catch (RuntimeException ex) {
+                LOG.log(Level.WARNING, "Failed to dispose pane " + entry.getKey(), ex);
+            }
+        }
+        paneProviders.clear();
     }
 
     /**

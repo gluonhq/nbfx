@@ -62,10 +62,17 @@ public class DockAreaTest {
         final List<StackPane> disposed = new ArrayList<>();
         /** Panes the host treats as tool windows: the main pane never absorbs them. */
         final List<StackPane> views = new ArrayList<>();
+        /** Panes the host keeps visible when empty. */
+        final List<StackPane> kept = new ArrayList<>();
 
         @Override
         public StackPane createDockedPane() {
             return new StackPane();
+        }
+
+        @Override
+        public boolean keepWhenEmpty(StackPane pane) {
+            return kept.contains(pane);
         }
 
         @Override
@@ -229,6 +236,24 @@ public class DockAreaTest {
     }
 
     @Test
+    public void explicitMainRoleDoesNotDependOnPaneOrder() throws Exception {
+        onFx(() -> {
+            Host host = new Host();
+            StackPane main = new StackPane();
+            StackPane navigator = new StackPane(new Region());
+            SequencedMap<String, StackPane> primaries = new LinkedHashMap<>();
+            primaries.put("MAIN", main);
+            primaries.put("NAVIGATOR", navigator);
+
+            DockArea<StackPane> area = new DockArea<>(host, primaries, List.of(0.3), "MAIN");
+
+            assertSame(main, area.mainPane());
+            assertEquals("MAIN", area.mainRole());
+            return null;
+        });
+    }
+
+    @Test
     public void emptyDockedPanesCanBeRetainedUntilTheLayoutIsFilled() throws Exception {
         Fixture f = onFx(Fixture::new);
         StackPane docked = onFx(() -> {
@@ -246,6 +271,22 @@ public class DockAreaTest {
         onFx(() -> {
             assertFalse("the released empty docked leaf stayed", f.area.contains(docked));
             assertTrue(f.host.disposed.contains(docked));
+            return null;
+        });
+    }
+
+    @Test
+    public void emptyPermanentPaneStaysWhenTheHostKeepsIt() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            f.host.kept.add(f.navigator);
+            f.navigator.getChildren().clear();
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            assertFalse(f.area.isMinimized(f.navigator));
             return null;
         });
     }
