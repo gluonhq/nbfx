@@ -19,10 +19,10 @@
 /* Popup listing the children of a breadcrumb element */
 
 .breadcrumbs-popup-root {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-bg;
     -fx-background-insets: 0;
     -fx-background-radius: 6;
-    -fx-border-color: #C8CDD5;
+    -fx-border-color: -nbfx-popup-border;
     -fx-border-radius: 6;
     -fx-border-width: 1;
     -fx-padding: 2;
@@ -65,7 +65,7 @@
 }
 
 .breadcrumbs-popup-root > .breadcrumbs-popup-list > .virtual-flow > .scroll-bar > .thumb {
-    -fx-background-color: #6B7280;
+    -fx-background-color: -nbfx-popup-muted;
     -fx-background-insets: 3 2 3 2;
     -fx-background-radius: 16;
 }

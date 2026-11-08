@@ -1,0 +1,111 @@
+/*
+ * nbfx theme: High Contrast. Pure black and white surfaces with yellow for focus and selection.
+ *
+ * Every color the shell, the code editor and its popups use is defined in this file, on .root.
+ * The Modena block at the end styles the stock JavaFX controls (buttons, fields, check boxes).
+ */
+.root {
+    -nbfx-accent: #FFFF00;
+    -nbfx-accent-hover: #FFFF66;
+    -nbfx-accent-tint: #FFFF0080;
+    -nbfx-on-accent: #000000;
+
+    -nbfx-canvas: #000000;
+    -nbfx-surface: #000000;
+    -nbfx-neutral: #1A1A1A;
+    -nbfx-chrome: #000000;
+    -nbfx-chrome-active: #3A3A00;
+    -nbfx-chrome-hover: #1A1A1A;
+    -nbfx-hover: #1F1F1F;
+    -nbfx-pressed: #333333;
+
+    -nbfx-text-strong: #FFFFFF;
+    -nbfx-text: #FFFFFF;
+    -nbfx-text-muted: #E0E0E0;
+    -nbfx-text-faint: #C0C0C0;
+    -nbfx-text-disabled: #808080;
+
+    -nbfx-icon: #FFFFFF;
+    -nbfx-icon-hover: #FFFF00;
+    -nbfx-icon-pressed: #FFFF00;
+    -nbfx-icon-menu: #E0E0E0;
+    -nbfx-icon-subtle: #808080;
+
+    -nbfx-border: #FFFFFF;
+    -nbfx-border-soft: #A0A0A0;
+    -nbfx-track: #000000;
+    -nbfx-track-focused: #111111;
+    -nbfx-thumb: #8A8A8A;
+    -nbfx-thumb-hover: #C0C0C0;
+    -nbfx-thumb-pressed: #FFFFFF;
+
+    -nbfx-danger: #FF5555;
+    -nbfx-danger-soft: #660000;
+    -nbfx-danger-pressed: #880000;
+
+    /* Code editor: dark surfaces, highlights and search bar */
+    -nbfx-editor-bg: #000000;
+    -nbfx-editor-line: #1A1A1A;
+    -nbfx-editor-gutter: #000000;
+    -nbfx-editor-selection: #004080;
+    -nbfx-editor-line-band: rgba(255, 255, 0, 0.30);
+    -nbfx-editor-readonly-bg: #0A0A0A;
+    -nbfx-editor-readonly-line: #141414;
+    -nbfx-editor-readonly-gutter: #050505;
+    -nbfx-editor-brace: #006600;
+    -nbfx-editor-brace-error: #FF3333;
+    -nbfx-editor-occurrence: #004D4D;
+    -nbfx-editor-search-match: #805500;
+    -nbfx-editor-squiggle-error: #FF3333;
+    -nbfx-editor-squiggle-warning: #FFFF00;
+    -nbfx-editor-bar-border: #FFFFFF;
+    -nbfx-editor-text: #FFFFFF;
+    -nbfx-editor-text-error: #FF5555;
+    -nbfx-editor-error-bg: #3A0000;
+    -nbfx-editor-separator: #C0C0C0;
+    -nbfx-editor-crumb-hover: #1F1F1F;
+    -nbfx-editor-button-selected-hover: #333333;
+
+    /* Syntax colors, tuned for the dark editor surface */
+    -nbfx-code-keyword: #00FFFF;
+    -nbfx-code-keyword-directive: #FF66FF;
+    -nbfx-code-string: #66FF66;
+    -nbfx-code-comment: #B0B0B0;
+    -nbfx-code-field: #66CCFF;
+    -nbfx-code-method: #FFFF00;
+    -nbfx-code-class: #FF9F45;
+    -nbfx-code-css-selector: #FFFF00;
+    -nbfx-code-css-property: #66CCFF;
+    -nbfx-code-xml-tag: #00FFFF;
+    -nbfx-code-xml-attribute: #FFFF00;
+    -nbfx-code-xml-value: #66FF66;
+    -nbfx-code-xml-doctype: #C0C0C0;
+    -nbfx-code-xml-cdata: #E0E0E0;
+    -nbfx-code-xml-pi: #C0C0C0;
+    -nbfx-code-hyperlink: #66CCFF;
+
+    /* Modena base colors used by the stock controls */
+    -fx-base: #1A1A1A;
+    -fx-background: #000000;
+    -fx-control-inner-background: #000000;
+    -fx-control-inner-background-alt: #0A0A0A;
+    -fx-text-background-color: #FFFFFF;
+    -fx-text-base-color: #FFFFFF;
+    -fx-text-box-border: #FFFFFF;
+    -fx-focus-color: #FFFF00;
+    -fx-faint-focus-color: #FFFF0080;
+    -fx-selection-bar: #FFFF00;
+    -fx-selection-bar-non-focused: #404040;
+    -fx-selection-bar-text: #000000;
+    -fx-hyperlink-color: #66CCFF;
+
+    /* Completion and breadcrumb popups */
+    -nbfx-popup-bg: #000000;
+    -nbfx-popup-border: #FFFFFF;
+    -nbfx-popup-text: #FFFFFF;
+    -nbfx-popup-muted: #C0C0C0;
+    -nbfx-popup-hover: #1F1F1F;
+    -nbfx-popup-selected: #FFFF00;
+    -nbfx-popup-selected-text: #000000;
+    -nbfx-popup-separator: #FFFFFF;
+}

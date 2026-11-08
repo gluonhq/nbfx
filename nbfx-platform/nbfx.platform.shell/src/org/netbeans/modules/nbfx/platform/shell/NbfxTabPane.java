@@ -42,6 +42,7 @@ import org.netbeans.api.nbfx.file.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
 import javafx.application.Platform;
@@ -1621,6 +1622,7 @@ public final class NbfxTabPane extends TabPane {
                     if (!scene.getStylesheets().contains(STYLESHEET)) {
                         scene.getStylesheets().add(STYLESHEET);
                     }
+                    NbfxTheme.apply(scene);
                     tabPane.sceneProperty().removeListener(this);
                 }
             }
