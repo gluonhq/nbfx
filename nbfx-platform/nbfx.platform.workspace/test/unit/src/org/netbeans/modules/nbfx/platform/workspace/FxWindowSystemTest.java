@@ -269,6 +269,22 @@ public class FxWindowSystemTest {
     }
 
     @Test
+    public void listenerDiscoveredFromLookupIsNotified() {
+        ViewStateStore store = newStore("listener-lookup");
+        RecordingSink sink = new RecordingSink();
+        Supplier<List<ViewSpec>> regs = () -> List.of();
+        RecordingListener listener = new RecordingListener(() -> { });
+        WindowSystem windowSystem = new WindowSystem(regs, store, sink,
+                org.openide.util.lookup.Lookups.fixed(listener));
+        windowSystem.init();
+        windowSystem.load();
+        windowSystem.save();
+
+        assertEquals(List.of("loadStarted", "loadCompleted", "saveStarted", "saveCompleted"),
+                listener.events);
+    }
+
+    @Test
     public void listenerNotifiedAroundLoadAndSave() {
         ViewStateStore store = newStore("listener");
         RecordingSink sink = new RecordingSink();

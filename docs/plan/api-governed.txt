@@ -1,0 +1,12 @@
+# Modules whose exported packages and public top-level types are part of the API gate.
+nbfx-platform/nbfx.api.views
+nbfx-platform/nbfx.api.actions
+nbfx-platform/nbfx.api.editor
+nbfx-platform/nbfx.api.layer
+nbfx-platform/nbfx.api.file
+nbfx-platform/nbfx.api.status
+nbfx-platform/nbfx.api.wizard
+nbfx-platform/nbfx.api.property
+nbfx-platform/nbfx.api.options
+nbfx-ide/nbfx.api.project
+nbfx-platform/nbfx.platform.shell

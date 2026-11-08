@@ -784,3 +784,71 @@ the registered `ViewSpec.position()`.
 
 The API move is recorded in `nbfx.api.views/apichanges.xml`; the module is now at specification
 version 1.4.
+
+---
+
+## 17. Historical shell cleanup
+
+The remaining review items were closed as follows:
+
+- the generic command resolver no longer exposes `preferFile` in its primary methods; the old
+  `ShellContext.command(id, preferFile)` and `ShellCommandResolver.resolve(id, preferFile)`
+  overloads are retained as deprecated delegating methods, and file/editor dispatch stays inside
+  `IdeShellCommandResolver`;
+- `ProjectOpener.open()` owns the Open Project directory chooser and its owner window, and project
+  commands disable themselves when their lifecycle/opener services are absent;
+- `WindowEnvironmentContribution` is deprecated in favour of the focused
+  `DetachedBarsProvider`, `TabHomeResolver`, `ProjectSwitcher`, `NavigatorRevealState` and
+  `NavigatorRevealer` capabilities;
+- `ShellIconProvider` is the documented fallback for commands without a `Command.getIcon()`;
+- `nbfx.api.project`, `nbfx.api.views` and `nbfx.platform.shell` have API history entries;
+- `ant check-api` verifies exported packages and public top-level types for the governed modules,
+  using `docs/plan/api-snapshot.txt`. The snapshot regex ignores indented nested types; this is a
+  type-level gate until a sigtest baseline is added.
+
+---
+
+## 18. Declarative upstream lifecycle
+
+A product no longer needs to subclass `ShellApplication` for the standard lifecycle seams.
+
+- `ShellWindowProvider` publishes the running `ShellWindow` in the global lookup only once the
+  composition, panes and scene exist, just before `started()`; `ShellContext` exposes the same
+  window to context-aware contributions.
+- `@OnUiReady` is the nbfx counterpart of NetBeans `@OnShowing`: it writes to the nbfx-owned
+  `NbFx/UIReady` named-service path and runs on the FX thread after the shell is showing.
+  `org.openide.windows` remains forbidden by the purity guard.
+- `WindowSystemListener` services are discovered from the lookup for load/save notifications.
+- `NavigatorRevealer.reveal(file, index)` defaults to `false`, so an unindexed-only revealer cannot
+  steal an indexed request from a later revealer.
+- `ProjectOpenerService` owns the directory chooser and logs when the shell, window or selected
+  directory cannot be used.
+- `ShellBranding` now supplies icons, minimum size, root style classes and scene stylesheets. An
+  empty icon list leaves the platform default icons untouched; an empty scene-stylesheet list adds
+  nothing.
+- The default ApplicationMenu is installed by the shell, not by the protected `started()` hook;
+  `started()` remains a compatibility seam before the UI-ready tasks.
+
+Startup order:
+
+```text
+@OnStart
+  -> ShellApplication.start
+  -> composition / panes / chrome / scene
+  -> ShellBranding appearance
+  -> protected sceneReady
+  -> show
+  -> install ApplicationMenu
+  -> protected started
+  -> @OnUiReady
+  -> restoreSession
+```
+
+Shutdown:
+
+```text
+WindowSystemListener.saveStarted / saveCompleted
+  -> ShellApplication.stop
+  -> @OnStop
+  -> LifecycleManager.exit
+```

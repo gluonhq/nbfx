@@ -60,6 +60,8 @@ import org.netbeans.modules.nbfx.platform.workspace.WindowState;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
 import org.openide.LifecycleManager;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
+import org.openide.util.lookup.ProxyLookup;
 
 /**
  * The platform's generic JavaFX application shell: the main window, the editor pane, docking,
@@ -132,6 +134,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         root = new BorderPane(slidingArea);
         ShellContext context = new ShellContext(shellLookup);
         shellContext = context;
+        branding = ShellBranding.select(context.lookup()).orElse(null);
+        if (branding != null) {
+            root.getStyleClass().addAll(branding.rootStyleClasses());
+        }
         chrome = createChrome(context);
         if (chrome.top() != null) {
             root.setTop(chrome.top());
@@ -146,9 +152,20 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
+        if (branding != null) {
+            scene.getStylesheets().addAll(branding.sceneStylesheets());
+            if (!branding.icons().isEmpty()) {
+                stage.getIcons().setAll(branding.icons());
+            }
+            if (branding.minimumWidth() > 0) {
+                stage.setMinWidth(branding.minimumWidth());
+            }
+            if (branding.minimumHeight() > 0) {
+                stage.setMinHeight(branding.minimumHeight());
+            }
+        }
         sceneReady(scene);
         stage.setScene(scene);
-        branding = ShellBranding.select(context.lookup()).orElse(null);
         stage.setTitle(branding == null ? ShellBranding.DEFAULT_APPLICATION_NAME : branding.title(context));
         if (branding != null) {
             ObservableValue<String> title = branding.titleProperty(context);
@@ -179,7 +196,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
         Budget.mark("usable");
         Budget.markUsable();
+        installApplicationMenu();
+        ShellWindowProviderService.set(this);
         started();
+        UiReady.dispatch();
         Platform.runLater(this::restoreSession);
     }
 
@@ -205,6 +225,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         }
         shellContext = null;
         applicationMenuInstalled = false;
+        ShellWindowProviderService.set(null);
         disposePanes();
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
@@ -292,7 +313,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      * @return the lookup, never {@code null}
      */
     protected Lookup shellLookup() {
-        return Lookup.getDefault();
+        return new ProxyLookup(Lookups.fixed(this), Lookup.getDefault());
     }
 
     /**
@@ -403,8 +424,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     protected void sceneReady(Scene scene) {
     }
 
-    /** Called after the window is showing, on the JavaFX Application Thread. */
-    protected void started() {
+    /** Installs the platform application menu once the window is showing. */
+    private void installApplicationMenu() {
         if (applicationMenuInstalled || shellContext == null) {
             return;
         }
@@ -413,6 +434,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             menu.install(this::openPreferences, this::requestQuit);
             applicationMenuInstalled = true;
         }
+    }
+
+    /**
+     * Called after the window is showing, on the JavaFX Application Thread, before the
+     * {@code @OnUiReady} tasks. Kept as a subclass compatibility hook; product contributions use
+     * {@link org.netbeans.modules.nbfx.platform.shell.api.OnUiReady} instead.
+     */
+    protected void started() {
     }
 
     /** Runs the Options command, so a native application menu can open the Options dialog. */
