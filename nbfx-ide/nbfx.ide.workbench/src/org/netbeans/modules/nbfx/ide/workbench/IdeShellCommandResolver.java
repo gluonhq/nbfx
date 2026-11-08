@@ -64,11 +64,6 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
 
     @Override
     public Command resolve(String id) {
-        return resolve(id, preferFile);
-    }
-
-    @Override
-    public Command resolve(String id, ObservableValue<Boolean> preferFile) {
         if (registry == null) {
             return null;
         }
@@ -82,11 +77,10 @@ final class IdeShellCommandResolver implements ShellCommandResolver {
         if (editor == null) {
             return null;
         }
-        ObservableValue<Boolean> dispatch = preferFile != null ? preferFile : this.preferFile;
-        if (dispatch != null) {
+        if (preferFile != null) {
             Command file = fileCommandFor(id);
             if (file != null) {
-                return new DispatchingCommand(editor, file, dispatch);
+                return new DispatchingCommand(editor, file, preferFile);
             }
         }
         return editor;

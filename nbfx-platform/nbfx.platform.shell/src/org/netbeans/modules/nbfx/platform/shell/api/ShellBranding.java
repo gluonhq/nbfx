@@ -19,8 +19,10 @@
 package org.netbeans.modules.nbfx.platform.shell.api;
 
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import javafx.beans.value.ObservableValue;
+import javafx.scene.image.Image;
 import org.openide.util.Lookup;
 
 /**
@@ -61,6 +63,31 @@ public interface ShellBranding {
      */
     default ObservableValue<String> titleProperty(ShellContext context) {
         return null;
+    }
+
+    /** The window icons, or an empty list for the platform default. */
+    default List<Image> icons() {
+        return List.of();
+    }
+
+    /** The minimum window width, or {@code 0} for no minimum. */
+    default double minimumWidth() {
+        return 0;
+    }
+
+    /** The minimum window height, or {@code 0} for no minimum. */
+    default double minimumHeight() {
+        return 0;
+    }
+
+    /** Style classes added to the shell root. */
+    default List<String> rootStyleClasses() {
+        return List.of();
+    }
+
+    /** Stylesheets added to the shell scene. */
+    default List<String> sceneStylesheets() {
+        return List.of();
     }
 
     /** Releases any listeners held by this branding. */
