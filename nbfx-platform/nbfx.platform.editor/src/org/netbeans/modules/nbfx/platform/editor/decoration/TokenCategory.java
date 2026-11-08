@@ -28,44 +28,44 @@ import java.util.Map;
 public enum TokenCategory {
 
     DEFAULT("default", null),
-    KEYWORD("keyword", "-fx-fill: -code-keyword-color;"),
-    KEYWORD_DIRECTIVE("keyword-directive", "-fx-fill: -code-keyword-directive-color;"),
-    STRING("string", "-fx-fill: -code-string-color;"),
-    CHARACTER("character", "-fx-fill: -code-string-color;"),
-    COMMENT("comment", "-fx-fill: -code-comment-color;"),
+    KEYWORD("keyword", "-fx-fill: -nbfx-code-keyword;"),
+    KEYWORD_DIRECTIVE("keyword-directive", "-fx-fill: -nbfx-code-keyword-directive;"),
+    STRING("string", "-fx-fill: -nbfx-code-string;"),
+    CHARACTER("character", "-fx-fill: -nbfx-code-string;"),
+    COMMENT("comment", "-fx-fill: -nbfx-code-comment;"),
     IDENTIFIER("identifier", null),
 
-    FIELD("field", "-fx-fill: -code-field-color;"),
-    METHOD("method", "-fx-fill: -code-method-color; -fx-font-weight: bold;"),
-    CLASS("class", "-fx-fill: -code-class-color; -fx-font-weight: bold;"),
+    FIELD("field", "-fx-fill: -nbfx-code-field;"),
+    METHOD("method", "-fx-fill: -nbfx-code-method; -fx-font-weight: bold;"),
+    CLASS("class", "-fx-fill: -nbfx-code-class; -fx-font-weight: bold;"),
 
     /** CSS selector name (element, class or ID). */
-    CSS_SELECTOR("css-selector", "-fx-fill: -code-css-selector-color;"),
+    CSS_SELECTOR("css-selector", "-fx-fill: -nbfx-code-css-selector;"),
     /** CSS pseudo-class name. */
     CSS_PSEUDO("css-pseudo", "-fx-font-style: italic;"),
     /** CSS property name. */
-    CSS_PROPERTY("css-property", "-fx-fill: -code-css-property-color; -fx-font-style: italic;"),
+    CSS_PROPERTY("css-property", "-fx-fill: -nbfx-code-css-property; -fx-font-style: italic;"),
 
     /** XML element name, including the angle brackets and the {@code </} / {@code />} delimiters. */
-    XML_TAG("xml-tag", "-fx-fill: -code-xml-tag-color;"),
+    XML_TAG("xml-tag", "-fx-fill: -nbfx-code-xml-tag;"),
     /** XML attribute name. */
-    XML_ATTRIBUTE("xml-attribute", "-fx-fill: -code-xml-attribute-color;"),
+    XML_ATTRIBUTE("xml-attribute", "-fx-fill: -nbfx-code-xml-attribute;"),
     /** XML attribute value, including the quotes. */
-    XML_VALUE("xml-value", "-fx-fill: -code-xml-value-color;"),
+    XML_VALUE("xml-value", "-fx-fill: -nbfx-code-xml-value;"),
     /** XML comment. */
-    XML_COMMENT("xml-comment", "-fx-fill: -code-comment-color;"),
+    XML_COMMENT("xml-comment", "-fx-fill: -nbfx-code-comment;"),
     /** XML doctype declaration. */
-    XML_DOCTYPE("xml-doctype", "-fx-fill: -code-xml-doctype-color; -fx-font-weight: bold;"),
+    XML_DOCTYPE("xml-doctype", "-fx-fill: -nbfx-code-xml-doctype; -fx-font-weight: bold;"),
     /** XML CDATA section. */
-    XML_CDATA("xml-cdata-section", "-fx-fill: -code-xml-cdata-color;"),
+    XML_CDATA("xml-cdata-section", "-fx-fill: -nbfx-code-xml-cdata;"),
     /** XML processing instruction {@code <?} delimiter. */
-    XML_PI_START("xml-pi-start", "-fx-fill: -code-xml-pi-color;"),
+    XML_PI_START("xml-pi-start", "-fx-fill: -nbfx-code-xml-pi;"),
     /** XML processing instruction target, e.g. {@code xml} in {@code <?xml ... ?>}. */
-    XML_PI_TARGET("xml-pi-target", "-fx-fill: -code-xml-pi-color; -fx-font-weight: bold;"),
+    XML_PI_TARGET("xml-pi-target", "-fx-fill: -nbfx-code-xml-pi; -fx-font-weight: bold;"),
     /** XML processing instruction content. */
-    XML_PI_CONTENT("xml-pi-content", "-fx-fill: -code-xml-pi-color;"),
+    XML_PI_CONTENT("xml-pi-content", "-fx-fill: -nbfx-code-xml-pi;"),
     /** XML processing instruction {@code ?>} delimiter. */
-    XML_PI_END("xml-pi-end", "-fx-fill: -code-xml-pi-color;"),
+    XML_PI_END("xml-pi-end", "-fx-fill: -nbfx-code-xml-pi;"),
 
     WARNING("warning", "squiggly-warning"),
     ERROR("error", "squiggly-error"),
@@ -78,7 +78,7 @@ public enum TokenCategory {
     SEARCH_MATCH("search-match", "search-match"),
 
     /** The identifier under the mouse while the shortcut key is held: a link, as NetBeans shows hyperlinks. */
-    HYPERLINK("hyperlink", "-fx-fill: -code-hyperlink-color; -fx-underline: true;");
+    HYPERLINK("hyperlink", "-fx-fill: -nbfx-code-hyperlink; -fx-underline: true;");
 
     /** Prefix that marks a style as a squiggly underline rather than an inline text style. */
     public static final String SQUIGGLY_PREFIX = "squiggly";
