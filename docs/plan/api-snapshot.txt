@@ -126,6 +126,7 @@ org.netbeans.modules.nbfx.platform.shell.FileSelectionContextService
 org.netbeans.modules.nbfx.platform.shell.LineSeparatorStatusElement
 org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider
 org.netbeans.modules.nbfx.platform.shell.NbfxTabPane
+org.netbeans.modules.nbfx.platform.shell.OpenViewsMenuFactory
 org.netbeans.modules.nbfx.platform.shell.ProgressOverlay
 org.netbeans.modules.nbfx.platform.shell.SessionRestorer
 org.netbeans.modules.nbfx.platform.shell.ShellAppProvider
