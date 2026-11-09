@@ -749,6 +749,17 @@
     -fx-font-size: 11px;
 }
 
+.status-bar .status-bar-fill {
+    -fx-spacing: 6;
+    -fx-alignment: center-left;
+    -fx-padding: 0 0 0 2;
+}
+
+.status-bar .status-bar-fill > .status-bar-message {
+    -fx-text-fill: -nbfx-text;
+    -fx-padding: 0 8 0 0;
+}
+
 .status-bar .status-bar-project-group {
     -fx-spacing: 8;
     -fx-alignment: center-left;
@@ -793,6 +804,11 @@
 
 .status-bar .status-bar-progress-group > .status-bar-progress-box {
     -fx-pref-width: 180;
+    -fx-alignment: center;
+}
+
+.status-bar .status-bar-progress-group > .status-bar-progress-label {
+    -fx-max-width: 220;
 }
 
 .status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress {
@@ -820,18 +836,22 @@
 }
 
 .status-bar .status-bar-progress-group > .status-bar-count {
-    -fx-background-color: -nbfx-icon;
-    -fx-background-radius: 3;
-    -fx-padding: 2 4 2 4;
+    -fx-background-color: -nbfx-accent;
+    -fx-background-radius: 999;
+    -fx-padding: 0 5 0 5;
+    -fx-min-width: 18;
+    -fx-alignment: center;
+    -fx-font-size: 9.5px;
+    -fx-font-weight: bold;
     -fx-text-fill: -nbfx-on-accent;
     -fx-effect: null;
     -fx-cursor: hand;
 }
 .status-bar .status-bar-progress-group > .status-bar-count:hover {
-    -fx-background-color: -nbfx-accent;
+    -fx-background-color: -nbfx-accent-hover;
 }
 .status-bar .status-bar-progress-group > .status-bar-count:armed {
-    -fx-background-color: -nbfx-accent-hover;
+    -fx-background-color: derive(-nbfx-accent, -10%);
 }
 
 .status-bar .status-bar-progress-group > .status-bar-cancel {

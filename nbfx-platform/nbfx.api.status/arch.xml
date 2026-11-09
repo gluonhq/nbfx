@@ -40,10 +40,10 @@
   <answer id="arch-overall">
     <p>
       The module contains the <code>SOURCE</code>-retention <code>@StatusRegistration</code>
-      annotation, the <code>StatusAlignment</code> enum and a
-      <code>LayerGeneratingProcessor</code> that writes <code>NbFx/Status</code> entries into the
-      compiling module's generated layer. The status bar reader consumes those entries through
-      <code>LayerPaths</code>.
+      annotation, the <code>StatusAlignment</code> enum, the <code>StatusMessageService</code>
+      contract for the transient status line, and a <code>LayerGeneratingProcessor</code> that
+      writes <code>NbFx/Status</code> entries into the compiling module's generated layer. The
+      status bar reader consumes those entries through <code>LayerPaths</code>.
     </p>
   </answer>
 

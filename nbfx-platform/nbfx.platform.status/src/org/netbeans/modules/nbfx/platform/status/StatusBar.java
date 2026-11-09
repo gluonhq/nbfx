@@ -55,9 +55,9 @@ public class StatusBar extends BorderPane {
         this.elements = List.copyOf(elements);
         getStyleClass().add("status-bar");
 
-        HBox left = slot(Pos.CENTER_LEFT, "status-bar-left");
-        HBox center = slot(Pos.CENTER, "status-bar-center");
-        HBox right = slot(Pos.CENTER_RIGHT, "status-bar-right");
+        HBox left = slot(Pos.CENTER_LEFT, "status-bar-left", false);
+        HBox fill = slot(Pos.CENTER_LEFT, "status-bar-fill", true);
+        HBox right = slot(Pos.CENTER_RIGHT, "status-bar-right", false);
 
         for (StatusElement registered : this.elements) {
             Node node = registered.element().getNode();
@@ -66,16 +66,22 @@ public class StatusBar extends BorderPane {
             }
             switch (registered.alignment()) {
                 case LEFT -> left.getChildren().add(node);
-                case CENTER -> center.getChildren().add(node);
+                case CENTER, FILL -> {
+                    HBox.setHgrow(node, Priority.ALWAYS);
+                    if (node instanceof Region region) {
+                        region.setMaxWidth(Double.MAX_VALUE);
+                    }
+                    fill.getChildren().add(node);
+                }
                 case RIGHT -> right.getChildren().add(node);
             }
         }
 
         setLeft(left);
-        setCenter(center);
+        setCenter(fill);
         setRight(right);
         BorderPane.setAlignment(left, Pos.CENTER_LEFT);
-        BorderPane.setAlignment(center, Pos.CENTER);
+        BorderPane.setAlignment(fill, Pos.CENTER_LEFT);
         BorderPane.setAlignment(right, Pos.CENTER_RIGHT);
     }
 
@@ -91,15 +97,15 @@ public class StatusBar extends BorderPane {
         }
     }
 
-    private static HBox slot(Pos alignment, String styleClass) {
+    private static HBox slot(Pos alignment, String styleClass, boolean grow) {
         HBox box = new HBox();
         box.getStyleClass().add(styleClass);
         box.setAlignment(alignment);
         box.setFillHeight(true);
-        if (alignment == Pos.CENTER_LEFT || alignment == Pos.CENTER_RIGHT) {
-            box.setMaxWidth(Region.USE_PREF_SIZE);
-        } else {
+        if (grow) {
             HBox.setHgrow(box, Priority.ALWAYS);
+        } else {
+            box.setMaxWidth(Region.USE_PREF_SIZE);
         }
         return box;
     }

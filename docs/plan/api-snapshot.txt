@@ -69,6 +69,7 @@ org.netbeans.api.nbfx.project.ProjectTypeRegistration
 org.netbeans.api.nbfx.project.SourceRoot
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.status.StatusAlignment
+org.netbeans.api.nbfx.status.StatusMessageService
 org.netbeans.api.nbfx.status.StatusRegistration
 org.netbeans.api.nbfx.theme.ThemeMode
 org.netbeans.api.nbfx.theme.ThemeToken
