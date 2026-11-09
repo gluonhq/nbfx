@@ -878,6 +878,11 @@ What landed:
 - the shell, editor and popups reapply the theme on scene attach; dialog scenes are themed
   through `NbfxTheme.apply(DialogPane)` and the close confirmation;
 - `ThemeMenuFactory` contributes View > Theme as a dynamic menu;
+- on macOS, AWT (which the platform starts before JavaFX) pins the application appearance to
+  Aqua unless `apple.awt.application.appearance=system`, and JavaFX then reports `LIGHT` whatever
+  the desktop uses, so Follow System never goes dark. The release conf passes the flag; for
+  `ant run`, which starts `nbexec` without the conf, the `SystemAppearance` CLI handler in
+  `nbfx-platform/core/nbfx-noimport.jar` sets it in the bootstrap, before AWT loads;
 - shell/editor CSS and `TokenCategory` now use the `-nbfx-*` token vocabulary.
 
 `.root` is the token contract. Component CSS may add namespaced tokens on `.root`; a theme that

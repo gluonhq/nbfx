@@ -109,7 +109,11 @@ legal/javafx/                       the union of the SDKs' licence texts
   Both take the first JDK they find; `--jdkhome <dir>` (a space, not `=`) or `netbeans_jdkhome` in
   `etc/netbeans.conf` picks one. On a JDK older than 25 the `JdkCheck` CLI handler in
   `nbfx-platform/core/nbfx-noimport.jar` refuses the start with that advice, on every start, before the
-  module system can list every module as uninstallable.
+  module system can list every module as uninstallable. The same jar's `SystemAppearance` handler sets
+  `apple.awt.application.appearance=system` on macOS when nothing else did, so JavaFX's Follow System
+  theme mode sees the OS dark mode under `ant run` too (nbbuild's `tryme` starts `nbexec` without
+  `etc/netbeans.conf`). The jar is built by `-launcher-jar`, which every `ant build` runs, not only
+  `-dist-launcher`.
 
 ## 4. Steps
 

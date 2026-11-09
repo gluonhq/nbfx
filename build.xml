@@ -475,7 +475,38 @@ nbfx-java
         </delete>
     </target>
 
-    <target name="-dist-launcher"
+    <target name="-launcher-jar"
+            description="Build the startup-classpath jar of the CLI handlers and the import class">
+        <!-- Classes that run before the module system, so they cannot live in a module: NoImport
+             (the release's netbeans.importclass, see -dist-launcher), JdkCheck (a CLIHandler,
+             META-INF/services, that the bootstrap runs on every start before core.startup: on an
+             older JDK than nbfx needs it says which JDK was found and how to pick another, and
+             exits, instead of the platform's "could not install some modules" dialog) and
+             SystemAppearance (sets apple.awt.application.appearance=system on macOS, so JavaFX
+             sees the OS dark mode; the release conf passes the flag, ant run's nbexec does not).
+             The bootstrap puts <cluster>/core/*.jar on the startup classpath, so the jar goes into
+             the nbfx-platform cluster, on every build: ant run needs the handlers too.
+             Release 17, as the bootstrap and core.startup that load these classes: they must load
+             on the JDKs they reject. -->
+        <property name="nbfx.dist.importclass" value="org.netbeans.modules.nbfx.startup.NoImport"/>
+        <property name="nbfx.dist.noimport.classes" location="${nbfx.build.dir}/noimport/classes"/>
+        <delete dir="${nbfx.dist.noimport.classes}" quiet="true"/>
+        <mkdir dir="${nbfx.dist.noimport.classes}"/>
+        <javac srcdir="${basedir}/release/launcher/src" destdir="${nbfx.dist.noimport.classes}"
+               release="17" includeantruntime="false" encoding="UTF-8">
+            <classpath>
+                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/boot.jar"/>
+                <!-- NbBundle, for the messages in the jar's Bundle.properties -->
+                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/org-openide-util.jar"/>
+            </classpath>
+        </javac>
+        <jar destfile="${nbfx.sub.dir}/nbbuild/netbeans/nbfx-platform/core/nbfx-noimport.jar">
+            <fileset dir="${nbfx.dist.noimport.classes}"/>
+            <fileset dir="${basedir}/release/launcher/src" includes="META-INF/**,**/Bundle.properties"/>
+        </jar>
+    </target>
+
+    <target name="-dist-launcher" depends="-launcher-jar"
             description="Adjust the launcher of the built distribution (nbbuild/netbeans) for nbfx">
         <!-- upstream build-nozip re-copies bin/ and etc/ from nb/ide.launcher on every run, so this
              must run after the build and before the zip -->
@@ -495,27 +526,6 @@ nbfx-java
              names a no-op class (release/launcher), which must be on the startup classpath (the
              import runs before the module system): core/*.jar of every cluster is. Using the
              same path on every OS means a test on macOS/Linux covers the Windows launcher too. -->
-        <property name="nbfx.dist.importclass" value="org.netbeans.modules.nbfx.startup.NoImport"/>
-        <property name="nbfx.dist.noimport.classes" location="${nbfx.build.dir}/noimport/classes"/>
-        <delete dir="${nbfx.dist.noimport.classes}" quiet="true"/>
-        <mkdir dir="${nbfx.dist.noimport.classes}"/>
-        <!-- The same jar carries JdkCheck, a CLIHandler (META-INF/services) that the bootstrap runs
-             on every start before core.startup: on an older JDK than nbfx needs it says which JDK
-             was found and how to pick another, and exits, instead of the platform's "could not
-             install some modules" dialog. Release 17, as the bootstrap and core.startup that load
-             these classes: they must load on the JDKs they reject. -->
-        <javac srcdir="${basedir}/release/launcher/src" destdir="${nbfx.dist.noimport.classes}"
-               release="17" includeantruntime="false" encoding="UTF-8">
-            <classpath>
-                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/boot.jar"/>
-                <!-- NbBundle, for the messages in the jar's Bundle.properties -->
-                <pathelement location="${nbfx.sub.dir}/nbbuild/netbeans/platform/lib/org-openide-util.jar"/>
-            </classpath>
-        </javac>
-        <jar destfile="${nbfx.sub.dir}/nbbuild/netbeans/nbfx-platform/core/nbfx-noimport.jar">
-            <fileset dir="${nbfx.dist.noimport.classes}"/>
-            <fileset dir="${basedir}/release/launcher/src" includes="META-INF/**,**/Bundle.properties"/>
-        </jar>
         <replaceregexp file="${nbfx.sub.dir}/nbbuild/netbeans/etc/netbeans.conf" byline="true"
                        match="^(netbeans_default_options=&quot;(?!.*netbeans\.importclass=).*)&quot;\s*$"
                        replace="\1 -J-Dnetbeans.importclass=${nbfx.dist.importclass}&quot;"/>
@@ -604,6 +614,8 @@ metabuild.hash=${nbfx.nbbuild.hash}
             <property name="cluster.config" value="${nbfx.cluster.config}"/>
             <property name="clusters.list.file" location="${nbfx.cluster.file}"/>
         </ant>
+        <!-- after the upstream build: the jar compiles against platform/lib/boot.jar -->
+        <antcall target="-launcher-jar"/>
     </target>
 
     <!-- The platform-only config needs the nbfx cluster definitions as well as the platform list,
