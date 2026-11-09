@@ -62,6 +62,7 @@ public class ViewRegistrationProcessor extends LayerGeneratingProcessor {
             File file = layer(element).instanceFile(LayerPaths.VIEWS, id, (Class<?>) null);
             file.bundlevalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
+            file.stringvalue("kind", registration.kind());
             file.stringvalue("location", registration.location().name());
             file.intvalue("position", registration.position());
             file.boolvalue("navigator", registration.navigator());

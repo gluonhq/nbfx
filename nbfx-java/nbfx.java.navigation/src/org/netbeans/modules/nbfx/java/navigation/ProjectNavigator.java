@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.java.navigation;
 
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.project.ProjectIconProvider;
 import org.netbeans.api.nbfx.project.ProjectOpener;
@@ -82,6 +83,7 @@ import static org.netbeans.api.java.project.JavaProjectConstants.SOURCES_TYPE_RE
     @ServiceProvider(service = ProjectIconProvider.class, position = 10)
 })
 @ViewRegistration(displayName = "Projects",
+        kind = ViewKind.NAVIGATOR_ID,
         iconName = "org/netbeans/modules/nbfx/java/navigation/projectTab.png",
         location = DockLocation.LEFT, position = 10, navigator = true)
 public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> implements ProjectIconProvider {

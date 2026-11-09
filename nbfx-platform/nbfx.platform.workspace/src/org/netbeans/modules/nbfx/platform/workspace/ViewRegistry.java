@@ -22,6 +22,7 @@ import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -88,13 +89,14 @@ public final class ViewRegistry {
             FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
             String displayName = stringAttribute(file, "displayName", view.getTitle());
             String iconName = stringAttribute(file, "iconName", "");
+            ViewKind kind = ViewKind.of(stringAttribute(file, "kind", ViewKind.TOOL_ID));
             DockLocation location = locationAttribute(file, view.getDefaultLocation());
             int position = intAttribute(file, "position", Integer.MAX_VALUE);
             boolean navigator = booleanAttribute(file, "navigator");
             ViewArea area = areaAttribute(file, location);
             boolean openAtStartup = booleanAttribute(file, "openAtStartup");
             PersistenceType persistenceType = persistenceAttribute(file);
-            registrations.add(new ViewSpec(id, displayName, iconName, position,
+            registrations.add(new ViewSpec(id, displayName, iconName, kind, position,
                     navigator, area, openAtStartup, persistenceType, view));
         }
         return sort(registrations);

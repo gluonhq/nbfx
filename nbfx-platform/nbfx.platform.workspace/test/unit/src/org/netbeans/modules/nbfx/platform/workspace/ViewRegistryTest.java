@@ -22,6 +22,7 @@ import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewArea;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.io.IOException;
 import java.util.List;
@@ -55,6 +56,7 @@ public class ViewRegistryTest {
         FileObject folder = viewFolder();
         FileObject zeta = folder.createData("zeta", "instance");
         zeta.setAttribute("displayName", "Zeta");
+        zeta.setAttribute("kind", "output");
         zeta.setAttribute("location", "RIGHT");
         zeta.setAttribute("position", 20);
         FileObject alpha = folder.createData("alpha", "instance");
@@ -72,6 +74,7 @@ public class ViewRegistryTest {
         assertTrue(registrations.get(0).navigator());
         assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertEquals("Zeta", registrations.get(1).displayName());
+        assertEquals(ViewKind.OUTPUT, registrations.get(1).kind());
         assertEquals(DockLocation.RIGHT, registrations.get(1).location());
         assertEquals(ViewArea.PROPERTIES, registrations.get(1).area());
         assertFalse(registrations.get(1).navigator());
@@ -114,6 +117,7 @@ public class ViewRegistryTest {
 
         assertEquals("v", registrations.get(0).id());
         assertEquals("v", registrations.get(0).displayName());
+        assertEquals(ViewKind.TOOL, registrations.get(0).kind());
         assertEquals(DockLocation.LEFT, registrations.get(0).location());
         assertEquals(ViewArea.EXPLORER, registrations.get(0).area());
         assertFalse(registrations.get(0).openAtStartup());

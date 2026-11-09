@@ -22,6 +22,7 @@ import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.view.ViewManager;
@@ -41,6 +42,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = StructureView.ID, displayName = "#StructureView.title",
+        kind = ViewKind.TOOL_ID,
         iconName = "org/netbeans/modules/nbfx/ide/structure/navigator.png",
         location = DockLocation.LEFT_BOTTOM, position = 5, openAtStartup = true)
 @ActionReference(id = IdeActionIds.SELECT_NAVIGATOR, path = "Menus/Window", position = 50)

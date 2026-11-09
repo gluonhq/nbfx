@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.view;
 
+import java.util.List;
+import java.util.Optional;
 import org.netbeans.api.nbfx.views.ViewArea;
 
 /**
@@ -50,4 +52,56 @@ public interface ViewManager {
 
     /** Whether {@code view} currently has a tab, docked or detached. */
     boolean isShowing(ViewProvider view);
+
+    /**
+     * The views that currently have a tab, in a stable kind/position/id order. The list is a
+     * snapshot; use {@link #addOpenViewsListener(Runnable)} to follow changes. The default returns
+     * an empty list for implementations that do not track open views.
+     *
+     * @return the open views, never {@code null}
+     * @since 1.6
+     */
+    default List<ViewInfo> openViews() {
+        return List.of();
+    }
+
+    /**
+     * The view that is currently the active component, if the focused pane holds a view tab. The
+     * default returns an empty value.
+     *
+     * @return the active view, or empty when an editor or nothing is active
+     * @since 1.6
+     */
+    default Optional<ViewInfo> activeView() {
+        return Optional.empty();
+    }
+
+    /**
+     * Brings the open view with {@code viewId} on screen, including a detached window. Does nothing
+     * when no tab with that id is open. The default does nothing.
+     *
+     * @param viewId the stable view id
+     * @since 1.6
+     */
+    default void activate(String viewId) {
+    }
+
+    /**
+     * Registers a listener invoked when the set of open views or the active view changes. The
+     * default ignores the listener.
+     *
+     * @param listener the listener to add
+     * @since 1.6
+     */
+    default void addOpenViewsListener(Runnable listener) {
+    }
+
+    /**
+     * Removes a listener added with {@link #addOpenViewsListener(Runnable)}.
+     *
+     * @param listener the listener to remove
+     * @since 1.6
+     */
+    default void removeOpenViewsListener(Runnable listener) {
+    }
 }

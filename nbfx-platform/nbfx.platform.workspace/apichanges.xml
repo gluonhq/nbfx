@@ -96,6 +96,21 @@
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewSpec"/>
             <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewRegistry"/>
         </change>
+        <change id="view.spec.kind">
+            <api name="netbeansfx_windows"/>
+            <summary>View specs carry the registered view kind.</summary>
+            <version major="1" minor="4"/>
+            <date day="10" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="no" modification="yes" removal="yes" semantic="incompatible"/>
+            <description>
+                Adds the <code>kind</code> component to <code>ViewSpec</code>, read from the view
+                registration's <code>kind</code> attribute. The canonical constructor changes.
+                Registrations that do not set a kind keep <code>ViewKind.TOOL</code>.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewSpec"/>
+            <class package="org.netbeans.modules.nbfx.platform.workspace" name="ViewRegistry"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

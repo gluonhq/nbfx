@@ -131,6 +131,22 @@
             <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownParticipant"/>
             <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownSelection"/>
         </change>
+        <change id="open.view.listeners">
+            <api name="netbeansfx_shell"/>
+            <summary>Open-view tab listeners and the live open-view model.</summary>
+            <version major="1" minor="7"/>
+            <date day="10" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>NbfxTabPane.addViewTabsListener/removeViewTabsListener</code> and the
+                <code>ViewManagerService</code> open-view model behind the new
+                <code>ViewManager</code> methods. The listeners keep the Window menu current when
+                view tabs are attached, moved or closed.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell" name="NbfxTabPane"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell" name="ViewManagerService"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

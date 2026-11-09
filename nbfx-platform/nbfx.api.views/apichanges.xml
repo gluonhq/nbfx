@@ -58,6 +58,24 @@
             </description>
             <class package="org.netbeans.api.nbfx.view" name="NavigatorRevealer"/>
         </change>
+        <change id="open.view.contract">
+            <api name="netbeansfx_views"/>
+            <summary>Open-view metadata, kinds and activation.</summary>
+            <version major="1" minor="6"/>
+            <date day="9" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ViewKind</code>, the metadata-only <code>ViewInfo</code> record, and
+                default <code>ViewManager</code> methods to list open views, report the active view,
+                activate a view by id and register open-view listeners. <code>ViewRegistration</code>
+                gains a <code>kind</code> attribute with a <code>tool</code> default.
+            </description>
+            <class package="org.netbeans.api.nbfx.view" name="ViewInfo"/>
+            <class package="org.netbeans.api.nbfx.view" name="ViewManager"/>
+            <class package="org.netbeans.api.nbfx.views" name="ViewKind"/>
+            <class package="org.netbeans.api.nbfx.views" name="ViewRegistration"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.workspace;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.Objects;
 
@@ -31,6 +32,7 @@ import java.util.Objects;
  * @param id               the view id (the layer file's base name)
  * @param displayName      the tab title
  * @param iconName         the icon resource name, or an empty string
+ * @param kind             the view kind used for menu grouping and filtering
  * @param position         the position relative to the other views
  * @param navigator        whether the view is a navigator docked at start-up
  * @param area             the window area the view is docked into, resolved from the declared id or
@@ -40,7 +42,7 @@ import java.util.Objects;
  * @param view             the view
  * @since 1.0
  */
-public record ViewSpec(String id, String displayName, String iconName,
+public record ViewSpec(String id, String displayName, String iconName, ViewKind kind,
         int position, boolean navigator, ViewArea area,
         boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
 
@@ -48,6 +50,7 @@ public record ViewSpec(String id, String displayName, String iconName,
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(iconName, "iconName");
+        Objects.requireNonNull(kind, "kind");
         Objects.requireNonNull(area, "area");
         Objects.requireNonNull(persistenceType, "persistenceType");
         Objects.requireNonNull(view, "view");

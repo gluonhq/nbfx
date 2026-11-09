@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.ide.debug;
 
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -34,6 +35,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = DebugViewProvider.ID, displayName = "Debugging",
+        kind = ViewKind.OUTPUT_ID,
         location = DockLocation.CENTER_BOTTOM, position = 20)
 public final class DebugViewProvider implements ViewProvider {
 

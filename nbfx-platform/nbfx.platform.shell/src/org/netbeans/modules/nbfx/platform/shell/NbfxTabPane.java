@@ -256,6 +256,9 @@ public final class NbfxTabPane extends TabPane {
     /** Listeners notified when any pane's selected tab (the active component) changes. */
     private static final List<Runnable> ACTIVE_TAB_LISTENERS = new ArrayList<>();
 
+    /** Listeners notified when a view tab is attached, moved or closed. */
+    private static final List<Runnable> VIEW_TABS_LISTENERS = new ArrayList<>();
+
     /** True while a tab-header drag gesture is in progress (between drag-detected and drag-done). */
     private static boolean tabDragInProgress;
     /**
@@ -319,6 +322,7 @@ public final class NbfxTabPane extends TabPane {
         attachStylesheetWhenAttached(this);
         trackFocus(this);
         TAB_PANES.add(this);
+        notifyViewTabsChanged();
         if (role != PaneRole.SLIDE) {
             // Nothing is dropped on the sliding panel: a tab or file landing there would be lost
             // with the panel. Its own tab is still dragged out through its header.
@@ -368,7 +372,10 @@ public final class NbfxTabPane extends TabPane {
             placeholder = null;
         }
         // An editor pane without tabs has nothing to maximize, and the editor pane then shows its placeholder.
-        getTabs().addListener((ListChangeListener<Tab>) change -> updateHeaderButton());
+        getTabs().addListener((ListChangeListener<Tab>) change -> {
+            updateHeaderButton();
+            notifyViewTabsChanged();
+        });
         updateHeaderButton();
     }
 
@@ -841,6 +848,38 @@ public final class NbfxTabPane extends TabPane {
     /** Notifies the active-tab listeners; called after a pane's selection (or window focus) changed. */
     private static void notifyActiveTabChanged() {
         for (Runnable listener : List.copyOf(ACTIVE_TAB_LISTENERS)) {
+            listener.run();
+        }
+    }
+
+    /**
+     * Registers a listener invoked when a view tab is attached, moved or closed - the set of open
+     * views changed. The shell uses this to keep an open-view menu current.
+     *
+     * @param listener the listener to add
+     * @since 1.7
+     */
+    public static void addViewTabsListener(Runnable listener) {
+        if (listener != null) {
+            VIEW_TABS_LISTENERS.add(listener);
+        }
+    }
+
+    /**
+     * Removes a listener added with {@link #addViewTabsListener(Runnable)}.
+     *
+     * @param listener the listener to remove
+     * @since 1.7
+     */
+    public static void removeViewTabsListener(Runnable listener) {
+        if (listener != null) {
+            VIEW_TABS_LISTENERS.remove(listener);
+        }
+    }
+
+    /** Notifies the view-tab listeners; called after a tab is attached, moved or closed. */
+    private static void notifyViewTabsChanged() {
+        for (Runnable listener : List.copyOf(VIEW_TABS_LISTENERS)) {
             listener.run();
         }
     }
@@ -1446,6 +1485,7 @@ public final class NbfxTabPane extends TabPane {
         if (activePane == pane) {
             activePane = null;
         }
+        notifyViewTabsChanged();
     }
 
     /**

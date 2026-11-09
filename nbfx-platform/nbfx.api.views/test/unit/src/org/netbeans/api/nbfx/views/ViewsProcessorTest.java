@@ -46,6 +46,7 @@ public class ViewsProcessorTest {
             "package demo;\n"
             + "import org.netbeans.api.nbfx.views.*;\n"
             + "@ViewRegistration(id = \"demo.view\", displayName = \"Demo View\","
+            + " kind = ViewKind.OUTPUT_ID,"
             + " location = DockLocation.LEFT_BOTTOM, openAtStartup = true)\n"
             + "@MenuRegistration(id = \"Navigate\", position = 40)\n"
             + "@MenuRegistration(id = \"Inspect\", path = \"ContextMenus/Editor\", position = 100,"
@@ -65,6 +66,7 @@ public class ViewsProcessorTest {
 
         assertTrue(xml, xml.contains("name=\"demo.view.instance\""));
         assertTrue(xml, xml.contains("location\" stringvalue=\"LEFT_BOTTOM\""));
+        assertTrue(xml, xml.contains("kind\" stringvalue=\"output\""));
         assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"openAtStartup\""));
         assertTrue(xml, xml.contains("<folder name=\"Navigate\">"));
         assertTrue(xml, xml.contains("<folder name=\"ContextMenus\">"));
