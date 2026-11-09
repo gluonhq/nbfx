@@ -41,6 +41,7 @@ import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.file.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
 import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
@@ -347,7 +348,14 @@ public final class NbfxTabPane extends TabPane {
         // once the pane is in a scene.
         sceneProperty().subscribe(scene -> updateHeaderButton());
         if (role.isMain()) {
-            placeholder = new Label(NbBundle.getMessage(NbfxTabPane.class, "Tab.editor.placeholder"));
+            String placeholderText = NbBundle.getMessage(NbfxTabPane.class,
+                    "Tab.editor.placeholder");
+            ShellBranding branding = ShellBranding.select(Lookup.getDefault()).orElse(null);
+            String customPlaceholderText = branding == null ? null : branding.emptyEditorText();
+            if (customPlaceholderText != null && !customPlaceholderText.isBlank()) {
+                placeholderText = customPlaceholderText;
+            }
+            placeholder = new Label(placeholderText);
             placeholder.getStyleClass().add("nbfx-editor-placeholder");
             placeholder.setAlignment(Pos.CENTER);
             placeholder.setWrapText(true);
