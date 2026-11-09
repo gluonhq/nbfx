@@ -87,6 +87,7 @@ ant appshell-conformance  # run the platform-only AppShell conformance fixture
 ant run            # launch the FX app on the lean cluster set
 ant module -Dmodule=<cluster>/<module>   # rebuild one module into the dist (seconds)
 ant check-purity   # forbidden Swing/AWT imports & deps, bundled classes, no core.windows jar
+ant guards         # everything CI checks on a PR: check-purity + check-figures + check-api
 ant update-upstream -Dnbfx.submodule.commit=<sha>
 ant clean
 ```

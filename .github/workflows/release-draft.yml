@@ -112,10 +112,8 @@ jobs:
         # verifies each file's SHA-1
         run: ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
 
-      - name: ant check-purity
-        run: |
-          ant check-purity
-          ant -f check-purity.xml check-figures
+      - name: ant guards
+        run: ant guards
 
       # as ci.yml, but on the tagged commit itself rather than trusted from main
       - name: ant test
