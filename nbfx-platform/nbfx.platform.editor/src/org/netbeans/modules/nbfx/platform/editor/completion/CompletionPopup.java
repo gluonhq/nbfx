@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.editor.completion;
 import org.netbeans.api.nbfx.completion.CompletionContext;
 import org.netbeans.api.nbfx.completion.CompletionItem;
 import org.netbeans.api.nbfx.language.SourceElementKind;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Bounds;
@@ -120,6 +121,7 @@ final class CompletionPopup extends PopupControl {
 
         getStyleClass().add("completion-popup");
         getScene().setRoot(root);
+        NbfxTheme.apply(getScene());
 
         footerWidth = measureFooterWidth();
     }
@@ -360,6 +362,7 @@ final class CompletionPopup extends PopupControl {
         Scene scene = new Scene(group);
         scene.getStylesheets().add(
                 Objects.requireNonNull(CompletionPopup.class.getResource("completion-popup.css")).toExternalForm());
+        NbfxTheme.apply(scene);
         group.applyCss();
         group.layout();
         return (int) Math.ceil(group.getLayoutBounds().getWidth());
