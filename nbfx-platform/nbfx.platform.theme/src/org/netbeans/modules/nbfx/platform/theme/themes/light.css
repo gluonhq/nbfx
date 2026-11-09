@@ -48,9 +48,11 @@
     -nbfx-danger: #c74f50;
     -nbfx-danger-soft: #E0A0A0;
     -nbfx-danger-pressed: #C88080;
+    -nbfx-drop-indicator: red;
 
     /* Code editor surfaces, highlights and search bar */
     -nbfx-editor-bg: white;
+    -nbfx-editor-fg: black;
     -nbfx-editor-line: #F9F4E0;
     -nbfx-editor-gutter: #E9E8E2;
     -nbfx-editor-selection: #89BCED;

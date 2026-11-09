@@ -40,6 +40,7 @@ import java.util.logging.Logger;
 import java.util.stream.Stream;
 import javafx.application.ColorScheme;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.scene.Scene;
 import javafx.scene.control.DialogPane;
 import javafx.stage.Window;
@@ -74,7 +75,12 @@ public final class NbfxTheme {
     private static final String PREFERENCE_KEY = "theme";
     private static final String MODE_KEY = "themeMode";
     private static final String SIDECAR_SUFFIX = ".properties";
-    private static final String THEME_URL_KEY = "nbfx.theme.url";
+    /**
+     * Scene property holding the URL of the theme stylesheet applied to the scene. It changes
+     * whenever the theme changes, so a component that caches resolved colors (the rich text
+     * area's styled segments do) can listen to {@code scene.getProperties()} and rebuild.
+     */
+    public static final String THEME_URL_KEY = "nbfx.theme.url";
     private static final String THEMES_RESOURCE = "themes/";
 
     private static final Logger LOG = Logger.getLogger(NbfxTheme.class.getName());
@@ -91,26 +97,55 @@ public final class NbfxTheme {
             Collections.synchronizedMap(new WeakHashMap<>());
     private static Subscription platformSubscription;
     private static boolean warnedAboutUserDirectory;
+    /** Themes every window as it is shown: dialogs and popups of any module, not only the shell's. */
+    private static final ListChangeListener<Window> WINDOWS = change -> {
+        while (change.next()) {
+            if (change.wasAdded()) {
+                for (Window window : change.getAddedSubList()) {
+                    applyToWindow(window);
+                }
+            }
+        }
+    };
 
     private NbfxTheme() {
     }
 
-    /** Installs the OS color-scheme listener; idempotent. */
+    /** Installs the OS color-scheme listener and the window listener; idempotent. */
     public static synchronized void install() {
         if (platformSubscription != null) {
             return;
         }
         platformSubscription = Platform.getPreferences().colorSchemeProperty()
                 .subscribe(scheme -> onPlatformSchemeChanged());
+        Runnable windows = () -> {
+            Window.getWindows().addListener(WINDOWS);
+            for (Window window : Window.getWindows()) {
+                applyToWindow(window);
+            }
+        };
+        if (Platform.isFxApplicationThread()) {
+            windows.run();
+        } else {
+            Platform.runLater(windows);
+        }
     }
 
-    /** Disposes the OS listener and forgets tracked scenes. */
+    /** Disposes the listeners and forgets tracked scenes. */
     public static synchronized void dispose() {
         if (platformSubscription != null) {
             platformSubscription.unsubscribe();
             platformSubscription = null;
+            Window.getWindows().removeListener(WINDOWS);
         }
         SCENES.clear();
+    }
+
+    private static void applyToWindow(Window window) {
+        Scene scene = window.getScene();
+        if (scene != null) {
+            apply(scene);
+        }
     }
 
     /** The configured theme mode. */
