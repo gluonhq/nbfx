@@ -59,6 +59,7 @@ public final class ViewTabs {
         tab.setGraphic(label);
         tab.setContent(view.getView());
         NbfxTabPane.setViewId(tab, view.getId());
+        tab.getProperties().put(NbfxTabPane.VIEW_PROVIDER_KEY, view);
         NbfxTabPane.installTabLabelTooltip(tab, tooltip);
         NbfxTabPane.installCloseButtonTooltip(tab,
                 NbBundle.getMessage(ViewTabs.class, "Tab.view.close.tooltip"));

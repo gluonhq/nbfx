@@ -213,6 +213,8 @@ public final class NbfxTabPane extends TabPane {
 
     /** Key under which a view tab stores its stable {@code ViewProvider} identifier for persistence. */
     private static final String VIEW_ID_KEY = "nbfx.viewId";
+    /** Key under which a view tab stores the provider that created it, for dynamic-view cleanup. */
+    static final String VIEW_PROVIDER_KEY = "nbfx.viewProvider";
 
     private static final String STYLESHEET = Objects.requireNonNull(
             NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/platform/shell/styles.css")).toExternalForm();
@@ -859,12 +861,17 @@ public final class NbfxTabPane extends TabPane {
             return;
         }
         String viewId = viewId(tab);
+        boolean notified = false;
         if (viewId != null) {
             for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
                 if (viewId.equals(view.getId())) {
                     view.viewClosed();
+                    notified = true;
                 }
             }
+        }
+        if (!notified && tab.getProperties().get(VIEW_PROVIDER_KEY) instanceof ViewProvider dynamic) {
+            dynamic.viewClosed();
         }
         EditorSplit.dispose(tab);
         EditorDocument document = documentOf(tab);
