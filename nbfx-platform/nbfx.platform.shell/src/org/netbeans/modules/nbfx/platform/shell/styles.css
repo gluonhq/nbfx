@@ -791,20 +791,32 @@
     -fx-padding: 0 0 0 8;
 }
 
-.status-bar .status-bar-progress-group > .status-bar-progress {
+.status-bar .status-bar-progress-group > .status-bar-progress-box {
     -fx-pref-width: 180;
 }
 
-.status-bar .status-bar-progress-group > .status-bar-progress > .bar,
-.status-bar .status-bar-progress-group > .status-bar-progress:indeterminate > .bar {
+.status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress {
+    -fx-pref-width: 180;
+}
+
+.status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress > .bar,
+.status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress:indeterminate > .bar {
     -fx-background-color: -nbfx-accent;
     -fx-background-insets: 0;
     -fx-background-radius: 4;
 }
-.status-bar .status-bar-progress-group > .status-bar-progress > .track {
+.status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress > .track {
     -fx-background-color: -nbfx-track;
     -fx-background-insets: 0;
     -fx-background-radius: 4;
+}
+
+.status-bar .status-bar-progress-group > .status-bar-progress-box > .status-bar-progress-text {
+    -fx-background-color: -nbfx-surface;
+    -fx-background-radius: 3;
+    -fx-padding: 0 3 0 3;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-font-size: 9px;
 }
 
 .status-bar .status-bar-progress-group > .status-bar-count {

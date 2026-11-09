@@ -48,22 +48,52 @@ public final class ProgressOverlay implements Progress {
     /** One real progress handle; {@link #finish()} is idempotent. */
     private static final class HandleImpl implements Handle {
 
+        private static final int WORK_UNITS = 100;
+
         private final ProgressHandle handle;
         private final AtomicBoolean finished = new AtomicBoolean();
+        private boolean determinate;
+        private int lastProgress = -1;
 
         HandleImpl(ProgressHandle handle) {
             this.handle = handle;
         }
 
         @Override
-        public void setMessage(String message) {
+        public synchronized void setMessage(String message) {
             if (!finished.get()) {
                 handle.setDisplayName(message);
             }
         }
 
         @Override
-        public void finish() {
+        public synchronized void setProgress(double fraction) {
+            if (finished.get()) {
+                return;
+            }
+            if (fraction < 0) {
+                if (determinate) {
+                    handle.switchToIndeterminate();
+                    determinate = false;
+                    lastProgress = -1;
+                }
+                return;
+            }
+            if (!determinate) {
+                handle.switchToDeterminate(WORK_UNITS);
+                determinate = true;
+            }
+            int done = (int) Math.round(Math.max(0, Math.min(1, fraction)) * WORK_UNITS);
+            // NetBeans progress work units are monotonic; a lower value is ignored. Call with a
+            // negative fraction first to restart the bar from zero.
+            if (done > lastProgress) {
+                handle.progress(done);
+                lastProgress = done;
+            }
+        }
+
+        @Override
+        public synchronized void finish() {
             if (finished.compareAndSet(false, true)) {
                 handle.finish();
             }

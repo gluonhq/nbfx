@@ -48,6 +48,8 @@
         </p>
         <ul>
             <li>Use the NetBeans IDE as usual, leverage the underlying JavaFX Platform</li>
+            <li>Report determinate progress through {@code Progress.Handle.setProgress(double)}
+                while keeping indeterminate tasks unchanged.</li>
         </ul>
     </answer>
 
