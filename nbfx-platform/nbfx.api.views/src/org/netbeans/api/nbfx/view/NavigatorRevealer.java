@@ -36,4 +36,15 @@ public interface NavigatorRevealer {
      * @return {@code true} when a navigator handled the request
      */
     boolean reveal(FileObject file);
+
+    /**
+     * Reveals {@code file} in the navigator at {@code index} (0 = Projects, 1 = Files).
+     *
+     * @param file  the file to reveal and select
+     * @param index the navigator index
+     * @return {@code true} when a navigator handled the request
+     */
+    default boolean reveal(FileObject file, int index) {
+        return false;
+    }
 }

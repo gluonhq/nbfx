@@ -18,8 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import java.io.File;
+import java.util.logging.Logger;
+import javafx.stage.DirectoryChooser;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
+import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
@@ -31,11 +36,44 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ProjectOpener.class)
 public final class ProjectOpenerService implements ProjectOpener {
 
+    private static final Logger LOG = Logger.getLogger(ProjectOpenerService.class.getName());
+
+    @Override
+    public void open() {
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app == null) {
+            LOG.warning("Cannot open a project: the shell is not running");
+            return;
+        }
+        if (app.getWindow() == null || app.getWindow().stage() == null) {
+            LOG.warning("Cannot open a project: the shell window is not ready");
+            return;
+        }
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle(NbBundle.getMessage(ProjectOpenerService.class, "CTL_OpenProjectCommand"));
+        File directory = chooser.showDialog(app.getWindow().stage());
+        if (directory == null) {
+            return;
+        }
+        FileObject root = FileUtil.toFileObject(FileUtil.normalizeFile(directory));
+        if (root == null) {
+            LOG.warning("Cannot open project directory: " + directory);
+            return;
+        }
+        app.openProject(root);
+    }
+
     @Override
     public void open(FileObject root) {
-        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
-        if (app != null) {
-            app.openProject(root);
+        if (root == null) {
+            LOG.warning("Cannot open a project: no project root");
+            return;
         }
+        JavaFXLaunchApp app = JavaFXLaunchApp.instance();
+        if (app == null) {
+            LOG.warning("Cannot open project " + root.getPath() + ": the shell is not running");
+            return;
+        }
+        app.openProject(root);
     }
 }

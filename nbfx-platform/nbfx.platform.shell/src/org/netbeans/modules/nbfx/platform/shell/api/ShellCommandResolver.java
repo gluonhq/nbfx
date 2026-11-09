@@ -43,13 +43,12 @@ public interface ShellCommandResolver {
     Command resolve(String id);
 
     /**
-     * Resolves the command registered under {@code id}, optionally dispatching to a file
-     * counterpart while {@code preferFile} is {@code true}.
+     * Resolves the command registered under {@code id}.
      *
-     * @param id         the command id
-     * @param preferFile whether file-targeted commands are preferred, or {@code null}
-     * @return the command, or {@code null}
+     * @deprecated file-preference dispatch is now owned by the resolver's command set; use
+     *             {@link #resolve(String)}
      */
+    @Deprecated
     default Command resolve(String id, ObservableValue<Boolean> preferFile) {
         return resolve(id);
     }

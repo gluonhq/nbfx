@@ -29,7 +29,12 @@ import org.openide.filesystems.FileObject;
  * each operation. Contributions are per shell/JVM and should not hold global state.
  *
  * @since 1.0
+ * @deprecated use the focused capabilities {@link DetachedBarsProvider},
+ * {@link TabHomeResolver}, {@link ProjectSwitcher}, {@link NavigatorRevealState} and
+ * {@link org.netbeans.api.nbfx.view.NavigatorRevealer}; this interface remains as a compatibility
+ * adapter while products migrate.
  */
+@Deprecated
 public interface WindowEnvironmentContribution {
 
     /** Creates the bars for a detached window, or {@code null} when this contribution has none. */

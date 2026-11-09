@@ -842,4 +842,11 @@ so that netbeans/nbfx-* are the real cluster dirs (Unix): edit on either side, n
 </echo>
     </target>
 
+
+  <target name="check-api" description="Check the governed API packages and public types">
+    <exec executable="${java.home}/bin/java" dir="${basedir}" failonerror="true">
+      <arg value="docs/plan/tools/ApiSnapshot.java"/>
+      <arg value="--check"/>
+    </exec>
+  </target>
 </project>
