@@ -1460,13 +1460,19 @@ public final class NbfxTabPane extends TabPane {
      * {@code tab} is an editor tab (or its view is no longer registered).
      */
     public static ViewProvider viewOf(Tab tab) {
+        if (tab == null) {
+            return null;
+        }
+        if (tab.getProperties().get(VIEW_PROVIDER_KEY) instanceof ViewProvider view) {
+            return view;
+        }
         String viewId = viewId(tab);
         if (viewId == null) {
             return null;
         }
-        for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
-            if (viewId.equals(view.getId())) {
-                return view;
+        for (ViewProvider candidate : Lookup.getDefault().lookupAll(ViewProvider.class)) {
+            if (viewId.equals(candidate.getId())) {
+                return candidate;
             }
         }
         return null;
