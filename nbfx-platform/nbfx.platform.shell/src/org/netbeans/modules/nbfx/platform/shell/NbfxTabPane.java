@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
@@ -255,6 +256,8 @@ public final class NbfxTabPane extends TabPane {
 
     /** Listeners notified when any pane's selected tab (the active component) changes. */
     private static final List<Runnable> ACTIVE_TAB_LISTENERS = new ArrayList<>();
+    /** Listeners notified with the pane whose selection changed, for the shell's active-component bridge. */
+    private static final List<Consumer<TabPane>> ACTIVE_PANE_LISTENERS = new ArrayList<>();
 
     /** Listeners notified when a view tab is attached, moved or closed. */
     private static final List<Runnable> VIEW_TABS_LISTENERS = new ArrayList<>();
@@ -302,6 +305,11 @@ public final class NbfxTabPane extends TabPane {
     private static TabPane lastFocusedPane;
     /** The pane marked {@code :active}; see {@link #updateActivePane()}. */
     private static TabPane activePane;
+    /**
+     * The pane whose selected tab is the active component for the shell's action-context bridge.
+     * It follows selection and clicks, which can precede focus entering the pane.
+     */
+    private static TabPane componentPane;
 
     /** Creates a detached-window pane; see {@link #NbfxTabPane(PaneRole)}. */
     public NbfxTabPane() {
@@ -322,6 +330,9 @@ public final class NbfxTabPane extends TabPane {
         attachStylesheetWhenAttached(this);
         trackFocus(this);
         TAB_PANES.add(this);
+        if (componentPane == null) {
+            setComponentPane(this);
+        }
         notifyViewTabsChanged();
         if (role != PaneRole.SLIDE) {
             // Nothing is dropped on the sliding panel: a tab or file landing there would be lost
@@ -334,6 +345,13 @@ public final class NbfxTabPane extends TabPane {
         addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
             lastPressShift = e.isShiftDown();
             lastPressAlt = e.isAltDown();
+            // A click anywhere in a pane makes it the active component, even when its only tab is
+            // already selected and focus does not move. Notify only when the pane actually changed,
+            // so clicks in the already-active pane do not rebuild the menus on every press.
+            if (setComponentPane(this)) {
+                notifyActiveTabChanged();
+                notifyActivePaneChanged(this);
+            }
         });
         headerButton = SlidingArea.iconButton("minimize", "");
         headerButton.setOnAction(e -> headerButtonPressed());
@@ -796,12 +814,15 @@ public final class NbfxTabPane extends TabPane {
         // The active component (and, for an editor, the active document) is published by the shell
         // from the focused pane's selected tab; a navigator tab keeps the last editor active.
         tabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, selectedTab) -> {
+            setComponentPane(tabPane);
             notifyActiveTabChanged();
+            notifyActivePaneChanged(tabPane);
             focusDocument(selectedTab);
         });
         tabPane.focusedProperty().subscribe(focused -> {
             if (Boolean.TRUE.equals(focused)) {
                 Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+                setComponentPane(tabPane);
                 focusDocument(selectedTab);
             }
         });
@@ -813,7 +834,9 @@ public final class NbfxTabPane extends TabPane {
                 .subscribe(focused -> {
                     if (Boolean.TRUE.equals(focused)) {
                         Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+                        setComponentPane(tabPane);
                         notifyActiveTabChanged();
+                        notifyActivePaneChanged(tabPane);
                         // Only the pane that actually held focus restores it. Every pane of the
                         // window gets this callback, so focusing unconditionally would hand focus
                         // to whichever pane subscribed last (the main one, as it is built after the
@@ -845,10 +868,54 @@ public final class NbfxTabPane extends TabPane {
         }
     }
 
+    /**
+     * Registers a listener invoked with the pane whose selection/focus changed. The shell uses this to
+     * publish that pane's selected tab as the active component without resolving {@link #focusedPane()}
+     * too early (a tab selection fires before focus enters the new pane).
+     *
+     * @param listener the listener to add
+     */
+    public static void addActivePaneListener(Consumer<TabPane> listener) {
+        if (listener != null) {
+            ACTIVE_PANE_LISTENERS.add(listener);
+        }
+    }
+
+    /**
+     * Removes a listener added with {@link #addActivePaneListener(Consumer)}.
+     *
+     * @param listener the listener to remove
+     * @since 1.7
+     */
+    public static void removeActivePaneListener(Consumer<TabPane> listener) {
+        if (listener != null) {
+            ACTIVE_PANE_LISTENERS.remove(listener);
+        }
+    }
+
+    /** The pane whose selected tab is currently the active component, or {@code null}. */
+    static TabPane componentPane() {
+        return componentPane;
+    }
+
+    private static boolean setComponentPane(TabPane pane) {
+        if (componentPane == pane) {
+            return false;
+        }
+        componentPane = pane;
+        return true;
+    }
+
     /** Notifies the active-tab listeners; called after a pane's selection (or window focus) changed. */
     private static void notifyActiveTabChanged() {
         for (Runnable listener : List.copyOf(ACTIVE_TAB_LISTENERS)) {
             listener.run();
+        }
+    }
+
+    private static void notifyActivePaneChanged(TabPane pane) {
+        for (Consumer<TabPane> listener : List.copyOf(ACTIVE_PANE_LISTENERS)) {
+            listener.accept(pane);
         }
     }
 
@@ -897,9 +964,31 @@ public final class NbfxTabPane extends TabPane {
         EditorDocument document = EditorSplit.focusedDocumentOf(tab);
         if (document != null) {
             Platform.runLater(document::requestFocus);
-        } else if (tab.getContent() != null) {
-            Node content = tab.getContent();
-            Platform.runLater(content::requestFocus);
+            return;
+        }
+        Node content = tab.getContent();
+        if (content == null) {
+            return;
+        }
+        TabPane pane = tab.getTabPane();
+        if (content.isFocusTraversable()) {
+            if (content.isFocusWithin()) {
+                return;
+            }
+            Platform.runLater(() -> {
+                if (!content.isFocusWithin()) {
+                    content.requestFocus();
+                }
+            });
+        } else if (pane != null && !pane.isFocusWithin()) {
+            // A view root is usually a plain layout container. Focus the pane only when focus is
+            // outside it: queueing another request from the pane's own focus-gain listener would
+            // let two panes steal focus from each other on every pulse.
+            Platform.runLater(() -> {
+                if (!pane.isFocusWithin()) {
+                    pane.requestFocus();
+                }
+            });
         }
     }
 
@@ -1491,6 +1580,11 @@ public final class NbfxTabPane extends TabPane {
         if (activePane == pane) {
             activePane = null;
         }
+        if (componentPane == pane) {
+            setComponentPane(lastFocusedPane != null && TAB_PANES.contains(lastFocusedPane)
+                    ? lastFocusedPane
+                    : (TAB_PANES.isEmpty() ? null : TAB_PANES.iterator().next()));
+        }
         notifyViewTabsChanged();
     }
 
@@ -1608,7 +1702,9 @@ public final class NbfxTabPane extends TabPane {
         tabPane.focusWithinProperty().subscribe(focused -> {
             if (focused) {
                 lastFocusedPane = tabPane;
+                setComponentPane(tabPane);
                 notifyActiveTabChanged();
+                notifyActivePaneChanged(tabPane);
                 LOG.fine(() -> "Focus entered the " + roleOf(tabPane) + " pane");
             }
         });

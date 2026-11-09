@@ -69,7 +69,7 @@ public class NbfxGlobalContextProviderTest {
     @Test
     public void followsActiveView() throws IOException {
         FileObject file = newFile("A.java");
-        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+        Lookup global = new org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider().createGlobalContext();
 
         components.setActiveComponent(new ActiveComponent.ViewComponent(new FakeView(file)));
 
@@ -86,7 +86,7 @@ public class NbfxGlobalContextProviderTest {
         FileObject navigatorFile = newFile("Nav.java");
         FileObject editorFile = newFile("Editor.java");
         FakeEditorDocument document = new FakeEditorDocument(editorFile);
-        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+        Lookup global = new org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider().createGlobalContext();
 
         components.setActiveComponent(new ActiveComponent.ViewComponent(new FakeView(navigatorFile)));
         assertSame("navigator's file missing first", navigatorFile, global.lookup(FileObject.class));
@@ -102,7 +102,7 @@ public class NbfxGlobalContextProviderTest {
     public void navigatorsDoNotAnswerForEachOther() throws IOException {
         FileObject a = newFile("A.java");
         FileObject c = newFile("C.java");
-        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+        Lookup global = new org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider().createGlobalContext();
 
         components.setActiveComponent(new ActiveComponent.ViewComponent(new FakeView(a)));
         assertSame("first navigator's file missing", a, global.lookup(FileObject.class));
@@ -117,7 +117,7 @@ public class NbfxGlobalContextProviderTest {
     @Test
     public void followerViewKeepsLastSelection() throws IOException {
         FileObject a = newFile("A.java");
-        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+        Lookup global = new org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider().createGlobalContext();
 
         // A navigator carries a file; a follower view then exposes nothing of its own.
         components.setActiveComponent(new ActiveComponent.ViewComponent(new FakeView(a)));
@@ -132,7 +132,7 @@ public class NbfxGlobalContextProviderTest {
     public void editorThenNavigatorPublishesTheNavigator() throws IOException {
         FileObject editorFile = newFile("Editor.java");
         FileObject navFile = newFile("Nav.java");
-        Lookup global = new NbfxGlobalContextProvider().createGlobalContext();
+        Lookup global = new org.netbeans.modules.nbfx.platform.shell.NbfxGlobalContextProvider().createGlobalContext();
 
         components.setActiveComponent(new ActiveComponent.EditorComponent(new FakeEditorDocument(editorFile)));
         assertSame("editor's file missing", editorFile, global.lookup(FileObject.class));

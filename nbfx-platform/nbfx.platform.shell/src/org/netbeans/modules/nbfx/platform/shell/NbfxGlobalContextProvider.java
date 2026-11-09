@@ -36,7 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
  * context-sensitive commands. A view that exposes nothing of its own keeps the last
  * selection-bearing component, so a follower view does not blank the selection.</p>
  *
- * @since 1.0
+ * @since 1.7
  */
 @ServiceProvider(service = ContextGlobalProvider.class, position = 100)
 public final class NbfxGlobalContextProvider implements ContextGlobalProvider {

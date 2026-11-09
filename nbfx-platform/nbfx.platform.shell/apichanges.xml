@@ -161,6 +161,21 @@
             </description>
             <class package="org.netbeans.modules.nbfx.platform.shell" name="OpenViewsMenuFactory"/>
         </change>
+        <change id="active.pane.listener">
+            <api name="netbeansfx_shell"/>
+            <summary>Active-component tracking from selection and clicks.</summary>
+            <version major="1" minor="7"/>
+            <date day="9" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>NbfxTabPane.addActivePaneListener(Consumer&lt;TabPane&gt;)</code> and
+                <code>removeActivePaneListener</code>, and follows tab selection, focus gain and
+                mouse presses so the published active component matches the visible selection. The
+                shell removes its bridge listener and scene subscription on stop.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell" name="NbfxTabPane"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
