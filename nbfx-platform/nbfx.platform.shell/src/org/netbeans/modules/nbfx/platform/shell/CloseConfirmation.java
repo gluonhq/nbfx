@@ -28,9 +28,6 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 
-import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
-import org.openide.util.NbBundle;
-
 /**
  * Prompts the user before closing editors that have unsaved changes, offering to Save, Discard
  * or Cancel. Used both when closing a single tab and when closing a window with one or more
@@ -62,7 +59,7 @@ public final class CloseConfirmation {
         }
 
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(message("CloseConfirmation.title"));
+        ShellDialogSupport.install(alert, message("CloseConfirmation.title"));
         alert.setHeaderText(headerText(unsaved));
         // A locked (non-editable) document cannot be saved
         boolean saveAllowed = saveAllowed(unsaved);
@@ -74,7 +71,6 @@ public final class CloseConfirmation {
             alert.getButtonTypes().setAll(DISCARD, CANCEL);
         }
 
-        NbfxTheme.apply(alert.getDialogPane());
         ButtonType choice = alert.showAndWait().orElse(CANCEL);
         if (choice == DISCARD) {
             return true;
@@ -139,10 +135,9 @@ public final class CloseConfirmation {
             return true;
         }
         Alert error = new Alert(Alert.AlertType.ERROR);
-        error.setTitle(message("CloseConfirmation.error.title"));
+        ShellDialogSupport.install(error, message("CloseConfirmation.error.title"));
         error.setHeaderText(message("CloseConfirmation.error.header"));
         error.setContentText(String.join("\n", failures));
-        NbfxTheme.apply(error.getDialogPane());
         error.showAndWait();
         return false;
     }
@@ -153,6 +148,6 @@ public final class CloseConfirmation {
     }
 
     private static String message(String key, Object... args) {
-        return NbBundle.getMessage(CloseConfirmation.class, key, args);
+        return ShellDialogSupport.message(key, args);
     }
 }

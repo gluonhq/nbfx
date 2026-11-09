@@ -22,6 +22,9 @@ import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProvider;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownCoordinator;
+import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownImpact;
+import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownSelection;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
 
 import java.util.ArrayList;
@@ -108,6 +111,9 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private boolean applicationMenuInstalled;
     private Subscription titleSubscription;
     private boolean stateCaptured;
+    private ShutdownSelection shutdownSelection;
+    private boolean shutdownStarted;
+    private boolean shutdownCompleted;
     /** Providers resolved for this shell, in priority order. */
     private List<WindowPaneProvider> paneProviderList = List.of();
     /** Providers that created a pane, so their resources are released with the shell. */
@@ -215,6 +221,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             windowSystem.save();
         }
         appState.save();
+        shutdownWithoutConfirmation();
         if (titleSubscription != null) {
             titleSubscription.unsubscribe();
             titleSubscription = null;
@@ -467,19 +474,81 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     /**
      * Confirms unsaved changes, captures the session and exits. Returns {@code false} when the user
-     * cancels; the caller keeps the window open then.
+     * cancels, or while the shutdown coordinator runs its cleanup in the background; the caller
+     * keeps the window open then and {@link Platform#exit()} follows when cleanup finishes.
      */
     protected boolean requestQuit() {
+        if (shutdownStarted) {
+            return false;
+        }
         if (!confirmClose()) {
             return false;
+        }
+        ShutdownCoordinator coordinator = Lookup.getDefault().lookup(ShutdownCoordinator.class);
+        ShutdownSelection selection = null;
+        if (coordinator != null) {
+            ShutdownImpact impact = coordinator.impact();
+            if (!impact.isEmpty()) {
+                selection = coordinator.confirm(impact);
+                if (selection == null) {
+                    return false;
+                }
+                shutdownSelection = selection;
+            }
+            if (selection == null) {
+                selection = ShutdownSelection.defaults(impact);
+            }
         }
         captureSession();
         stateCaptured = true;
         if (windowSystemShown) {
             windowSystem.save();
         }
-        Platform.exit();
-        return true;
+        if (coordinator == null) {
+            shutdownCompleted = true;
+            Platform.exit();
+            return true;
+        }
+        // Cleanup may block (a save, a recording, temporary data), so keep the FX thread free and
+        // exit only when the coordinator is done. The close request is consumed meanwhile.
+        shutdownStarted = true;
+        ShutdownSelection plan = selection;
+        Thread.ofVirtual().name("nbfx-shutdown").start(() -> {
+            try {
+                coordinator.shutdown(plan);
+            } catch (RuntimeException ex) {
+                LOG.log(Level.WARNING, "Could not run the shutdown coordinator", ex);
+            } finally {
+                Platform.runLater(() -> {
+                    shutdownCompleted = true;
+                    Platform.exit();
+                });
+            }
+        });
+        return false;
+    }
+
+    /**
+     * Shuts the application-owned resources down when the FX application stops without going
+     * through {@link #requestQuit()}. Uses the safe defaults from the impact description. This is
+     * the last-resort path where the UI is already stopping, so it runs synchronously.
+     */
+    private void shutdownWithoutConfirmation() {
+        if (shutdownCompleted) {
+            return;
+        }
+        shutdownCompleted = true;
+        ShutdownCoordinator coordinator = Lookup.getDefault().lookup(ShutdownCoordinator.class);
+        if (coordinator == null) {
+            return;
+        }
+        try {
+            ShutdownImpact impact = coordinator.impact();
+            coordinator.shutdown(shutdownSelection == null
+                    ? ShutdownSelection.defaults(impact) : shutdownSelection);
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Could not run the shutdown coordinator", ex);
+        }
     }
 
     protected void captureSession() {

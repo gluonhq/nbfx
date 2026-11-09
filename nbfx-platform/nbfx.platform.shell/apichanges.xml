@@ -85,6 +85,26 @@
             <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ShellContext"/>
             <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ShellCommandResolver"/>
         </change>
+        <change id="shutdown.contract">
+            <api name="netbeansfx_shell"/>
+            <summary>Generic shutdown impact and confirmation contract.</summary>
+            <version major="1" minor="7"/>
+            <date day="9" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds the <code>org.netbeans.modules.nbfx.platform.shell.api.shutdown</code>
+                package: <code>ShutdownImpact</code>, <code>ShutdownSelection</code>,
+                <code>ShutdownParticipant</code> and <code>ShutdownCoordinator</code>. The shell
+                collects impact from registered participants, shows a generic confirmation dialog
+                and runs the selected cleanup before exit. Products supply their own participants
+                and choices; the platform contains no product-specific types.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownCoordinator"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownImpact"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownParticipant"/>
+            <class package="org.netbeans.modules.nbfx.platform.shell.api.shutdown" name="ShutdownSelection"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

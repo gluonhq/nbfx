@@ -1,0 +1,82 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* Shared shell dialog styles. The -nbfx-* tokens come from the theme. */
+
+.shutdown-dialog-content {
+    -fx-spacing: 10;
+    -fx-padding: 4;
+}
+
+.shutdown-dialog-summary {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.shutdown-dialog-warning {
+    -fx-text-fill: -nbfx-danger;
+    -fx-font-weight: bold;
+}
+
+.shutdown-dialog-section {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.shutdown-dialog-item-title {
+    -fx-font-weight: bold;
+}
+
+.shutdown-dialog-item-detail {
+    -fx-text-fill: -nbfx-text-muted;
+}
+
+.shutdown-dialog-marker {
+    -fx-min-width: 4;
+    -fx-pref-width: 4;
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+    -fx-background-radius: 2;
+    -fx-background-color: -nbfx-text-faint;
+}
+
+.shutdown-dialog-marker.data-loss {
+    -fx-background-color: -nbfx-danger;
+}
+
+.shutdown-dialog-marker.warning {
+    -fx-background-color: -nbfx-editor-squiggle-warning;
+}
+
+.shutdown-dialog-marker.impact {
+    -fx-background-color: -nbfx-accent;
+}
+
+.shutdown-dialog-marker.info {
+    -fx-background-color: -nbfx-text-faint;
+}
+
+.shutdown-dialog-option-label {
+    -fx-min-width: 160;
+}
+
+.shutdown-dialog-choice {
+    -fx-pref-width: 220;
+}
