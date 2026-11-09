@@ -70,6 +70,10 @@
     -fx-background-radius: 0;
 }
 
+.code-editor > .code-area-wrapper > .code-area .caret {
+    -fx-stroke: -nbfx-editor-fg;
+}
+
 .code-editor > .code-area-wrapper > .code-area > .vflow {
     -fx-background-color: -nbfx-editor-bg, -nbfx-editor-line;
     -fx-background-insets: 0, 1;
@@ -84,6 +88,10 @@
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content > .caret-line {
     -fx-fill: -nbfx-editor-line;
+}
+
+.code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content Text {
+    -fx-fill: -nbfx-editor-fg;
 }
 
 .code-editor > .code-area-wrapper > .code-area > .vflow > .vport > .content > .selection-highlight {

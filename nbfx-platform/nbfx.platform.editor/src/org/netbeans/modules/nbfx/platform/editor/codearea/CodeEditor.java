@@ -35,8 +35,10 @@ import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.beans.value.WeakChangeListener;
+import javafx.collections.MapChangeListener;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.control.TextInputControl;
 import javafx.scene.layout.BorderPane;
@@ -93,6 +95,17 @@ public class CodeEditor implements EditorDocument {
         }
     };
 
+    /**
+     * Rebuilds the paragraphs when the scene's theme changes. The rich text area keeps the colors
+     * its styled segments resolved, so swapping the theme stylesheet recolors plain text but not
+     * the tokens until their paragraphs are built again.
+     */
+    private final MapChangeListener<Object, Object> themeListener = change -> {
+        if (NbfxTheme.THEME_URL_KEY.equals(change.getKey()) && change.wasAdded()) {
+            refreshStyles();
+        }
+    };
+
     /** Every property subscription made by this editor, released together on {@link #dispose()}. */
     private Subscription subscription;
 
@@ -142,8 +155,12 @@ public class CodeEditor implements EditorDocument {
         rootPane.getStylesheets().add(
                 Objects.requireNonNull(CodeEditor.class.getResource("codeeditor.css")).toExternalForm());
         rootPane.sceneProperty().addListener((obs, oldScene, scene) -> {
+            if (oldScene != null) {
+                oldScene.getProperties().removeListener(themeListener);
+            }
             if (scene != null) {
                 NbfxTheme.apply(scene);
+                scene.getProperties().addListener(themeListener);
             }
         });
 
@@ -310,6 +327,10 @@ public class CodeEditor implements EditorDocument {
         }
         lineHighlight.dispose();
         buffer.model.removeListener(styleListener);
+        Scene scene = rootPane.getScene();
+        if (scene != null) {
+            scene.getProperties().removeListener(themeListener);
+        }
         if (subscription != null) {
             subscription.unsubscribe();
             subscription = null;
@@ -572,6 +593,14 @@ public class CodeEditor implements EditorDocument {
         if (editorSettings != null) {
             lineNumbersListener = (_, _, _) -> refreshLineDecorator();
             editorSettings.showLineNumbers().addListener(new WeakChangeListener<>(lineNumbersListener));
+        }
+    }
+
+    /** Fires a style change over the whole document so every paragraph is built again. */
+    private void refreshStyles() {
+        CodeTextModel model = buffer.model;
+        if (model.size() > 0) {
+            model.fireStyleChangeEvent(TextPos.ZERO, model.getDocumentEnd());
         }
     }
 

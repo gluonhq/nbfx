@@ -42,16 +42,18 @@
     -nbfx-danger: #DC322F;
     -nbfx-danger-soft: #5C2420;
     -nbfx-danger-pressed: #7A2D2A;
+    -nbfx-drop-indicator: #DC322F;
 
     /* Code editor: dark surfaces, highlights and search bar */
     -nbfx-editor-bg: #002B36;
+    -nbfx-editor-fg: #839496;
     -nbfx-editor-line: #073642;
     -nbfx-editor-gutter: #00323D;
     -nbfx-editor-selection: #1B4F5E;
     -nbfx-editor-line-band: rgba(181, 137, 0, 0.22);
-    -nbfx-editor-readonly-bg: #00303B;
-    -nbfx-editor-readonly-line: #04363F;
-    -nbfx-editor-readonly-gutter: #002B35;
+    -nbfx-editor-readonly-bg: #002B36;
+    -nbfx-editor-readonly-line: #073642;
+    -nbfx-editor-readonly-gutter: #00323D;
     -nbfx-editor-brace: #2E5A3A;
     -nbfx-editor-brace-error: #DC322F;
     -nbfx-editor-occurrence: #1F4D4A;
@@ -88,7 +90,8 @@
     -fx-base: #073642;
     -fx-background: #002B36;
     -fx-control-inner-background: #00323D;
-    -fx-control-inner-background-alt: #04363F;
+    -fx-control-inner-background-alt: #00323D;
+    -fx-default-button: #1E6FA8;
     -fx-text-background-color: #FDF6E3;
     -fx-text-base-color: #EEE8D5;
     -fx-text-box-border: #2B4F5A;

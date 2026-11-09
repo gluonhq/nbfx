@@ -875,8 +875,10 @@ What landed:
 - bundled themes load from the module resources; the `nbfx-themes` user folder is an optional
   overlay, and a missing user directory only logs a warning;
 - `NbfxTheme` is brandable through `theme.properties`;
-- the shell, editor and popups reapply the theme on scene attach; dialog scenes are themed
-  through `NbfxTheme.apply(DialogPane)` and the close confirmation;
+- every window is themed as it is shown (a listener on `Window.getWindows()`), so dialogs and
+  popups of any module get the token sheets, the theme and the scene color scheme without
+  calling `NbfxTheme`; the shell, editor and popups also reapply the theme on scene attach, and
+  `NbfxTheme.apply(DialogPane)` themes a dialog pane before it is shown (the close confirmation);
 - `ThemeMenuFactory` contributes View > Theme as a dynamic menu;
 - on macOS, AWT (which the platform starts before JavaFX) pins the application appearance to
   Aqua unless `apple.awt.application.appearance=system`, and JavaFX then reports `LIGHT` whatever

@@ -42,16 +42,18 @@
     -nbfx-danger: #E06C6D;
     -nbfx-danger-soft: #8B3A3A;
     -nbfx-danger-pressed: #A34B4B;
+    -nbfx-drop-indicator: #FF5C5C;
 
     /* Code editor: dark surfaces, highlights and search bar */
     -nbfx-editor-bg: #1E1E1E;
+    -nbfx-editor-fg: #D4D4D4;
     -nbfx-editor-line: #2A2D2E;
     -nbfx-editor-gutter: #252526;
     -nbfx-editor-selection: #264F78;
     -nbfx-editor-line-band: rgba(255, 214, 102, 0.14);
-    -nbfx-editor-readonly-bg: #262626;
-    -nbfx-editor-readonly-line: #2E2E2E;
-    -nbfx-editor-readonly-gutter: #2A2A2A;
+    -nbfx-editor-readonly-bg: #1E1E1E;
+    -nbfx-editor-readonly-line: #2A2D2E;
+    -nbfx-editor-readonly-gutter: #252526;
     -nbfx-editor-brace: #2F4F2F;
     -nbfx-editor-brace-error: #F14C4C;
     -nbfx-editor-occurrence: #3A4A2E;
@@ -88,7 +90,8 @@
     -fx-base: #3A3A3A;
     -fx-background: #2B2B2B;
     -fx-control-inner-background: #1E1E1E;
-    -fx-control-inner-background-alt: #252525;
+    -fx-control-inner-background-alt: #1E1E1E;
+    -fx-default-button: #2F6FB0;
     -fx-text-background-color: #EEEEEE;
     -fx-text-base-color: #EEEEEE;
     -fx-text-box-border: #4A4A4A;

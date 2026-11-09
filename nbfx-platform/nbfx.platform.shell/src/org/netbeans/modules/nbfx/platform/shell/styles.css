@@ -94,6 +94,11 @@
     -fx-border-color: transparent;
     -fx-border-width: 2;
     -fx-border-style: solid;
+    -fx-background-color: -nbfx-chrome, -nbfx-neutral;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+.nbfx-tab-pane:active > .tab-header-area > .headers-region > .tab:top,
+.nbfx-tab-pane:focused > .tab-header-area > .headers-region > .tab:top {
     -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
     -fx-background-insets: 0, 0 0 2 0;
 }
@@ -103,10 +108,15 @@
     -fx-border-style: solid;
 }
 .nbfx-tab-pane > .tab-header-area > .headers-region > .tab:top:selected {
-    -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
-    -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
+    -fx-background-color: -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 1 1 0 1;
     -fx-border-color: transparent transparent -nbfx-canvas transparent;
     -fx-border-style: solid;
+}
+.nbfx-tab-pane:active > .tab-header-area > .headers-region > .tab:top:selected,
+.nbfx-tab-pane:focused > .tab-header-area > .headers-region > .tab:top:selected {
+    -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
 }
 .nbfx-tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
     -fx-alignment: CENTER;
@@ -150,19 +160,28 @@
     -fx-background-insets: 0;
 }
 
+.nbfx-dock-split.split-pane:vertical > .split-pane-divider,
+.nbfx-dock-split.split-pane:horizontal > .split-pane-divider {
+    -fx-background-color: -nbfx-canvas;
+    -fx-background-insets: 0;
+}
+.nbfx-drop-line {
+    -fx-border-color: -nbfx-drop-indicator;
+}
+
 .nbfx-tab-pane:drop-target > .tab-header-area > .tab-header-background,
 .nbfx-tab-pane:drop-target > .tab-header-area > .headers-region > .tab {
-    -fx-border-color: -nbfx-chrome-active -nbfx-chrome-active red -nbfx-chrome-active;
+    -fx-border-color: -nbfx-chrome-active -nbfx-chrome-active -nbfx-drop-indicator -nbfx-chrome-active;
     -fx-border-insets: 0;
     -fx-border-style: segments(10, 6);
 }
 .nbfx-tab-pane:drop-target:has-placeholder > .tab-header-area > .headers-region > .tab:top:selected {
-    -fx-border-color: transparent transparent red transparent;
+    -fx-border-color: transparent transparent -nbfx-drop-indicator transparent;
     -fx-border-insets: 0;
     -fx-border-style: segments(10, 6);
 }
 .nbfx-tab-pane:drop-target > .tab-header-area > .headers-region > .tab.nbfx-placeholder-tab {
-    -fx-border-color: red, -nbfx-chrome-active;
+    -fx-border-color: -nbfx-drop-indicator, -nbfx-chrome-active;
     -fx-border-insets: 0, 2 2 0 2;
     -fx-border-style: segments(10, 6), solid;
 }
@@ -171,7 +190,7 @@
 }
 
 .nbfx-tab-pane:drop-target > .tab-content-area {
-    -fx-border-color: red, -nbfx-surface;
+    -fx-border-color: -nbfx-drop-indicator, -nbfx-surface;
     -fx-border-insets: 0, 0 2 2 2;
     -fx-border-style: segments(10, 6), solid;
 }
@@ -579,7 +598,7 @@
 
 .toolbar-drop-outline {
     -fx-background-color: transparent;
-    -fx-border-color: red;
+    -fx-border-color: -nbfx-drop-indicator;
     -fx-border-width: 2;
     -fx-border-style: segments(4, 3);
     -fx-border-insets: 0;

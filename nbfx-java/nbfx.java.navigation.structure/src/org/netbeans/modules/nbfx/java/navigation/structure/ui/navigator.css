@@ -19,8 +19,8 @@
 /* Java Navigator panels */
 
 .navigator-view {
-    -member-type-color: #707070;
-    -member-inherited-color: #7D694A;
+    -member-type-color: -nbfx-text-muted;
+    -member-inherited-color: -nbfx-text-faint;
 }
 
 .members-tree {
@@ -46,21 +46,21 @@
 }
 
 .tree-view:focused > .virtual-flow > .clipped-container > .sheet > .member-cell:selected:filled .member-label > Text {
-    -fx-fill: white;
+    -fx-fill: -nbfx-on-accent;
 }
 
 .implementations-popup {
     -fx-min-width: 600;
-    -fx-background-color: white;
-    -fx-border-color: #A8A8A8;
+    -fx-background-color: -nbfx-popup-bg;
+    -fx-border-color: -nbfx-popup-border;
     -fx-border-width: 1;
     -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.25), 8, 0, 0, 2);
 }
 .implementations-popup > .implementations-title {
     -fx-padding: 4 8 4 8;
     -fx-alignment: center;
-    -fx-background-color: #F2F2F2;
-    -fx-border-color: transparent transparent #D9D9D9 transparent;
+    -fx-background-color: -nbfx-canvas;
+    -fx-border-color: transparent transparent -nbfx-popup-separator transparent;
     -fx-border-width: 0 0 1 0;
 }
 .implementations-popup > .list-view {
@@ -73,11 +73,11 @@
 }
 
 .implementations-popup > .list-view .implementation-cell .implementation-name {
-    -fx-text-fill: black;
+    -fx-text-fill: -nbfx-popup-text;
 }
 .implementations-popup > .list-view .implementation-cell .implementation-enclosing,
 .implementations-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected > HBox > .implementation-enclosing {
-    -fx-text-fill: #707070;
+    -fx-text-fill: -nbfx-popup-muted;
 }
 
 .implementations-popup .implementation-arrow {
@@ -92,7 +92,7 @@
     -fx-max-height: 9;
     -fx-translate-x: -3;
     -fx-translate-y: 5;
-    -fx-background-color: #202020;
+    -fx-background-color: -nbfx-popup-text;
 }
 .implementations-popup .implementation-arrow:up {
     -fx-shape: "M2.5,9 H4.5 V4 H7 L3.5,0 L0,4 H2.5 Z";
@@ -103,9 +103,9 @@
 .implementations-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected > HBox > .implementation-arrow,
 .implementations-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover > HBox > .implementation-arrow,
 .implementations-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected:hover > HBox > .implementation-arrow {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-popup-selected-text;
 }
 
 .implementations-popup > .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected > HBox > .implementation-arrow {
-    -fx-background-color: #202020;
+    -fx-background-color: -nbfx-popup-text;
 }

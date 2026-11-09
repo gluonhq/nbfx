@@ -229,6 +229,8 @@ public final class NbfxTabPane extends TabPane {
     private static final String TAB_PANE_CLASS = "nbfx-tab-pane";
     private static final String TAB_HEADER_CLASS = "nbfx-tab-header";
     private static final PseudoClass DOCK_FOCUSED = PseudoClass.getPseudoClass("dock-focused");
+    /** Set on the last pane focus entered: the one the user works in, marked by its selected tab. */
+    private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
     /** Set on a pane whose header carries a control button (minimize, dock): the header makes room for it. */
     private static final PseudoClass HEADER_CONTROL = PseudoClass.getPseudoClass("header-control");
     private static final double HEADER_BUTTON_SIZE = 20;
@@ -292,6 +294,8 @@ public final class NbfxTabPane extends TabPane {
 
     /** The pane that last held focus, so the persisted layout can restore the active pane and window. */
     private static TabPane lastFocusedPane;
+    /** The pane marked {@code :active}; see {@link #updateActivePane()}. */
+    private static TabPane activePane;
 
     /** Creates a detached-window pane; see {@link #NbfxTabPane(PaneRole)}. */
     public NbfxTabPane() {
@@ -1424,6 +1428,9 @@ public final class NbfxTabPane extends TabPane {
         if (lastFocusedPane == pane) {
             lastFocusedPane = null;
         }
+        if (activePane == pane) {
+            activePane = null;
+        }
     }
 
     /**
@@ -1476,6 +1483,9 @@ public final class NbfxTabPane extends TabPane {
             if (lastFocusedPane == newPane) {
                 // Don't keep a closed window (and its scene graph) alive through the focus tracking.
                 lastFocusedPane = null;
+            }
+            if (activePane == newPane) {
+                activePane = null;
             }
             // This window's scoped commands observe documents that outlive it, so detach them.
             scopedCommands.forEach(Command::dispose);
@@ -1541,6 +1551,36 @@ public final class NbfxTabPane extends TabPane {
                 LOG.fine(() -> "Focus entered the " + roleOf(tabPane) + " pane");
             }
         });
+        tabPane.sceneProperty().flatMap(Scene::focusOwnerProperty).subscribe(owner -> updateActivePane());
+        tabPane.sceneProperty().flatMap(Scene::windowProperty).flatMap(Window::focusedProperty)
+                .subscribe(focused -> updateActivePane());
+    }
+
+    /**
+     * Marks the pane holding the focus owner of a focused window as {@code :active}, clearing the
+     * previous one. The scene's focus owner is read once focus settled, so the marker does not
+     * depend on the order in which the panes' {@code focusWithin} flags flip; while focus is
+     * outside every pane (a tool bar, a menu, a dialog) the last marked pane keeps the marker.
+     */
+    private static void updateActivePane() {
+        TabPane owner = null;
+        for (TabPane pane : TAB_PANES) {
+            if (holdsFocusOwner(pane)) {
+                Window window = pane.getScene().getWindow();
+                if (window != null && window.isFocused()) {
+                    owner = pane;
+                    break;
+                }
+            }
+        }
+        if (owner == null || owner == activePane) {
+            return;
+        }
+        if (activePane != null) {
+            activePane.pseudoClassStateChanged(ACTIVE, false);
+        }
+        activePane = owner;
+        owner.pseudoClassStateChanged(ACTIVE, true);
     }
 
     /** Whether {@code pane} was the last one to hold focus. */

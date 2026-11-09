@@ -27,18 +27,18 @@
 }
 
 .search-pane .search-text-combo {
-    -fx-background-color: #C2C2C2, white;
+    -fx-background-color: -nbfx-border, -nbfx-surface;
     -fx-background-insets: 0, 1;
     -fx-background-radius: 0;
     -fx-padding: 1;
 }
 
 .search-pane .search-text-combo:focus-within {
-    -fx-background-color: #4D90FE, white;
+    -fx-background-color: -nbfx-accent, -nbfx-surface;
 }
 
 .search-pane .search-text-combo > .arrow-button {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-surface;
     -fx-background-insets: 0;
     -fx-background-radius: 0;
     -fx-padding: 4 8 4 8;
@@ -57,6 +57,12 @@
     -fx-padding: 4 6 4 6;
 }
 
+.search-pane .search-text,
+.search-pane .text-input {
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-prompt-text-fill: -nbfx-text-faint;
+}
+
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical,
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal {
     -fx-padding: 0;
@@ -67,7 +73,7 @@
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal:focused,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical:focused {
-    -fx-background-color: #F5F5F5;
+    -fx-background-color: -nbfx-track;
 }
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical > .track,
@@ -78,7 +84,7 @@
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal > .track,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical > .track {
-    -fx-background-color: #F5F5F5;
+    -fx-background-color: -nbfx-track;
     -fx-border-width: 0;
     -fx-background-radius: 0;
     -fx-border-radius: 0;
@@ -87,7 +93,7 @@
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal:focused > .track,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical:focused > .track {
-    -fx-background-color: #EDEDED;
+    -fx-background-color: -nbfx-track-focused;
 }
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal > .increment-button,
@@ -112,19 +118,19 @@
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal > .thumb,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical > .thumb {
-    -fx-background-color: transparent, #CFCFCF;
+    -fx-background-color: transparent, -nbfx-thumb;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 20;
 }
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal:hover > .thumb,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical:hover > .thumb {
-    -fx-background-color: transparent, #B6B6B6;
+    -fx-background-color: transparent, -nbfx-thumb-hover;
 }
 
 .search-pane .search-text > .scroll-pane > .scroll-bar:horizontal:pressed > .thumb,
 .search-pane .search-text > .scroll-pane > .scroll-bar:vertical:pressed > .thumb {
-    -fx-background-color: transparent, #9C9C9C;
+    -fx-background-color: transparent, -nbfx-thumb-pressed;
 }
 
 .search-pane .search-hint {
@@ -138,7 +144,7 @@
 }
 
 .search-pane .search-status:error {
-    -fx-text-fill: #C62828;
+    -fx-text-fill: -nbfx-editor-text-error;
 }
 
 /* Search view */
@@ -157,12 +163,12 @@
 .nbfx-tab-pane:search-results:dock-focused > .tab-header-area > .tab-header-background,
 .nbfx-tab-pane:search-results:top:focused > .tab-header-area > .tab-header-background,
 .nbfx-tab-pane:search-results:top:dock-focused > .tab-header-area > .tab-header-background {
-    -fx-background-color: #F2F2F2, #F2F2F2;
+    -fx-background-color: -nbfx-canvas, -nbfx-canvas;
 }
 
 .nbfx-tab-pane:search-results {
     -fx-padding: 3 0 0 0;
-    -fx-background-color: #F2F2F2;
+    -fx-background-color: -nbfx-canvas;
 }
 .nbfx-tab-pane:search-results:single {
     -fx-padding: 0;
@@ -181,45 +187,46 @@
 }
 
 .tool-bar.search-toolbar {
-    -fx-padding: 3 2 3 2;
-    -fx-spacing: 2;
+    -fx-padding: 2 1 2 1;
+    -fx-spacing: 1;
     -fx-background-color: transparent;
     -fx-background-insets: 0;
-    -fx-border-color: transparent #D9D9D9 transparent transparent;
+    -fx-border-color: transparent -nbfx-border transparent transparent;
     -fx-border-width: 0 1 0 0;
 }
 
 .tool-bar.search-toolbar > .container > .separator:horizontal {
-    -fx-padding: 2 0 2 0;
-    -fx-pref-width: 20;
+    -fx-padding: 1 0 1 0;
+    -fx-pref-width: 16;
 }
 
+/* 16px icons in 20px buttons, as the NetBeans tool bars. */
 .tool-bar.search-toolbar > .container > .search-tool-button,
 .tool-bar.search-toolbar > .tool-bar-overflow-button {
     -fx-background-color: transparent;
-    -fx-background-radius: 4;
+    -fx-background-radius: 3;
     -fx-background-insets: 0;
     -fx-border-width: 0;
-    -fx-padding: 3;
+    -fx-padding: 2;
     -fx-content-display: graphic-only;
-    -fx-min-width: 24;
-    -fx-min-height: 24;
-    -fx-pref-width: 24;
-    -fx-pref-height: 24;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-pref-width: 20;
+    -fx-pref-height: 20;
 }
 
 .tool-bar.search-toolbar > .container > .search-tool-button:hover,
 .tool-bar.search-toolbar > .tool-bar-overflow-button:hover {
-    -fx-background-color: #E0E0E0;
+    -fx-background-color: -nbfx-hover;
 }
 
 .tool-bar.search-toolbar > .container > .search-tool-button:armed,
 .tool-bar.search-toolbar > .container > .search-tool-button:selected {
-    -fx-background-color: #D0D0D0;
+    -fx-background-color: -nbfx-pressed;
 }
 
 .tool-bar.search-toolbar > .container > .search-tool-button:selected:hover {
-    -fx-background-color: #C4C4C4;
+    -fx-background-color: -nbfx-editor-button-selected-hover;
 }
 
 .tool-bar.search-toolbar > .container > .search-tool-button:disabled {
@@ -250,7 +257,7 @@
 
 .result-line .result-line-number,
 .result-line .result-line-column {
-    -fx-fill: #8C8C8C;
+    -fx-fill: -nbfx-text-faint;
 }
 
 .result-summary .result-issues-link {
@@ -261,7 +268,7 @@
 
 .tree-table-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .tree-table-cell > HBox > .result-line > Text,
 .tree-table-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .tree-table-cell > HBox > .result-summary > Text {
-    -fx-fill: white;
+    -fx-fill: -nbfx-on-accent;
 }
 
 .search-results-status {
@@ -270,7 +277,7 @@
 }
 
 .search-results-status:error {
-    -fx-text-fill: #b00020;
+    -fx-text-fill: -nbfx-editor-text-error;
 }
 
 /* Replace search */
@@ -291,7 +298,7 @@
 }
 
 .search-results .split-pane:horizontal > .split-pane-divider {
-    -fx-background-color: #F2F2F2;
+    -fx-background-color: -nbfx-canvas;
     -fx-background-insets: 0;
 }
 
@@ -309,13 +316,13 @@
     -fx-padding: 1 4 1 2;
 }
 .search-results .editor-preview {
-    -fx-background-color: white;
+    -fx-background-color: -nbfx-editor-bg;
 }
 
 .search-pane .search-link {
     -fx-padding: 0 0 0 2;
     -fx-border-width: 0;
-    -fx-text-fill: #2775BF;
+    -fx-text-fill: -nbfx-accent;
 }
 
 .search-ignore-list > .content {
@@ -323,21 +330,21 @@
 }
 
 .search-ignore-list .list-view {
-    -fx-background-color: #C2C2C2, white;
+    -fx-background-color: -nbfx-border, -nbfx-surface;
     -fx-background-insets: 0, 1;
 }
 .search-ignore-list .list-view:focus-within:focused {
-    -fx-background-color: #4D90FE, white;
+    -fx-background-color: -nbfx-accent, -nbfx-surface;
     -fx-background-insets: 0, 1;
 }
 
 .search-pane.content > .text-input {
-    -fx-background: white;
-    -fx-background-color: #C2C2C2, white;
+    -fx-background: -nbfx-surface;
+    -fx-background-color: -nbfx-border, -nbfx-surface;
     -fx-background-insets: 0, 1;
 }
 
 .search-pane.content > .text-input:focused {
-    -fx-background-color: #2775BF, white;
+    -fx-background-color: -nbfx-accent, -nbfx-surface;
     -fx-background-insets: 0, 1;
 }
