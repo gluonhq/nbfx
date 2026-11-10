@@ -209,7 +209,8 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
                     byHandle.put(handle, task);
                     tasks.add(task);
                 }
-                task.update(displayName(event, handle), event.getMessage(), event.getPercentageDone());
+                task.update(displayName(event, handle), event.getMessage(),
+                        fraction(event.getPercentageDone()));
                 if (active.get() == null) {
                     active.set(task);
                 }
@@ -233,6 +234,11 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
         Task task = active.get();
         progress.set(task == null ? -1 : task.getProgress());
         count.set(tasks.size());
+    }
+
+    /** NetBeans reports determinate progress as 0..100; the FX progress UI uses 0..1. */
+    private static double fraction(double percentage) {
+        return percentage < 0 ? -1 : percentage / 100.0;
     }
 
     private static String displayName(ProgressEvent event, InternalHandle handle) {
@@ -305,7 +311,7 @@ public final class FxProgressWorker implements ProgressUIWorkerWithModel {
             this.handle = handle;
             this.name.set(name);
             this.detail.set(detail);
-            this.progress.set(handle.getPercentageDone());
+            this.progress.set(fraction(handle.getPercentageDone()));
         }
 
         InternalHandle handle() {

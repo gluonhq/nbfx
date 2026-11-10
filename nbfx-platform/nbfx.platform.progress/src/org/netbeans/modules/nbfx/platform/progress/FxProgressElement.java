@@ -30,6 +30,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import org.openide.util.NbBundle;
 
 /**
@@ -42,6 +43,7 @@ public final class FxProgressElement implements StatusElementHolder {
 
     private final FxProgressWorker worker = FxProgressWorker.getInstance();
     private final ProgressBar bar = new ProgressBar();
+    private final Label percent = new Label();
     private final Label label = new Label();
     private final Button taskCount = new Button();
     private final Button cancel = new Button();
@@ -53,6 +55,16 @@ public final class FxProgressElement implements StatusElementHolder {
     public FxProgressElement() {
         bar.setPrefWidth(120);
         bar.getStyleClass().add("status-bar-progress");
+        percent.getStyleClass().add("status-bar-progress-text");
+        percent.textProperty().bind(Bindings.createStringBinding(() -> {
+            double value = worker.progressProperty().get();
+            return value < 0 ? "" : Math.round(value * 100) + "%";
+        }, worker.progressProperty()));
+        percent.setMouseTransparent(true);
+        percent.visibleProperty().bind(worker.progressProperty().greaterThanOrEqualTo(0));
+        StackPane barBox = new StackPane(bar, percent);
+        barBox.getStyleClass().add("status-bar-progress-box");
+        StackPane.setAlignment(percent, Pos.CENTER);
         taskCount.setOnAction(event -> worker.showPopup());
         taskCount.getStyleClass().add("status-bar-count");
         cancel.getStyleClass().add("status-bar-cancel");
@@ -78,7 +90,7 @@ public final class FxProgressElement implements StatusElementHolder {
         taskCount.visibleProperty().bind(worker.taskCountProperty().greaterThan(1));
         taskCount.managedProperty().bind(taskCount.visibleProperty());
 
-        node = new HBox(6, bar, label, taskCount, cancel);
+        node = new HBox(6, barBox, label, taskCount, cancel);
         node.getStyleClass().add("status-bar-progress-group");
         node.setAlignment(Pos.CENTER_LEFT);
         node.visibleProperty().bind(worker.taskCountProperty().greaterThan(0));

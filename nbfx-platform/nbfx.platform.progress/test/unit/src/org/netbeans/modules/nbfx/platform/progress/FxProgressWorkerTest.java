@@ -69,7 +69,7 @@ public class FxProgressWorkerTest {
             assertFalse(task.isSystemTask());
             assertEquals("Scanning project", task.nameProperty().get());
 
-            worker.processProgressEvent(new ProgressEvent(handle, "half way", 100, 0.5, -1, false));
+            worker.processProgressEvent(new ProgressEvent(handle, "half way", 100, 50.0, -1, false));
             assertEquals(0.5, worker.progressProperty().get(), 1e-9);
             assertEquals("Scanning project", task.nameProperty().get());
             assertEquals("half way", task.detailProperty().get());
@@ -91,7 +91,7 @@ public class FxProgressWorkerTest {
 
             worker.processProgressEvent(new ProgressEvent(handle, ProgressEvent.TYPE_START, false));
             for (int unit = 1; unit <= 5; unit++) {
-                worker.processProgressEvent(new ProgressEvent(handle, "step " + unit, 10, unit / 10.0, -1, false));
+                worker.processProgressEvent(new ProgressEvent(handle, "step " + unit, 10, unit * 10.0, -1, false));
             }
 
             assertEquals(1, worker.taskCountProperty().get());
@@ -136,7 +136,7 @@ public class FxProgressWorkerTest {
 
             // NetBeans sends Progress/Switch/Silent events for handles that never sent a Start
             // (progress.ui StatusLineComponent materialises the task); the update must not be lost.
-            worker.processProgressEvent(new ProgressEvent(handle, "n files", 50, 0.25, -1, false));
+            worker.processProgressEvent(new ProgressEvent(handle, "n files", 50, 25.0, -1, false));
             assertEquals(1, worker.taskCountProperty().get());
             Task task = worker.activeTaskProperty().get();
             assertNotNull(task);
