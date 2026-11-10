@@ -759,6 +759,18 @@ metabuild.hash=${nbfx.nbbuild.hash}
         </ant>
     </target>
 
+    <target name="check-figures" description="Check that docs/plan/figures.md matches the tree">
+        <ant antfile="${basedir}/check-purity.xml" dir="${basedir}"
+             target="check-figures" inheritall="false"/>
+    </target>
+
+    <!-- Every check CI enforces on a pull request, in one target: neither build nor test runs
+         them, and a check added here is a check CI runs (ci.yml calls this target). -->
+    <target name="guards" depends="check-purity,check-figures,check-api"
+            description="Run every guard CI runs: purity, figures and the API snapshot">
+        <echo message="[guards] OK"/>
+    </target>
+
     <target name="update-upstream"
             description="Bump the submodule revision and re-apply/verify the patches (set -Dnbfx.submodule.commit)">
         <exec executable="git" dir="${nbfx.sub.dir}" failonerror="true">
@@ -824,7 +836,10 @@ nbfx build harness — targets:
   run              launch the FX app (lean cluster set)
   module           build one module only: -Dmodule=nbfx-platform/nbfx.platform.progress
                    (-Dmodule.target=netbeans|clean|test ...); seconds instead of a full build
+  guards           every guard CI runs: check-purity + check-figures + check-api
   check-purity     purity/guardrail checks
+  check-figures    docs/plan/figures.md matches the tree (regenerate: java docs/plan/tools/Counts.java)
+  check-api        governed API packages/types match docs/plan/api-snapshot.txt
   submodule        init/update the netbeans submodule at the pinned revision
   patches          apply the upstream patch set (patches/*.patch)
   patches-check    verify the patches still apply (after an upstream bump)
