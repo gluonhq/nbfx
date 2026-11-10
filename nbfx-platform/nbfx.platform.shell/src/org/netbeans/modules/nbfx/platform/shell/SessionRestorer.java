@@ -38,6 +38,8 @@ import org.netbeans.modules.nbfx.platform.shell.AppState.SplitEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -653,10 +655,48 @@ public final class SessionRestorer {
      * Removes every view tab the restored layout did not claim. Such a tab was closed by the user
      * before the layout was captured; without this it would linger from the previous project's
      * arrangement (or from the default one built at start-up).
+     *
+     * <p>The persisted layout is authoritative once the user has seen a view. A view declared
+     * {@code openAtStartup} is therefore only kept when it has never been introduced - for example
+     * a new default view shipped by an update - and is recorded as introduced here. Once recorded,
+     * closing it keeps it closed across restarts.</p>
      */
-    private static void closeUnplacedViewTabs(Set<Tab> placed) {
+    private void closeUnplacedViewTabs(Set<Tab> placed) {
+        Set<String> introduced = appState.getIntroducedViews();
+        boolean changed = false;
         for (TabPane pane : NbfxTabPane.tabPanes()) {
-            pane.getTabs().removeIf(tab -> NbfxTabPane.viewId(tab) != null && !placed.contains(tab));
+            List<Tab> unplaced = new ArrayList<>();
+            for (Tab tab : pane.getTabs()) {
+                String id = NbfxTabPane.viewId(tab);
+                if (id == null) {
+                    continue;
+                }
+                ViewSpec spec = ViewRegistry.find(id);
+                // Dynamic views are created at runtime and cannot be represented by a layer
+                // registration, so a saved layout can never claim them.
+                if (spec == null) {
+                    continue;
+                }
+                if (placed.contains(tab)) {
+                    // A default view present in the persisted layout has been offered.
+                    if (spec.openAtStartup() && introduced.add(id)) {
+                        changed = true;
+                    }
+                    continue;
+                }
+                if (spec.openAtStartup() && !introduced.contains(id)) {
+                    // A default view the user has never been offered: keep it and remember it, so
+                    // closing it later is respected by the pending-startup logic.
+                    introduced.add(id);
+                    changed = true;
+                    continue;
+                }
+                unplaced.add(tab);
+            }
+            pane.getTabs().removeAll(unplaced);
+        }
+        if (changed) {
+            appState.setIntroducedViews(introduced);
         }
     }
 
