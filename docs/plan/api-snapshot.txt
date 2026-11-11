@@ -81,6 +81,7 @@ org.netbeans.api.nbfx.view.ActiveComponentContext
 org.netbeans.api.nbfx.view.ApplicationMenu
 org.netbeans.api.nbfx.view.CellBreadth
 org.netbeans.api.nbfx.view.NavigatorRevealer
+org.netbeans.api.nbfx.view.ViewInfo
 org.netbeans.api.nbfx.view.ViewManager
 org.netbeans.api.nbfx.view.ViewProvider
 org.netbeans.api.nbfx.views.AreaRegistration
@@ -97,6 +98,7 @@ org.netbeans.api.nbfx.views.PaneRegistrations
 org.netbeans.api.nbfx.views.ToolbarRegistration
 org.netbeans.api.nbfx.views.ToolbarRegistrations
 org.netbeans.api.nbfx.views.ViewArea
+org.netbeans.api.nbfx.views.ViewKind
 org.netbeans.api.nbfx.views.ViewRegistration
 org.netbeans.api.nbfx.views.WindowLayoutRegistration
 org.netbeans.api.nbfx.views.WindowLayoutRegistrations

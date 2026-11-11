@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.ide.search.ui;
 
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -35,6 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = SearchViewProvider.ID, displayName = "Search Results",
+        kind = ViewKind.OUTPUT_ID,
         iconName = "org/netbeans/modules/nbfx/ide/search/ui/icons/find-16.png",
         location = DockLocation.CENTER_BOTTOM, position = 10)
 public final class SearchViewProvider implements ViewProvider {

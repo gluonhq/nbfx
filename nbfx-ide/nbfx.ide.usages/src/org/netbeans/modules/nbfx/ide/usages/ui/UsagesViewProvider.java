@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.ide.usages.ui;
 
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -35,6 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = UsagesViewProvider.ID, displayName = "Usages",
+        kind = ViewKind.OUTPUT_ID,
         iconName = "org/netbeans/modules/nbfx/ide/usages/ui/icons/findusages.png",
         location = DockLocation.CENTER_BOTTOM, position = 20)
 public final class UsagesViewProvider implements ViewProvider {

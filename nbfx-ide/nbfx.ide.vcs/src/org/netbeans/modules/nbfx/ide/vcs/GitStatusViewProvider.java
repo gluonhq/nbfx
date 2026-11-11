@@ -22,6 +22,7 @@ import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.ActionReference;
 import org.netbeans.api.nbfx.views.DockLocation;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.view.ViewManager;
@@ -39,6 +40,7 @@ import org.openide.util.lookup.ServiceProvider;
  */
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = GitStatusViewProvider.ID, displayName = "Versioning",
+        kind = ViewKind.TOOL_ID,
         location = DockLocation.LEFT_BOTTOM, position = 10)
 @ActionReference(id = IdeActionIds.SELECT_GIT, path = "Menus/Window", position = 56)
 public final class GitStatusViewProvider implements ViewProvider {

@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.workspace;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
+import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.List;
 import java.util.Map;
@@ -315,7 +316,7 @@ public class FxWindowSystemTest {
 
     private static ViewSpec reg(String id, int position,
             boolean openAtStartup, boolean navigator, ViewArea area, PersistenceType persistenceType) {
-        return new ViewSpec(id, id, "", position, navigator, area,
+        return new ViewSpec(id, id, "", ViewKind.TOOL, position, navigator, area,
                 openAtStartup, persistenceType, new ViewProvider() {
                     @Override
                     public String getTitle() {

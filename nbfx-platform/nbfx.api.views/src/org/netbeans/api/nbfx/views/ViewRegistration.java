@@ -49,6 +49,14 @@ public @interface ViewRegistration {
     /** The name of the icon resource shown on the tab, or an empty string for none. */
     String iconName() default "";
 
+    /**
+     * The kind of view, used to group and filter views in menus. The built-in ids are declared by
+     * {@link ViewKind}; a product may use any stable id. Defaults to {@link ViewKind#TOOL_ID}.
+     *
+     * @since 1.6
+     */
+    String kind() default ViewKind.TOOL_ID;
+
     /** Where the view is docked the first time it is shown. */
     DockLocation location() default DockLocation.LEFT;
 
