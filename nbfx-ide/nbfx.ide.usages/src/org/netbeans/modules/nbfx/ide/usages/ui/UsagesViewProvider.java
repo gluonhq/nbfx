@@ -38,7 +38,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ViewRegistration(id = UsagesViewProvider.ID, displayName = "Usages",
         kind = ViewKind.OUTPUT_ID,
         iconName = "org/netbeans/modules/nbfx/ide/usages/ui/icons/findusages.png",
-        location = DockLocation.CENTER_BOTTOM, position = 20)
+        location = DockLocation.CENTER_BOTTOM, position = 26)
 public final class UsagesViewProvider implements ViewProvider {
 
     /** The stable id of the view, used by the layout persistence and {@link ViewManager}. */
