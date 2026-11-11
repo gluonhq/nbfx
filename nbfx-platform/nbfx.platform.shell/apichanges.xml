@@ -88,16 +88,28 @@
         <change id="branding.empty.editor.text">
             <api name="netbeansfx_shell"/>
             <summary>Product-defined empty editor text.</summary>
+        <change id="platform.global.context">
+            <api name="netbeansfx_shell"/>
+            <summary>Platform-level global action context.</summary>
             <version major="1" minor="7"/>
             <date day="9" month="11" year="2026"/>
             <author login="sven"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>
+<<<<<<< HEAD
                 Adds <code>ShellBranding.emptyEditorText()</code> so a product can replace the
                 platform's empty-editor placeholder with text that matches its own views. The
                 default returns <code>null</code>, which keeps the platform wording.
             </description>
             <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ShellBranding"/>
+=======
+                Moves <code>NbfxGlobalContextProvider</code> into the platform shell and publishes
+                the focused pane's active editor or view to <code>ActiveComponentContext</code>.
+                A product that runs the platform-only cluster now gets a JavaFX-backed
+                <code>Utilities.actionsGlobalContext()</code>; follower views keep the last
+                selection-bearing component.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell" name="NbfxGlobalContextProvider"/>
         </change>
         <change id="shutdown.contract">
             <api name="netbeansfx_shell"/>

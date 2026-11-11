@@ -17,7 +17,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | public `Fx*` types in exporting modules | 0 |
 | files constructing TreeView/TreeTableView/TableView/ListView | 24 |
 | files mentioning a TreeView/TreeTableView/TableView/ListView | 32 |
-| `.subscribe(` call sites | 140 |
+| `.subscribe(` call sites | 141 |
 | files mentioning `dispose()` | 37 |
 | modules importing `org.netbeans.api.java.source` | 5: nbfx.java.editor, nbfx.java.model, nbfx.java.navigation, nbfx.java.navigation.structure, nbfx.java.usages |
 | files importing `org.netbeans.api.java.source` | 46 |

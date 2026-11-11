@@ -51,7 +51,10 @@ import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.editor.ContentManager;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorSettings;
+import org.netbeans.api.nbfx.view.ActiveComponent;
+import org.netbeans.api.nbfx.view.ActiveComponentContext;
 import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
@@ -204,6 +207,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         } else {
             stage.show();
         }
+        installActiveComponentBridge(scene);
 
         Budget.mark("usable");
         Budget.markUsable();
@@ -572,6 +576,39 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             return pane;
         }
         return new NbfxTabPane(NbfxTabPane.PaneRole.MAIN);
+    }
+
+    /**
+     * Publishes the focused pane's active editor/view to the {@link ActiveComponentContext}, so the
+     * nbfx global action context (and therefore the toolbar commands) follows the JavaFX selection.
+     * The scene's focus owner is followed as well, so moving between split-editor halves updates the
+     * active component even when the selected tab does not change.
+     */
+    private void installActiveComponentBridge(Scene scene) {
+        ActiveComponentContext components =
+                Lookup.getDefault().lookup(ActiveComponentContext.class);
+        if (components == null) {
+            return;
+        }
+        NbfxTabPane.addActiveTabListener(() -> publishActiveComponent(components));
+        scene.focusOwnerProperty().subscribe(owner -> publishActiveComponent(components));
+        publishActiveComponent(components);
+    }
+
+    private static void publishActiveComponent(ActiveComponentContext components) {
+        TabPane pane = NbfxTabPane.focusedPane();
+        Tab tab = pane == null ? null : pane.getSelectionModel().getSelectedItem();
+        EditorDocument document = NbfxTabPane.focusedDocumentOf(tab);
+        ViewProvider view = NbfxTabPane.viewOf(tab);
+        if (document != null) {
+            components.setActiveComponent(new ActiveComponent.EditorComponent(document));
+            EditorContexts.setActiveDocument(document);
+        } else if (view != null) {
+            components.setActiveComponent(new ActiveComponent.ViewComponent(view));
+        } else {
+            components.setActiveComponent(null);
+            EditorContexts.setActiveDocument(null);
+        }
     }
 
     protected Tab viewTabFor(String viewId) {

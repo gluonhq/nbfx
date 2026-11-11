@@ -26,7 +26,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import org.netbeans.modules.nbfx.platform.shell.ContentManagerService;
 import org.netbeans.modules.nbfx.platform.shell.EditorContexts;
 import org.netbeans.modules.nbfx.platform.shell.FileSelectionContextService;
-import org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
@@ -59,8 +58,6 @@ import org.netbeans.api.nbfx.progress.Progress;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.ide.workbench.NavigatorView;
-import org.netbeans.api.nbfx.view.ActiveComponent;
-import org.netbeans.api.nbfx.view.ActiveComponentContext;
 import org.netbeans.modules.nbfx.ide.file.FileUndoManager;
 import java.io.File;
 import java.util.ArrayList;
@@ -132,8 +129,6 @@ public class JavaFXLaunchApp extends ShellApplication {
     private final BooleanProperty treeFocused = new SimpleBooleanProperty(false);
     /** Whether a navigator reveal is currently moving focus. */
     private boolean navigatorRevealInProgress;
-    /** The active-component state published to the global action context (the TopComponent replacement). */
-    private final ActiveComponentContext activeComponents = activeComponentContext();
     /** IDE project/session state, no longer owned by the generic shell. */
     private final ProjectState projectState = new ProjectState(getAppState());
 
@@ -174,8 +169,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         LOG.fine("PROVIDERS = " + providers);
         // Publish the navigator-focused state so the file commands can track it (clipboard refresh).
         treeFocused.subscribe(fileSelection::setNavigatorFocused);
-        // Publish the active component whenever any pane's selected tab changes.
-        NbfxTabPane.addActiveTabListener(this::updateActiveComponent);
         for (NavigatorView provider : providers) {
             // A project's tree is built in the background and reported back through this callback,
             // which resolves the project from the loaded root: several can be loading at once.
@@ -702,32 +695,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (isWithin(focusOwner, getSlidingArea())) {
             getDockArea().markFocused(true, focusOwner);
             treeFocused.set(isNavigatorFocused(focusOwner));
-            updateActiveComponent();
-        }
-    }
-
-    /**
-     * Publishes the component whose tab is selected in the focused pane to the global action context,
-     * so the context is tied to the active component (the nbfx replacement for the activated
-     * TopComponent). An editor tab publishes its document (the focused half when split) and becomes
-     * the active editor document, so editor-scoped commands follow the focused pane; a tool view
-     * publishes itself and keeps the previous editor document active; an empty pane publishes nothing
-     * and clears the active document.
-     */
-    private void updateActiveComponent() {
-        // The focused pane may be the sliding panel's: its tab is then the active component.
-        TabPane focused = NbfxTabPane.focusedPane();
-        Tab selected = focused == null ? null : focused.getSelectionModel().getSelectedItem();
-        EditorDocument document = NbfxTabPane.focusedDocumentOf(selected);
-        ViewProvider view = NbfxTabPane.viewOf(selected);
-        if (document != null) {
-            activeComponents.setActiveComponent(new ActiveComponent.EditorComponent(document));
-            EditorContexts.setActiveDocument(document);
-        } else if (view != null) {
-            activeComponents.setActiveComponent(new ActiveComponent.ViewComponent(view));
-        } else {
-            activeComponents.setActiveComponent(null);
-            EditorContexts.setActiveDocument(null);
         }
     }
 
@@ -832,15 +799,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (context == null) {
             LOG.warning("No FileSelectionContext found in the Lookup; using a local instance");
             context = new FileSelectionContextService();
-        }
-        return context;
-    }
-
-    private static ActiveComponentContext activeComponentContext() {
-        ActiveComponentContext context = Lookup.getDefault().lookup(ActiveComponentContext.class);
-        if (context == null) {
-            LOG.warning("No ActiveComponentContext found in the Lookup; using a local instance");
-            context = new ActiveComponentContextService();
         }
         return context;
     }
