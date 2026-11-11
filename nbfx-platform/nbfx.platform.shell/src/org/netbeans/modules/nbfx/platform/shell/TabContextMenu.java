@@ -22,8 +22,10 @@ import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
+import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import java.io.File;
@@ -224,7 +226,7 @@ public final class TabContextMenu {
             floatTab.setDisable(tab == null || detached || grouped);
             floatGroup.setDisable(tab == null || detached || grouped);
             refreshMinimize(pane, minimize, minimizeGroup);
-            dock.setDisable(!(detached || grouped) || NbfxTabPane.homeOf(tab) == null);
+            dock.setDisable(!(detached || grouped) || homeOf(tab) == null);
             dockGroup.setDisable(!(detached || grouped));
             clone.setDisable(!editor);
             Orientation current = tab == null ? null : EditorSplit.orientationOf(tab);
@@ -265,12 +267,32 @@ public final class TabContextMenu {
         int index = pane == null ? -1 : pane.getTabs().indexOf(tab);
         floatTab.setDisable(detached || grouped);
         floatGroup.setDisable(detached || grouped);
-        dock.setDisable(!(detached || grouped) || NbfxTabPane.homeOf(tab) == null);
+        dock.setDisable(!(detached || grouped) || homeOf(tab) == null);
         dockGroup.setDisable(!(detached || grouped));
         move.setDisable(Docking.area() == null || (!inArea && !detached));
         moveGroup.setDisable(Docking.area() == null || (!inArea && !detached));
         shiftLeft.setDisable(index <= 0);
         shiftRight.setDisable(pane == null || index >= pane.getTabs().size() - 1);
+    }
+
+    /**
+     * The pane a tab belongs in: the host's home, or - in the platform-only shell, which has no
+     * {@code TabHomeResolver} - the registered area of a view tab and the editor pane of a
+     * document tab.
+     */
+    private static TabPane homeOf(Tab tab) {
+        if (tab == null) {
+            return null;
+        }
+        TabPane home = NbfxTabPane.homeOf(tab);
+        if (home != null) {
+            return home;
+        }
+        ViewProvider view = NbfxTabPane.viewOf(tab);
+        if (view != null) {
+            return ViewPlacement.homeFor(ViewRegistry.find(view.getId()), view);
+        }
+        return NbfxTabPane.documentOf(tab) == null ? null : Docking.primary(PaneRole.MAIN);
     }
 
     private static boolean inArea(TabPane pane) {
@@ -423,12 +445,21 @@ public final class TabContextMenu {
     }
 
     private static void dock(Tab tab) {
+        if (tab == null) {
+            return;
+        }
         if (isGrouped(tab)) {
             // Back from a sliding side rather than from a detached window.
             Docking.slides().dock(tab);
             return;
         }
-        TabPane home = NbfxTabPane.homeOf(tab);
+        TabPane pane = tab.getTabPane();
+        if (pane == null || NbfxTabPane.roleOf(pane) != PaneRole.DETACHED) {
+            // Dock only restores a detached tab. A tab already in the dock area is moved with
+            // drag-and-drop or the Window menu, not with "Dock".
+            return;
+        }
+        TabPane home = homeOf(tab);
         if (home != null) {
             NbfxTabPane.moveTab(home, tab, home.getTabs().size());
             NbfxTabPane.selectTabAndMoveToFront(tab);
@@ -440,13 +471,18 @@ public final class TabContextMenu {
             return;
         }
         SlidingArea slides = Docking.slides();
-        if (slides != null && slides.isMinimized(pane)) {
+        boolean minimized = slides != null && slides.isMinimized(pane);
+        if (!minimized && NbfxTabPane.roleOf(pane) != PaneRole.DETACHED) {
+            // Same rule as dock(Tab): a docked group is not "docked back" from the context menu.
+            return;
+        }
+        if (minimized) {
             slides.restore(pane);
             return;
         }
         Tab selected = pane.getSelectionModel().getSelectedItem();
         for (Tab tab : List.copyOf(pane.getTabs())) {
-            TabPane home = NbfxTabPane.homeOf(tab);
+            TabPane home = homeOf(tab);
             if (home != null) {
                 NbfxTabPane.moveTab(home, tab, home.getTabs().size());
             }

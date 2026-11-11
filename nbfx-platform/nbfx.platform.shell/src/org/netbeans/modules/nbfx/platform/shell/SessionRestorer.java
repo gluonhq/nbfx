@@ -31,6 +31,8 @@ import org.netbeans.modules.nbfx.platform.shell.SlidingArea;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.view.ViewManager;
+import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
@@ -38,6 +40,8 @@ import org.netbeans.modules.nbfx.platform.shell.AppState.SplitEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
+import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -293,12 +297,16 @@ public final class SessionRestorer {
     public void restoreSession(Consumer<EditorDocument> done) {
         Layout layout = appState.getSessionLayout();
         if (layout.isEmpty()) {
+            openStartupViews();
             runSafely(done, null);
             return;
         }
         ContentManager cm = Lookup.getDefault().lookup(ContentManager.class);
         if (cm == null) {
             LOG.warning("No ContentManager found; cannot restore the window layout");
+            // The platform-only shell has no ContentManager but still has panes; open the declared
+            // start-up views so its default layout is not empty.
+            openStartupViews();
             runSafely(done, null);
             return;
         }
@@ -313,6 +321,9 @@ public final class SessionRestorer {
                 focusPane = NbfxTabPane.paneWithRole(PaneRole.MAIN);
             }
             restoreViews(editors);
+            // Open any newly introduced defaults before restoring focus: ViewManager.show()
+            // focuses the new tab, and the persisted active pane must win afterwards.
+            openStartupViews();
             focusActivePane(focusPane);
             runSafely(done, focusedDocument(focusPane));
         });
@@ -326,6 +337,41 @@ public final class SessionRestorer {
     private static void runSafely(Consumer<EditorDocument> done, EditorDocument focused) {
         if (done != null) {
             done.accept(focused);
+        }
+    }
+
+    /**
+     * Opens the views the layer declares as start-up tabs when they have never been introduced.
+     * {@code openAtStartup} is a one-time default: once a view has been recorded in
+     * {@link AppState#getIntroducedViews()}, a persisted layout that omits it means the user closed
+     * it and it stays closed. The window system's default areas already attach
+     * {@code openAtStartup} and {@code navigator} views when there is no persisted state, so this
+     * only has to handle defaults introduced by an update. Views that never persist are ignored,
+     * matching the window system's default areas.
+     */
+    private void openStartupViews() {
+        ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
+        if (manager == null) {
+            return;
+        }
+        Set<String> introduced = appState.getIntroducedViews();
+        boolean changed = false;
+        for (ViewSpec spec : ViewRegistry.discover()) {
+            if (spec.persistenceType() == ViewRegistration.PersistenceType.NEVER
+                    || !spec.openAtStartup()) {
+                continue;
+            }
+            if (introduced.contains(spec.id())) {
+                continue;
+            }
+            if (!manager.isShowing(spec.view())) {
+                manager.show(spec.view());
+            }
+            introduced.add(spec.id());
+            changed = true;
+        }
+        if (changed) {
+            appState.setIntroducedViews(introduced);
         }
     }
 
@@ -653,10 +699,48 @@ public final class SessionRestorer {
      * Removes every view tab the restored layout did not claim. Such a tab was closed by the user
      * before the layout was captured; without this it would linger from the previous project's
      * arrangement (or from the default one built at start-up).
+     *
+     * <p>The persisted layout is authoritative once the user has seen a view. A view declared
+     * {@code openAtStartup} is therefore only kept when it has never been introduced - for example
+     * a new default view shipped by an update - and is recorded as introduced here. Once recorded,
+     * closing it keeps it closed across restarts.</p>
      */
-    private static void closeUnplacedViewTabs(Set<Tab> placed) {
+    private void closeUnplacedViewTabs(Set<Tab> placed) {
+        Set<String> introduced = appState.getIntroducedViews();
+        boolean changed = false;
         for (TabPane pane : NbfxTabPane.tabPanes()) {
-            pane.getTabs().removeIf(tab -> NbfxTabPane.viewId(tab) != null && !placed.contains(tab));
+            List<Tab> unplaced = new ArrayList<>();
+            for (Tab tab : pane.getTabs()) {
+                String id = NbfxTabPane.viewId(tab);
+                if (id == null) {
+                    continue;
+                }
+                ViewSpec spec = ViewRegistry.find(id);
+                // Dynamic views are created at runtime and cannot be represented by a layer
+                // registration, so a saved layout can never claim them.
+                if (spec == null) {
+                    continue;
+                }
+                if (placed.contains(tab)) {
+                    // A default view present in the persisted layout has been offered.
+                    if (spec.openAtStartup() && introduced.add(id)) {
+                        changed = true;
+                    }
+                    continue;
+                }
+                if (spec.openAtStartup() && !introduced.contains(id)) {
+                    // A default view the user has never been offered: keep it and remember it, so
+                    // closing it later is respected by the pending-startup logic.
+                    introduced.add(id);
+                    changed = true;
+                    continue;
+                }
+                unplaced.add(tab);
+            }
+            pane.getTabs().removeAll(unplaced);
+        }
+        if (changed) {
+            appState.setIntroducedViews(introduced);
         }
     }
 

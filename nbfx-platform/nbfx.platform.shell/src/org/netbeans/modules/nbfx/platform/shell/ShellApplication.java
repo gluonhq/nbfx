@@ -556,9 +556,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     }
 
     protected void restoreSession() {
-        if (!sessionRestorer.startupLayout().isEmpty()) {
-            sessionRestorer.restoreSession(null);
-        }
+        sessionRestorer.restoreSession(null);
         Docking.completeStartupLayout();
     }
 

@@ -48,6 +48,20 @@ public interface Progress {
         /** Changes the task's message (for example when a build moves to its next step). */
         void setMessage(String message);
 
+        /**
+         * Switches the task to determinate mode and reports how much of it is done. A negative
+         * fraction switches back to indeterminate (for example when a task reaches a phase whose
+         * length is not known). The default ignores the update, for handles that are always
+         * indeterminate.
+         * <p>
+         * Once determinate, fractions are expected to be non-decreasing; a lower value may be
+         * ignored by the implementation. Pass a negative fraction first to restart the bar.
+         *
+         * @param fraction progress in {@code [0, 1]}, or a negative value for indeterminate
+         */
+        default void setProgress(double fraction) {
+        }
+
         /** Finishes only this task. Idempotent. */
         void finish();
     }

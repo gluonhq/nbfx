@@ -129,9 +129,7 @@ jobs:
           key: ${{ steps.external-cache-key.outputs.key }}
 
       - name: Guards
-        run: |
-          ant check-purity
-          ant -f check-purity.xml check-figures
+        run: ant guards
 
   platform:
     runs-on: ubuntu-latest

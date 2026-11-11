@@ -90,6 +90,14 @@ public interface ShellBranding {
         return List.of();
     }
 
+    /**
+     * Text shown in an empty editor pane, or {@code null} to use the platform default. A product
+     * can use this to invite the user to open its own kind of view instead of a file.
+     */
+    default String emptyEditorText() {
+        return null;
+    }
+
     /** Releases any listeners held by this branding. */
     default void dispose() {
     }

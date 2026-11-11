@@ -51,6 +51,7 @@ public class DockingCompositionTest {
 
             Docking.create(composition, panes);
 
+            assertSame("the editor pane stays the main pane", main, Docking.area().mainPane());
             assertSame(composition, Docking.composition());
             assertSame(custom, Docking.paneOf(
                     new ViewArea("custom-area", "Custom", DockLocation.RIGHT, 0.2)));
