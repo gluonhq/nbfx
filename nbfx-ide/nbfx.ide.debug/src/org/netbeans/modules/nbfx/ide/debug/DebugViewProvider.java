@@ -36,7 +36,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = DebugViewProvider.ID, displayName = "Debugging",
         kind = ViewKind.OUTPUT_ID,
-        location = DockLocation.CENTER_BOTTOM, position = 20)
+        location = DockLocation.CENTER_BOTTOM, position = 24)
 public final class DebugViewProvider implements ViewProvider {
 
     /** The stable id of the view, used by the layout persistence and the view manager. */

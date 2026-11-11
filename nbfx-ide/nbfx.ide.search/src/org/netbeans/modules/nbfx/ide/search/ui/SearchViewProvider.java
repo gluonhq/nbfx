@@ -38,7 +38,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ViewRegistration(id = SearchViewProvider.ID, displayName = "Search Results",
         kind = ViewKind.OUTPUT_ID,
         iconName = "org/netbeans/modules/nbfx/ide/search/ui/icons/find-16.png",
-        location = DockLocation.CENTER_BOTTOM, position = 10)
+        location = DockLocation.CENTER_BOTTOM, position = 22)
 public final class SearchViewProvider implements ViewProvider {
 
     /** The stable id of the view, used by the layout persistence and {@link ViewManager}. */

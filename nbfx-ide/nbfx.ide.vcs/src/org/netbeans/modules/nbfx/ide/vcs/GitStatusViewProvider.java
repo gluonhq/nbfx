@@ -41,7 +41,7 @@ import org.openide.util.lookup.ServiceProvider;
 @ServiceProvider(service = ViewProvider.class)
 @ViewRegistration(id = GitStatusViewProvider.ID, displayName = "Versioning",
         kind = ViewKind.TOOL_ID,
-        location = DockLocation.LEFT_BOTTOM, position = 10)
+        location = DockLocation.LEFT_BOTTOM, position = 15)
 @ActionReference(id = IdeActionIds.SELECT_GIT, path = "Menus/Window", position = 56)
 public final class GitStatusViewProvider implements ViewProvider {
 
