@@ -128,7 +128,7 @@ public class ViewManagerService implements ViewManager {
     @Override
     public List<ViewInfo> openViews() {
         Map<String, ViewSpec> specs = specsById();
-        TabPane focused = NbfxTabPane.focusedPane();
+        TabPane focused = NbfxTabPane.componentPane();
         List<ViewInfo> result = new ArrayList<>();
         for (TabPane pane : NbfxTabPane.tabPanes()) {
             boolean detached = NbfxTabPane.roleOf(pane) == NbfxTabPane.PaneRole.DETACHED;

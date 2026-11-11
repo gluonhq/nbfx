@@ -34,12 +34,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -119,6 +121,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private ShutdownSelection shutdownSelection;
     private boolean shutdownStarted;
     private boolean shutdownCompleted;
+    private Consumer<TabPane> activeComponentListener;
+    private Subscription activeComponentFocusSubscription;
     /** Providers resolved for this shell, in priority order. */
     private List<WindowPaneProvider> paneProviderList = List.of();
     /** Providers that created a pane, so their resources are released with the shell. */
@@ -227,6 +231,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             windowSystem.save();
         }
         appState.save();
+        if (activeComponentListener != null) {
+            NbfxTabPane.removeActivePaneListener(activeComponentListener);
+            activeComponentListener = null;
+        }
+        if (activeComponentFocusSubscription != null) {
+            activeComponentFocusSubscription.unsubscribe();
+            activeComponentFocusSubscription = null;
+        }
         shutdownWithoutConfirmation();
         if (titleSubscription != null) {
             titleSubscription.unsubscribe();
@@ -579,10 +591,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     }
 
     /**
-     * Publishes the focused pane's active editor/view to the {@link ActiveComponentContext}, so the
-     * nbfx global action context (and therefore the toolbar commands) follows the JavaFX selection.
-     * The scene's focus owner is followed as well, so moving between split-editor halves updates the
-     * active component even when the selected tab does not change.
+     * Publishes the pane's active editor/view to the {@link ActiveComponentContext}, so the nbfx
+     * global action context (and therefore the toolbar commands) follows the JavaFX selection.
+     * The scene's focus owner is followed as well, so moving between split-editor halves updates
+     * the active component even when the selected tab does not change.
      */
     private void installActiveComponentBridge(Scene scene) {
         ActiveComponentContext components =
@@ -590,13 +602,28 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (components == null) {
             return;
         }
-        NbfxTabPane.addActiveTabListener(() -> publishActiveComponent(components));
-        scene.focusOwnerProperty().subscribe(owner -> publishActiveComponent(components));
-        publishActiveComponent(components);
+        activeComponentListener = pane -> publishActiveComponent(components, pane);
+        NbfxTabPane.addActivePaneListener(activeComponentListener);
+        activeComponentFocusSubscription = scene.focusOwnerProperty().subscribe(owner -> {
+            // Only a focus owner inside the dock area changes the active component. A toolbar or
+            // menu must not republish, and must not reach into a pane of another (detached) window.
+            if (owner != null && slidingArea != null && isWithin(owner, slidingArea)) {
+                publishActiveComponent(components, NbfxTabPane.focusedPane());
+            }
+        });
+        publishActiveComponent(components, NbfxTabPane.componentPane());
     }
 
-    private static void publishActiveComponent(ActiveComponentContext components) {
-        TabPane pane = NbfxTabPane.focusedPane();
+    private static boolean isWithin(Node node, Node ancestor) {
+        for (Node current = node; current != null; current = current.getParent()) {
+            if (current == ancestor) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void publishActiveComponent(ActiveComponentContext components, TabPane pane) {
         Tab tab = pane == null ? null : pane.getSelectionModel().getSelectedItem();
         EditorDocument document = NbfxTabPane.focusedDocumentOf(tab);
         ViewProvider view = NbfxTabPane.viewOf(tab);
