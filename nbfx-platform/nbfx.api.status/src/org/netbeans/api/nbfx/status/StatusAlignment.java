@@ -28,8 +28,21 @@ public enum StatusAlignment {
     /** The left slot, aligned to the start of the status bar. */
     LEFT,
 
-    /** The centre slot. */
+    /**
+     * The centre slot.
+     *
+     * @deprecated the status bar treats this as {@link #FILL}; use {@code FILL}
+     */
+    @Deprecated
     CENTER,
+
+    /**
+     * The fill slot: aligned to the start and growing to take all remaining width. This is the
+     * transient status message area in the Swing status line.
+     *
+     * @since 1.1
+     */
+    FILL,
 
     /** The right slot, aligned to the end of the status bar. */
     RIGHT

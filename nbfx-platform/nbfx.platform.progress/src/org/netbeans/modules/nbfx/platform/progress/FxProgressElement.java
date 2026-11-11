@@ -28,7 +28,9 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import org.openide.util.NbBundle;
@@ -38,7 +40,7 @@ import org.openide.util.NbBundle;
  * the all-tasks popup (plus a cancel button for a cancellable active task). Driven by the
  * {@link FxProgressWorker} singleton, which receives events from the reused progress controller.
  */
-@StatusRegistration(id = "progress", alignment = StatusAlignment.LEFT, position = 100)
+@StatusRegistration(id = "progress", alignment = StatusAlignment.RIGHT, position = 0)
 public final class FxProgressElement implements StatusElementHolder {
 
     private final FxProgressWorker worker = FxProgressWorker.getInstance();
@@ -64,8 +66,11 @@ public final class FxProgressElement implements StatusElementHolder {
         percent.visibleProperty().bind(worker.progressProperty().greaterThanOrEqualTo(0));
         StackPane barBox = new StackPane(bar, percent);
         barBox.getStyleClass().add("status-bar-progress-box");
-        StackPane.setAlignment(percent, Pos.CENTER);
+        label.setTextOverrun(OverrunStyle.ELLIPSIS);
+        label.getStyleClass().add("status-bar-progress-label");
         taskCount.setOnAction(event -> worker.showPopup());
+        taskCount.setTooltip(new Tooltip(
+                NbBundle.getMessage(FxProgressElement.class, "Progress.showTasks.tooltip")));
         taskCount.getStyleClass().add("status-bar-count");
         cancel.getStyleClass().add("status-bar-cancel");
         cancel.setOnAction(event -> {
@@ -90,9 +95,9 @@ public final class FxProgressElement implements StatusElementHolder {
         taskCount.visibleProperty().bind(worker.taskCountProperty().greaterThan(1));
         taskCount.managedProperty().bind(taskCount.visibleProperty());
 
-        node = new HBox(6, barBox, label, taskCount, cancel);
+        node = new HBox(6, label, barBox, taskCount, cancel);
         node.getStyleClass().add("status-bar-progress-group");
-        node.setAlignment(Pos.CENTER_LEFT);
+        node.setAlignment(Pos.CENTER_RIGHT);
         node.visibleProperty().bind(worker.taskCountProperty().greaterThan(0));
         node.managedProperty().bind(node.visibleProperty());
         worker.setAnchor(node);

@@ -42,11 +42,12 @@ public class StatusElementRegistryTest {
         StatusElement leftLate = element("b-left", StatusAlignment.LEFT, 20);
         StatusElement leftEarly = element("c-left", StatusAlignment.LEFT, 10);
         StatusElement center = element("d-center", StatusAlignment.CENTER, 5);
+        StatusElement fill = element("e-fill", StatusAlignment.FILL, 0);
 
         List<StatusElement> sorted =
-                StatusElementRegistry.sort(List.of(right, leftLate, leftEarly, center));
+                StatusElementRegistry.sort(List.of(right, leftLate, leftEarly, center, fill));
 
-        assertEquals(List.of("c-left", "b-left", "d-center", "a-right"),
+        assertEquals(List.of("c-left", "b-left", "d-center", "e-fill", "a-right"),
                 sorted.stream().map(StatusElement::id).toList());
     }
 
