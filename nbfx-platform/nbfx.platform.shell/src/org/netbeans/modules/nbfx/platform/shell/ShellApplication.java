@@ -32,6 +32,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Application;
@@ -510,21 +512,25 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             return true;
         }
         // Cleanup may block (a save, a recording, temporary data), so keep the FX thread free and
-        // exit only when the coordinator is done. The close request is consumed meanwhile.
+        // exit only when the coordinator is done. The close request is consumed meanwhile and the
+        // window is disabled, so nothing can be edited into the gap; a hung participant is bounded
+        // by the timeout.
         shutdownStarted = true;
+        if (root != null) {
+            root.setDisable(true);
+        }
         ShutdownSelection plan = selection;
-        Thread.ofVirtual().name("nbfx-shutdown").start(() -> {
-            try {
-                coordinator.shutdown(plan);
-            } catch (RuntimeException ex) {
-                LOG.log(Level.WARNING, "Could not run the shutdown coordinator", ex);
-            } finally {
-                Platform.runLater(() -> {
-                    shutdownCompleted = true;
-                    Platform.exit();
+        CompletableFuture.runAsync(() -> coordinator.shutdown(plan))
+                .orTimeout(30, TimeUnit.SECONDS)
+                .whenComplete((unused, error) -> {
+                    if (error != null) {
+                        LOG.log(Level.WARNING, "Shutdown cleanup failed or timed out", error);
+                    }
+                    Platform.runLater(() -> {
+                        shutdownCompleted = true;
+                        Platform.exit();
+                    });
                 });
-            }
-        });
         return false;
     }
 

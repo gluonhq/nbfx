@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 import java.util.Objects;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.openide.util.NbBundle;
@@ -52,9 +53,11 @@ final class ShellDialogSupport {
         NbfxTheme.apply(pane);
     }
 
-    /** The first showing window, used as the dialog owner. */
+    /** The focused showing stage, used as the dialog owner. */
     static Window owner() {
-        return Window.getWindows().stream().filter(Window::isShowing)
+        return Window.getWindows().stream()
+                .filter(window -> window instanceof Stage stage && stage.isShowing()
+                        && stage.isFocused())
                 .findFirst().orElse(null);
     }
 

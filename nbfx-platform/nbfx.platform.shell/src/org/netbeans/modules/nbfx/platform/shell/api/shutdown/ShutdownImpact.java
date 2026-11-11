@@ -39,7 +39,7 @@ public record ShutdownImpact(List<Item> items, List<Option> options,
     }
 
     public boolean isEmpty() {
-        return items.isEmpty();
+        return items.isEmpty() && options.isEmpty() && summary.isEmpty();
     }
 
     public static Builder builder() {

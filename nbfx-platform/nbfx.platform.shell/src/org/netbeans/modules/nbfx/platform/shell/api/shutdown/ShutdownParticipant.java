@@ -29,8 +29,9 @@ public interface ShutdownParticipant {
     }
 
     /**
-     * Performs cleanup according to the user's selections. Called off the JavaFX Application
-     * Thread; use {@code Platform.runLater} for UI work.
+     * Performs cleanup according to the user's selections. The normal quit path calls this off the
+     * JavaFX Application Thread; the last-resort {@code stop()} fallback may call it on the FX
+     * thread. Use {@code Platform.runLater} only for UI work that is still needed while stopping.
      */
     default void shutdown(ShutdownSelection selection) throws Exception {
     }
