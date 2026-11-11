@@ -147,6 +147,20 @@
             <class package="org.netbeans.modules.nbfx.platform.shell" name="NbfxTabPane"/>
             <class package="org.netbeans.modules.nbfx.platform.shell" name="ViewManagerService"/>
         </change>
+        <change id="open.views.menu">
+            <api name="netbeansfx_shell"/>
+            <summary>Standard Window menu section for open views.</summary>
+            <version major="1" minor="7"/>
+            <date day="9" month="11" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>OpenViewsMenuFactory</code>, a dynamic Window menu section that lists
+                the live open views, groups them by <code>ViewKind</code>, marks detached views and
+                activates a view through <code>ViewManager.activate(String)</code>.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.shell" name="OpenViewsMenuFactory"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

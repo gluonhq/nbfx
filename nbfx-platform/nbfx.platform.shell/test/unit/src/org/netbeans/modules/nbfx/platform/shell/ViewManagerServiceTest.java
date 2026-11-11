@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javafx.scene.Node;
 import javafx.scene.control.Tab;
@@ -75,6 +76,34 @@ public class ViewManagerServiceTest {
                 fixture.manager().removeOpenViewsListener(fixture.listener());
             } finally {
                 NbfxTabPane.unregister(fixture.pane());
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void filtersByViewKind() throws InterruptedException {
+        FxTestSupport.onFx(() -> {
+            NbfxTabPane pane = new NbfxTabPane(PaneRole.DOCKED);
+            try {
+                Tab tab = ViewTabs.create(view("test.filtered", "Filtered View"), "");
+                pane.getTabs().add(tab);
+                ViewManagerService manager = new ViewManagerService();
+
+                OpenViewsMenuFactory.OpenViewsMenu included =
+                        new OpenViewsMenuFactory.OpenViewsMenu(manager, Set.of(ViewKind.CUSTOM));
+                assertTrue(included.items().stream()
+                        .anyMatch(item -> "Filtered View".equals(item.getText())));
+
+                OpenViewsMenuFactory.OpenViewsMenu excluded =
+                        new OpenViewsMenuFactory.OpenViewsMenu(manager, Set.of(ViewKind.OUTPUT));
+                assertFalse(excluded.items().stream()
+                        .anyMatch(item -> "Filtered View".equals(item.getText())));
+
+                included.dispose();
+                excluded.dispose();
+            } finally {
+                NbfxTabPane.unregister(pane);
             }
             return null;
         });
