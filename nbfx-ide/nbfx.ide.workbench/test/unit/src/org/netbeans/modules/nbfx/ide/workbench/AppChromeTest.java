@@ -74,27 +74,30 @@ public class AppChromeTest extends NbTestCase {
         DefaultShellChrome chrome = (DefaultShellChrome) installed;
         assertNotNull(chrome.top());
 
-        MenuBar menuBar = menuBar(chrome.top());
+        // The menus are refilled on the FX thread as views open (a refill clears a menu and adds its
+        // items back), so they are only read there: read from this thread, a menu can be seen half filled.
+        MenuBar menuBar = ScenarioSupport.onFx(() -> menuBar(chrome.top()));
         assertNotNull("the main window has no menu bar", menuBar);
         assertEquals(List.of("File", "Edit", "View", "Build", "Navigate", "Debug", "Tools", "Window"),
-                menuIds(menuBar));
+                ScenarioSupport.onFx(() -> menuIds(menuBar)));
         assertTrue("the recent-projects section is missing",
-                hasMenu(menu(menuBar, "File"), "Open Recent Project"));
+                ScenarioSupport.onFx(() -> hasMenu(menu(menuBar, "File"), "Open Recent Project")));
         assertTrue("the Configure Window section is missing",
-                hasMenu(menu(menuBar, "Window"), "Configure Window"));
-        Menu fileMenu = menu(menuBar, "File");
-        assertTrue("New Project is missing from File", hasItem(fileMenu, "New Project"));
-        assertTrue("New File is missing from File", hasItem(fileMenu, "New File"));
-        assertTrue("Open Project is missing from File", hasItem(fileMenu, "Open Project"));
-        assertTrue("Close Project is missing from File", hasItem(fileMenu, "Close Project"));
-        assertTrue("Close All Projects is missing from File", hasItem(fileMenu, "Close All Projects"));
-        Menu windowMenu = menu(menuBar, "Window");
-        assertTrue("Next Project is missing from Window", hasItem(windowMenu, "Next Project"));
-        assertTrue("Previous Project is missing from Window", hasItem(windowMenu, "Previous Project"));
+                ScenarioSupport.onFx(() -> hasMenu(menu(menuBar, "Window"), "Configure Window")));
+        Menu fileMenu = ScenarioSupport.onFx(() -> menu(menuBar, "File"));
+        assertTrue("New Project is missing from File", ScenarioSupport.onFx(() -> hasItem(fileMenu, "New Project")));
+        assertTrue("New File is missing from File", ScenarioSupport.onFx(() -> hasItem(fileMenu, "New File")));
+        assertTrue("Open Project is missing from File", ScenarioSupport.onFx(() -> hasItem(fileMenu, "Open Project")));
+        assertTrue("Close Project is missing from File", ScenarioSupport.onFx(() -> hasItem(fileMenu, "Close Project")));
+        assertTrue("Close All Projects is missing from File", ScenarioSupport.onFx(() -> hasItem(fileMenu, "Close All Projects")));
+        Menu windowMenu = ScenarioSupport.onFx(() -> menu(menuBar, "Window"));
+        assertTrue("Next Project is missing from Window", ScenarioSupport.onFx(() -> hasItem(windowMenu, "Next Project")));
+        assertTrue("Previous Project is missing from Window", ScenarioSupport.onFx(() -> hasItem(windowMenu, "Previous Project")));
 
-        assertFalse("the main window has no tool bars", chrome.toolBars().getToolBars().isEmpty());
-        assertEquals(List.of("file", "clipboard", "edit", "build", "debug"),
+        List<String> toolBarIds = ScenarioSupport.onFx(() ->
                 chrome.toolBars().getToolBars().stream().map(toolBar -> toolBar.getId()).toList());
+        assertFalse("the main window has no tool bars", toolBarIds.isEmpty());
+        assertEquals(List.of("file", "clipboard", "edit", "build", "debug"), toolBarIds);
         assertNotNull("the main window has no status bar", chrome.bottom());
         List<String> statusIds = StatusElementRegistry.discover().stream()
                 .map(StatusElement::id).toList();
