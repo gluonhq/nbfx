@@ -85,7 +85,7 @@
             <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ShellContext"/>
             <class package="org.netbeans.modules.nbfx.platform.shell.api" name="ShellCommandResolver"/>
         </change>
-        1<change id="branding.empty.editor.text">
+        <change id="branding.empty.editor.text">
             <api name="netbeansfx_shell"/>
             <summary>Product-defined empty editor text.</summary>
             <version major="1" minor="7"/>
