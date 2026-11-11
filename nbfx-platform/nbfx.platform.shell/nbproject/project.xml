@@ -171,6 +171,7 @@
             <public-packages>
                 <package>org.netbeans.modules.nbfx.platform.shell</package>
                 <package>org.netbeans.modules.nbfx.platform.shell.api</package>
+                <package>org.netbeans.modules.nbfx.platform.shell.api.shutdown</package>
                 <package>org.netbeans.modules.nbfx.platform.shell.spi</package>
             </public-packages>
         </data>
