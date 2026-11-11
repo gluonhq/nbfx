@@ -503,7 +503,9 @@ public final class DockArea<N extends Node> extends StackPane {
     /**
      * Keeps empty docked panes alive while an initial layout is being filled, so a declared tree's
      * leaves are still there when the views that belong in them arrive. Releasing the retention
-     * removes any leaf that is still empty.
+     * removes any leaf that is still empty, and hides a permanent pane that never received a
+     * component: a pane only hides by itself on becoming empty, which one that started empty
+     * never does.
      *
      * @param retain whether to keep empty docked panes
      */
@@ -511,9 +513,12 @@ public final class DockArea<N extends Node> extends StackPane {
         retainEmptyDockedPanes = retain;
         if (!retain) {
             Platform.runLater(() -> {
+                N main = mainPane();
                 for (N pane : List.copyOf(leaves())) {
                     if (!isPrimary(pane)) {
                         removeIfEmpty(pane);
+                    } else if (pane != main) {
+                        hidePrimaryIfEmpty(pane);
                     }
                 }
             });

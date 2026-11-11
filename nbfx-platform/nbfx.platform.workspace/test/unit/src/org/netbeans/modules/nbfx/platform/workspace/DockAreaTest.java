@@ -100,16 +100,26 @@ public class DockAreaTest {
     /** An area of a navigator pane (holding content) and a main pane. */
     private static final class Fixture {
 
-        final Host host = new Host();
-        final StackPane navigator = new StackPane(new Region());
-        final StackPane main = new StackPane();
+        final Host host;
+        final StackPane navigator;
+        final StackPane main;
         final DockArea<StackPane> area;
 
         Fixture() {
+            host = new Host();
+            navigator = new StackPane(new Region());
+            main = new StackPane();
             SequencedMap<String, StackPane> primaries = new LinkedHashMap<>();
             primaries.put("NAVIGATOR", navigator);
             primaries.put("MAIN", main);
             area = new DockArea<>(host, primaries, List.of(0.3));
+        }
+
+        Fixture(Host host, StackPane navigator, StackPane main, DockArea<StackPane> area) {
+            this.host = host;
+            this.navigator = navigator;
+            this.main = main;
+            this.area = area;
         }
     }
 
@@ -271,6 +281,41 @@ public class DockAreaTest {
         onFx(() -> {
             assertFalse("the released empty docked leaf stayed", f.area.contains(docked));
             assertTrue(f.host.disposed.contains(docked));
+            return null;
+        });
+    }
+
+    @Test
+    public void permanentPaneThatStartsEmptyHidesOnceTheLayoutIsFilled() throws Exception {
+        Fixture f = onFx(() -> {
+            Host host = new Host();
+            StackPane navigator = new StackPane();
+            StackPane kept = new StackPane();
+            StackPane main = new StackPane();
+            host.kept.add(kept);
+            SequencedMap<String, StackPane> primaries = new LinkedHashMap<>();
+            primaries.put("NAVIGATOR", navigator);
+            primaries.put("KEPT", kept);
+            primaries.put("MAIN", main);
+            DockArea<StackPane> area = new DockArea<>(host, primaries, List.of());
+            area.retainEmptyDockedPanes(true);
+            return new Fixture(host, navigator, main, area);
+        });
+        pulse();
+        onFx(() -> {
+            assertTrue("the empty pane hid before the layout was filled", f.area.contains(f.navigator));
+            f.area.retainEmptyDockedPanes(false);
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            assertTrue("the pane that started empty stayed", f.area.isPrimaryHidden(f.navigator));
+            assertEquals(List.of("KEPT", "MAIN"),
+                    f.area.leaves().stream().map(f.area::roleOf).toList());
+            f.navigator.getChildren().add(new Region());
+            assertFalse("the hidden pane did not come back with a component",
+                    f.area.isPrimaryHidden(f.navigator));
+            assertSame(f.navigator, f.area.leaves().getFirst());
             return null;
         });
     }
