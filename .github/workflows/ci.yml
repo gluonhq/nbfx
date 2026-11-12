@@ -94,6 +94,18 @@ jobs:
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ bootstrap
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
 
+      - name: API audit (report only)
+        if: always()
+        run: ant api-audit
+
+      - name: Upload API audit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: api-audit
+          path: build/api-audit.txt
+          if-no-files-found: ignore
+
       - name: Unit tests (all nbfx modules)
         timeout-minutes: 25
         run: ant test
