@@ -72,7 +72,9 @@
             <java jar="${nbfx.rat.jar}" fork="true" resultproperty="nbfx.rat.result.@{report}">
                 <arg line="--input-exclude-std MISC GIT IDEA MAC"/>
                 <arg line="--input-exclude-parsed-scm GIT"/>
-                <arg line="--input-exclude netbeans/** build/**"/>
+                <!-- per-module build outputs: Rat does not honour the /*/*/build/ .gitignore pattern;
+                     not **/build/**, which would skip the "build" source packages -->
+                <arg line="--input-exclude netbeans/** build/** */build/** */*/build/**"/>
                 <arg value="--input-exclude-file"/>
                 <arg file="@{dir}/release/rat-excludes.txt"/>
                 <arg value="--output-file"/>
