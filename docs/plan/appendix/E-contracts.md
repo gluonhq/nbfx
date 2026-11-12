@@ -131,12 +131,19 @@ The published API modules of the extension points the plugin implements; nothing
 |---|---|---|
 | add a command / menu item | `@ActionRegistration` + `@ActionReference` | layer, via `api.actions` |
 | add a view | `@ViewRegistration` | layer, via `api.views` |
-| add an options panel | `@OptionsRegistration` | layer, via `api.options` |
+| add an options panel | `@OptionsRegistration` | layer, via `api.options`; implements `api.options.OptionsPanelController` |
+| add a wizard | `@WizardRegistration` | layer, via `api.wizard`; implements `api.wizard.Wizard`/`WizardPanel` |
+| add a status element | `@StatusRegistration` | layer, via `api.status`; implements `api.status.StatusElement` |
+| add a property editor | `@PropertyEditorRegistration` | layer, via `api.property`; implements `api.property.PropertyEditor` over an `api.nodes.PropertyModel` |
 | provide a service | `@ServiceProvider(service = X.class)` | `META-INF/services` |
 | handle a file type | a `DataLoader`/`MultiFileLoader` + MIME type | `openide.loaders` (`DataObject`/`DataFolder`) — **never `DataNode`**; using `DataObject` implies `openide.nodes` (D.2.1) |
 | add a project type | `@ProjectTypeRegistration` + `ProjectFactory`/`LookupProvider` | `api.project` + `org.netbeans.api.project` |
 | add a language (lexer, completion, structure, goto, usages) | `LanguageRegistration` + providers scoped by `LanguageId` | `api.language`; **never** a global `@ServiceProvider` (Appendix I.3) |
 | build the plugin | — | an **NBM** via the NetBeans `nbm` Ant harness (what the module system expects), JDK 25, compiled against the T2-FX/M modules it implements |
+
+The first four rows are the M0 contract gate: the type the plugin implements must be in the API/SPI module,
+never in a T0 module (Decision 27). The API-only downstream fixture (`PLAN.md` §11 W2a) is the compile-time
+proof; a row that needs a `platform.*` import is a contract bug, not a plugin bug.
 
 The quickstart (skeleton plugin + build + a view and a command) is the deliverable
 `feature/plugin-quickstart` (W8); a `nbm-maven-plugin` path is documented only if a maintained version exists.
@@ -166,6 +173,10 @@ A future non-FX front end binds **`PanelModel`** (a table of fields/validators/c
 factory. If a *second component toolkit* ever appears, the mechanism is a `Class<C>` token on the factory
 plus one centralised checked adapter — sketch it then, not now. Update §5.2 and Appendix A accordingly; the
 `WizardUi<C>`/`ViewFactory<C>` names disappear.
+
+The M0 registration contract is `api.options.OptionsPanelController` (the object a plugin implements and the
+options window drives); `OptionsPanelFactory` here is the illustrative name for the model-first panel factory,
+not a second registration type. `PLAN.md` §6.1/§6.1.1 is authoritative on the names.
 
 ## E.8 i18n
 

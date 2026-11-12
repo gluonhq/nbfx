@@ -52,7 +52,7 @@ column is what the bridge module must be allowed to carry permanently (Appendix 
 
 | Upstream module | Consumer(s) in nbfx | Mechanism | Our module | Milestone |
 |---|---|---|---|---|
-| `org.netbeans.modules.projectuiapi.base` | `launcher`, `ui` (both exempted in `check-purity.xml:70-92`) | **replace**: `OpenProjects` bridge → `api.project` model | `platform.shell`, `platform.launcher` | M0 |
+| `org.netbeans.modules.projectuiapi.base` | `ide.project` (`nbfx.project`; the `launcher`/`ui` bridge is gone) | **reuse**: `OpenProjects` is the headless project model behind the IDE-tier registry; keep the exemption in `check-purity.xml` | `ide.project` | M1b review |
 | `org.netbeans.modules.parsing.indexing` | `launcher`, `ui`, `findusages`, `project.ui.java` | **reuse** (headless index) + the indexing workstream (§D.5) | `java.model` / `ide.search` | M0/M1 |
 | `org.netbeans.api.java`, `api.java.classpath` | `editor`, `findusages`, `structure.java`, `project.ui.java`, `debug` | **reuse** (headless) | java layer | M1/M2 |
 | `org.netbeans.modules.java.source.base` (`org.netbeans.api.java.source`) | `editor`, `findusages`, `structure.java`, `project.ui.java` | **bridge** (`java.model`) | `java.model`, `java.editor` … | M1 |
@@ -179,7 +179,8 @@ on; not merely unused.
 
 | Milestone | Modules that must be gone (or replaced in place) |
 |---|---|
-| M0 | `core.windows` (already), `progress.ui` (landed, PR #2), `projectuiapi.base` bridge (our code no longer depends), the status/output/dialog **providers** we replaced, `ide/editor*` from the runtime path (the app does not load them) |
+| M0 | `core.windows` (already), `progress.ui` (landed, PR #2), the `launcher`/`ui` `projectuiapi.base` bridge (gone; the remaining `ide.project` reuse is IDE-tier, M1b review), the status/output **providers** we replaced (the dialog provider is M1a), `ide/editor*` from the runtime path (the app does not load them) |
+| M1a | the `platform.editor`/`platform.workspace` public implementation packages (extracted to API/SPI; internals are T0 friend packages only), the output/dialog providers replaced by `platform.output`/`platform.dialogs` |
 | M1 | `ide/editor.lib`, `ide/editor.lib2`, `ide/editor.document`, `ide/editor.completion`, `ide/editor.search`, `ide/editor.bracesmatching`, `ide/editor.codetemplates`, `ide/editor.fold*`, `ide/editor.guards`, `ide/editor.indent*`, `ide/editor.actions`, `ide/editor.structure`, `ide/editor.settings.lib`, `ide/editor.errorstripe`, `ide/editor.bookmarks` |
 | M2 | `java/java.editor`, `java/java.editor.base`, `java/java.editor.lib`, `java/java.sourceui`, `java/java.hints`' UI half, `java/java.project.ui` |
 | M3 | `java/java.j2seproject`'s Swing project UI, SceneBuilder's Swing shell (if any) |
