@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.api.options.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.options.OptionsContainerRegistration;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.netbeans.api.nbfx.options.OptionsRegistration;
 import org.netbeans.api.nbfx.options.OptionsSubRegistration;
 import java.util.Set;
@@ -62,7 +63,9 @@ public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(LayerPaths.OPTIONS, registration.id(), (Class<?>) null);
+            requireController(element);
+            File file = layer(element).instanceFile(LayerPaths.OPTIONS, registration.id(),
+                    OptionsPanelController.class);
             file.stringvalue("displayName", registration.categoryName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("keywords", registration.keywords());
@@ -75,8 +78,10 @@ public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
             if (registration == null) {
                 continue;
             }
+            requireController(element);
             File file = layer(element).instanceFile(
-                    LayerPaths.OPTIONS + "/" + registration.location(), registration.id(), (Class<?>) null);
+                    LayerPaths.OPTIONS + "/" + registration.location(), registration.id(),
+                    OptionsPanelController.class);
             file.stringvalue("displayName", registration.displayName());
             file.stringvalue("keywords", registration.keywords());
             file.intvalue("position", registration.position());
@@ -97,5 +102,15 @@ public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
             folder.write();
         }
         return true;
+    }
+
+    private void requireController(Element element) throws LayerGenerationException {
+        TypeElement controller = processingEnv.getElementUtils()
+                .getTypeElement(OptionsPanelController.class.getCanonicalName());
+        if (controller == null
+                || !processingEnv.getTypeUtils().isAssignable(element.asType(), controller.asType())) {
+            throw new LayerGenerationException(
+                    "@OptionsRegistration type must implement OptionsPanelController", element);
+        }
     }
 }

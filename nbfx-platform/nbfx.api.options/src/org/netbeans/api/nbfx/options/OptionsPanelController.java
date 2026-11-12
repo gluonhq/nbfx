@@ -16,17 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.options;
+package org.netbeans.api.nbfx.options;
 
 import javafx.scene.Node;
 
 /**
- * One panel of the Options dialog. Panels are registered with {@code @OptionsRegistration} and
- * discovered through {@link OptionsRegistry}.
+ * One panel of the Options dialog. A module implements this interface and registers the
+ * implementation with {@link OptionsRegistration} or {@link OptionsSubRegistration}; the options
+ * window discovers the generated layer entries and drives the panel.
+ * <p>
+ * All methods are called on the JavaFX Application Thread.
  *
- * @since 1.0
+ * @since 1.1
  */
-public interface OptionsPanelHost {
+public interface OptionsPanelController {
 
     /** The stable identifier of the panel; must match {@code @OptionsRegistration#id()}. */
     String getId();
@@ -44,7 +47,7 @@ public interface OptionsPanelHost {
         return Integer.MAX_VALUE;
     }
 
-    /** The panel's JavaFX component. Called on the JavaFX Application Thread. */
+    /** The panel's JavaFX component; called when the panel is selected in the options window. */
     Node getComponent();
 
     /** Loads the current values into the component, before it is shown. */

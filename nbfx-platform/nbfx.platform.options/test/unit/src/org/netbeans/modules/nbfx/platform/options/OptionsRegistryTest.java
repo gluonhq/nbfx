@@ -22,10 +22,14 @@ import java.io.IOException;
 import java.util.List;
 import javafx.scene.Node;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
+import org.netbeans.api.nbfx.options.OptionsDisplayer;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.Lookup;
 
 /**
  * Verifies that options panels are read from a layer folder with their metadata and ordered by
@@ -34,6 +38,11 @@ import org.openide.filesystems.FileUtil;
  * @since 1.0
  */
 public class OptionsRegistryTest {
+
+    @Test
+    public void displayerServiceIsRegistered() {
+        assertNotNull(Lookup.getDefault().lookup(OptionsDisplayer.class));
+    }
 
     @Test
     public void readsAttributesAndOrders() throws IOException {
@@ -68,8 +77,8 @@ public class OptionsRegistryTest {
         return FileUtil.createFolder(fs.getRoot(), "NbFx/Options");
     }
 
-    private static OptionsPanelHost panel(String id) {
-        return new OptionsPanelHost() {
+    private static OptionsPanelController panel(String id) {
+        return new OptionsPanelController() {
             @Override
             public String getId() {
                 return id;

@@ -57,6 +57,8 @@ org.netbeans.api.nbfx.file.FileTypes
 org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerPaths
 org.netbeans.api.nbfx.options.OptionsContainerRegistration
+org.netbeans.api.nbfx.options.OptionsDisplayer
+org.netbeans.api.nbfx.options.OptionsPanelController
 org.netbeans.api.nbfx.options.OptionsRegistration
 org.netbeans.api.nbfx.options.OptionsSubRegistration
 org.netbeans.api.nbfx.project.OpenProject

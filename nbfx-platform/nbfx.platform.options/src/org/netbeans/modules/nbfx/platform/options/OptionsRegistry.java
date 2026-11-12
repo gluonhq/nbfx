@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.options;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -28,11 +29,11 @@ import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
 /**
- * Discovers the {@link OptionsPanelHost}s registered under {@code NbFx/Options} in the module layer.
+ * Discovers the {@link OptionsPanelController}s registered under {@code NbFx/Options} in the module layer.
  *
  * @since 1.0
  */
-public final class OptionsRegistry {
+final class OptionsRegistry {
 
     private OptionsRegistry() {
     }
@@ -46,13 +47,13 @@ public final class OptionsRegistry {
     public static List<OptionsPanelEntry> discover() {
         Lookup lookup = Lookups.forPath(LayerPaths.OPTIONS);
         FileObject folder = FileUtil.getConfigFile(LayerPaths.OPTIONS);
-        return read(folder, lookup.lookupAll(OptionsPanelHost.class));
+        return read(folder, lookup.lookupAll(OptionsPanelController.class));
     }
 
     /** Reads the registrations of {@code panels}, taking metadata from {@code folder}'s attributes. */
-    static List<OptionsPanelEntry> read(FileObject folder, Iterable<? extends OptionsPanelHost> panels) {
+    static List<OptionsPanelEntry> read(FileObject folder, Iterable<? extends OptionsPanelController> panels) {
         List<OptionsPanelEntry> registrations = new ArrayList<>();
-        for (OptionsPanelHost panel : panels) {
+        for (OptionsPanelController panel : panels) {
             String id = panel.getId();
             FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
             String displayName = stringAttribute(file, "displayName", panel.getDisplayName());

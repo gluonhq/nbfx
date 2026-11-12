@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * Registers a sub-panel inside a top-level JavaFX options category (a tab in the category).
  * <p>
  * The annotated class must be public, must have a public no-argument constructor and must implement
- * the nbfx options panel SPI. It is published in the generated layer under
+ * {@link OptionsPanelController}. It is published in the generated layer under
  * {@code NbFx/Options/<location>/<id>.instance}.
  *
  * @since 1.0

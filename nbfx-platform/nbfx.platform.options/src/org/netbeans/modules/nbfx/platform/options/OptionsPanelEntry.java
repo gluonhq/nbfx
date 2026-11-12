@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.options;
 
 import java.util.Objects;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 
 /**
  * A registered options panel: the metadata declared with
@@ -31,8 +32,8 @@ import java.util.Objects;
  * @param panel       the panel
  * @since 1.0
  */
-public record OptionsPanelEntry(String id, String displayName, String category, int position,
-        OptionsPanelHost panel) {
+record OptionsPanelEntry(String id, String displayName, String category, int position,
+        OptionsPanelController panel) {
 
     public OptionsPanelEntry {
         Objects.requireNonNull(id, "id");

@@ -32,18 +32,20 @@
 
   <answer id="arch-what">
     <p>
-      The <b>nbfx Options API</b> defines the annotations with which a module contributes categories
-      and panels to the JavaFX options dialog.
+      The <b>nbfx Options API</b> defines the panel contract, the annotations with which a module
+      contributes categories and panels to the JavaFX options dialog, and the service that opens it.
     </p>
   </answer>
 
   <answer id="arch-overall">
     <p>
-      The module contains the <code>SOURCE</code>-retention <code>@OptionsRegistration</code>,
-      <code>@OptionsSubRegistration</code> and <code>@OptionsContainerRegistration</code>
-      annotations and a <code>LayerGeneratingProcessor</code> that writes
-      <code>NbFx/Options</code> entries into the compiling module's generated layer. The options
-      reader consumes those entries through <code>LayerPaths</code>.
+      The module contains the <code>OptionsPanelController</code> interface, the
+      <code>OptionsDisplayer</code> service, the <code>SOURCE</code>-retention
+      <code>@OptionsRegistration</code>, <code>@OptionsSubRegistration</code> and
+      <code>@OptionsContainerRegistration</code> annotations, and a
+      <code>LayerGeneratingProcessor</code> that writes <code>NbFx/Options</code> entries into the
+      compiling module's generated layer. The options reader consumes those entries through
+      <code>LayerPaths</code>.
     </p>
   </answer>
 
