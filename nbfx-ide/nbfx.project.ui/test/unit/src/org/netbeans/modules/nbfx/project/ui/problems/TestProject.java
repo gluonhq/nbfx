@@ -63,6 +63,7 @@ final class TestProject implements Project {
 
         private final PropertyChangeSupport support = new PropertyChangeSupport(this);
         private volatile List<ProjectProblem> problems = List.of();
+        private volatile Thread lastReadThread;
 
         @Override
         public void addPropertyChangeListener(PropertyChangeListener listener) {
@@ -76,12 +77,17 @@ final class TestProject implements Project {
 
         @Override
         public Collection<? extends ProjectProblem> getProblems() {
+            lastReadThread = Thread.currentThread();
             return problems;
         }
 
         void setProblems(List<ProjectProblem> newProblems) {
             problems = List.copyOf(newProblems);
             support.firePropertyChange(PROP_PROBLEMS, null, null);
+        }
+
+        Thread lastReadThread() {
+            return lastReadThread;
         }
     }
 

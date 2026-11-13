@@ -80,11 +80,11 @@ public class NbfxProjectProblemsTest {
     }
 
     @Test
-    public void warningOnlyDoesNotAlert() {
+    public void warningOnlyDoesNotAlert() throws Exception {
         RecordingPresenter presenter = new RecordingPresenter();
         NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
         provider.setProblems(List.of(ProjectProblem.createWarning("Old platform", "Details")));
-        assertTrue(problems.showAlert(project).isDone());
+        problems.showAlert(project).get(10, TimeUnit.SECONDS);
         assertTrue(presenter.alerts.isEmpty());
     }
 
@@ -135,6 +135,20 @@ public class NbfxProjectProblemsTest {
 
         assertEquals(1, presenter.alerts.size());
         assertEquals(Set.of(project, otherProject), presenter.alerts.get(0));
+    }
+
+    @Test
+    public void duplicateNotificationsForTheSameProjectAlertOnce() throws Exception {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 250);
+        provider.setProblems(List.of(error()));
+
+        CompletableFuture<Void> first = problems.showAlert(project);
+        CompletableFuture<Void> second = problems.showAlert(project);
+        CompletableFuture.allOf(first, second).get(10, TimeUnit.SECONDS);
+
+        assertEquals(1, presenter.alerts.size());
+        assertEquals(Set.of(project), presenter.alerts.get(0));
     }
 
     @Test

@@ -188,6 +188,11 @@ on; not merely unused.
 | Later | `java/java.source`'s `Document` half, `platform/api.keymap` UI |
 | **Later (blocked)** | `core.ui`, `openide.explorer`, `openide.nodes`, `openide.awt`, `openide.dialogs`, `openide.windows` — blocked until the 388 upstream modules that declare `openide.nodes` (129 on `openide.explorer`, `../figures.md`) are retired. `openide.nodes` is also `AutoUpdate-Essential-Module: true`; `core.ui`'s `ContextMenuWarmUpTask` and `DataObject`'s static `Node` initialize it today (D.2.1) |
 
+Retiring `ide/projectui` also removes `BrokenProjectNotifier`, which is what calls `showAlert` for
+Ant and Maven projects. `ide.project.ui` now supplies `ProjectProblemsNotifier` (listening to
+`OpenProjects`) so opening a broken project still raises the alert after `projectui` is gone. While
+both notifiers are present, the alert session deduplicates their calls for the same project.
+
 ## D.5 The indexing workstream (currently missing)
 
 `ClasspathInfo`/completion are meaningless without the parser + index. `parsing.indexing` is already pulled by

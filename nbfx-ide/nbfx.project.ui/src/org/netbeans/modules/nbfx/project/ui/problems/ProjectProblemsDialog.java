@@ -53,7 +53,7 @@ final class ProjectProblemsDialog extends Dialog<ButtonType> {
         intro.getStyleClass().add("project-problems-intro");
 
         problems = new ListView<>(model.getProblems());
-        problems.setCellFactory(view -> ProjectProblemsUi.problemCell(model.hasMultipleProjects()));
+        problems.setCellFactory(view -> ProjectProblemsUi.problemCell(model::hasMultipleProjects));
         problems.setPrefHeight(180);
         problems.setAccessibleText(message("ACSN_ProjectProblems_List"));
 

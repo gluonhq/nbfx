@@ -752,7 +752,9 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
   (open/close, Appendix E.2), budget (startup/usable/first completion, `check-budget`), smoke (walking
   skeleton, W0), AppShell conformance (platform-only), API-only downstream fixture (plugin contracts), and a
   project-problems test that the nbfx `ProjectProblemsImplementation` wins, the alert and customizer dialogs
-  open with the expected problems, and the UI path creates no Swing dialog.
+  open with the expected problems, and the alert/resolver-list UI creates no Swing dialog. Dialogs opened by
+  upstream resolvers (Ant Library Manager, variables customizer, file choosers, Maven platform customizer)
+  remain Swing until those resolvers are replaced.
   Baseline to beat: **79 test files, 33 of 63 modules with tests, zero signature tests, headless FX tests
   present** — state the numbers in the W2 acceptance.
 - **Fast loop**: `nbfx.overlay=symlink` and `ant module -Dmodule=<cluster>/<module>` (PR #8) build one module in
@@ -1111,8 +1113,11 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     `ProjectProblemsProvider` SPI are reused. The Swing `projectui`/`BrokenReferencesImpl` panels are not
     embedded and are retired with `projectui`. The project-root “Resolve Project Problems...” entry is a
     `FileContextMenuContributor` in the same module, next to the resolver it opens, not an
-    `ide.project.actions` command. This is the model for upstream UI APIs with a provider SPI:
-    replace the implementation, keep the API.
+    `ide.project.actions` command; `ProjectProblemsNotifier` owns the open-project trigger when
+    `projectui` is retired. Resolver-owned dialogs (Ant Library Manager, the variables customizer,
+    file choosers, Maven's platform customizer) remain upstream Swing and are replaced one by one.
+    This is the model for upstream UI APIs with a provider SPI: replace the implementation, keep the
+    API.
 
 ## 14. Open questions
 

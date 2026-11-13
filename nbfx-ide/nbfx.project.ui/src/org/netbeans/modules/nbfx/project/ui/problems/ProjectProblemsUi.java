@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.project.ui.problems;
 
 import java.util.Objects;
+import java.util.function.BooleanSupplier;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.ListCell;
@@ -56,8 +57,11 @@ final class ProjectProblemsUi {
             pane.getStylesheets().add(STYLESHEET);
         }
         if (owner != null && owner.getScene() != null) {
+            Object theme = owner.getScene().getProperties().get(NbfxTheme.THEME_URL_KEY);
             for (String stylesheet : owner.getScene().getStylesheets()) {
-                if (!pane.getStylesheets().contains(stylesheet)) {
+                // The theme is applied below and must follow the current theme, not the one the
+                // owner was opened with.
+                if (!stylesheet.equals(theme) && !pane.getStylesheets().contains(stylesheet)) {
                     pane.getStylesheets().add(stylesheet);
                 }
             }
@@ -79,8 +83,12 @@ final class ProjectProblemsUi {
                 .findFirst().orElse(null);
     }
 
-    /** A list cell showing a problem display name and its description as a tooltip. */
-    static ListCell<ProjectProblemsModel.ProblemItem> problemCell(boolean includeProject) {
+    /**
+     * A list cell showing a problem display name and its description as a tooltip. The
+     * {@code includeProject} supplier is evaluated per update, so the "(in project)" suffix
+     * follows later list changes.
+     */
+    static ListCell<ProjectProblemsModel.ProblemItem> problemCell(BooleanSupplier includeProject) {
         return new ListCell<>() {
             @Override
             protected void updateItem(ProjectProblemsModel.ProblemItem item, boolean empty) {
@@ -92,7 +100,7 @@ final class ProjectProblemsUi {
                     setAccessibleHelp(null);
                     return;
                 }
-                String name = item.displayName(includeProject);
+                String name = item.displayName(includeProject.getAsBoolean());
                 setText(name);
                 setAccessibleText(name);
                 setAccessibleHelp(item.description());

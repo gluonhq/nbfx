@@ -27,9 +27,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import org.netbeans.api.project.Project;
@@ -38,6 +43,7 @@ import org.netbeans.spi.project.ui.ProjectProblemsProvider;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.ProjectProblem;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.Severity;
 import org.openide.util.NbBundle;
+import org.openide.util.RequestProcessor;
 import org.openide.util.WeakListeners;
 
 /**
@@ -45,9 +51,10 @@ import org.openide.util.WeakListeners;
  * projects. It replaces the Swing {@code BrokenReferencesModel}: the dialog classes observe its
  * JavaFX list and never touch the providers directly.
  * <p>
- * The model is confined to the JavaFX thread. Provider property changes are marshalled there with
- * {@link Platform#runLater(Runnable)}; the model must be {@link #dispose() disposed} when the
- * dialog closes so its listeners stop refreshing a gone UI.
+ * Provider reads run on a background thread; only the resulting list and the {@code loaded} flag are
+ * applied on the JavaFX thread. Provider property changes schedule another background read, so the
+ * JavaFX thread is never blocked on project metadata. The model must be {@link #dispose() disposed}
+ * when the dialog closes so its listeners stop refreshing a gone UI.
  * <p>
  * It calls {@link ProjectProblemsProvider#getProblems()} directly instead of taking
  * {@code ProjectManager.mutex().readAccess()} as the Swing model did: on macOS the JavaFX thread
@@ -58,6 +65,8 @@ import org.openide.util.WeakListeners;
 final class ProjectProblemsModel implements PropertyChangeListener {
 
     private static final Logger LOG = Logger.getLogger(ProjectProblemsModel.class.getName());
+    private static final RequestProcessor RP =
+            new RequestProcessor(ProjectProblemsModel.class.getName(), 1);
 
     /** One problem and the project that reports it. */
     record ProblemItem(Project project, ProjectProblem problem) {
@@ -100,12 +109,14 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     private final ObservableList<ProblemItem> problems = FXCollections.observableArrayList();
     private final ObservableList<ProblemItem> readOnlyProblems =
             FXCollections.unmodifiableObservableList(problems);
-    private final List<Project> projects = new ArrayList<>();
+    private final List<Project> projects = new CopyOnWriteArrayList<>();
     private final Map<ProjectProblemsProvider, PropertyChangeListener> listeners = new LinkedHashMap<>();
     private final boolean includeWarnings;
-    private boolean disposed;
-    private boolean refreshing;
-    private boolean refreshAgain;
+    private final CompletableFuture<Void> loaded = new CompletableFuture<>();
+    private final ReadOnlyBooleanWrapper loadedProperty =
+            new ReadOnlyBooleanWrapper(this, "loaded", false);
+    private final AtomicInteger generation = new AtomicInteger();
+    private volatile boolean disposed;
 
     /**
      * @param projects the projects whose problems to expose
@@ -115,6 +126,7 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     ProjectProblemsModel(Collection<? extends Project> projects, boolean includeWarnings) {
         this.projects.addAll(projects);
         this.includeWarnings = includeWarnings;
+        listenToProviders();
         refresh();
     }
 
@@ -126,6 +138,21 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     /** The projects this model was created for. */
     List<Project> getProjects() {
         return List.copyOf(projects);
+    }
+
+    /** Whether the first background read has been applied. */
+    boolean isLoaded() {
+        return loadedProperty.get();
+    }
+
+    /** The {@code loaded} flag, set on the JavaFX thread when the first read is applied. */
+    ReadOnlyBooleanProperty loadedProperty() {
+        return loadedProperty.getReadOnlyProperty();
+    }
+
+    /** Completes on the JavaFX thread after the first read is applied. */
+    CompletableFuture<Void> loaded() {
+        return loaded;
     }
 
     /** Whether at least one problem is an error. */
@@ -140,39 +167,48 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     }
 
     /**
-     * Reloads the problems from the project providers. Safe to call from any thread; the list is
-     * only mutated on the JavaFX thread.
+     * Schedules a background reload of the problems. Safe to call from any thread; the list is
+     * only mutated on the JavaFX thread. The returned future completes on the JavaFX thread when
+     * this generation has been applied (or discarded because a newer read superseded it).
      */
-    void refresh() {
+    CompletableFuture<Void> refresh() {
         if (disposed) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
-        if (!Platform.isFxApplicationThread()) {
+        int current = generation.incrementAndGet();
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        RP.post(() -> {
+            List<ProblemItem> next;
             try {
-                Platform.runLater(this::refresh);
+                next = readProblems();
+            } catch (RuntimeException ex) {
+                LOG.log(Level.WARNING, "Could not read the project problems", ex);
+                next = List.of();
+            }
+            List<ProblemItem> items = next;
+            try {
+                Platform.runLater(() -> apply(current, items, done));
             } catch (IllegalStateException ex) {
-                // No JavaFX toolkit (headless tests, command line helpers): nothing to refresh.
-                LOG.log(Level.FINE, "No JavaFX toolkit; project problems model not refreshed", ex);
+                // No JavaFX toolkit (headless tests, command line helpers): nothing to update.
+                LOG.log(Level.FINE, "No JavaFX toolkit; project problems model not updated", ex);
+                loaded.complete(null);
+                done.complete(null);
             }
+        });
+        return done;
+    }
+
+    private void apply(int generationId, List<ProblemItem> next, CompletableFuture<Void> done) {
+        if (disposed || generationId != generation.get()) {
+            done.complete(null);
             return;
         }
-        if (refreshing) {
-            refreshAgain = true;
-            return;
+        if (!problems.equals(next)) {
+            problems.setAll(next);
         }
-        refreshing = true;
-        try {
-            List<ProblemItem> next = readProblems();
-            if (!disposed && !problems.equals(next)) {
-                problems.setAll(next);
-            }
-        } finally {
-            refreshing = false;
-        }
-        if (refreshAgain && !disposed) {
-            refreshAgain = false;
-            refresh();
-        }
+        loadedProperty.set(true);
+        loaded.complete(null);
+        done.complete(null);
     }
 
     private List<ProblemItem> readProblems() {
@@ -184,7 +220,6 @@ final class ProjectProblemsModel implements PropertyChangeListener {
             if (provider == null) {
                 continue;
             }
-            listenTo(provider);
             Collection<? extends ProjectProblem> reported;
             try {
                 reported = provider.getProblems();
@@ -209,6 +244,16 @@ final class ProjectProblemsModel implements PropertyChangeListener {
         return result;
     }
 
+    private void listenToProviders() {
+        for (Project project : projects) {
+            ProjectProblemsProvider provider =
+                    project.getLookup().lookup(ProjectProblemsProvider.class);
+            if (provider != null) {
+                listenTo(provider);
+            }
+        }
+    }
+
     private void listenTo(ProjectProblemsProvider provider) {
         if (listeners.containsKey(provider)) {
             return;
@@ -228,7 +273,8 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     /** Stops listening to the providers and releases the list. Call on the JavaFX thread. */
     void dispose() {
         disposed = true;
-        refreshAgain = false;
+        generation.incrementAndGet();
+        loaded.complete(null);
         listeners.forEach(ProjectProblemsProvider::removePropertyChangeListener);
         listeners.clear();
         projects.clear();

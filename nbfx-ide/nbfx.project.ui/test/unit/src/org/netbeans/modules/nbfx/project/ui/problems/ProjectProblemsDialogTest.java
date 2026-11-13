@@ -20,6 +20,8 @@ package org.netbeans.modules.nbfx.project.ui.problems;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Before;
 import org.junit.Test;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.ProjectProblem;
@@ -42,50 +44,85 @@ public class ProjectProblemsDialogTest {
     private TestProject project;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws Exception {
         FileObject root = FileUtil.createMemoryFileSystem().getRoot().createFolder("proj");
         provider = new TestProject.Provider();
         project = new TestProject(root, provider);
+        FxTestSupport.onFx(() -> { });
     }
 
     @Test
-    public void alertDialogOpensWithTheErrorProblems() throws InterruptedException {
+    public void alertDialogOpensWithTheErrorProblems() throws Exception {
         provider.setProblems(List.of(error()));
-        FxTestSupport.onFx(() -> {
-            ProjectProblemsModel model = new ProjectProblemsModel(List.of(project), false);
-            ProjectProblemsDialog dialog = new ProjectProblemsDialog(null, model);
-            try {
-                dialog.show();
-                assertTrue("alert is showing", dialog.isShowing());
-                assertEquals("Project Problems", dialog.getTitle());
-                assertEquals(1, dialog.problems().getItems().size());
-                assertEquals(2, dialog.getDialogPane().getButtonTypes().size());
-            } finally {
-                dialog.close();
-                assertFalse("alert is closed", dialog.isShowing());
-                model.dispose();
-            }
-        });
+        ProjectProblemsModel model = load(false);
+        try {
+            FxTestSupport.onFx(() -> {
+                ProjectProblemsDialog dialog = new ProjectProblemsDialog(null, model);
+                try {
+                    dialog.show();
+                    assertTrue("alert is showing", dialog.isShowing());
+                    assertEquals("Project Problems", dialog.getTitle());
+                    assertEquals(1, dialog.problems().getItems().size());
+                    assertEquals(2, dialog.getDialogPane().getButtonTypes().size());
+                } finally {
+                    dialog.close();
+                    assertFalse("alert is closed", dialog.isShowing());
+                }
+            });
+        } finally {
+            FxTestSupport.onFx(model::dispose);
+        }
     }
 
     @Test
-    public void customizerDialogOpensWithErrorsAndWarnings() throws InterruptedException {
+    public void customizerDialogOpensWithErrorsAndWarnings() throws Exception {
         provider.setProblems(List.of(error(), warning()));
+        ProjectProblemsModel model = load(true);
+        try {
+            FxTestSupport.onFx(() -> {
+                ProjectProblemsCustomizer dialog = new ProjectProblemsCustomizer(null, model);
+                try {
+                    dialog.show();
+                    assertTrue("customizer is showing", dialog.isShowing());
+                    assertTrue(dialog.getTitle().startsWith("Resolve Project Problems"));
+                    assertEquals(2, dialog.problems().getItems().size());
+                    assertEquals(2, dialog.getDialogPane().getButtonTypes().size());
+                } finally {
+                    dialog.close();
+                    assertFalse("customizer is closed", dialog.isShowing());
+                }
+            });
+        } finally {
+            FxTestSupport.onFx(model::dispose);
+        }
+    }
+
+    @Test
+    public void customizerPopulatesAfterTheBackgroundLoad() throws Exception {
+        provider.setProblems(List.of(error(), warning()));
+        ProjectProblemsModel model = new ProjectProblemsModel(List.of(project), true);
+        AtomicReference<ProjectProblemsCustomizer> dialog = new AtomicReference<>();
         FxTestSupport.onFx(() -> {
-            ProjectProblemsModel model = new ProjectProblemsModel(List.of(project), true);
-            ProjectProblemsCustomizer dialog = new ProjectProblemsCustomizer(null, model);
-            try {
-                dialog.show();
-                assertTrue("customizer is showing", dialog.isShowing());
-                assertTrue(dialog.getTitle().startsWith("Resolve Project Problems"));
-                assertEquals(2, dialog.problems().getItems().size());
-                assertEquals(2, dialog.getDialogPane().getButtonTypes().size());
-            } finally {
-                dialog.close();
-                assertFalse("customizer is closed", dialog.isShowing());
-                model.dispose();
-            }
+            ProjectProblemsCustomizer customizer = new ProjectProblemsCustomizer(null, model);
+            customizer.show();
+            dialog.set(customizer);
         });
+        try {
+            model.loaded().get(10, TimeUnit.SECONDS);
+            FxTestSupport.onFx(() -> {
+                assertTrue(dialog.get().isShowing());
+                assertEquals(2, dialog.get().problems().getItems().size());
+                dialog.get().close();
+            });
+        } finally {
+            FxTestSupport.onFx(model::dispose);
+        }
+    }
+
+    private ProjectProblemsModel load(boolean includeWarnings) throws Exception {
+        ProjectProblemsModel model = new ProjectProblemsModel(List.of(project), includeWarnings);
+        model.loaded().get(10, TimeUnit.SECONDS);
+        return model;
     }
 
     private static ProjectProblem error() {

@@ -47,6 +47,7 @@ import org.netbeans.spi.project.ui.ProjectProblemsProvider.ProjectProblem;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.Result;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.Status;
 import org.openide.util.Lookup;
+import org.openide.util.Mutex;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
 
@@ -62,7 +63,7 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
 
     private static final Logger LOG = Logger.getLogger(ProjectProblemsCustomizer.class.getName());
     private static final RequestProcessor RP =
-            new RequestProcessor(ProjectProblemsCustomizer.class.getName(), 1);
+            new RequestProcessor(ProjectProblemsCustomizer.class.getName(), 1, true);
     private static final String STATUS_ERROR = "problem-status-error";
     private static final String STATUS_WARNING = "problem-status-warning";
     private static final String SEVERITY_ERROR = "problem-severity-error";
@@ -75,13 +76,16 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
     private final TextArea description;
     private final Label statusLine;
     private final BooleanProperty resolving = new SimpleBooleanProperty(this, "resolving", false);
+    /** The running resolution, or {@code null}; JavaFX thread only. */
+    private RequestProcessor.Task resolution;
+    private boolean closed;
 
     ProjectProblemsCustomizer(Window owner, ProjectProblemsModel model) {
         this.model = model;
         ProjectProblemsUi.install(this, owner, title(model));
 
         problems = new ListView<>(model.getProblems());
-        problems.setCellFactory(view -> ProjectProblemsUi.problemCell(model.hasMultipleProjects()));
+        problems.setCellFactory(view -> ProjectProblemsUi.problemCell(model::hasMultipleProjects));
         problems.setAccessibleText(message("LBL_ProjectProblems"));
         problems.setPrefWidth(250);
 
@@ -117,6 +121,9 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
         statusLine.getStyleClass().add("problem-status");
         statusLine.setVisible(false);
         statusLine.setManaged(false);
+        if (!model.isLoaded()) {
+            showStatus(message("MSG_LoadingProblems"), null);
+        }
 
         VBox content = new VBox(8, split, statusLine);
         VBox.setVgrow(split, Priority.ALWAYS);
@@ -163,10 +170,45 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
                 updateDetails();
             }
         });
+        model.loadedProperty().addListener((observable, oldValue, value) -> {
+            if (!value) {
+                return;
+            }
+            if (model.getProblems().isEmpty()) {
+                if (isShowing()) {
+                    Platform.runLater(this::close);
+                }
+            } else {
+                if (statusLine.getText().equals(message("MSG_LoadingProblems"))) {
+                    showStatus(null, null);
+                }
+                if (problems.getSelectionModel().getSelectedItem() == null) {
+                    problems.getSelectionModel().selectFirst();
+                }
+            }
+        });
 
-        problems.getSelectionModel().selectFirst();
+        if (model.isLoaded()) {
+            if (model.getProblems().isEmpty()) {
+                Platform.runLater(this::close);
+            } else {
+                problems.getSelectionModel().selectFirst();
+            }
+        }
         updateDetails();
-        setOnShown(event -> problems.requestFocus());
+        setOnShown(event -> {
+            problems.requestFocus();
+            if (model.isLoaded() && model.getProblems().isEmpty()) {
+                Platform.runLater(this::close);
+            }
+        });
+        setOnHidden(event -> {
+            closed = true;
+            if (resolution != null) {
+                resolution.cancel();
+                resolution = null;
+            }
+        });
     }
 
     /** The problem list, for tests. */
@@ -188,11 +230,15 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
         showStatus(message("MSG_Resolving", name), null);
 
         ProjectProblem problem = item.problem();
-        RP.post(() -> {
+        resolution = RP.post(() -> {
             Result result = null;
             Throwable failure = null;
             try {
-                Future<Result> future = problem.resolve();
+                // ProjectProblemResolver.resolve() is documented as an EDT call: resolvers may
+                // build and show Swing dialogs. Only the call itself is dispatched to the event
+                // thread; waiting for the returned future stays on the background task.
+                Future<Result> future = Mutex.EVENT.readAccess(
+                        (Mutex.Action<Future<Result>>) problem::resolve);
                 if (future != null) {
                     result = future.get();
                 }
@@ -211,7 +257,11 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
     }
 
     private void afterResolve(String name, Result result, Throwable failure) {
+        resolution = null;
         resolving.set(false);
+        if (closed) {
+            return;
+        }
         if (failure != null) {
             String text = message("MSG_ResolutionFailed", name);
             showStatus(text, STATUS_ERROR);

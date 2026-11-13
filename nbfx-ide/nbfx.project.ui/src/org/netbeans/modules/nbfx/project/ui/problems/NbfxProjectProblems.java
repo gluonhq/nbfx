@@ -30,8 +30,6 @@ import javafx.stage.Window;
 import org.netbeans.api.project.Project;
 import org.netbeans.spi.project.ui.ProjectProblemsImplementation;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider;
-import org.netbeans.spi.project.ui.ProjectProblemsProvider.ProjectProblem;
-import org.netbeans.spi.project.ui.ProjectProblemsProvider.Severity;
 import org.openide.util.RequestProcessor;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -75,7 +73,8 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
         Objects.requireNonNull(project, "project");
         if (ProjectProblemsSettings.isSuppressedByProperty()
                 || !ProjectProblemsSettings.isShowAgain()
-                || !hasError(project)) {
+                || project.getLookup().lookup(ProjectProblemsProvider.class) == null) {
+            // No provider is a cheap lookup, not a provider read: complete without a session.
             return CompletableFuture.completedFuture(null);
         }
 
@@ -86,7 +85,11 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
                 session = new AlertSession();
                 createdSession = session;
             }
-            session.projects.add(project);
+            // The upstream BrokenProjectNotifier and the nbfx notifier may both report the same
+            // project; alert only once per session.
+            if (session.seen.add(project)) {
+                session.projects.add(project);
+            }
             result = session.future;
         }
         if (createdSession != null) {
@@ -103,32 +106,7 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
     @Override
     public CompletableFuture<Void> showCustomizer(Project project) {
         Objects.requireNonNull(project, "project");
-        if (Platform.isFxApplicationThread()) {
-            try {
-                showCustomizer(Set.of(project));
-                return CompletableFuture.completedFuture(null);
-            } catch (RuntimeException ex) {
-                CompletableFuture<Void> failed = new CompletableFuture<>();
-                failed.completeExceptionally(ex);
-                return failed;
-            }
-        }
-        CompletableFuture<Void> result = new CompletableFuture<>();
-        try {
-            Platform.runLater(() -> {
-                try {
-                    showCustomizer(Set.of(project));
-                    result.complete(null);
-                } catch (Throwable ex) {
-                    result.completeExceptionally(ex);
-                }
-            });
-        } catch (IllegalStateException ex) {
-            // No JavaFX toolkit (headless unit tests): there is no UI to show.
-            LOG.log(Level.FINE, "No JavaFX toolkit; project problems customizer not shown", ex);
-            result.complete(null);
-        }
-        return result;
+        return showCustomizer(Set.of(project));
     }
 
     private void startAlert() {
@@ -148,67 +126,124 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
     }
 
     private void runAlertSession(AlertSession current) {
+        showNextAlert(current);
+    }
+
+    private void showNextAlert(AlertSession current) {
         try {
-            while (true) {
-                Set<Project> batch;
-                synchronized (lock) {
-                    if (session != current) {
-                        return;
-                    }
-                    if (current.projects.isEmpty()) {
-                        // Claim the end of the session while holding the lock: a concurrent
-                        // showAlert() then starts a new session instead of adding to this one
-                        // after its future has been completed.
-                        session = null;
-                        batch = Set.of();
-                    } else {
-                        batch = new LinkedHashSet<>(current.projects);
-                        current.projects.clear();
-                    }
-                }
-                if (batch.isEmpty()) {
-                    current.future.complete(null);
-                    return;
-                }
-                if (ProjectProblemsSettings.isSuppressedByProperty()
-                        || !ProjectProblemsSettings.isShowAgain()) {
-                    // The user unchecked "show this warning again" while an earlier alert was
-                    // open: drop the queued projects as well.
-                    continue;
-                }
-                if (showAlert(batch)) {
-                    showCustomizer(batch);
-                }
-            }
+            nextAlert(current);
         } catch (RuntimeException ex) {
             LOG.log(Level.WARNING, "Could not show project problems", ex);
             endSession(current);
         }
     }
 
-    /** @return {@code true} when the user chose to open the resolver */
-    private boolean showAlert(Set<Project> projects) {
-        ProjectProblemsModel model = new ProjectProblemsModel(projects, false);
-        try {
-            if (model.getProblems().isEmpty()) {
-                return false;
-            }
-            return presenter.showAlert(ProjectProblemsUi.owner(), model);
-        } finally {
-            model.dispose();
-        }
-    }
-
-    private void showCustomizer(Set<Project> projects) {
-        ProjectProblemsModel model = new ProjectProblemsModel(projects, true);
-        try {
-            if (model.getProblems().isEmpty()) {
+    private void nextAlert(AlertSession current) {
+        Set<Project> batch;
+        synchronized (lock) {
+            if (session != current) {
                 return;
             }
-            presenter.showCustomizer(ProjectProblemsUi.owner(), model);
-        } finally {
-            model.dispose();
+            if (current.projects.isEmpty()) {
+                // Claim the end of the session while holding the lock: a concurrent
+                // showAlert() then starts a new session instead of adding to this one after its
+                // future has been completed.
+                session = null;
+                batch = Set.of();
+            } else {
+                batch = new LinkedHashSet<>(current.projects);
+                current.projects.clear();
+            }
         }
+        if (batch.isEmpty()) {
+            current.future.complete(null);
+            return;
+        }
+        if (ProjectProblemsSettings.isSuppressedByProperty()
+                || !ProjectProblemsSettings.isShowAgain()) {
+            // The user unchecked "show this warning again" while an earlier alert was open:
+            // drop the queued projects as well.
+            showNextAlert(current);
+            return;
+        }
+        showAlert(batch).whenComplete((resolve, failure) -> {
+            if (failure != null) {
+                LOG.log(Level.WARNING, "Could not show the project problems alert", failure);
+                showNextAlert(current);
+                return;
+            }
+            if (Boolean.TRUE.equals(resolve)) {
+                showCustomizer(batch).whenComplete((ignored, customizerFailure) -> {
+                    if (customizerFailure != null) {
+                        LOG.log(Level.WARNING,
+                                "Could not show the project problems resolver", customizerFailure);
+                    }
+                    showNextAlert(current);
+                });
+            } else {
+                showNextAlert(current);
+            }
+        });
+    }
+
+    /** @return a future completing with the user's choice to open the resolver */
+    private CompletableFuture<Boolean> showAlert(Set<Project> projects) {
+        ProjectProblemsModel model = new ProjectProblemsModel(projects, false);
+        return model.loaded().thenCompose(ignored -> {
+            if (model.getProblems().isEmpty()) {
+                model.dispose();
+                return CompletableFuture.completedFuture(false);
+            }
+            CompletableFuture<Boolean> result = new CompletableFuture<>();
+            Runnable show = () -> {
+                try {
+                    result.complete(presenter.showAlert(ProjectProblemsUi.owner(), model));
+                } catch (RuntimeException ex) {
+                    result.completeExceptionally(ex);
+                } finally {
+                    model.dispose();
+                }
+            };
+            try {
+                if (Platform.isFxApplicationThread()) {
+                    show.run();
+                } else {
+                    Platform.runLater(show);
+                }
+            } catch (IllegalStateException ex) {
+                LOG.log(Level.FINE, "No JavaFX toolkit; project problems alert not shown", ex);
+                model.dispose();
+                result.complete(false);
+            }
+            return result;
+        });
+    }
+
+    private CompletableFuture<Void> showCustomizer(Set<Project> projects) {
+        ProjectProblemsModel model = new ProjectProblemsModel(projects, true);
+        CompletableFuture<Void> result = new CompletableFuture<>();
+        Runnable show = () -> {
+            try {
+                presenter.showCustomizer(ProjectProblemsUi.owner(), model);
+                result.complete(null);
+            } catch (RuntimeException ex) {
+                result.completeExceptionally(ex);
+            } finally {
+                model.dispose();
+            }
+        };
+        try {
+            if (Platform.isFxApplicationThread()) {
+                show.run();
+            } else {
+                Platform.runLater(show);
+            }
+        } catch (IllegalStateException ex) {
+            LOG.log(Level.FINE, "No JavaFX toolkit; project problems customizer not shown", ex);
+            model.dispose();
+            result.complete(null);
+        }
+        return result;
     }
 
     private void endSession(AlertSession current) {
@@ -218,28 +253,6 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
             }
         }
         current.future.complete(null);
-    }
-
-    private static boolean hasError(Project project) {
-        ProjectProblemsProvider provider =
-                project.getLookup().lookup(ProjectProblemsProvider.class);
-        if (provider == null) {
-            return false;
-        }
-        try {
-            var problems = provider.getProblems();
-            if (problems == null) {
-                return false;
-            }
-            for (ProjectProblem problem : problems) {
-                if (problem.getSeverity() == Severity.ERROR) {
-                    return true;
-                }
-            }
-        } catch (RuntimeException ex) {
-            LOG.log(Level.FINE, "Could not read the problems of " + project, ex);
-        }
-        return false;
     }
 
     private static final class DefaultPresenter implements ProjectProblemsPresenter {
@@ -259,6 +272,7 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
 
     private static final class AlertSession {
         private final Set<Project> projects = new LinkedHashSet<>();
+        private final Set<Project> seen = new LinkedHashSet<>();
         private final CompletableFuture<Void> future = new CompletableFuture<>();
     }
 }
