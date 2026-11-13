@@ -751,8 +751,8 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
 - **Required test types**: unit (model, `M` modules), contract (threading per SPI, layer writer/reader), leak
   (open/close, Appendix E.2), budget (startup/usable/first completion, `check-budget`), smoke (walking
   skeleton, W0), AppShell conformance (platform-only), API-only downstream fixture (plugin contracts), and a
-  project-problems service test that the nbfx `ProjectProblemsImplementation` wins and the UI path creates no
-  Swing dialog.
+  project-problems test that the nbfx `ProjectProblemsImplementation` wins, the alert and customizer dialogs
+  open with the expected problems, and the UI path creates no Swing dialog.
   Baseline to beat: **79 test files, 33 of 63 modules with tests, zero signature tests, headless FX tests
   present** — state the numbers in the W2 acceptance.
 - **Fast loop**: `nbfx.overlay=symlink` and `ant module -Dmodule=<cluster>/<module>` (PR #8) build one module in

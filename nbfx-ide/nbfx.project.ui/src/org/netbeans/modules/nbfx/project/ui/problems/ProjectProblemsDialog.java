@@ -43,6 +43,7 @@ import org.openide.util.NbBundle;
 final class ProjectProblemsDialog extends Dialog<ButtonType> {
 
     private final ButtonType resolve;
+    private final ListView<ProjectProblemsModel.ProblemItem> problems;
 
     ProjectProblemsDialog(Window owner, ProjectProblemsModel model) {
         ProjectProblemsUi.install(this, owner, message("MSG_ProjectProblems_Title"));
@@ -51,8 +52,7 @@ final class ProjectProblemsDialog extends Dialog<ButtonType> {
         intro.setWrapText(true);
         intro.getStyleClass().add("project-problems-intro");
 
-        ListView<ProjectProblemsModel.ProblemItem> problems =
-                new ListView<>(model.getProblems());
+        problems = new ListView<>(model.getProblems());
         problems.setCellFactory(view -> ProjectProblemsUi.problemCell(model.hasMultipleProjects()));
         problems.setPrefHeight(180);
         problems.setAccessibleText(message("ACSN_ProjectProblems_List"));
@@ -88,6 +88,11 @@ final class ProjectProblemsDialog extends Dialog<ButtonType> {
     /** The button type the user chose to open the resolver. */
     ButtonType resolveButtonType() {
         return resolve;
+    }
+
+    /** The problem list, for tests. */
+    ListView<ProjectProblemsModel.ProblemItem> problems() {
+        return problems;
     }
 
     private static String message(String key, Object... arguments) {

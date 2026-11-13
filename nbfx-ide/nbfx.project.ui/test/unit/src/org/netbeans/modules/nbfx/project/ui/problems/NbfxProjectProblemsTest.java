@@ -18,13 +18,17 @@
  */
 package org.netbeans.modules.nbfx.project.ui.problems;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import javafx.stage.Window;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.netbeans.api.project.Project;
 import org.netbeans.spi.project.ui.ProjectProblemsImplementation;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.ProjectProblem;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider.Status;
@@ -51,10 +55,13 @@ public class NbfxProjectProblemsTest {
     private TestProject project;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws Exception {
         root = FileUtil.createMemoryFileSystem().getRoot().createFolder("proj");
         provider = new TestProject.Provider();
         project = new TestProject(root, provider);
+        ProjectProblemsSettings.setShowAgain(true);
+        // Start the toolkit before any test that reaches Platform.runLater().
+        FxTestSupport.onFx(() -> { });
     }
 
     @After
@@ -64,29 +71,96 @@ public class NbfxProjectProblemsTest {
     }
 
     @Test
-    public void noProviderCompletesImmediately() {
+    public void noProviderCompletesImmediatelyAndDoesNotAlert() {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
         TestProject plain = new TestProject(root, null);
-        assertTrue(implementation.showAlert(plain).isDone());
+        assertTrue(problems.showAlert(plain).isDone());
+        assertTrue(presenter.alerts.isEmpty());
     }
 
     @Test
     public void warningOnlyDoesNotAlert() {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
         provider.setProblems(List.of(ProjectProblem.createWarning("Old platform", "Details")));
-        assertTrue(implementation.showAlert(project).isDone());
+        assertTrue(problems.showAlert(project).isDone());
+        assertTrue(presenter.alerts.isEmpty());
     }
 
     @Test
     public void thePreferenceSuppressesTheAlert() {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
         provider.setProblems(List.of(error()));
         ProjectProblemsSettings.setShowAgain(false);
-        assertTrue(implementation.showAlert(project).isDone());
+        assertTrue(problems.showAlert(project).isDone());
+        assertTrue(presenter.alerts.isEmpty());
     }
 
     @Test
     public void theCompatibilityPropertySuppressesTheAlert() {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
         provider.setProblems(List.of(error()));
         System.setProperty(SUPPRESS_PROPERTY, "true");
-        assertTrue(implementation.showAlert(project).isDone());
+        assertTrue(problems.showAlert(project).isDone());
+        assertTrue(presenter.alerts.isEmpty());
+    }
+
+    @Test
+    public void alertOpensForAnErrorProject() throws Exception {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
+        provider.setProblems(List.of(error()));
+
+        problems.showAlert(project).get(10, TimeUnit.SECONDS);
+
+        assertEquals(1, presenter.alerts.size());
+        assertEquals(Set.of(project), presenter.alerts.get(0));
+    }
+
+    @Test
+    public void alertCoalescesProjectsOpenedTogether() throws Exception {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 250);
+        TestProject.Provider otherProvider = new TestProject.Provider();
+        otherProvider.setProblems(List.of(error()));
+        TestProject otherProject = new TestProject(root, otherProvider);
+        provider.setProblems(List.of(error()));
+
+        CompletableFuture<Void> first = problems.showAlert(project);
+        CompletableFuture<Void> second = problems.showAlert(otherProject);
+        CompletableFuture.allOf(first, second).get(10, TimeUnit.SECONDS);
+
+        assertEquals(1, presenter.alerts.size());
+        assertEquals(Set.of(project, otherProject), presenter.alerts.get(0));
+    }
+
+    @Test
+    public void resolveFromTheAlertOpensTheCustomizer() throws Exception {
+        RecordingPresenter presenter = new RecordingPresenter();
+        presenter.resolveFromAlert = true;
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
+        provider.setProblems(List.of(error()));
+
+        problems.showAlert(project).get(10, TimeUnit.SECONDS);
+
+        assertEquals(1, presenter.alerts.size());
+        assertEquals(1, presenter.customizers.size());
+        assertEquals(Set.of(project), presenter.customizers.get(0));
+    }
+
+    @Test
+    public void customizerOpensThroughThePresenter() throws Exception {
+        RecordingPresenter presenter = new RecordingPresenter();
+        NbfxProjectProblems problems = new NbfxProjectProblems(presenter, 0);
+        provider.setProblems(List.of(error()));
+
+        problems.showCustomizer(project).get(10, TimeUnit.SECONDS);
+
+        assertEquals(1, presenter.customizers.size());
+        assertEquals(Set.of(project), presenter.customizers.get(0));
     }
 
     @Test
@@ -154,5 +228,23 @@ public class NbfxProjectProblemsTest {
     private static ProjectProblem error() {
         return ProjectProblem.createError("Missing path", "The resource is missing.",
                 new TestProject.ImmediateResolver(Status.RESOLVED, null));
+    }
+
+    private static final class RecordingPresenter implements ProjectProblemsPresenter {
+
+        private final List<Set<Project>> alerts = new CopyOnWriteArrayList<>();
+        private final List<Set<Project>> customizers = new CopyOnWriteArrayList<>();
+        private volatile boolean resolveFromAlert;
+
+        @Override
+        public boolean showAlert(Window owner, ProjectProblemsModel model) {
+            alerts.add(Set.copyOf(model.getProjects()));
+            return resolveFromAlert;
+        }
+
+        @Override
+        public void showCustomizer(Window owner, ProjectProblemsModel model) {
+            customizers.add(Set.copyOf(model.getProjects()));
+        }
     }
 }

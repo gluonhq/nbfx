@@ -169,6 +169,11 @@ final class ProjectProblemsCustomizer extends Dialog<Void> {
         setOnShown(event -> problems.requestFocus());
     }
 
+    /** The problem list, for tests. */
+    ListView<ProjectProblemsModel.ProblemItem> problems() {
+        return problems;
+    }
+
     private static boolean canResolve(ProjectProblemsModel.ProblemItem item) {
         return item != null && item.isResolvable();
     }

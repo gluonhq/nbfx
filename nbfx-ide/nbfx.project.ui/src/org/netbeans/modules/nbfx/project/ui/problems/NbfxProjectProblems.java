@@ -26,6 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.scene.control.ButtonType;
+import javafx.stage.Window;
 import org.netbeans.api.project.Project;
 import org.netbeans.spi.project.ui.ProjectProblemsImplementation;
 import org.netbeans.spi.project.ui.ProjectProblemsProvider;
@@ -55,8 +56,19 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
     private static final int ALERT_DELAY = 700;
 
     private final Object lock = new Object();
+    private final ProjectProblemsPresenter presenter;
+    private final int alertDelay;
     // @GuardedBy("lock")
     private AlertSession session;
+
+    public NbfxProjectProblems() {
+        this(new DefaultPresenter(), ALERT_DELAY);
+    }
+
+    NbfxProjectProblems(ProjectProblemsPresenter presenter, int alertDelayMillis) {
+        this.presenter = Objects.requireNonNull(presenter, "presenter");
+        this.alertDelay = Math.max(0, alertDelayMillis);
+    }
 
     @Override
     public CompletableFuture<Void> showAlert(Project project) {
@@ -79,7 +91,7 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
         }
         if (createdSession != null) {
             try {
-                RP.post(this::startAlert, ALERT_DELAY);
+                RP.post(this::startAlert, alertDelay);
             } catch (RuntimeException ex) {
                 LOG.log(Level.FINE, "Could not schedule the project problems alert", ex);
                 endSession(createdSession);
@@ -181,10 +193,7 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
             if (model.getProblems().isEmpty()) {
                 return false;
             }
-            ProjectProblemsDialog dialog =
-                    new ProjectProblemsDialog(ProjectProblemsUi.owner(), model);
-            ButtonType result = dialog.showAndWait().orElse(null);
-            return result == dialog.resolveButtonType();
+            return presenter.showAlert(ProjectProblemsUi.owner(), model);
         } finally {
             model.dispose();
         }
@@ -196,7 +205,7 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
             if (model.getProblems().isEmpty()) {
                 return;
             }
-            new ProjectProblemsCustomizer(ProjectProblemsUi.owner(), model).showAndWait();
+            presenter.showCustomizer(ProjectProblemsUi.owner(), model);
         } finally {
             model.dispose();
         }
@@ -231,6 +240,21 @@ public final class NbfxProjectProblems implements ProjectProblemsImplementation 
             LOG.log(Level.FINE, "Could not read the problems of " + project, ex);
         }
         return false;
+    }
+
+    private static final class DefaultPresenter implements ProjectProblemsPresenter {
+
+        @Override
+        public boolean showAlert(Window owner, ProjectProblemsModel model) {
+            ProjectProblemsDialog dialog = new ProjectProblemsDialog(owner, model);
+            ButtonType result = dialog.showAndWait().orElse(null);
+            return result == dialog.resolveButtonType();
+        }
+
+        @Override
+        public void showCustomizer(Window owner, ProjectProblemsModel model) {
+            new ProjectProblemsCustomizer(owner, model).showAndWait();
+        }
     }
 
     private static final class AlertSession {

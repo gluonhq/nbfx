@@ -74,6 +74,8 @@ final class FxTestSupport {
             CountDownLatch latch = new CountDownLatch(1);
             Platform.startup(latch::countDown);
             latch.await();
+            // Dialog tests open and close the only window; keep the toolkit alive for later tests.
+            Platform.setImplicitExit(false);
         }
     }
 }
