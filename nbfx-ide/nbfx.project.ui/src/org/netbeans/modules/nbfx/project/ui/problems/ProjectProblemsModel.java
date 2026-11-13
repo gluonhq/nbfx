@@ -105,6 +105,7 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     private final boolean includeWarnings;
     private boolean disposed;
     private boolean refreshing;
+    private boolean refreshAgain;
 
     /**
      * @param projects the projects whose problems to expose
@@ -156,6 +157,7 @@ final class ProjectProblemsModel implements PropertyChangeListener {
             return;
         }
         if (refreshing) {
+            refreshAgain = true;
             return;
         }
         refreshing = true;
@@ -166,6 +168,10 @@ final class ProjectProblemsModel implements PropertyChangeListener {
             }
         } finally {
             refreshing = false;
+        }
+        if (refreshAgain && !disposed) {
+            refreshAgain = false;
+            refresh();
         }
     }
 
@@ -222,6 +228,7 @@ final class ProjectProblemsModel implements PropertyChangeListener {
     /** Stops listening to the providers and releases the list. Call on the JavaFX thread. */
     void dispose() {
         disposed = true;
+        refreshAgain = false;
         listeners.forEach(ProjectProblemsProvider::removePropertyChangeListener);
         listeners.clear();
         projects.clear();
