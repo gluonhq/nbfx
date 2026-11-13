@@ -108,11 +108,11 @@ public final class ApiAudit {
         }
 
         List<Module> modules = discover(root);
-        Map<String, Module> packageOwners = packageOwners(modules);
+        Map<String, List<Module>> packageOwners = packageOwners(modules);
         List<Contract> contracts = contracts(modules);
         List<Edge> edges = edges(modules, packageOwners);
 
-        String report = render(root, modules, contracts, edges);
+        String report = render(root, modules, contracts, edges, packageOwners);
         if (out != null) {
             Path parent = out.getParent();
             if (parent != null) {
@@ -280,17 +280,17 @@ public final class ApiAudit {
         return spec.isBlank() ? "-" : spec;
     }
 
-    private static Map<String, Module> packageOwners(List<Module> modules) {
-        Map<String, Module> owners = new TreeMap<>();
+    private static Map<String, List<Module>> packageOwners(List<Module> modules) {
+        Map<String, List<Module>> owners = new TreeMap<>();
         for (Module module : modules) {
             for (String pkg : module.publicPackages()) {
-                owners.putIfAbsent(pkg, module);
+                owners.computeIfAbsent(pkg, key -> new ArrayList<>()).add(module);
             }
             for (String pkg : module.publicSubpackages()) {
-                owners.putIfAbsent(pkg, module);
+                owners.computeIfAbsent(pkg, key -> new ArrayList<>()).add(module);
             }
             for (String pkg : module.friendPackages()) {
-                owners.putIfAbsent(pkg, module);
+                owners.computeIfAbsent(pkg, key -> new ArrayList<>()).add(module);
             }
         }
         return owners;
@@ -312,10 +312,10 @@ public final class ApiAudit {
             String verdict;
             if (owner == null) {
                 verdict = "GAP (type not found)";
-            } else if ("public".equals(exportKind) && (owner.isApi())) {
+            } else if ("public".equals(exportKind) && owner.isApi()) {
                 verdict = "OK";
             } else if ("public".equals(exportKind)) {
-                verdict = "GAP (T0/unset export)";
+                verdict = "GAP (owner tier " + ownerTier + ")";
             } else if ("friend".equals(exportKind)) {
                 verdict = "GAP (friend-only)";
             } else {
@@ -375,9 +375,9 @@ public final class ApiAudit {
 
     // ----------------------------------------------------------------- edges
 
-    private static List<Edge> edges(List<Module> modules, Map<String, Module> packageOwners) {
-        List<Map.Entry<String, Module>> packages = new ArrayList<>(packageOwners.entrySet());
-        packages.sort(Comparator.comparingInt((Map.Entry<String, Module> entry) -> entry.getKey().length())
+    private static List<Edge> edges(List<Module> modules, Map<String, List<Module>> packageOwners) {
+        List<Map.Entry<String, List<Module>>> packages = new ArrayList<>(packageOwners.entrySet());
+        packages.sort(Comparator.comparingInt((Map.Entry<String, List<Module>> entry) -> entry.getKey().length())
                 .reversed());
 
         Set<Edge> unique = new LinkedHashSet<>();
@@ -394,10 +394,10 @@ public final class ApiAudit {
                     String imported = imports.group(1);
                     Module owner = null;
                     String pkg = null;
-                    for (Map.Entry<String, Module> entry : packages) {
+                    for (Map.Entry<String, List<Module>> entry : packages) {
                         String candidate = entry.getKey();
                         if (imported.equals(candidate) || imported.startsWith(candidate + ".")) {
-                            owner = entry.getValue();
+                            owner = entry.getValue().get(0);
                             pkg = candidate;
                             break;
                         }
@@ -430,13 +430,13 @@ public final class ApiAudit {
     // ---------------------------------------------------------------- render
 
     private static String render(Path root, List<Module> modules, List<Contract> contracts,
-            List<Edge> edges) {
+            List<Edge> edges, Map<String, List<Module>> packageOwners) {
         StringBuilder out = new StringBuilder();
-        Findings findings = findings(modules, contracts, edges);
+        Findings findings = findings(modules, contracts, edges, packageOwners);
 
         out.append("nbfx API audit\n");
         out.append("read-only: findings do not fail the build; W2a uses this report\n");
-        out.append("root: ").append(root).append('\n');
+        out.append("root: ").append(displayRoot(root)).append('\n');
         out.append("modules: ").append(modules.size()).append('\n');
         out.append("contracts: ").append(contracts.size()).append('\n');
         out.append("edges: ").append(edges.size()).append("\n\n");
@@ -517,7 +517,18 @@ public final class ApiAudit {
         return out.toString();
     }
 
-    private static Findings findings(List<Module> modules, List<Contract> contracts, List<Edge> edges) {
+    private static String displayRoot(Path root) {
+        Path cwd = Paths.get("").toAbsolutePath().normalize();
+        try {
+            String relative = cwd.relativize(root).toString();
+            return relative.isEmpty() ? "." : relative;
+        } catch (IllegalArgumentException ex) {
+            return root.toString();
+        }
+    }
+
+    private static Findings findings(List<Module> modules, List<Contract> contracts, List<Edge> edges,
+            Map<String, List<Module>> packageOwners) {
         Findings findings = new Findings();
         List<String> noTier = new ArrayList<>();
         List<String> annotationOnly = new ArrayList<>();
@@ -568,9 +579,38 @@ public final class ApiAudit {
             }
         }
 
+        List<String> splits = new ArrayList<>();
+        for (Map.Entry<String, List<Module>> entry : packageOwners.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                splits.add(entry.getKey() + " (" + entry.getValue().stream()
+                        .map(Module::name).collect(java.util.stream.Collectors.joining(", ")) + ")");
+            }
+        }
+        if (!splits.isEmpty()) {
+            findings.errors.add("split package(s): " + String.join("; ", splits));
+        }
+
+        long implRootExports = edges.stream()
+                .filter(edge -> edge.publicExport()
+                        && edge.pkg().startsWith("org.netbeans.modules.nbfx."))
+                .count();
+        long implRootUntiered = edges.stream()
+                .filter(edge -> edge.publicExport()
+                        && "unset".equals(edge.ownerTier())
+                        && edge.pkg().startsWith("org.netbeans.modules.nbfx."))
+                .count();
+        if (implRootExports > 0) {
+            findings.warnings.add(implRootExports
+                    + " implementation-root public export edge(s) consumed outside the owner"
+                    + (implRootUntiered > 0
+                            ? " (" + implRootUntiered + " with an owner tier still unset)"
+                            : "")
+                    + "; see the edge table");
+        }
+
         if (!noTier.isEmpty()) {
-            findings.warnings.add(noTier.size() + " module(s) have no tier metadata: "
-                    + join(noTier));
+            findings.warnings.add(noTier.size()
+                    + " module(s) have no tier metadata; see the module table");
         }
         if (!annotationOnly.isEmpty()) {
             findings.errors.add("API module(s) with only annotation types (contract is empty): "

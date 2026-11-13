@@ -94,8 +94,13 @@ jobs:
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ bootstrap
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
 
+      - name: Unit tests (all nbfx modules)
+        timeout-minutes: 25
+        run: ant test
+
       - name: API audit (report only)
         if: always()
+        continue-on-error: true
         run: ant api-audit
 
       - name: Upload API audit
@@ -105,10 +110,6 @@ jobs:
           name: api-audit
           path: build/api-audit.txt
           if-no-files-found: ignore
-
-      - name: Unit tests (all nbfx modules)
-        timeout-minutes: 25
-        run: ant test
 
       - name: Upload unit-test results
         if: failure()
