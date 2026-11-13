@@ -28,34 +28,34 @@
     -nbfx-accent-tint: #3D8BD980;
     -nbfx-on-accent: white;
 
-    -nbfx-canvas: #2B2B2B;
-    -nbfx-surface: #1E1E1E;
-    -nbfx-neutral: #3A3A3A;
-    -nbfx-chrome: #3A3A3A;
-    -nbfx-chrome-active: #3E4A56;
-    -nbfx-chrome-hover: #3A4650;
-    -nbfx-hover: #3C3C3C;
-    -nbfx-pressed: #484848;
+    -nbfx-canvas: #383838;
+    -nbfx-surface: #2B2B2B;
+    -nbfx-neutral: #474747;
+    -nbfx-chrome: #474747;
+    -nbfx-chrome-active: #4B5764;
+    -nbfx-chrome-hover: #47535D;
+    -nbfx-hover: #494949;
+    -nbfx-pressed: #555555;
 
     -nbfx-text-strong: #EEEEEE;
     -nbfx-text: #D4D4D4;
     -nbfx-text-muted: #B0B0B0;
-    -nbfx-text-faint: #8A8A8A;
-    -nbfx-text-disabled: #6E6E6E;
+    -nbfx-text-faint: #959595;
+    -nbfx-text-disabled: #7A7A7A;
 
     -nbfx-icon: #B0B0B0;
     -nbfx-icon-hover: #D0D0D0;
     -nbfx-icon-pressed: #E6E6E6;
     -nbfx-icon-menu: #9A9A9A;
-    -nbfx-icon-subtle: #5A5A5A;
+    -nbfx-icon-subtle: #676767;
 
-    -nbfx-border: #4A4A4A;
-    -nbfx-border-soft: #555555;
-    -nbfx-track: #262626;
-    -nbfx-track-focused: #2E2E2E;
-    -nbfx-thumb: #5A5A5A;
-    -nbfx-thumb-hover: #6E6E6E;
-    -nbfx-thumb-pressed: #808080;
+    -nbfx-border: #575757;
+    -nbfx-border-soft: #626262;
+    -nbfx-track: #333333;
+    -nbfx-track-focused: #3B3B3B;
+    -nbfx-thumb: #676767;
+    -nbfx-thumb-hover: #7B7B7B;
+    -nbfx-thumb-pressed: #8D8D8D;
 
     -nbfx-danger: #E06C6D;
     -nbfx-danger-soft: #8B3A3A;
@@ -63,28 +63,28 @@
     -nbfx-drop-indicator: #FF5C5C;
 
     /* Code editor: dark surfaces, highlights and search bar */
-    -nbfx-editor-bg: #1E1E1E;
+    -nbfx-editor-bg: #2B2B2B;
     -nbfx-editor-fg: #D4D4D4;
-    -nbfx-editor-line: #2A2D2E;
-    -nbfx-editor-gutter: #252526;
+    -nbfx-editor-line: #37393A;
+    -nbfx-editor-gutter: #323233;
     -nbfx-editor-selection: #264F78;
     -nbfx-editor-line-band: rgba(255, 214, 102, 0.14);
-    -nbfx-editor-readonly-bg: #1E1E1E;
-    -nbfx-editor-readonly-line: #2A2D2E;
-    -nbfx-editor-readonly-gutter: #252526;
-    -nbfx-editor-brace: #2F4F2F;
+    -nbfx-editor-readonly-bg: #2B2B2B;
+    -nbfx-editor-readonly-line: #37393A;
+    -nbfx-editor-readonly-gutter: #323233;
+    -nbfx-editor-brace: #3B5A3B;
     -nbfx-editor-brace-error: #F14C4C;
-    -nbfx-editor-occurrence: #3A4A2E;
+    -nbfx-editor-occurrence: #46563A;
     -nbfx-editor-search-match: #8A6A1E;
     -nbfx-editor-squiggle-error: #F14C4C;
     -nbfx-editor-squiggle-warning: #CCA700;
-    -nbfx-editor-bar-border: #3C3C3C;
+    -nbfx-editor-bar-border: #494949;
     -nbfx-editor-text: #CCCCCC;
     -nbfx-editor-text-error: #F48771;
     -nbfx-editor-error-bg: #4B2222;
     -nbfx-editor-separator: #6E6E6E;
-    -nbfx-editor-crumb-hover: #3A3D41;
-    -nbfx-editor-button-selected-hover: #4A4A4A;
+    -nbfx-editor-crumb-hover: #474A4E;
+    -nbfx-editor-button-selected-hover: #575757;
 
     /* Syntax colors, tuned for the dark editor surface */
     -nbfx-code-keyword: #569CD6;
@@ -105,28 +105,28 @@
     -nbfx-code-hyperlink: #4FC1FF;
 
     /* Modena base colors used by the stock controls */
-    -fx-base: #3A3A3A;
-    -fx-background: #2B2B2B;
-    -fx-control-inner-background: #1E1E1E;
-    -fx-control-inner-background-alt: #1E1E1E;
+    -fx-base: #474747;
+    -fx-background: #383838;
+    -fx-control-inner-background: #2B2B2B;
+    -fx-control-inner-background-alt: #2B2B2B;
     -fx-default-button: #2F6FB0;
     -fx-text-background-color: #EEEEEE;
     -fx-text-base-color: #EEEEEE;
-    -fx-text-box-border: #4A4A4A;
+    -fx-text-box-border: #575757;
     -fx-focus-color: #3D8BD9;
     -fx-faint-focus-color: #3D8BD940;
     -fx-selection-bar: #3D8BD9;
-    -fx-selection-bar-non-focused: #4A4A4A;
+    -fx-selection-bar-non-focused: #575757;
     -fx-selection-bar-text: white;
     -fx-hyperlink-color: #5A9DE0;
 
     /* Completion and breadcrumb popups */
-    -nbfx-popup-bg: #252526;
-    -nbfx-popup-border: #454545;
+    -nbfx-popup-bg: #323233;
+    -nbfx-popup-border: #525252;
     -nbfx-popup-text: #CCCCCC;
-    -nbfx-popup-muted: #8A8A8A;
-    -nbfx-popup-hover: #2A2D2E;
+    -nbfx-popup-muted: #959595;
+    -nbfx-popup-hover: #37393A;
     -nbfx-popup-selected: #04395E;
     -nbfx-popup-selected-text: #FFFFFF;
-    -nbfx-popup-separator: #3C3C3C;
+    -nbfx-popup-separator: #494949;
 }

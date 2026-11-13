@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
 
+import org.netbeans.api.nbfx.icons.ThemedImageView;
 import org.netbeans.api.java.queries.AccessibilityQuery;
 import org.netbeans.api.java.queries.AccessibilityQuery.Accessibility;
 import org.netbeans.api.project.Project;
@@ -61,6 +62,8 @@ public final class NavigatorIcons {
 
     private static final Map<String, Image> iconCacheMap = new ConcurrentHashMap<>();
     private static final Map<String, CopyOnWriteArrayList<Consumer<Image>>> iconRequestsMap = new ConcurrentHashMap<>();
+    /** Icon name to the name of its dark drawing, empty when it has none. */
+    private static final Map<String, String> darkNameMap = new ConcurrentHashMap<>();
     private static final RequestProcessor ICON_RP =
             new RequestProcessor("ProjectViewUtils-icons", 2, true, true);
 
@@ -108,12 +111,25 @@ public final class NavigatorIcons {
     }
 
     public static ImageView createIconView(FileObject fileObj, String iconName) {
-        ImageView view = new ImageView();
+        String darkName = iconName == null ? "" : darkNameMap.computeIfAbsent(iconName, name -> {
+            String dark = ThemedImageView.darkName(name);
+            return resolveIcon(dark) != null ? dark : "";
+        });
+        ThemedImageView themed = darkName.isEmpty() ? null : new ThemedImageView();
+        ImageView view = themed != null ? themed : new ImageView();
         view.setFitWidth(ICON_SIZE);
         view.setFitHeight(ICON_SIZE);
         view.setPreserveRatio(true);
         try {
-            getIcon(fileObj, iconName, view::setImage);
+            if (themed == null) {
+                getIcon(fileObj, iconName, view::setImage);
+            } else {
+                // Both drawings are loaded before either is shown, so the icon does not flash.
+                getIcon(fileObj, iconName, light -> getIcon(fileObj, darkName, dark -> {
+                    themed.setLightImage(light);
+                    themed.setDarkImage(dark);
+                }));
+            }
         } catch (Exception e) {
             LOG.warning("Error creating icon for " + fileObj.getName() + ": " + e);
         }

@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.java.gradle.structure;
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.modules.nbfx.java.gradle.api.GradleTasks;
 import org.netbeans.modules.nbfx.ide.build.BuildRunner;
+import org.netbeans.api.nbfx.icons.ThemedImageView;
 import org.netbeans.modules.nbfx.ide.structure.NavigatorIcons;
 import org.netbeans.modules.nbfx.ide.structure.ScanningPanel;
 import java.beans.PropertyChangeListener;
@@ -43,7 +44,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
-import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
@@ -288,7 +288,7 @@ final class GradleTasksUI extends BorderPane implements ScanningPanel<GradleTask
     /** A row: the Gradle, folder or task icon and the name; the task's description as the tooltip. The nodes are reused. */
     private static final class TaskCell extends TreeCell<Object> {
 
-        private final ImageView icon = new ImageView();
+        private final ThemedImageView icon = new ThemedImageView();
         private final Label name = new Label();
         private final HBox row;
         private final Tooltip tooltip = new Tooltip();
@@ -316,15 +316,15 @@ final class GradleTasksUI extends BorderPane implements ScanningPanel<GradleTask
             switch (item) {
                 case Root root -> {
                     name.setText(root.name());
-                    icon.setImage(NavigatorIcons.image(GradleTasksUI.class, "icons/gradle.png"));
+                    icon.setIcon(GradleTasksUI.class, "icons/gradle.png");
                 }
                 case TaskGroups.Group group -> {
                     name.setText(group.other() ? message("LBL_PrivateTasks") : TaskGroups.capitalize(group.name()));
-                    icon.setImage(NavigatorIcons.image(GradleTasksUI.class, "icons/folder.png"));
+                    icon.setIcon(GradleTasksUI.class, "icons/folder.png");
                 }
                 case TaskGroups.Task task -> {
                     name.setText(task.name());
-                    icon.setImage(NavigatorIcons.image(GradleTasksUI.class, "icons/task.png"));
+                    icon.setIcon(GradleTasksUI.class, "icons/task.png");
                     String description = task.description();
                     tip = description == null || description.isBlank()
                             ? message("TOOLTIP_Task", task.path())
