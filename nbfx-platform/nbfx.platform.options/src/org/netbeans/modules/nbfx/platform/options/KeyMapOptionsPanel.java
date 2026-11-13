@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.options;
 
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.netbeans.api.nbfx.options.OptionsRegistration;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
@@ -40,7 +41,7 @@ import org.openide.util.NbBundle;
  * @since 1.0
  */
 @OptionsRegistration(id = KeyMapOptionsPanel.ID, categoryName = "Keymap", position = 20)
-public final class KeyMapOptionsPanel implements OptionsPanelHost {
+public final class KeyMapOptionsPanel implements OptionsPanelController {
 
     /** The panel id, referenced by {@code @OptionsRegistration}. */
     public static final String ID = "keymap";
@@ -72,26 +73,6 @@ public final class KeyMapOptionsPanel implements OptionsPanelHost {
         table.getColumns().add(commandColumn);
         table.getColumns().add(shortcutColumn);
         table.setEditable(true);
-    }
-
-    @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return message("Options.category.keymap");
-    }
-
-    @Override
-    public String getCategory() {
-        return "Keymap";
-    }
-
-    @Override
-    public int getPosition() {
-        return 20;
     }
 
     @Override

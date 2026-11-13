@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.api.options.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.options.OptionsContainerRegistration;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.netbeans.api.nbfx.options.OptionsRegistration;
 import org.netbeans.api.nbfx.options.OptionsSubRegistration;
 import java.util.Set;
@@ -62,7 +63,8 @@ public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(LayerPaths.OPTIONS, registration.id(), (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.OPTIONS, registration.id(),
+                    OptionsPanelController.class);
             file.stringvalue("displayName", registration.categoryName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("keywords", registration.keywords());
@@ -76,7 +78,8 @@ public class OptionsRegistrationProcessor extends LayerGeneratingProcessor {
                 continue;
             }
             File file = layer(element).instanceFile(
-                    LayerPaths.OPTIONS + "/" + registration.location(), registration.id(), (Class<?>) null);
+                    LayerPaths.OPTIONS + "/" + registration.location(), registration.id(),
+                    OptionsPanelController.class);
             file.stringvalue("displayName", registration.displayName());
             file.stringvalue("keywords", registration.keywords());
             file.intvalue("position", registration.position());

@@ -32,6 +32,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Test;
 
 /**
@@ -52,10 +53,13 @@ public class OptionsRegistrationProcessorTest {
             + "import org.netbeans.api.nbfx.options.*;\n"
             + "@OptionsRegistration(id = \"demo.options\", categoryName = \"Demo\","
             + " iconName = \"demo.png\", keywords = \"demo,test\", position = 10)\n"
-            + "public class DemoOptions {\n"
+            + "public class DemoOptions implements OptionsPanelController {\n"
+            + "    public javafx.scene.Node getComponent() { return null; }\n"
             + "    @OptionsSubRegistration(id = \"demo.sub\", location = \"demo.options\","
             + " displayName = \"Sub\", keywords = \"sub\", position = 20)\n"
-            + "    public static class Sub {}\n"
+            + "    public static class Sub implements OptionsPanelController {\n"
+            + "        public javafx.scene.Node getComponent() { return null; }\n"
+            + "    }\n"
             + "}\n";
 
     @Test
@@ -73,6 +77,23 @@ public class OptionsRegistrationProcessorTest {
         assertTrue(xml, xml.contains("name=\"demo.container\""));
         assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"container\""));
         assertLayerPath(xml, LayerPaths.OPTIONS);
+    }
+
+    @Test
+    public void rejectsClassWithoutController() throws Exception {
+        String bad = "package demo;\n"
+                + "import org.netbeans.api.nbfx.options.*;\n"
+                + "@OptionsRegistration(id = \"demo.bad\", categoryName = \"Bad\")\n"
+                + "public class Bad {}\n";
+        try {
+            ProcessorTestSupport.compile(
+                    "org.netbeans.modules.nbfx.api.options.processors.OptionsRegistrationProcessor",
+                    Map.of("demo/Bad.java", bad));
+            fail("a class that does not implement OptionsPanelController must be rejected");
+        } catch (AssertionError expected) {
+            assertTrue(expected.getMessage(),
+                    expected.getMessage().contains("OptionsPanelController"));
+        }
     }
 
     private static void assertLayerPath(String xml, String path) {

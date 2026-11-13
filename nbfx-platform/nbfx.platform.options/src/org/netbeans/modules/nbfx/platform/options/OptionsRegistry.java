@@ -19,20 +19,24 @@
 package org.netbeans.modules.nbfx.platform.options;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
-import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
 /**
- * Discovers the {@link OptionsPanelHost}s registered under {@code NbFx/Options} in the module layer.
+ * Discovers the {@link OptionsPanelController}s registered under {@code NbFx/Options} in the module
+ * layer. The layer entry is authoritative for the id, display name and position; the controller
+ * supplies the component and lifecycle.
  *
  * @since 1.0
  */
-public final class OptionsRegistry {
+final class OptionsRegistry {
 
     private OptionsRegistry() {
     }
@@ -43,23 +47,51 @@ public final class OptionsRegistry {
      *
      * @return the panel registrations, ordered by position then id
      */
-    public static List<OptionsPanelEntry> discover() {
-        Lookup lookup = Lookups.forPath(LayerPaths.OPTIONS);
+    static List<OptionsPanelEntry> discover() {
         FileObject folder = FileUtil.getConfigFile(LayerPaths.OPTIONS);
-        return read(folder, lookup.lookupAll(OptionsPanelHost.class));
-    }
-
-    /** Reads the registrations of {@code panels}, taking metadata from {@code folder}'s attributes. */
-    static List<OptionsPanelEntry> read(FileObject folder, Iterable<? extends OptionsPanelHost> panels) {
+        if (folder == null) {
+            return List.of();
+        }
+        Map<String, OptionsPanelController> panelsByClass = new LinkedHashMap<>();
+        for (OptionsPanelController panel : Lookups.forPath(LayerPaths.OPTIONS)
+                .lookupAll(OptionsPanelController.class)) {
+            panelsByClass.putIfAbsent(panel.getClass().getName(), panel);
+        }
         List<OptionsPanelEntry> registrations = new ArrayList<>();
-        for (OptionsPanelHost panel : panels) {
-            String id = panel.getId();
-            FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
-            String displayName = stringAttribute(file, "displayName", panel.getDisplayName());
-            int position = intAttribute(file, "position", panel.getPosition());
-            registrations.add(new OptionsPanelEntry(id, displayName, panel.getCategory(), position, panel));
+        for (FileObject file : folder.getChildren()) {
+            if (!file.isData() || !file.hasExt("instance")) {
+                continue;
+            }
+            Object className = file.getAttribute("instanceClass");
+            if (!(className instanceof String name)) {
+                continue;
+            }
+            OptionsPanelController panel = panelsByClass.get(name);
+            if (panel != null) {
+                registrations.add(read(file, panel));
+            }
         }
         return sort(registrations);
+    }
+
+    /** Reads the registrations of {@code panels}, keyed by the layer file's base name. */
+    static List<OptionsPanelEntry> read(FileObject folder, Map<String, OptionsPanelController> panels) {
+        List<OptionsPanelEntry> registrations = new ArrayList<>();
+        for (Map.Entry<String, OptionsPanelController> entry : panels.entrySet()) {
+            FileObject file = folder == null ? null : folder.getFileObject(entry.getKey(), "instance");
+            registrations.add(read(entry.getKey(), file, entry.getValue()));
+        }
+        return sort(registrations);
+    }
+
+    private static OptionsPanelEntry read(FileObject file, OptionsPanelController panel) {
+        return read(file.getName(), file, panel);
+    }
+
+    private static OptionsPanelEntry read(String id, FileObject file, OptionsPanelController panel) {
+        String displayName = stringAttribute(file, "displayName", id);
+        int position = intAttribute(file, "position", Integer.MAX_VALUE);
+        return new OptionsPanelEntry(id, displayName, position, panel);
     }
 
     /** Orders panels by position, then id. */

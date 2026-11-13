@@ -18,8 +18,10 @@
  */
 package org.netbeans.modules.nbfx.platform.options;
 
+import java.util.logging.Logger;
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
+import org.netbeans.api.nbfx.options.OptionsDisplayer;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -27,6 +29,8 @@ import org.openide.util.NbBundle;
 
 /** Window ▸ Options (Shortcut+,): opens the Options dialog. Always enabled. */
 final class SelectOptionsCommand extends AbstractCommand {
+
+    private static final Logger LOG = Logger.getLogger(SelectOptionsCommand.class.getName());
 
     SelectOptionsCommand() {
         super(ActionIds.SELECT_OPTIONS,
@@ -36,6 +40,11 @@ final class SelectOptionsCommand extends AbstractCommand {
 
     @Override
     public void run() {
-        OptionsWindow.show();
+        OptionsDisplayer displayer = OptionsDisplayer.getDefault();
+        if (displayer == null) {
+            LOG.warning("No OptionsDisplayer service; options cannot be opened");
+            return;
+        }
+        displayer.open();
     }
 }

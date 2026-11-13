@@ -39,13 +39,21 @@ import org.openide.util.NbBundle;
  *
  * @since 1.0
  */
-public final class OptionsWindow {
+final class OptionsWindow {
 
     private OptionsWindow() {
     }
 
     /** Shows the Options dialog. Must run on the JavaFX Application Thread. */
-    public static void show() {
+    static void show() {
+        show(null);
+    }
+
+    /**
+     * Shows the Options dialog, selecting {@code id} when it is registered.
+     * Must run on the JavaFX Application Thread.
+     */
+    static void show(String id) {
         List<OptionsPanelEntry> panels = OptionsRegistry.discover();
         if (panels.isEmpty()) {
             return;
@@ -74,7 +82,7 @@ public final class OptionsWindow {
                 content.getChildren().setAll(now.panel().getComponent());
             }
         });
-        list.getSelectionModel().selectFirst();
+        select(list, panels, id);
 
         SplitPane split = new SplitPane(list, content);
         split.setDividerPositions(0.3);
@@ -94,6 +102,19 @@ public final class OptionsWindow {
         } else {
             applyAll(panels);
         }
+    }
+
+    private static void select(ListView<OptionsPanelEntry> list, List<OptionsPanelEntry> panels,
+            String id) {
+        if (id != null) {
+            for (OptionsPanelEntry entry : panels) {
+                if (entry.id().equals(id)) {
+                    list.getSelectionModel().select(entry);
+                    return;
+                }
+            }
+        }
+        list.getSelectionModel().selectFirst();
     }
 
     private static void applyAll(List<OptionsPanelEntry> panels) {

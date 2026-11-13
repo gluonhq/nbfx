@@ -26,22 +26,22 @@
         <apidef name="netbeansfx_options">NetBeansFX Options API</apidef>
     </apidefs>
     <changes>
-        <change id="options.initial">
+        <change id="options.panel.contract">
             <api name="netbeansfx_options"/>
-            <summary>Initial pure-JavaFX Options dialog.</summary>
-            <version major="1" minor="0"/>
-            <date day="8" month="10" year="2026"/>
+            <summary>Published options panel and displayer contract.</summary>
+            <version major="1" minor="1"/>
+            <date day="12" month="11" year="2026"/>
             <author login="sven"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>
-                Introduces <code>FxOptionsPanel</code>, <code>OptionsPanelEntry</code>,
-                <code>OptionsRegistry</code> and <code>FxOptionsDialog</code>. Panels are registered
-                with <code>@OptionsRegistration</code> under <code>NbFx/Options</code>. The API is
-                under development until the MVP freeze.
+                Adds <code>OptionsPanelController</code>, the interface a module implements and
+                registers with <code>@OptionsRegistration</code>/<code>@OptionsSubRegistration</code>,
+                and <code>OptionsDisplayer</code>, the platform service that opens the options
+                window. The layer entry owns the panel id, display name and position; the generated
+                instance validates that the annotated class implements the controller.
             </description>
-            <class package="org.netbeans.modules.nbfx.platform.options" name="FxOptionsPanel"/>
-            <class package="org.netbeans.modules.nbfx.platform.options" name="OptionsRegistry"/>
-            <class package="org.netbeans.modules.nbfx.platform.options" name="FxOptionsDialog"/>
+            <class package="org.netbeans.api.nbfx.options" name="OptionsPanelController"/>
+            <class package="org.netbeans.api.nbfx.options" name="OptionsDisplayer"/>
         </change>
     </changes>
     <htmlcontents>
@@ -52,7 +52,7 @@
             <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
             <h1>Introduction</h1>
             <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Options API</a>.</p>
-            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.platform.options"/>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.options"/>
             <hr/><p>@FOOTER@</p>
         </body>
     </htmlcontents>

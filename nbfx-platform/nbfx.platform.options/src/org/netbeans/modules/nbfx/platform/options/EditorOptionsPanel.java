@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.options;
 
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.netbeans.api.nbfx.options.OptionsRegistration;
 import org.netbeans.api.nbfx.editor.EditorSettings;
 import javafx.geometry.Insets;
@@ -35,7 +36,7 @@ import org.openide.util.NbBundle;
  * @since 1.0
  */
 @OptionsRegistration(id = EditorOptionsPanel.ID, categoryName = "Editor", position = 10)
-public final class EditorOptionsPanel implements OptionsPanelHost {
+public final class EditorOptionsPanel implements OptionsPanelController {
 
     /** The panel id, referenced by {@code @OptionsRegistration}. */
     public static final String ID = "editor";
@@ -56,26 +57,6 @@ public final class EditorOptionsPanel implements OptionsPanelHost {
             grid.addRow(0, lineNumbers);
             grid.addRow(1, breadcrumbs);
         }
-    }
-
-    @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return message("Options.category.editor");
-    }
-
-    @Override
-    public String getCategory() {
-        return "Editor";
-    }
-
-    @Override
-    public int getPosition() {
-        return 10;
     }
 
     @Override
