@@ -53,6 +53,7 @@ column is what the bridge module must be allowed to carry permanently (Appendix 
 | Upstream module | Consumer(s) in nbfx | Mechanism | Our module | Milestone |
 |---|---|---|---|---|
 | `org.netbeans.modules.projectuiapi.base` | `ide.project` (`nbfx.project`; the `launcher`/`ui` bridge is gone) | **reuse**: `OpenProjects` is the headless project model behind the IDE-tier registry; keep the exemption in `check-purity.xml` | `ide.project` | M1 review |
+| `org.netbeans.modules.projectuiapi` | `ide.project.ui` (`nbfx.project.ui`) | **reuse API / replace UI**: implement `ProjectProblemsImplementation` in JavaFX; the Swing `projectui`/`BrokenReferencesImpl` alert and customizer are retired | `ide.project.ui` | M1 |
 | `org.netbeans.modules.parsing.indexing` | `launcher`, `ui`, `findusages`, `project.ui.java` | **reuse** (headless index) + the indexing workstream (§D.5) | `java.model` / `ide.search` | M0/M1 |
 | `org.netbeans.api.java`, `api.java.classpath` | `editor`, `findusages`, `structure.java`, `project.ui.java`, `debug` | **reuse** (headless) | java layer | M1/M2 |
 | `org.netbeans.modules.java.source.base` (`org.netbeans.api.java.source`) | `editor`, `findusages`, `structure.java`, `project.ui.java` | **bridge** (`java.model`) | `java.model`, `java.editor` … | M1 |
@@ -181,7 +182,7 @@ on; not merely unused.
 |---|---|
 | M0 | `core.windows` (already), `progress.ui` (landed, PR #2), the `launcher`/`ui` `projectuiapi.base` bridge (gone; the remaining `ide.project` reuse is IDE-tier, M1 review), the status/output **providers** we replaced (the dialog provider is M1), `ide/editor*` from the runtime path (the app does not load them) |
 | M1 services | the `platform.editor`/`platform.workspace` public implementation packages (extracted to API/SPI; internals are T0 friend packages only), the output/dialog providers replaced by `platform.output`/`platform.dialogs` |
-| M1 IDE core | `ide/editor.lib`, `ide/editor.lib2`, `ide/editor.document`, `ide/editor.completion`, `ide/editor.search`, `ide/editor.bracesmatching`, `ide/editor.codetemplates`, `ide/editor.fold*`, `ide/editor.guards`, `ide/editor.indent*`, `ide/editor.actions`, `ide/editor.structure`, `ide/editor.settings.lib`, `ide/editor.errorstripe`, `ide/editor.bookmarks` |
+| M1 IDE core | `ide/editor.lib`, `ide/editor.lib2`, `ide/editor.document`, `ide/editor.completion`, `ide/editor.search`, `ide/editor.bracesmatching`, `ide/editor.codetemplates`, `ide/editor.fold*`, `ide/editor.guards`, `ide/editor.indent*`, `ide/editor.actions`, `ide/editor.structure`, `ide/editor.settings.lib`, `ide/editor.errorstripe`, `ide/editor.bookmarks`, `ide/projectui` (the project problems UI is replaced by `ide.project.ui`) |
 | M2 | `java/java.editor`, `java/java.editor.base`, `java/java.editor.lib`, `java/java.sourceui`, `java/java.hints`' UI half, `java/java.project.ui` |
 | M3 | `java/java.j2seproject`'s Swing project UI, SceneBuilder's Swing shell (if any) |
 | Later | `java/java.source`'s `Document` half, `platform/api.keymap` UI |
