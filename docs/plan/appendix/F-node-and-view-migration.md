@@ -59,7 +59,7 @@ is the over-abstraction [Appendix E.7](E-contracts.md) warns about.
 
 M0 only completes the **model and the property sheet**: `api.nodes.PropertyModel`/`PropertySetModel`,
 `api.property.PropertyEditor` and the `platform.nodes` sheet migration. The explorer views in this appendix,
-including the project/file navigators and the debug/VCS/search result panels, are M1a/M1b work; they consume
+including the project/file navigators and the debug/VCS/search result panels, are M1 work; they consume
 the M0 model rather than extending it.
 
 ## F.2 The target

@@ -133,7 +133,7 @@ both `check-sources` and `check-jars` to the cluster directories (`nbfx-libs`, `
 | file / module                | forbidden family      | reason (upstream API forces it) | owner | remove by |
 |------------------------------|----------------------|--------------------------------|-------|-----------|
 | nbfx.platform.macos MacApplicationMenu | java.awt.* (Desktop) | no FX API for the macOS app menu | sven | M4 |
-| nbfx.ide.project ProjectRegistryService | org.netbeans.modules.projectuiapi.base | OpenProjects is the headless project model; IDE-tier | sven | M1b review |
+| nbfx.ide.project ProjectRegistryService | org.netbeans.modules.projectuiapi.base | OpenProjects is the headless project model; IDE-tier | sven | M1 review |
 ```
 
 An expired exemption fails the build. No exemption for `javax.swing.text.Document` in any tier.
@@ -143,11 +143,11 @@ An expired exemption fails the build. No exemption for `javax.swing.text.Documen
 ```
 | module (owner)        | friend package(s)                         | friend consumer                         | reason | remove by |
 |-----------------------|-------------------------------------------|-----------------------------------------|--------|-----------|
-| platform.workspace    | docking internals (DockArea, DockTree, …) | platform.shell                          | shell composes the dock | M1b review |
+| platform.workspace    | docking internals (DockArea, DockTree, …) | platform.shell                          | shell composes the dock | M1 review |
 | platform.shell        | implementation root                       | shell tests; ide.workbench only for the transition | transition to API/SPI | M0 |
-| platform.editor       | codearea/processor internals              | java.editor, ide.editor.xml/css         | consumer migration | M1a |
-| platform.status       | StatusBar/registry internals              | platform.shell                          | shell composes the status bar | M1b review |
-| platform.theme        | implementation package                    | platform.shell/editor                   | token application | M1b review |
+| platform.editor       | codearea/processor internals              | java.editor, ide.editor.xml/css         | consumer migration | M1 |
+| platform.status       | StatusBar/registry internals              | platform.shell                          | shell composes the status bar | M1 review |
+| platform.theme        | implementation package                    | platform.shell/editor                   | token application | M1 review |
 ```
 
 W2b moves both tables to machine-readable `docs/plan/api-exemptions.txt`/`api-friends.txt` so the guard can
