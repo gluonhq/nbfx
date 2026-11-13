@@ -22,23 +22,21 @@ import java.util.Objects;
 import org.netbeans.api.nbfx.options.OptionsPanelController;
 
 /**
- * A registered options panel: the metadata declared with
- * {@link org.netbeans.api.nbfx.options.OptionsRegistration} plus the panel itself.
+ * A registered options panel: the id and metadata from the generated layer entry plus the panel
+ * implementation.
  *
  * @param id          the panel id (the layer file's base name)
  * @param displayName the display name
- * @param category    the category
  * @param position    the position among the panels
  * @param panel       the panel
  * @since 1.0
  */
-record OptionsPanelEntry(String id, String displayName, String category, int position,
+record OptionsPanelEntry(String id, String displayName, int position,
         OptionsPanelController panel) {
 
     public OptionsPanelEntry {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
-        Objects.requireNonNull(category, "category");
         Objects.requireNonNull(panel, "panel");
     }
 }

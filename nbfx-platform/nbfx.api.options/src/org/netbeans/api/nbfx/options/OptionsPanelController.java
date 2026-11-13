@@ -22,30 +22,14 @@ import javafx.scene.Node;
 
 /**
  * One panel of the Options dialog. A module implements this interface and registers the
- * implementation with {@link OptionsRegistration} or {@link OptionsSubRegistration}; the options
- * window discovers the generated layer entries and drives the panel.
+ * implementation with {@link OptionsRegistration} or {@link OptionsSubRegistration}; the generated
+ * layer entry owns the id, display name and position, and the options window discovers it there.
  * <p>
  * All methods are called on the JavaFX Application Thread.
  *
  * @since 1.1
  */
 public interface OptionsPanelController {
-
-    /** The stable identifier of the panel; must match {@code @OptionsRegistration#id()}. */
-    String getId();
-
-    /** The panel's display name, shown in the category list. */
-    String getDisplayName();
-
-    /** The category the panel belongs to. */
-    default String getCategory() {
-        return "General";
-    }
-
-    /** The position of the panel relative to the others. */
-    default int getPosition() {
-        return Integer.MAX_VALUE;
-    }
 
     /** The panel's JavaFX component; called when the panel is selected in the options window. */
     Node getComponent();

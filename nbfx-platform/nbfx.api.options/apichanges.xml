@@ -37,8 +37,8 @@
                 Adds <code>OptionsPanelController</code>, the interface a module implements and
                 registers with <code>@OptionsRegistration</code>/<code>@OptionsSubRegistration</code>,
                 and <code>OptionsDisplayer</code>, the platform service that opens the options
-                window. The generated layer entry now carries the controller type, and the
-                registration processor rejects a class that does not implement it.
+                window. The layer entry owns the panel id, display name and position; the generated
+                instance validates that the annotated class implements the controller.
             </description>
             <class package="org.netbeans.api.nbfx.options" name="OptionsPanelController"/>
             <class package="org.netbeans.api.nbfx.options" name="OptionsDisplayer"/>

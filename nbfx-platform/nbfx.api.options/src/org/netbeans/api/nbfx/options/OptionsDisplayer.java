@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.options;
 
+import org.openide.util.Lookup;
+
 /**
  * Opens the JavaFX Options dialog. The implementation is a platform service; a product opens the
  * dialog through the service, never by referencing the options window implementation.
@@ -27,6 +29,11 @@ package org.netbeans.api.nbfx.options;
  * @since 1.1
  */
 public interface OptionsDisplayer {
+
+    /** The registered options displayer, or {@code null} when no platform implementation is present. */
+    static OptionsDisplayer getDefault() {
+        return Lookup.getDefault().lookup(OptionsDisplayer.class);
+    }
 
     /** Opens the Options dialog on the first category. */
     void open();

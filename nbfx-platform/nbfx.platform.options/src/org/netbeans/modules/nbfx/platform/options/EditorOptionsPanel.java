@@ -60,26 +60,6 @@ public final class EditorOptionsPanel implements OptionsPanelController {
     }
 
     @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return message("Options.category.editor");
-    }
-
-    @Override
-    public String getCategory() {
-        return "Editor";
-    }
-
-    @Override
-    public int getPosition() {
-        return 10;
-    }
-
-    @Override
     public Node getComponent() {
         return grid;
     }

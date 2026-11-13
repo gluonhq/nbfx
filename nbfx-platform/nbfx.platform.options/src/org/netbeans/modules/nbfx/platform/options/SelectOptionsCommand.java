@@ -25,7 +25,6 @@ import org.netbeans.api.nbfx.options.OptionsDisplayer;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
 /** Window ▸ Options (Shortcut+,): opens the Options dialog. Always enabled. */
@@ -41,7 +40,7 @@ final class SelectOptionsCommand extends AbstractCommand {
 
     @Override
     public void run() {
-        OptionsDisplayer displayer = Lookup.getDefault().lookup(OptionsDisplayer.class);
+        OptionsDisplayer displayer = OptionsDisplayer.getDefault();
         if (displayer == null) {
             LOG.warning("No OptionsDisplayer service; options cannot be opened");
             return;

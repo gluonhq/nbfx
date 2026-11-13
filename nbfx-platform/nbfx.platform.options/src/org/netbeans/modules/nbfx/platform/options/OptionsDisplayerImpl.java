@@ -24,7 +24,7 @@ import org.openide.util.lookup.ServiceProvider;
 /**
  * The platform implementation of {@link OptionsDisplayer}; opens the JavaFX options window.
  *
- * @since 1.0
+ * @since 1.1
  */
 @ServiceProvider(service = OptionsDisplayer.class)
 public final class OptionsDisplayerImpl implements OptionsDisplayer {

@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.options;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import javafx.scene.Node;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -55,7 +56,7 @@ public class OptionsRegistryTest {
         alpha.setAttribute("position", 10);
 
         List<OptionsPanelEntry> registrations =
-                OptionsRegistry.read(folder, List.of(panel("bravo"), panel("alpha")));
+                OptionsRegistry.read(folder, Map.of("bravo", panel(), "alpha", panel()));
 
         assertEquals(List.of("alpha", "bravo"),
                 registrations.stream().map(OptionsPanelEntry::id).toList());
@@ -66,7 +67,7 @@ public class OptionsRegistryTest {
     public void fallsBackToPanelDefaults() throws IOException {
         FileObject folder = optionsFolder();
 
-        List<OptionsPanelEntry> registrations = OptionsRegistry.read(folder, List.of(panel("x")));
+        List<OptionsPanelEntry> registrations = OptionsRegistry.read(folder, Map.of("x", panel()));
 
         assertEquals("x", registrations.get(0).id());
         assertEquals("x", registrations.get(0).displayName());
@@ -77,18 +78,8 @@ public class OptionsRegistryTest {
         return FileUtil.createFolder(fs.getRoot(), "NbFx/Options");
     }
 
-    private static OptionsPanelController panel(String id) {
+    private static OptionsPanelController panel() {
         return new OptionsPanelController() {
-            @Override
-            public String getId() {
-                return id;
-            }
-
-            @Override
-            public String getDisplayName() {
-                return id;
-            }
-
             @Override
             public Node getComponent() {
                 return null;

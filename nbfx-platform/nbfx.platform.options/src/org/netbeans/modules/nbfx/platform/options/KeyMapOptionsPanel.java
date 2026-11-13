@@ -76,26 +76,6 @@ public final class KeyMapOptionsPanel implements OptionsPanelController {
     }
 
     @Override
-    public String getId() {
-        return ID;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return message("Options.category.keymap");
-    }
-
-    @Override
-    public String getCategory() {
-        return "Keymap";
-    }
-
-    @Override
-    public int getPosition() {
-        return 20;
-    }
-
-    @Override
     public Node getComponent() {
         return table;
     }
