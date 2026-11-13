@@ -840,6 +840,7 @@ nbfx build harness — targets:
   check-purity     purity/guardrail checks
   check-figures    docs/plan/figures.md matches the tree (regenerate: java docs/plan/tools/Counts.java)
   check-api        governed API packages/types match docs/plan/api-snapshot.txt
+  api-audit        read-only API-reality report (build/api-audit.txt; not a gate)
   submodule        init/update the netbeans submodule at the pinned revision
   patches          apply the upstream patch set (patches/*.patch)
   patches-check    verify the patches still apply (after an upstream bump)
@@ -875,5 +876,14 @@ so that netbeans/nbfx-* are the real cluster dirs (Unix): edit on either side, n
       <arg value="docs/plan/tools/ApiSnapshot.java"/>
       <arg value="--check"/>
     </exec>
+  </target>
+
+  <target name="api-audit" description="Write the read-only API-reality report to build/api-audit.txt">
+    <exec executable="${java.home}/bin/java" dir="${basedir}" failonerror="true">
+      <arg value="docs/plan/tools/ApiAudit.java"/>
+      <arg value="--out"/>
+      <arg file="${nbfx.build.dir}/api-audit.txt"/>
+    </exec>
+    <echo message="[api-audit] wrote ${nbfx.build.dir}/api-audit.txt (report only; not a gate)"/>
   </target>
 </project>

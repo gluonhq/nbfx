@@ -98,6 +98,19 @@ jobs:
         timeout-minutes: 25
         run: ant test
 
+      - name: API audit (report only)
+        if: always()
+        continue-on-error: true
+        run: ant api-audit
+
+      - name: Upload API audit
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: api-audit
+          path: build/api-audit.txt
+          if-no-files-found: ignore
+
       - name: Upload unit-test results
         if: failure()
         uses: actions/upload-artifact@v6
