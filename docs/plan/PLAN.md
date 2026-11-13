@@ -1216,7 +1216,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #122–#126 | macOS appearance flag, theme CSS, `ant guards` | theme follow-up; CI guard aggregate |
 | #140–#159 | shell/view/status/context fixes: dynamic view providers, tab view resolution, active component, open-views menu, shutdown coordinator, progress fill, primary-pane hiding, start-up views, duplicate positions, tests, KEYS, headers | W3a stabilised; no new API contract |
 | #162 | options contract: `OptionsPanelController`/`OptionsDisplayer` in `api.options`; `platform.options` T0 | first W2a contract slice landed; §6.1/§6.1.1 options row |
-| #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry and show-again preference | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
+| #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry, show-again preference and open-project notifier | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
