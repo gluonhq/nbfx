@@ -390,7 +390,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 | `ide.actions` | stable IDE-only command ids (`IdeActionIds`), shared by project, file, editor, debug, search, VCS and workbench modules | new; kept below `ide.workbench` so those modules do not depend on the assembly |
 | `ide.workbench` | IDE assembly and contributions to the AppShell: app provider, launcher app, project switching and loading, project session state, project-aware tab titles, IDE branding and the IDE scenario runner; owns `IdeMenus`; the action vocabulary lives in `ide.actions` | landed; absorbs the former `nbfx.ui` module. The main window and detached windows use the generic shell chrome; contributions include `RecentProjectsMenuFactory`, `OpenProjectsMenuFactory`, `IdeShellCommandResolver`, `IdeShellIconProvider`, `ProjectBranding`, `DetachedBars` and `DetachedChromeProfile`; `ProjectEditorScope` moved to `project.context`; project/session state moved to `ProjectState`; `ActionBars` removed; the IDE is the AppShell's primary consumer |
 | `ide.project` | project model impl, registry, kind detection | on `api.project` |
-| `ide.project.ui` | New File/New Project wizards, project views, project context | replaces `nbfx.project`/`project.ui` |
+| `ide.project.ui` | New File/New Project wizards, project views, project context, and **project problems UI** | replaces `nbfx.project`/`project.ui`; implements `ProjectProblemsImplementation` in JavaFX (alert + resolve customizer), replacing `projectui`’s `BrokenReferencesImpl` Swing panels |
 | `ide.project.actions` | project commands/menus | replaces `nbfx.project.actions`; owns the project lifecycle commands (open/close/close all/next/previous), New Project/New File wizard commands, the File/Window menu and File toolbar metadata, and the build commands, with the shell providing `ProjectOpener`/`ProjectLifecycle` |
 | `ide.project.customizer` | customizer host + built-in categories | on `api.project.customizer` |
 | `ide.build` | build/run orchestration on `api.build` + `api.execution` | replaces `nbfx.run` |
@@ -601,7 +601,8 @@ after.
   `javax.lang.model` classes; never compare element/modifier identity across the semantic boundary —
   convert by name (Appendix A.4, `java.elements.SourceModifiers`).
 - **Preferences** keep the NetBeans nodes where a reused headless module owns them; nbfx-specific keys use
-  `nbfx.<capability>.<key>`. Module code-name changes move `NbPreferences` roots: covered by a round-trip
+  `nbfx.<capability>.<key>`. The project-problems “show this warning again” preference is
+  `nbfx/project/problems/showAgain`. Module code-name changes move `NbPreferences` roots: covered by a round-trip
   test in `refactor/module-names`, and code-names freeze at 1.0.
 - **Formats**: we *read* `.nps`, `.hprof`, `.jfr`; we write only formats we own or that are public.
 - **Keymap/breakpoints/platform storage** stay in the platform storage; the UI reads/writes them.
@@ -749,7 +750,11 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
   deliverable. CI does not repeat them in a second step.
 - **Required test types**: unit (model, `M` modules), contract (threading per SPI, layer writer/reader), leak
   (open/close, Appendix E.2), budget (startup/usable/first completion, `check-budget`), smoke (walking
-  skeleton, W0), AppShell conformance (platform-only), API-only downstream fixture (plugin contracts).
+  skeleton, W0), AppShell conformance (platform-only), API-only downstream fixture (plugin contracts), and a
+  project-problems test that the nbfx `ProjectProblemsImplementation` wins, the alert and customizer dialogs
+  open with the expected problems, and the alert/resolver-list UI creates no Swing dialog. Dialogs opened by
+  upstream resolvers (Ant Library Manager, variables customizer, file choosers, Maven platform customizer)
+  remain Swing until those resolvers are replaced.
   Baseline to beat: **79 test files, 33 of 63 modules with tests, zero signature tests, headless FX tests
   present** — state the numbers in the W2 acceptance.
 - **Fast loop**: `nbfx.overlay=symlink` and `ant module -Dmodule=<cluster>/<module>` (PR #8) build one module in
@@ -1103,6 +1108,16 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     using API/SPI imports alone, and no M0 consumer imports a T0 package except through a named friend.
     `platform.editor` and `platform.workspace` are **extracted**, not promoted: their product-facing types
     move to API/SPI, and their internals remain T0 friend packages until the consumer migration completes.
+28. **Project problems are replaced behind `ProjectProblemsImplementation`, not bridged.** The project problem
+    alert and resolver UI are JavaFX in `ide.project.ui`; the upstream `ProjectProblems` model and
+    `ProjectProblemsProvider` SPI are reused. The Swing `projectui`/`BrokenReferencesImpl` panels are not
+    embedded and are retired with `projectui`. The project-root “Resolve Project Problems...” entry is a
+    `FileContextMenuContributor` in the same module, next to the resolver it opens, not an
+    `ide.project.actions` command; `ProjectProblemsNotifier` owns the open-project trigger when
+    `projectui` is retired. Resolver-owned dialogs (Ant Library Manager, the variables customizer,
+    file choosers, Maven's platform customizer) remain upstream Swing and are replaced one by one.
+    This is the model for upstream UI APIs with a provider SPI: replace the implementation, keep the
+    API.
 
 ## 14. Open questions
 
@@ -1201,6 +1216,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #122–#126 | macOS appearance flag, theme CSS, `ant guards` | theme follow-up; CI guard aggregate |
 | #140–#159 | shell/view/status/context fixes: dynamic view providers, tab view resolution, active component, open-views menu, shutdown coordinator, progress fill, primary-pane hiding, start-up views, duplicate positions, tests, KEYS, headers | W3a stabilised; no new API contract |
 | #162 | options contract: `OptionsPanelController`/`OptionsDisplayer` in `api.options`; `platform.options` T0 | first W2a contract slice landed; §6.1/§6.1.1 options row |
+| #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry, show-again preference and open-project notifier | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
