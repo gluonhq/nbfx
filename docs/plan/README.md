@@ -45,10 +45,17 @@
 
 1. [`PLAN.md`](PLAN.md) §1–§5 — what nbfx is, the two deliverables, the layers, the naming and the API rules.
 2. [`PLAN.md`](PLAN.md) §6 — the module you are looking for; §6.6 is the AppShell inventory, API placement and the two deliverables.
-3. [`PLAN.md`](PLAN.md) §10–§11 — the milestone you are in and the workstream to pick.
-4. The archived research when you need the NetBeans evidence for a decision.
+3. [`PLAN.md`](PLAN.md) §6.1.1 — the API-reality baseline: which modules are complete contracts and which
+   are partial.
+4. [`PLAN.md`](PLAN.md) §10–§11 — the milestone you are in and the workstream to pick.
+5. The archived research when you need the NetBeans evidence for a decision.
 
-**Current state.** W0, W1, W1.5 and W1.6 are on `main`. The W1.7 API slices (element vocabulary, editor
-project neutralization, navigator/action ids, API clusters) are landing; the next step is
-`refactor/appshell-boundary`. Milestones and exit criteria are in §10; the workstream branch families are in
-§11. Nothing in `archive/` is part of the plan; when the plan and a document disagree, the plan wins.
+**Current state.** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
+`main`. The API split is complete at module level but **not at contract level**: options landed with #162;
+wizard, status, property/nodes, dialogs, search and project are `partial` until W2a moves the implementable SPI
+out of `platform.*`; `platform.editor` and `platform.workspace` still export implementation packages.
+Milestone dates are unchanged (M0 2026-12, M1 2027-03); M0 now closes the plugin contracts, the
+shell/window/workspace public surface and the API-only downstream fixture, while M1 carries AppShell services
+and IDE core. The next W2a slice is wizard/status/property/nodes. Milestones and exit criteria are in §10; the
+workstream branch families are in §11; the API reality is §6.1.1. Nothing in `archive/` is part of the
+plan; when the plan and a document disagree, the plan wins.

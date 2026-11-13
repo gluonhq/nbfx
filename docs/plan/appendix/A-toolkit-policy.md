@@ -27,7 +27,7 @@ the actual tree, not against the ideal.
 
 | Tier | May reference | Never references *(except the named register, A.6)* |
 |---|---|---|
-| **T0** implementation | anything its module needs | — (exports nothing; no spec version) |
+| **T0** implementation | anything its module needs | — (publishes nothing; friend packages only, to named modules) |
 | **T1** shared | `org.openide.filesystems`, `org.openide.util*`, `java.*`, `javax.lang.model.*`, `com.sun.source.*` | `javafx.*` (unless the module also says so), `javax.swing.*`, `java.awt.*` |
 | **T2-FX** published UI API | `javafx.*` (`Node`, `ObservableValue`, `KeyCombination`, `Image`) + the T1 set | `javax.swing.*`, `java.awt.*`, `javafx.embed.swing.*` |
 | **M** published model/backend API | `org.openide.filesystems`, `org.openide.util*`, `java.*`, `javax.lang.model.*` **(converted, see A.4)**, `com.sun.source.*` (JDK `jdk.compiler`) | `javafx.*`, `javax.swing.*`, `java.awt.*`, `org.netbeans.modules.*` internals |
@@ -35,7 +35,15 @@ the actual tree, not against the ideal.
 The "never" column is absolute **with the exemptions registered in A.6**: an interface or constant an upstream
 SPI forces into a signature (`ChangeListener`, `javax.swing.Action`, `ActionListener`) — never a component
 (`JComponent`, `Window`, `SwingUtilities`, `SwingFXUtils`). A guard that does not read the register would
-contradict this table; that is why the exemptions are machine-readable (A.5).
+contradict this table; that is why the exemptions are registered in A.6 and W2b makes them machine-readable
+(A.5).
+
+**T0 publishes nothing; friend packages are the exception.** A T0 module keeps its packages unexported. When a
+named nbfx module needs one, it is declared in `<friend-packages>` in `project.xml` with an owner and a removal
+milestone (A.6). A friend package is internal compatibility only: it is not in the plugin allowlist and cannot
+be used by a third-party NBM. A package shared beyond its named friend is promoted to T1/T2-FX/M deliberately.
+`platform.editor` and `platform.workspace` are extracted: their product-facing types move to API/SPI, and only
+their implementation packages remain as T0 friend packages during the consumer migration.
 
 The three degrading questions for any type in a T1/T2-FX/M signature: *which classloader owns it, which
 thread may call it, and who disposes it?* If any answer is "the UI toolkit", the type is in the wrong tier.
@@ -124,11 +132,26 @@ both `check-sources` and `check-jars` to the cluster directories (`nbfx-libs`, `
 ```
 | file / module                | forbidden family      | reason (upstream API forces it) | owner | remove by |
 |------------------------------|----------------------|--------------------------------|-------|-----------|
-| nbfx.macos MacApplicationMenu| java.awt.* (Desktop)  | no FX API for the macOS app menu |  ?    | M4        |
-| java.projecttype.java …Query | javax.swing.event.ChangeListener | headless query SPI | ? | when the SPI moves |
+| nbfx.platform.macos MacApplicationMenu | java.awt.* (Desktop) | no FX API for the macOS app menu | sven | M4 |
+| nbfx.ide.project ProjectRegistryService | org.netbeans.modules.projectuiapi.base | OpenProjects is the headless project model; IDE-tier | sven | M1 review |
 ```
 
 An expired exemption fails the build. No exemption for `javax.swing.text.Document` in any tier.
+
+**Friend-package register.** T0 friend packages use the same owner/date discipline:
+
+```
+| module (owner)        | friend package(s)                         | friend consumer                         | reason | remove by |
+|-----------------------|-------------------------------------------|-----------------------------------------|--------|-----------|
+| platform.workspace    | docking internals (DockArea, DockTree, …) | platform.shell                          | shell composes the dock | M1 review |
+| platform.shell        | implementation root                       | shell tests; ide.workbench only for the transition | transition to API/SPI | M0 |
+| platform.editor       | codearea/processor internals              | java.editor, ide.editor.xml/css         | consumer migration | M1 |
+| platform.status       | StatusBar/registry internals              | platform.shell                          | shell composes the status bar | M1 review |
+| platform.theme        | implementation package                    | platform.shell/editor                   | token application | M1 review |
+```
+
+W2b moves both tables to machine-readable `docs/plan/api-exemptions.txt`/`api-friends.txt` so the guard can
+fail on an expired or undeclared entry. A friend package is never part of the plugin allowlist.
 
 ## A.7 What to test
 

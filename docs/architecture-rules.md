@@ -33,7 +33,9 @@ is how three documents start disagreeing.
 | Module/package/type naming; no `Fx*`/`Impl` in public API; the rename table | [`plan/PLAN.md`](plan/PLAN.md) §3, Appendix [C](plan/appendix/C-naming-and-rename-table.md) |
 | Layer paths: one owner (`api.layer.LayerPaths`), writer/reader contract test | [`plan/PLAN.md`](plan/PLAN.md) §3.3, Appendix [C.3](plan/appendix/C-naming-and-rename-table.md) |
 | API tiers (T0/T1/T2-FX/M/L) and their allowed types; exemptions | Appendix [A](plan/appendix/A-toolkit-policy.md), [`plan/PLAN.md`](plan/PLAN.md) §4 |
-| Governance: explicit `<public-packages>`, `arch.xml`, `apichanges`, spec version 1.0 + bump rule, sigtest | [`plan/PLAN.md`](plan/PLAN.md) §4 |
+| Contract completeness: a module is landed only when its implementable API/SPI exists, consumers import only API/SPI, and an API-only downstream fixture compiles; T0 publishes nothing | [`plan/PLAN.md`](plan/PLAN.md) §4, §6.1.1, Decision 26/27 |
+| Friend packages: T0 implementation packages may be exported only to named nbfx modules, with an owner and removal milestone; never part of the plugin allowlist | [`plan/PLAN.md`](plan/PLAN.md) §4, Decision 27, Appendix [A.6](plan/appendix/A-toolkit-policy.md) |
+| Governance: explicit `<public-packages>`, `arch.xml`, `apichanges`, spec version 1.0 + bump rule, sigtest; only complete contracts are signed | [`plan/PLAN.md`](plan/PLAN.md) §4, Decision 26 |
 | Plugin contract and trust; the plugin allowlist | [`plan/PLAN.md`](plan/PLAN.md) §4, Appendix [E.6](plan/appendix/E-contracts.md) |
 | UI architecture: the AppShell services; one node model (explorer panels only), model-first panels, concrete FX factories (no generic `C`), uniform async | [`plan/PLAN.md`](plan/PLAN.md) §5, §6.6, Appendix [F](plan/appendix/F-node-and-view-migration.md), Appendix [E.7](plan/appendix/E-contracts.md) |
 | The Java semantic boundary (`java.source` confined, `java.model` bridge, no Swing `Document`) | Appendix [B](plan/appendix/B-java-source-isolation.md) |

@@ -179,15 +179,26 @@ silent runtime no-op. See [Appendix C](appendix/C-naming-and-rename-table.md) §
 
 | Tier | Who consumes it | Toolkit | Promise |
 |---|---|---|---|
-| **T0** implementation | its own module | any | none; exports nothing |
+| **T0** implementation | its own module, plus named friends | any | none; publishes nothing (friend packages only, named and dated) |
 | **T1** shared API | other nbfx layers | documented per package | internal compatibility only |
 | **T2-FX** published plugin API | third-party NBMs | **JavaFX allowed** (`Node`, `ObservableValue`, `KeyCombination`) | additive compatibility, version range, docs, signature tests, deprecation |
 | **M** model/backend API | nbfx layers, plugin backends | **toolkit-free** | as T2, no toolkit types |
 | **L** library | nbfx | bundled library | licence/notice; allowlisted in the guard |
 
-**The tier is module metadata, not a cluster.** T1/T2-FX/M modules live in the cluster of their domain
-(§6.6). An API module may depend only on other API modules in the same or a lower cluster, on `nbfx-libs`,
-and on allowlisted upstream APIs; it may not depend on an implementation module (`check-api-isolation`, §9).
+**The tier is module metadata, not a cluster.** Each nbfx module records its tier in
+`nbproject/nbfx-policy.properties` (`tier=T0|T1|T2-FX|M`); W2a adds the file to every module and the guard
+reads it instead of the module name or the cluster. `L` is the library tier for `libs.nbfx.*` modules and is
+not written in `nbfx-policy.properties`. T1/T2-FX/M modules live in the cluster of their domain
+(§6.6). An API module may depend only on other API modules in the same or a lower cluster, on `nbfx-libs`, and
+on allowlisted upstream APIs; it may not depend on an implementation module (`check-api-isolation`, §9).
+
+**T0 publishes nothing.** A T0 module keeps its implementation packages unexported. When another nbfx module
+needs one of them, the package is exported as a **friend package** to that named module, with an owner and a
+removal milestone. Friend packages are internal compatibility only; they are not part of the plugin contract
+and cannot be used by a third-party NBM. A package shared beyond a named friend is promoted to T1/T2-FX/M
+deliberately. T0 modules carry no specification version, `arch.xml` or `apichanges.xml`; a module that becomes T0
+drops its spec version when its last public package is removed, and its friend consumers use implementation
+dependencies.
 
 **Governance per T1/T2-FX/M module:** explicit `<public-packages>` (one package per capability, never
 `<subpackages>`), `arch.xml` `<api>` entries, `apichanges.xml` on every change, `@since` on new elements,
@@ -195,10 +206,19 @@ a signature test, and a **starting specification version of 1.0** with the bump 
 incompatible → 2.0. The guard checks that a dependant's `<specification-version>` exists. The
 signature-test harness is the NetBeans `sigtest` support in `nbbuild`; name the target per module.
 
+**Contract completeness is the gate (M0).** A module is *landed* only when the contract it promises exists in
+its exported API/SPI packages, its consumers import only API/SPI, and a downstream fixture can implement the
+extension point using the plugin allowlist. A directory, an annotation and a processor are not a contract:
+the type a plugin implements must live in the API/SPI module, never in a T0 module. Modules whose contract is
+still being completed stay `devel` and are exempt from sigtest, with a named removal milestone; they are not
+listed as landed in §6.1 or §18. The API reality in §6.1.1 records the current gap.
+
 **Why the API split existed (W1, landed).** `nbfx.api`/`nbfx.annotations` exported their whole subtree, so
 every class was public API and `arch.xml` had no `<api>` entries. W1 replaced subtree exports with explicit
-packages plus `arch.xml` entries; `check-api` asserts *exported set ⊆ arch set*. T0 modules carry no
-specification version.
+packages plus `arch.xml` entries; `check-api` asserts *exported set ⊆ arch set*. The split was a **module
+move**, not a contract extraction: the API modules exist, but several of them still hold only annotations or
+utilities while the SPI a consumer implements remains in a T0 module. W2a completes those contracts before W2b
+signs them.
 
 **Plugin contract.** A plugin may use: the registration annotations, the T2-FX/M API modules of the
 extension points it implements, the platform core (`org.openide.util`, `org.openide.filesystems`,
@@ -271,71 +291,88 @@ update centers, pinned SHA-256 for bundled native artifacts, install-time capabi
 ### 6.1 API modules — published/shared APIs
 
 The table is the API **catalogue**, not a cluster: each module lives in its domain cluster (§6.6). The
-`nbfx-api` cluster is dissolved by `refactor/api-clusters` (W1.7, landed).
+`nbfx-api` cluster is dissolved by `refactor/api-clusters` (W1.7, landed). The catalogue is the **target**;
+§6.1.1 is the current contract baseline. A `partial` row means the module exists but the type a consumer or
+plugin implements is not yet in its API/SPI packages.
 
 | Module | Tier | State | Contents |
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
-| `api.views` | T2-FX | **landed** | `ViewProvider`, `ViewManager`, `DockLocation`, `@ViewRegistration`, `ViewLocation`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
-| `api.status` | T2-FX | **landed** | `StatusElement`, `@StatusRegistration`, `StatusAlignment` |
-| `api.dialogs` | T2-FX | **landed** | `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` (notification line, toasts) |
-| `api.options` | T2-FX | **landed** | `OptionsPanelController`, `@OptionsRegistration`/`Container`/`Sub`, `OptionsDisplayer`, `OptionsKeywords` |
-| `api.settings` | M | **planned** | `Settings`, typed keys, change listeners |
-| `api.progress` | M | **landed** | `ProgressHandle`, task tree, cancellation |
-| `api.output` | M | **planned** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
-| `api.execution` | M | **planned** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport` |
-| `api.terminal` | M | **planned** | `TerminalModel`, `PtyProcess`, `TerminalSession` |
+| `api.views` | T2-FX | **landed; M0 adds `ViewSpec`/`ViewRegistry`** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
+| `api.status` | T2-FX | **partial — contract M0** | `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; the element SPI and `StatusElement` still move from `platform.status` to `api.status` in M0 |
+| `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
+| `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
+| `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
+| `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
+| `api.output` | M | **planned — M1** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
+| `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
+| `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
 | `api.elements` | dissolved | **dissolved** | neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers` → `api.language` (no `java.lang.reflect.Modifier` bits); Java conversion (`SourceModifiers`, `JavaElementTypes`) → `java.elements`; FX `ElementIcons` → `api.editor` |
-| `api.nodes` | M | **planned** | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events |
-| `api.property` | T2-FX | **landed** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; depends on `api.nodes` (the handle lives there — M never depends on a T2-FX module) |
+| `api.nodes` | M | **planned — contract M0** | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events; the property sheet is its first consumer |
+| `api.property` | T2-FX | **partial — contract M0** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; the editor takes a `PropertyModel` and the handle lives in `api.nodes` (M never depends on a T2-FX module) |
 | `api.usages` | M | **landed** | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
-| `api.project` | M | **landed** | `ProjectModel`, `ProjectRegistry`, `ProjectFactory`, `ProjectFile`/`Directory`/`Library`, `@ProjectTypeRegistration`, `ProjectKindProvider` |
-| `api.build` | M | **planned** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
-| `api.project.customizer` | T2-FX | **planned** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | **landed** | `EditorService`, `EditorDocument`, `EditorContext`, annotations (`EditorAnnotation`, `EditorAnnotationProvider`), completion/breadcrumbs SPIs, `ElementIcons` |
-| `api.editor.intelligence` | M | **planned** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
-| `api.wizard` | T2-FX | **landed** | `WizardIterator`, `WizardPanel`, `WizardDescriptor`, `@WizardRegistration` |
-| `api.templates` | M | **planned** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
-| `api.search` | T2-FX | **landed** | `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` |
-| `api.debug` | M | **planned** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
-| `api.profile` | M | **planned** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
-| `api.tests` | M | **planned** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
-| `api.vcs` | M | **planned** | `VcsProvider`, `VcsStatus`, `VcsHistoryProvider`, `VcsAnnotator` |
-| `api.diff` | M | **planned** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
-| `api.tasklist` | M | **planned** | `TaskProvider`, `Task`, `TaskScope` |
-| `api.plugins` | T1 | **planned** | plugin metadata, install/update service surface |
+| `api.project` | M | **partial — M1** | `ProjectRegistry`, `ProjectOpener`, `ProjectLifecycle`, `OpenProject`, `SourceRoot`, `@ProjectTypeRegistration`; the project-kind/build SPI still moves from `project.ui.api`, and `OpenProjects` remains the documented IDE-tier bridge |
+| `api.build` | M | **planned — M1** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
+| `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
+| `api.editor` | T2-FX | **partial — contract M0; migration M1** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`; the language decoration/lex SPI still moves out of `platform.editor` |
+| `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
+| `api.wizard` | T2-FX | **partial — contract M0** | only `@WizardRegistration`; `Wizard`, `WizardPanel`, `WizardEntry`/`WizardRegistry` move from `platform.wizard` in M0; the plan's former `WizardIterator`/`WizardDescriptor` names were never implemented |
+| `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
+| `api.search` | T2-FX | **partial — M1** | only `TextSearch`/`SearchOptions`; `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` are the M1 contract (`SearchScope` currently lives in `ide.search`) |
+| `api.file` | T2-FX | **transitional — dissolve M0/M1** | `FileIconProvider`, `FileTypes`, `FileSelectionContext`; target is `api.views`/`api.editor`/`ide.file`, not a permanent module |
+| `api.debug` | M | **planned — M2** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
+| `api.profile` | M | **planned — M2** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
+| `api.tests` | M | **planned — M2** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
+| `api.vcs` | M | **planned — M2** | `VcsProvider`, `VcsStatus`, `VcsHistoryProvider`, `VcsAnnotator` |
+| `api.diff` | M | **planned — M2** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
+| `api.tasklist` | M | **planned — M2** | `TaskProvider`, `Task`, `TaskScope` |
+| `api.plugins` | T1 | **planned — M5** | plugin metadata, install/update service surface |
 | `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …); nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
 
 **Rule of creation:** an `api.*` module exists only when a second module (or a plugin) needs it. Start with
 T0/T1 inside the owning module and promote deliberately. The table is the **target catalogue**, not a backlog:
 `refactor/api-split` creates only the modules whose consumers exist at that point; the rest are created by their
 own step. A module with a planned consumer is `M`/T2-FX from the start and published `devel` when its first
-consumer lands — the word *proposed* does not appear in a tier column (Decision 21).
+consumer lands — the word *proposed* does not appear in a tier column (Decision 21). A module that exists but
+whose contract is incomplete is `partial`, not `landed`; it stays `devel` and is not signed until W2a completes
+the contract (Decision 26).
+
+### 6.1.1 API reality (M0 baseline)
+
+The API split created the modules; it did not finish the contracts. A module is only *landed* when the type a
+consumer or plugin implements is in its exported API/SPI packages and a downstream fixture can implement it
+without importing a T0 module. The remaining M0 gaps are the wizard, status and property/nodes contracts;
+dialogs, search and project complete in M1; the editor/workspace extraction starts in M0 and finishes in M1.
+Options landed with #162.
+
+State vocabulary: **planned** = module not created; **partial** = module exists but its contract is incomplete;
+**landed** = contract complete and consumable; **dissolved** = removed by a step. Run `ant api-audit` for the
+generated, per-module report (`build/api-audit.txt`); it is a report, not a gate.
 
 ### 6.2 `nbfx-platform` — shell and platform services
 
 | Module | Purpose | Notes |
 |---|---|---|
-| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** `platform.shell.api` contracts/SPI, `DefaultShellChrome`/`ToolBarHost`, `ShellMenuBar`/`ShellToolBars`, `ShellChromeProfile`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `ShellCommandsProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window and detached windows both use it and supply contributions; `ActionBars` has been removed. Remaining: the implementation package is still exported until `ShellApplication`/`NbfxTabPane` are split; the stable window facade is `ShellWindow` |
-| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | from `nbfx.editor` (Appendix B.4); remove project/Java-vocabulary coupling |
-| `platform.workspace` | docking model + FX docking view | replaces `nbfx.docking`/`nbfx.windows` |
+| `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** `platform.shell.api` contracts/SPI, `DefaultShellChrome`/`ToolBarHost`, `ShellMenuBar`/`ShellToolBars`, `ShellChromeProfile`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `ShellCommandsProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window and detached windows both use it and supply contributions; `ActionBars` has been removed. **M0 extraction:** API/SPI packages move to `org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`; `WindowPaneProvider` returns a `WindowPaneHost`, not `NbfxTabPane`; `NbfxTabPane` and the implementation root become internal (friend packages during the transition); the stable window facade is `ShellWindow` |
+| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | landed; project/Java-vocabulary coupling removed. **M0/M1 extraction:** the language decoration/lex SPI moves to `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; the language/IDE consumers migrate off implementation packages |
+| `platform.workspace` | docking model + FX docking view | landed; replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction:** `ViewSpec`/`ViewRegistry` move to `api.views`; `WindowSystem`/`WindowState`/`WindowSink` move to the shell API; the docking internals stay internal friend packages for `platform.shell` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
 | `platform.status` | status bar + element rendering | replaces `nbfx.statusbar` |
-| `platform.dialogs` | dialog host, notification line, toasts, exception reporting | new (was planned) |
+| `platform.dialogs` | dialog host, notification line, toasts, exception reporting | API partial (`ErrorReporter` only); API contract and implementation M1 |
 | `platform.progress` | progress UI (status line, all-tasks popup, task details) | replaces `nbfx.progress` (landed, PR #2 — §18) |
-| `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | new |
-| `platform.settings` | settings storage UI (preferences browser, export/import) | new |
-| `platform.options` | options window (categories, tabs, search, validity) | replaces `nbfx.options` UI |
-| `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | landed for the property sheet (moved from `nbfx-ide`); node views still planned; the single construction site of `TreeView`/`TableView` — [Appendix F](appendix/F-node-and-view-migration.md) |
-| `platform.output` | output window view on `api.output` | replaces `nbfx.output` |
-| `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | new |
-| `platform.terminal` | VT/xterm model + FX renderer + tabs | new |
-| `platform.quicksearch` | command palette + providers | new |
-| `platform.credentials` | keyring service + unlock prompt | new |
-| `platform.favorites` | favourites view | new |
-| `platform.templates` | template model (discovery/creation) | replaces `nbfx.templates` (branch) |
+| `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | **landed** (themes, token providers, OS light/dark); `org.netbeans.api.nbfx.theme` is T1, the implementation package is internal |
+| `platform.settings` | settings storage UI (preferences browser, export/import) | planned — M1 |
+| `platform.options` | options window (categories, tabs, search, validity) | **T0** implementation; the panel SPI and displayer live in `api.options` (#162); no public package, spec, arch or apichanges |
+| `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet landed; node views planned M1; T0 implementation, the model is `api.nodes`/`api.property` |
+| `platform.output` | output window view on `api.output` | landed UI; `api.output` extraction M1 |
+| `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | planned — M1 (process first; terminal separate) |
+| `platform.terminal` | VT/xterm model + FX renderer + tabs | planned — M2, after the VT parser/library decision in M1 |
+| `platform.quicksearch` | command palette + providers | planned — M1, after `api.search` is redesigned |
+| `platform.credentials` | keyring service + unlock prompt | planned — M1 |
+| `platform.favorites` | favourites view | planned — M1 |
+| `platform.templates` | template model (discovery/creation) | planned — M1; replaces `nbfx.templates` |
 | `platform.wizard` | wizard framework + themed shell | replaces `nbfx.wizard` |
 | `platform.launcher` | application entry point; `AppProvider` selects the JavaFX application | landed; replaces `nbfx.launcher`; the IDE app provider is `ide.workbench.NbfxAppProvider` |
 | `platform.macos` | macOS integration (menus, file associations) | replaces `nbfx.macos` |
@@ -413,8 +450,8 @@ platform AppShell starts without them.
 | `javafx.scenebuilder` | embedded SceneBuilder (kit 26.0.0) |
 | `libs.javafx` | bundled JavaFX runtime |
 
-**Deferred — created only when the owning step lands, never before:** `libs.jline` (terminal, W3),
-`libs.asyncprofiler.<os>-<arch>` (profiler, M2), `libs.jgit` (Git, W4 — reuse NetBeans' jgit modules),
+**Deferred — created only when the owning step lands, never before:** `libs.jline` (execution/terminal,
+M1/M2), `libs.asyncprofiler.<os>-<arch>` (profiler, M2), `libs.jgit` (Git, M1 — reuse NetBeans' jgit modules),
 `libs.jacoco` (coverage, M2 — reuse the shipped `org.jacoco.core`). A `libs.*` module exists only when the step
 that needs it starts ([Appendix G](appendix/G-licences-and-notices.md) rule 6).
 
@@ -433,35 +470,36 @@ platform set uses upstream `platform` and `ide`; the IDE set adds upstream `ide`
 
 **The AppShell** is the platform deliverable's application framework. `platform.shell` is its composition
 root; the services below are the AppShell. The IDE is its primary consumer; downstream may use the whole
-AppShell, individual services, or another composition. "State" is honest: `landed` or `planned`.
+AppShell, individual services, or another composition. "State" is honest: `landed` (the UI/implementation
+works), `partial` (the API/SPI is not yet the contract a plugin can implement), or `planned`.
 
 | AppShell service | Modules | State |
 |---|---|---|
-| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed |
+| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` | workspace landed; generic shell and session landed; public surface extraction (ViewSpec/ViewRegistry, WindowSystem, `WindowPaneHost`) M0 |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
-| Views and view areas | `platform.workspace` (`ViewAreaRegistry`, `ViewRegistry`) + `api.views` (`@ViewRegistration`, `@AreaRegistration`) + `platform.shell` (view manager) | view metadata, areas, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up all consume the registrations; the dock area takes an explicit main role, so pane order no longer decides where content goes, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up |
+| Views and view areas | `platform.workspace` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`) + `api.views` (`@ViewRegistration`, `@AreaRegistration`) + `platform.shell` (view manager) | view metadata, areas, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up all consume the registrations; the dock area takes an explicit main role, so pane order no longer decides where content goes, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up. M0 moves `ViewSpec`/`ViewRegistry` into `api.views` |
 | Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections; detached windows use `DetachedBars` with a reduced profile |
-| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. Remaining: implementation-package export until the tab-pane/docking types are split. |
-| Status bar | `platform.status` + `api.status` | landed; `platform.shell` composes the `StatusBar`, it does not own or reimplement it |
-| Options | `platform.options` + `api.options` | landed |
-| Settings | `platform.settings` + `api.settings` | planned |
-| Wizards | `platform.wizard` + `api.wizard` | landed |
-| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; nodes planned; IDE project/editor contributors in `ide.workbench` |
-| Dialogs, notifications | `platform.dialogs` + `api.dialogs` | API landed; platform planned |
+| Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. M0 moves the API/SPI packages to the global roots and makes `NbfxTabPane` internal |
+| Status bar | `platform.status` + `api.status` | landed renderer; **API partial: `StatusElement`/element SPI move to `api.status` in M0** |
+| Options | `platform.options` + `api.options` | **landed (#162)**; `platform.options` is T0, the controller/displayer contract is `api.options` |
+| Settings | `platform.settings` + `api.settings` | planned — M1 |
+| Wizards | `platform.wizard` + `api.wizard` | landed UI; **API partial: `Wizard`/`WizardPanel` move to `api.wizard` in M0** |
+| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; **API partial: the model moves to `api.nodes` and the editor SPI to `api.property` in M0**; explorer views M1; IDE contributors in `ide.workbench` |
+| Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
 | Progress | `platform.progress` + `api.progress` | landed |
-| Output | `platform.output` + `api.output` | platform landed; API planned |
-| Execution | `platform.execution` + `api.execution` | planned |
-| Terminal | `platform.terminal` + `api.terminal` | planned |
-| Quick search | `platform.quicksearch` + `api.search` | API landed; palette planned |
-| Theme/branding | `platform.theme` | planned |
-| Credentials | `platform.credentials` | planned |
-| Favorites | `platform.favorites` | planned |
-| Templates | `platform.templates` + `api.templates` | planned |
+| Output | `platform.output` + `api.output` | output UI landed; **`api.output` extraction M1** |
+| Execution | `platform.execution` + `api.execution` | planned — M1 (process first) |
+| Terminal | `platform.terminal` + `api.terminal` | planned — M2; M1 chooses the VT parser/library |
+| Quick search | `platform.quicksearch` + `api.search` | **API partial; search contract + palette M1** |
+| Theme/branding | `platform.theme` | **landed** (light/dark, token providers, OS mode); impl package internal |
+| Credentials | `platform.credentials` | planned — M1 |
+| Favorites | `platform.favorites` | planned — M1 |
+| Templates | `platform.templates` + `api.templates` | planned — M1 |
 | Launcher | `platform.launcher` | landed; `AppProvider` + generic `GuiRunLevel`/`LauncherInstall` |
-| Editor core | `platform.editor` + `api.editor` | landed; project/Java-vocabulary coupling removed |
-| Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell must start without projects |
-| File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file` |
+| Editor core | `platform.editor` + `api.editor` | landed; **API extraction M0 start, M1 finish** (language SPI off the implementation packages) |
+| Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell starts without projects; `OpenProjects` is the documented bridge until M1 review |
+| File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` dissolves in M0/M1 |
 
 **Chrome contract rules.** `ShellChrome` is a composition contract, not a second implementation:
 `Node top()`, `Node bottom()` and `void dispose()`. Concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
@@ -470,7 +508,9 @@ narrow (the action registry, `ActionContext` and a `Lookup`); they do not expose
 `DockArea`, `SlidingArea` or `NbfxTabPane`. `DynamicMenu.Factory`, `StatusContribution` and
 `WindowEnvironmentContribution` are ordered, failure-isolated and disposed with the shell. New chrome SPIs
 are T1/T2-FX API and must be covered by W2 `arch.xml`/`apichanges`/`check-api`; anything not intended for
-downstream stays in an internal package. The detailed contracts and layer rules are in
+downstream stays in an internal package. M0 renames the exported API/SPI packages to
+`org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`; `WindowPaneProvider` returns a `WindowPaneHost`,
+and the implementation root is removed from `public-packages`. The detailed contracts and layer rules are in
 [`appshell-chrome.md`](appshell-chrome.md).
 
 **API placement.** The API tier is module metadata, not a cluster. The `nbfx-api` cluster is dissolved
@@ -478,7 +518,7 @@ downstream stays in an internal package. The detailed contracts and layer rules 
 
 | Cluster | API modules |
 |---|---|
-| `nbfx-platform` | `api.actions`, `api.dialogs`, `api.editor`, `api.file`, `api.layer`, `api.options`, `api.progress`, `api.property`, `api.search`, `api.status`, `api.views`, `api.wizard`, `api.settings`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
+| `nbfx-platform` | `api.actions`, `api.dialogs`, `api.editor`, `api.file` (transitional), `api.layer`, `api.options`, `api.progress`, `api.property`, `api.search`, `api.status`, `api.views`, `api.wizard`, `api.settings`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
 | `nbfx-ide` | `api.project`, `api.build`, `api.project.customizer`, `api.editor.intelligence`, `api.usages`, `api.debug`, `api.profile`, `api.tests`, `api.vcs`, `api.diff`, `api.tasklist` |
 | `nbfx-java` | `java.elements` (from `api.elements`) |
 
@@ -490,13 +530,15 @@ integration is platform, IDE-specific file actions stay in `ide.file`.
 `nbfx-libs`, and on allowlisted upstream APIs. It may not depend on an implementation module. Before the
 cluster move, the leaks are removed: `api.editor` loses `api.project`/`api.elements`, `api.usages` loses the
 Java vocabulary, `api.actions` loses the Java-specific element location, `api.views` loses project-specific
-navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
+navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids. W2a adds the **consumer edge**:
+a module outside an implementation module may import its `org.netbeans.modules.nbfx.*` packages only through
+a declared friend package; the compiler plus the friend guard enforce it.
 
 ## 7. Module migration map (current → target)
 
 | Current module | Target |
 |---|---|
-| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers`) + `java.elements` (`SourceModifiers`/`JavaElementTypes`) + `api.editor` (`ElementIcons`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.editor`/`ide.file`. Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
+| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers`) + `java.elements` (`SourceModifiers`/`JavaElementTypes`) + `api.editor` (`ElementIcons`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.views`/`api.editor`/`ide.file`. Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
 | `nbfx.annotations` | dissolved: annotations move into their `api.*` module; path constants are owned by `api.layer.LayerPaths` |
 | `nbfx-api` cluster | **dissolved (W1.7, landed)**: each API module moved to its domain cluster (§6.6); the API tier stays module metadata |
 | `nbfx.actions`, `nbfx.context` | `platform.actions` |
@@ -506,7 +548,7 @@ navigator callbacks, and `api.actions.ActionIds` loses the IDE command ids.
 | `nbfx.options` | `platform.options` (+ `api.options`) |
 | `nbfx.output` | `platform.output` (+ `api.output`) |
 | `nbfx.wizard` | `platform.wizard` (+ `api.wizard`) |
-| `nbfx.ui` | **dissolved**: generic shell → `platform.shell`, IDE assembly/project/editor contributions → `ide.workbench`; generic menu/toolbar/status/application-menu/branding/window-environment chrome is extracted from `ide.workbench.ActionBars`/`JavaFXLaunchApp` into `platform.shell` in W3 `feature/shell` |
+| `nbfx.ui` | **dissolved**: generic shell → `platform.shell`, IDE assembly/project/editor contributions → `ide.workbench`; generic menu/toolbar/status/application-menu/branding/window-environment chrome is extracted from `ide.workbench.ActionBars`/`JavaFXLaunchApp` into `platform.shell` in W3a `feature/shell` (landed) |
 | `nbfx.ui.context` | generic action-context services → `platform.shell` (landed); `OpenProject` contexts → `ide.workbench` (landed) |
 | `nbfx.launcher` | `platform.launcher` (generic lifecycle) + `ide.workbench` (`NbfxAppProvider` + scenario runner); landed |
 | `nbfx.macos` | `platform.macos` |
@@ -588,15 +630,15 @@ The rule is [Appendix A](appendix/A-toolkit-policy.md); this is the implementati
 the checks marked **exists** run today (`check-purity.xml` has `check-sources`, `check-java-source`,
 `check-languages`, `check-naming`, `check-namespace`, `check-layers`, `check-api-isolation`, `check-appshell`,
 `check-dependencies`, `check-jars`, `check-packaging`, `check-figures`, `check-budget`, `check-baseline`,
-`check-logging`); the rest are `pending` with the step that lands them — a pending check is not a guardrail
-until `feature/ci` runs it (§11 W0/W12).
+`check-logging`; the root `ant guards` target adds `check-api`); the rest are `pending` with the step that
+lands them — a pending check is not a guardrail until `feature/ci` runs it (§11 W0/W12).
 
 | Target | Status | Mechanism | Fails when |
 |---|---|---|---|
 | `check-sources` | **exists** | import denylist + per-module allowlist | a forbidden import family outside its declared owner |
 | `check-dependencies` | **exists** | walk each `project.xml` graph | a forbidden NetBeans UI module |
 | `check-layers` | **exists** (W1.7) | compare every nbfx module dependency with the cluster order | an upward nbfx edge (`ide` → `platform`, `platform` → `ide`, …) |
-| `check-api-isolation` | **exists** (W1.7) | API modules (tier metadata) may depend only on API modules in the same or a lower cluster, plus libs/upstream APIs | an API module depends on an implementation module |
+| `check-api-isolation` | **exists** (W1.7); W2a extends it to the tier graph | T1/T2-FX/M modules may depend only on API modules in the same or a lower cluster, plus libs/upstream APIs; T2/M may not depend on T0; T0 may depend on anything | an API module depends on an implementation module, or a published API depends on a T0 package |
 | `check-appshell` | **exists** | source scan of `nbfx-platform` modules | an AppShell module imports project/IDE/Java/JavaFX-usage/parsing types |
 | `check-platform-delivery` | **exists** (W1.7) | the platform-only configuration selects no `nbfx-ide`/`nbfx-java` cluster, and the platform cluster contains no IDE/Java jars and does contain `platform.shell` | an IDE/Java cluster or module leaks into the platform deliverable |
 | `check-jars` | **exists** (the current four cluster directories; `jdeps` + `nbfx-javafx` pending) | jar listing (bundled classes) on the cluster directories of the selected deliverable; `jdeps`/`nbfx-javafx` when the cluster lands | a reference/bundle of a forbidden package outside an allowed tier or exemption |
@@ -604,10 +646,10 @@ until `feature/ci` runs it (§11 W0/W12).
 | `check-figures` | **exists** | `ant -f check-purity.xml check-figures` → `java docs/plan/tools/Counts.java --check` | stale figures, a hand-typed count ([`figures.md`](figures.md)) |
 | `check-java-source` | **exists** (W1) | `org.netbeans.api.java.source`/`libs.javacapi` only in the `java.*` semantic modules | imported anywhere else (Appendix B.5) |
 | `check-languages` | **exists** (W1) | `LanguageGuard` rejects concrete `java`/`css`/`xml`/`fxml` branches in `platform.editor`; providers are language-scoped through `SyntaxDecoratorFactory`, and unknown extensions get a plain-text decorator (Appendix I.3/I.4) | an `if (java)` in the core, or an unknown language falling back to Java |
-| `check-api` | pending (W2) | exported set ⊆ `arch.xml` set; dependant spec versions exist; the API tier is read from module metadata, not from a cluster | a subtree export, a missing `arch.xml` `<api>` entry, or a tier inferred from `nbfx-api` |
+| `check-api` | **exists** (type snapshot); W2a/W2b extend it | exported set ⊆ `arch.xml` set; governed module has `apichanges`/`.sig`; contract-complete modules only; dependant spec versions exist; the API tier is read from `nbproject/nbfx-policy.properties`, not from a cluster | a subtree export, a missing `arch.xml` `<api>` entry, a signed stub, or a tier inferred from `nbfx-api` |
 | `check-naming` | **exists** (W1) | no `Fx*`/`Impl`/`Object`-factory in public API; `LayerPaths` is the only shared constants class | a forbidden public name |
-| AppShell conformance | **exists** (first slice, W1.7/W3) | platform-only fixture asserts no IDE class is loadable, the default `ShellApplication` starts, and exercises the action registry/context, property sheet, progress, output and wizard registry; grows with the W3 services, starting with generic shell chrome (menus/toolbars/status/application menu/branding), then nodes, dialogs, terminal, quick search, theme, credentials, favorites, templates | a service cannot be used without IDE modules, or downstream must subclass `ShellApplication` for standard chrome |
-| `check-namespace` | **exists** (W1.6) | `NamespaceGuard` enforces module code names, directories and API/SPI/implementation package roots; API modules are identified by tier metadata, not by the `nbfx-api` cluster | an old `com.gluonhq` module directory, a non-namespaced package, or an implementation package exported from an API module |
+| AppShell conformance | **exists** (first slice, W1.7/W3) | platform-only fixture asserts no IDE class is loadable, the default `ShellApplication` starts, and exercises the action registry/context, property sheet, progress, output and wizard registry; grows with the W3 services, starting with generic shell chrome (menus/toolbars/status/application menu/branding), then nodes, dialogs, terminal, quick search, theme, credentials, favorites, templates. M0 adds an **API-only downstream fixture** that implements the plugin extension points with API/SPI imports only | a service cannot be used without IDE modules, downstream must subclass `ShellApplication` for standard chrome, or an extension point needs a T0 import |
+| `check-namespace` | **exists** (W1.6); W2a extends it to the tier metadata | `NamespaceGuard` enforces module code names, directories and API/SPI/implementation package roots; API packages are `org.netbeans.api.nbfx.*`, SPI packages `org.netbeans.spi.nbfx.*`, implementation packages `org.netbeans.modules.nbfx.*`; the tier is read from `nbproject/nbfx-policy.properties` | an old `com.gluonhq` module directory, a non-namespaced package, or an API/SPI-root package exported by a T0 module |
 | `check-baseline` | **exists** (W1) | one `javac.release`; no `javafx.web`; one `--add-exports` file (§8.1) | a drifting JDK/FX/class-file baseline |
 | `check-i18n` | pending (W4) | every user-visible string is an `NbBundle` key in `Bundle.properties` | a missing key, a hardcoded string |
 | `check-bundles` | **exists** (W1.7) | `BundleGuard`: every literal key passed to `NbBundle.getMessage(X.class, "key")`, directly or through a one-line `message(key)` helper, exists in the `Bundle.properties` of `X`'s package | a key stranded in another module after a class moved (a `MissingResourceException` at run time) |
@@ -623,14 +665,19 @@ which is the gap `jdeps` closes. `nbfx-javafx` is scanned when its first module 
 
 ## 10. Roadmap
 
+M0 stays at **2026-12**. The milestone dates are unchanged; M0 is re-scoped to include the API-contract work
+and the shell/window/workspace public surface. M1 stays at **2027-03** and carries both the remaining AppShell
+services and IDE core. If M0 or M1 does not fit, that is a cut-list decision or an explicit plan change — not a
+pre-emptive date move.
+
 | Milestone | Target | Content | Exit |
 |---|---|---|---|
-| **M0 — Shell & platform** | 2026-12 | AppShell: shell/docking/actions/menus/status, dialogs, progress, theme, options, settings UI, nodes+property views, output, execution, terminal, quick search, credentials, favourites, templates, wizard, packaging (run from the built distribution) | the walking-skeleton scenario (open→edit→build→run→output→commit) runs on a **real Ant/J2SE fixture project** (the Ant/Java project types exist; Maven/Gradle arrive in M2); `refactor/api-clusters` + `refactor/appshell-boundary` landed; the platform-only distribution starts without IDE modules and the AppShell conformance fixture covers the M0 services; the `projectuiapi.base` bridge in `launcher`/`ui` is **removed** and the M0 rows of the retirement matrix are absent; all guards green; budget baseline recorded |
-| **M1 — IDE core** | 2027-03 | project model, editor (core + Java), structure, search, usages (generic + Java), file actions, VCS+Git, diff, local history, tests **UI**, libraries, task list/bookmarks, plugins UI | open/edit/search/find/commit/run-tests in FX on a J2SE project; every explorer panel renders through `api.nodes` (except popups) — [Appendix F](appendix/F-node-and-view-migration.md); the M1 rows of the retirement matrix absent; guards green |
-| **M2 — Java tooling** | 2027-07 | project types (J2SE/Maven/Gradle/Ant), Java Platforms, editor intelligence (goto, usages, hints, refactoring, codegen, Javadoc), debugger, profiler, Java tests engines/coverage | daily Java work on a Maven **and** an Ant project; the M2 rows of the retirement matrix absent; guards green |
-| **M3 — JavaFX usage** | 2027-09 | JavaFX project, FXML editing, SceneBuilder | a JavaFX project opens, edits FXML, and runs; `javafx.enabled` round-trips |
-| **M4 — Breadth** | 2027-12 | i18n, beans, JShell, remote debug/profiler, export/import, accessibility, multi-window, module graph view, OS bundles/installers (jpackage, Decision 19) | the intended feature scope is present; guards green; a11y pass recorded |
-| **M5 — Ecosystem** | 2028 | plugin API hardening, compatibility reports, update centers, docs/tutorials | a third-party plugin builds against the published API and is published |
+| **M0 — Foundation + plugin contracts** | **2026-12** | shell/window/workspace public surface; options, wizard, status, property/nodes contracts; property sheet on `api.nodes`; `api.file` dissolution; progress, theme, options/wizard/property-sheet UI, output UI, launcher, packaging, conformance; W2a contract completion and W2b governance for the complete APIs | the walking-skeleton scenario (open→edit→build→run→output→commit) runs on a **real Ant/J2SE fixture project**; `refactor/api-clusters` + `refactor/appshell-boundary` landed; the platform-only distribution starts without IDE modules; an **API-only downstream fixture** implements the M0 extension points (options, wizard, status, property) using only API/SPI imports and the plugin allowlist; T0 modules publish no packages (named friend packages only); the conformance fixture covers the M0 services; the M0 rows of the retirement matrix are absent; all guards green; budget baseline recorded; **the M0 contract modules are complete and signed; `api.editor`'s exported SPI is complete in M0 and its consumer migration continues in M1** |
+| **M1 — AppShell services + IDE core** | **2027-03** | AppShell services: finish the `platform.editor` consumer migration; dialogs, output API, settings, search+quicksearch, execution (process/PTY), templates, credentials, favorites, indexing; terminal scope/parser decision. IDE core: project model, project kind/build extraction, editor (core + Java), structure, search, usages (generic + Java), file actions, VCS+Git, diff, local history, tests **UI**, libraries, task list/bookmarks, plugins UI | every service is platform-only and covered by the conformance fixture; no product/IDE consumer imports a T0 package outside a declared friend; `api.dialogs`, `api.output`, `api.settings`, `api.search`, `api.execution`, `api.templates` are complete and signed; open/edit/search/find/commit/run-tests in FX on a J2SE project; every explorer panel renders through `api.nodes` (except popups); the M1 rows of the retirement matrix absent; guards green |
+| **M2 — Java tooling** | **2027-07** | project types (J2SE/Maven/Gradle/Ant), Java Platforms, editor intelligence (goto, usages, hints, refactoring, codegen, Javadoc), debugger, profiler, Java tests engines/coverage, terminal | daily Java work on a Maven **and** an Ant project; the M2 rows of the retirement matrix absent; guards green |
+| **M3 — JavaFX usage** | **2027-09** | JavaFX project, FXML editing, SceneBuilder | a JavaFX project opens, edits FXML, and runs; `javafx.enabled` round-trips |
+| **M4 — Breadth** | **2027-12** | i18n, beans, JShell, remote debug/profiler, export/import, accessibility, multi-window, module graph view, OS bundles/installers (jpackage, Decision 19) | the intended feature scope is present; guards green; a11y pass recorded |
+| **M5 — Ecosystem** | **2028** | plugin API hardening, compatibility reports, update centers, docs/tutorials | a third-party plugin builds against the published API and is published |
 
 ### 10.1 Critical path
 
@@ -638,20 +685,25 @@ The chain that decides the dates; everything else can slip around it:
 
 ```
 feature/walking-skeleton → feature/ci → refactor/guard-java-source → refactor/api-naming → refactor/module-names → refactor/api-split
-  → refactor/nodes-model (platform.nodes)         → feature/editor (platform.editor)
-  → refactor/java-plumbing (java.model)           → refactor/editor-split (java.editor)
-  → feature/project-model (api.project)           → feature/projecttypes.java (J2SE)
-  → feature/build-run (api.execution)             → feature/debugger (java.debug)
+  → refactor/api-contracts (options/wizard/status/property/nodes) → refactor/shell-window-contract
+  → refactor/workspace-public-surface                   → refactor/editor-spi
+  → feature/appshell-conformance (API-only)             → M0
+  → refactor/editor-consumers                           → feature/dialogs/output/settings/search
+  → feature/execution                                   → feature/terminal (M2)
+  → feature/projecttypes.java (J2SE)                    → feature/debugger (java.debug)
 ```
 
-The editor branch (`platform.editor` → `java.editor`) and the project branch
-(`api.project` → `java.projecttype.java`) run in parallel after `api-split`; they meet at
-`feature/build-run`. M2 ("daily Java work") is gated by `feature/debugger`.
+The platform branch is now on the critical path for M0: the plugin contracts (options, wizard, status,
+property/nodes) and the shell/workspace public surface gate the platform deliverable. The editor branch
+(`platform.editor` → `java.editor`) and the project branch (`api.project` → `java.projecttype.java`) run in
+parallel after the contract work; they meet at `feature/build-run`. M1 (AppShell services + IDE core) is
+gated by the editor consumer migration; M2 ("daily Java work") is gated by `feature/debugger`.
 
-The **platform-deliverable path** runs in parallel after `refactor/api-split`:
-`refactor/api-neutral → refactor/api-clusters → refactor/appshell-boundary → feature/appshell-conformance`.
-It is not on the Java-tooling critical path, but it must land before W2 so governance applies to stable
-module boundaries.
+The **platform-deliverable path** after `refactor/api-split`:
+`refactor/api-neutral → refactor/api-clusters → refactor/appshell-boundary → refactor/api-contracts →
+refactor/shell-window-contract → refactor/workspace-public-surface → feature/appshell-conformance`.
+W2a (contract completion) must land before W2b (governance/sigtest); governance for a `partial` module is
+deferred, not faked.
 
 Two upstream prototypes run in parallel with the critical path and are **not** allowed to delay it:
 `chore/upstream-module-tools` (H.6, portable `nbbuild` checks → `nbfx-tools/`) with `refactor/guardrails`, and
@@ -663,15 +715,17 @@ upstream win.
 If a date is missed, cut in this order; each cut is a plan change, not a silent slip:
 1. **M4 breadth** — JShell, beans/i18n tooling, module-graph view, remote debug/profiler, multi-window.
 2. **M3 SceneBuilder** — FXML editing stays; the embedded SceneBuilder editor goes.
-3. **Profiler** beyond JFR sampling; heap-dump analysis visualisation.
-4. **Non-Git VCS** providers.
-5. **Maven/Gradle** project types — J2SE + Ant first, Maven/Gradle later (the M2 exit changes to "Ant and
+3. **Terminal** — `api.terminal`/`platform.terminal` stay at M2; if M2 slips, M4. Process execution stays.
+4. **Profiler** beyond JFR sampling; heap-dump analysis visualisation.
+5. **Non-Git VCS** providers.
+6. **Maven/Gradle** project types — J2SE + Ant first, Maven/Gradle later (the M2 exit changes to "Ant and
    J2SE", the original JavaFX-cluster scope).
-Not cuttable: the walking skeleton, the guards, the API split, the **AppShell module boundary**, the editor
-core, the J2SE project type. The platform **distribution** (source/binary artifacts) may follow the IDE if
-dates slip; the module boundary may not.
+7. **M1 breadth** — credentials/favorites, then templates, then quicksearch.
+Not cuttable: the walking skeleton, the guards, the API split, the **AppShell module boundary**, the
+**M0 plugin contracts**, the editor core, the J2SE project type. The platform **distribution** (source/binary
+artifacts) may follow the IDE if dates slip; the module boundary and the plugin contracts may not.
 
-### 10.3 Test kit and test gate (implemented before W2)
+### 10.3 Test kit and test gate (implemented before W2a)
 
 - **FX headless**: **glass headless** (`-Dglass.platform=Headless -Dprism.order=sw`), already used by the
   platform and shell modules; no test opens a real window in CI. Monocle is not bundled and not needed.
@@ -695,8 +749,9 @@ dates slip; the module boundary may not.
   deliverable. CI does not repeat them in a second step.
 - **Required test types**: unit (model, `M` modules), contract (threading per SPI, layer writer/reader), leak
   (open/close, Appendix E.2), budget (startup/usable/first completion, `check-budget`), smoke (walking
-  skeleton, W0), AppShell conformance (platform-only). Baseline to beat: **42 test files, zero signature
-  tests, zero FX tests** — state the number in the W2 acceptance.
+  skeleton, W0), AppShell conformance (platform-only), API-only downstream fixture (plugin contracts).
+  Baseline to beat: **79 test files, 33 of 63 modules with tests, zero signature tests, headless FX tests
+  present** — state the numbers in the W2 acceptance.
 - **Fast loop**: `nbfx.overlay=symlink` and `ant module -Dmodule=<cluster>/<module>` (PR #8) build one module in
   seconds; `ant test -Dtest.modules=<cluster>/*` runs its tests. CI and the local loop use the same targets,
   so the loop and the gate cannot diverge.
@@ -731,10 +786,12 @@ workstreams only the stated dependencies do.**
 | W0 walking skeleton | the scenario (open → edit → build → run → output → commit) runs on a J2SE project; budget baseline recorded |
 | W1 containment/naming/split | `check-java-source` green with the 4-module allowlist; no `Fx*` in an exported package; all consumers compile after `api-split`; layer contract test green; `check-jars` scans the cluster set |
 | W1.5 full test gate | `ant test` discovers every nbfx test module; all unit tests and the headless scenario pass on `main`; the full suite is a required CI check; no hardcoded module list |
-| W1.6 namespace alignment | all module code names are under `org.netbeans.modules.nbfx.*` / `org.netbeans.libs.nbfx.*`; directories use `nbfx.` (libraries `libs.nbfx.`); API packages are `org.netbeans.api.nbfx.*`; implementation packages are `org.netbeans.modules.nbfx.*`; no live `com.gluonhq` module directory remains |
+| W1.6 namespace alignment | all module code names are under `org.netbeans.modules.nbfx.*` / `org.netbeans.libs.nbfx.*`; directories use `nbfx.` (libraries `libs.nbfx.`); API packages are `org.netbeans.api.nbfx.*`; SPI packages are `org.netbeans.spi.nbfx.*`; implementation packages are `org.netbeans.modules.nbfx.*`; no live `com.gluonhq` module directory remains |
 | W1.7 platform boundary/API clusters | APIs live in their domain clusters and `nbfx-api` is gone; `ant platform-build` produces a platform-only distribution whose default `ShellApplication` starts; `ant appshell-conformance` passes; `check-appshell`, `check-platform-delivery` and `check-api-isolation` are green; the IDE scenario is green |
-| W2 governance | every governed module has `arch.xml` + `apichanges` + a `sigtest` target; spec-version guard green; exemption register has owners and dates; the language conformance fixture passes |
-| W3 AppShell services | each service is platform-only, documents its thread, disposal and lease tests, and is covered by the AppShell conformance fixture; the default `ShellApplication` provides generic chrome from registrations (no downstream subclass), and index-on-open has progress and cancellation |
+| W2a contract completion | every M0 extension point (options, wizard, status, property/nodes) has its implementable type in the API/SPI packages; consumers import only API/SPI; an API-only downstream fixture compiles; `partial` modules are listed with a removal milestone |
+| W2b governance | every **complete** governed module has `arch.xml` + `apichanges` + a `sigtest` target; incomplete modules are `devel` with a named exemption, not signed; spec-version guard green; exemption/friend register has owners and dates; the language conformance fixture passes |
+| W3a AppShell chrome | shell chrome, declarative views/panes/layouts and theme are platform-only and covered by the conformance fixture; `ActionBars` is gone; no IDE class is needed for standard chrome |
+| W3b AppShell services | each remaining service is platform-only, documents its thread, disposal and lease tests, and is covered by the AppShell conformance fixture; index-on-open has progress and cancellation; every product/IDE consumer imports API/SPI only, except a declared service friend |
 | W4 IDE core | the M1 scenario (open/edit/search/find/commit/run-tests) on a J2SE project; every explorer panel renders through `api.nodes` |
 | W5 Java tooling | the M2 scenario on an Ant **and** a Maven project, including a debugging session |
 | W6 JavaFX usage | FXML edits and runs; `javafx.enabled` round-trips |
@@ -786,13 +843,13 @@ topological order: elements/file/project → editor → actions/views → root l
 `refactor/objects-not-statics` (services with lifecycles; typed contracts; no `Lookup.forPath` per call).
 The writer/reader layer contract test landed in PR #33.
 
-**W1.5 — Full test gate (before W2).** `ci/all-unit-tests` (**landed**, PR #70): the root `ant test` target
+**W1.5 — Full test gate (before W2a).** `ci/all-unit-tests` (**landed**, PR #70): the root `ant test` target
 discovers every module with tests and runs `test-unit`; CI uses that target, uploads the module JUnit XML on
 failure, and runs the headless scenario as part of the same suite. Acceptance: the suite is green on `main`,
 the full run is a required check, and neither the CI job nor the local loop uses a hand-maintained module
 list.
 
-**W1.6 — Namespace alignment (before W2).** `refactor/namespace-modules` (**landed**, PR #71) renamed module
+**W1.6 — Namespace alignment (before W2a).** `refactor/namespace-modules` (**landed**, PR #71) renamed module
 directories to `nbfx.<module>` and code names to `org.netbeans.modules.nbfx.<module>`, with the bundled
 library at `org.netbeans.libs.nbfx.javafx` / `libs.nbfx.javafx`; packages stayed unchanged.
 `refactor/namespace-packages` (**landed**, PR #72) moved API packages to `org.netbeans.api.nbfx.*`, SPI
@@ -801,7 +858,7 @@ processors to non-exported `org.netbeans.modules.nbfx.api.*` packages; `check-na
 contract. Acceptance: full tests and scenario green, no live `com.gluonhq` module directory, module
 graph/build/patches guards green.
 
-**W1.7 — Platform boundary and API clusters (before W2).** This is the platform-deliverable path; the IDE
+**W1.7 — Platform boundary and API clusters (before W2a).** This is the platform-deliverable path; the IDE
 scenario remains the gate.
 
 1. `refactor/api-neutral` (**landed**) — remove the API leaks the single API cluster hides: `api.editor` loses
@@ -818,60 +875,77 @@ scenario remains the gate.
    action-context services → `platform.shell`; added `check-appshell`; dissolved `nbfx.ui`.
 4. `feature/appshell-conformance` — a platform-only fixture that starts the AppShell and exercises options,
    action context, wizards, property sheet, nodes, dialogs, progress, output, terminal, quick search, theme,
-   credentials, favorites and templates. The fixture starts here and grows with each W3 service.
+   credentials, favorites and templates. The fixture starts here and grows with each W3b service.
 
 Acceptance: the IDE scenario is green; the platform-only distribution starts with no IDE modules; the
 AppShell conformance fixture passes; `check-appshell` and `check-api-isolation` are green.
 
-**W2 — API governance (after W1.7).** `feature/api-governance`: `arch.xml`/`apichanges`/signature tests for
-every T1/T2-FX/M module, the version baseline (1.0 + bump rule) and the spec-version guard; the audit/guard
-implementation (`refactor/guardrails`); the exemption register with owners and dates.
-`feature/language-conformance`: the **fake-language fixture** (`LanguageId("text/x-nbfx-conformance")` with
-decoration, completion, structure, goto and usages) — the CI proof of the core freeze
-([Appendix I.4](appendix/I-language-soundness.md)).
+**W2a — Contract completion (before W2b, M0).** `refactor/api-contracts`: move the implementable type of each
+M0 extension point into its API/SPI module and migrate consumers:
 
-**W3 — AppShell services.** Each service is a platform service, not an IDE service; the IDE contributes
-through `ide.workbench`, and the AppShell conformance fixture grows with each branch. The `feature/shell`
-umbrella comes first and is split into these branches:
+- `refactor/options-contract` (**landed, #162**) — `OptionsPanelHost` → `api.options.OptionsPanelController`, add
+  `OptionsDisplayer`, validate the registration type in the processor, migrate the options window and built-in
+  panels; `platform.options` is T0.
+- `refactor/wizard-contract` — `Wizard`/`WizardPanelHost` → `api.wizard.Wizard`/`WizardPanel`; keep
+  `WizardEntry`/`WizardRegistry` as the discovery contract; update the plan names (`WizardIterator`/
+  `WizardDescriptor` were never implemented).
+- `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
+  `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
+  line-separator and project elements; validate the registration type.
+- `refactor/nodes-property-contract` — create `api.nodes` (`NodeModel`, `ChildrenModel`, `ChildFactory`,
+  `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyEditorRef`, `ExplorerContext`), move
+  `PropertyEditor`/`PropertyEnv` to `api.property`, and put the property sheet on the model as its first
+  consumer.
+- `refactor/shell-window-contract` — rename the shell API/SPI packages to `org.netbeans.api.nbfx.shell`/
+  `org.netbeans.spi.nbfx.shell`; `WindowPaneProvider` returns a `WindowPaneHost`; `NbfxTabPane` becomes
+  internal; `WindowManager`/`ViewManager`/`ShellWindow` replace the static tab operations.
+- `refactor/workspace-public-surface` — `ViewSpec`/`ViewRegistry` → `api.views`; `WindowSystem`/`WindowState`/
+  `WindowSink` → the shell API; docking internals become friend packages for `platform.shell`.
+- `refactor/editor-spi` — move the language decoration/lex SPI to `api.editor`/`org.netbeans.spi.nbfx.editor`;
+  migrate `java.editor`, `ide.editor.xml` and `ide.editor.css`; `CodeEditor`/`SearchSupport`/breadcrumb widgets
+  stay internal. The consumer migration may finish in M1.
+- `refactor/api-file-dissolve` — move `FileSelectionContext`/`FileTypes`/`FileIconProvider` to
+  `api.views`/`api.editor`/`ide.file`.
 
-1. `refactor/shell-chrome-contract` — `ShellChrome` (only `top()`/`bottom()`/`dispose()`),
-   `ShellChromeProvider`, narrow `ShellContext`, default provider. `ShellApplication` creates/installs the
-   chrome and calls the existing `AppState.initToolbars`/save/restore — no new toolbar persistence. No IDE
-   behavior change yet.
-2. `refactor/menu-toolbar-builder` — move the generic parts of `ide.workbench.ActionBars` to `platform.shell`
-   as layer-only menu/toolbar builders; add ordered `MenuContribution`s; use `Command.getIcon()` for
-   contributed commands. `Command.getIcon()` becomes canonical for shell commands as the W2 API change;
-   until then shell-owned commands use one `ShellIconProvider`, not an `ActionBars.ICONS` map. Remove hardcoded
-   File/Edit/View/Window fallbacks.
-3. `refactor/shell-status-branding` — compose the existing `platform.status.StatusBar` from
-   `StatusElementRegistry`/`StatusContribution`s; no new status-bar type. Add `ShellBranding`/title, default
-   `ApplicationMenu` installation and platform editor status elements.
-4. `refactor/default-window-environment` — one `DefaultWindowEnvironment` plus ordered
-   `WindowEnvironmentContribution`s; generic detached bars, home resolution; IDE project/navigator
-   contributions. Define first-non-null/first-true precedence and disposal.
-5. `refactor/ide-workbench-contributions` — `JavaFXLaunchApp` keeps only IDE contributions; `ActionBars`
-   becomes IDE menu/toolbar/status/title contributions, not a chrome builder. Register only IDE-owned command
-   ids; do not duplicate platform `ShellActions`. Move `AppState.RecentProject` to the IDE or generalize it to
-   `RecentItem`; move `WindowTitles` behind `ShellBranding`.
-6. `feature/appshell-downstream-fixture` — a platform-only product with no `ShellApplication` subclass,
-   contributing actions/menus/toolbars/status/branding through registrations; grows the conformance fixture.
+Acceptance: the API-only downstream fixture implements options, wizard, status and property using API/SPI only;
+no M0 consumer imports a T0 package except through a named friend; the property sheet runs on `api.nodes`.
 
-`ShellChromeProvider`/`ShellBranding` selection is explicit: `ShellApplication.createChrome` is the primary
-override, the provider is a fallback with deterministic position, and one shell per JVM is documented.
-`ShellContext` exposes only the action registry, the active `EditorDocument` and a `Lookup`; no
-`AppState`/`DockArea`/`SlidingArea`/`NbfxTabPane`. All contribution SPIs are ordered, failure-isolated and
-disposed with the shell; their API package/tier is decided under W2 before publication.
+**W2b — API governance (after W2a).** `feature/api-governance`: `arch.xml`/`apichanges`/signature tests for
+every **complete** T1/T2-FX/M module, the version baseline (1.0 + bump rule) and the spec-version guard; the
+audit/guard implementation (`refactor/guardrails`); the exemption/friend register with owners and dates.
+Incomplete modules stay `devel` and are not signed. `feature/language-conformance`: the **fake-language
+fixture** (`LanguageId("text/x-nbfx-conformance")` with decoration, completion, structure, goto and usages) —
+the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md)).
 
-Then the remaining services: `feature/workspace`, `feature/dialogs`, `feature/progress`, `feature/theme`,
-`feature/settings-ui`, `feature/options`, `feature/nodes-views`, `feature/output`, `feature/execution`,
-`feature/terminal`, `feature/quicksearch`, `feature/credentials`, `feature/favorites`, `feature/templates`,
-`feature/wizard`, `feature/indexing` (reuse `parsing.api`/`parsing.indexing`; index-on-open with progress,
-cancellation and a memory budget — [Appendix D.5](appendix/D-bridge-and-retirement-matrix.md)).
+**W3a — AppShell chrome (landed).** The `feature/shell` branches are on `main`:
+
+1. `refactor/shell-chrome-contract` — `ShellChrome`, `ShellChromeProvider`, narrow `ShellContext`, default
+   provider; `ShellApplication` installs the chrome and reuses `AppState` toolbar persistence.
+2. `refactor/menu-toolbar-builder` — layer-only `ShellMenuBar`/`ShellToolBars`, ordered `DynamicMenu.Factory`,
+   `Command.getIcon()` as the icon source; no File/Edit/View/Window switch.
+3. `refactor/shell-status-branding` — compose `platform.status.StatusBar` from registrations;
+   `ShellBranding`, default `ApplicationMenu`.
+4. `refactor/default-window-environment` — one `DefaultWindowEnvironment` plus ordered contributions; generic
+   detached bars.
+5. `refactor/ide-workbench-contributions` — `JavaFXLaunchApp` keeps only IDE contributions; `ActionBars` is
+   gone; `ProjectState`/`ProjectBranding` own IDE state.
+6. `feature/appshell-downstream-fixture` — the platform-only fixture; M0 grows it into the **API-only**
+   downstream proof.
+
+**W3b — AppShell services (M1).** Each service is a platform service, not an IDE service; the IDE contributes
+through `ide.workbench`, and the AppShell conformance fixture grows with each branch. Order:
+`feature/dialogs` (contract + implementation), `feature/output-api` (extract `api.output`), `feature/settings-ui`
+(+ `api.settings`), `feature/search-api` (+ `platform.quicksearch`), `feature/execution` (process/PTY first),
+`feature/templates`, `feature/credentials`, `feature/favorites`, `feature/indexing` (reuse
+`parsing.api`/`parsing.indexing`; index-on-open with progress, cancellation and a memory budget —
+[Appendix D.5](appendix/D-bridge-and-retirement-matrix.md#d5-the-indexing-workstream-currently-missing)).
+`feature/terminal` stays M2 until the VT parser/library decision; process execution does not depend on it.
 
 `feature/shell` acceptance: a platform-only `ShellApplication` shows menus, tool bars and a status bar from
 registrations with no IDE class; `ShellChrome` exposes no concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
 in its product contract; the IDE menu/toolbar/status IDs and behaviour are unchanged; downstream adds chrome
-through registrations, not by subclassing.
+through registrations, not by subclassing. The M0 shell-window contract removes the implementation package
+from `public-packages` and lets `WindowPaneProvider` return a `WindowPaneHost`.
 
 The detailed API/SPI contracts, layer-registration rules, use cases, UX interaction rules, test matrix and
 per-phase acceptance criteria are in [`appshell-chrome.md`](appshell-chrome.md).
@@ -1015,11 +1089,26 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     cluster; API modules may depend only on API modules in the same or a lower cluster (`check-api-isolation`).
 25. **The AppShell boundary is structural**: no platform module may depend on an IDE/Java/JavaFX module; the
     services do not depend on the shell; IDE behaviour lives in `ide.workbench`. `check-appshell` asserts it.
+26. **M0 is the foundation and the plugin contracts; M1 is services plus IDE core.** The milestone dates are
+    unchanged: M0 stays at 2026-12 and M1 at 2027-03. M0 includes the shell/window/workspace public surface and
+    the complete plugin contracts for options, wizard, status and property/nodes (because the M0 property sheet
+    needs `api.nodes`). Dialogs, output API, settings, search, execution, templates, credentials, favorites,
+    indexing and the finished editor extraction are M1, as is IDE core; terminal is M2. A module whose
+    contract is incomplete is `partial`/`devel`, is not signed, and does not close M0. If the scope does not
+    fit, the cut list or an explicit plan change applies; do not pre-emptively move the dates.
+27. **T0 publishes nothing; friend packages are named and dated.** A T0 module may export an implementation
+    package only through `<friend-packages>` to a named nbfx module, with an owner and a removal milestone.
+    Shared packages are promoted to T1/T2-FX/M deliberately. A module is *landed* only when the type a
+    consumer or plugin implements is in its exported API/SPI packages, a downstream fixture can implement it
+    using API/SPI imports alone, and no M0 consumer imports a T0 package except through a named friend.
+    `platform.editor` and `platform.workspace` are **extracted**, not promoted: their product-facing types
+    move to API/SPI, and their internals remain T0 friend packages until the consumer migration completes.
 
 ## 14. Open questions
 
-1. **Plugin API stability**: publish T2-FX at M1 or at M5 (after the ecosystem hardening)? Proposed: publish
-   at M1 as *devel* (`arch.xml category="devel"`), freeze at M5.
+1. **Plugin API stability**: publish T2-FX at M0/M1 or at M5 (after the ecosystem hardening)? Proposed:
+   publish the **complete** M0 contracts as *devel* (`arch.xml category="devel"`), keep `partial` modules
+   unpublished, and freeze at M5.
 2. **Multi-window/detached views**: M4 or earlier? (Proposed: M4.)
 3. **Coverage licence**: JaCoCo is EPL-2.0 and already shipped by NetBeans; confirm the policy for a
    *published* nbfx feature before bundling.
@@ -1037,9 +1126,9 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
    and downstream applications that need projects add the IDE cluster.
 9. **Plugin API/manager placement**: platform API and manager with the UI in `ide.plugins`, or all in the
    IDE? Proposed: platform API/manager, IDE UI.
-10. **AppShell conformance scope**: which services the M0 fixture must cover and which join in W3. Proposed:
-    generic shell chrome (menus/toolbars/status/application menu/branding/window environment), options, action
-    context, wizards, property sheet and nodes at M0; the rest as each W3 service lands.
+10. **AppShell conformance scope** — *resolved by Decision 26*: M0 covers the shell chrome, action context,
+    options, wizards, status, property/nodes and the API-only downstream fixture; dialogs, output, settings,
+    search, execution, templates, credentials, favorites and indexing join in M1; terminal joins in M2.
 
 ## 15. Appendices
 
@@ -1076,17 +1165,22 @@ Every entry has a **trigger**, so it is a decision rule, not a worry. Owners are
 | **R13** scope creep from the module catalogue | high | medium | Rule of Creation (§6.1), cut list (§10.2), owners before M0 | a new `api.*` module without a consumer #2 |
 | **R14** a11y postponed and unfixable later | medium | medium | a11y is an M1 contract of `api.views` (E.3), checked in the shell | M1 exit |
 | **R15** the API cluster move breaks the build or hides a new upward edge | medium | medium | cleanups first (`refactor/api-neutral`), then the move; `check-layers`/`check-api-isolation`; green-trunk rule | an API module gains an implementation or IDE dependency |
-| **R16** AppShell scope grows beyond M0 | high | medium | the §6.6 inventory is the scope; the conformance fixture grows per service; the cut list protects the module boundary, not the full distribution | a W3 service lands only in `ide.workbench` |
-| **R17** generic chrome stays in `ide.workbench`, so downstream must build an own AppShell | high | high | `feature/shell` extracts `ShellChrome`/menu/toolbar/status/branding/window environment into `platform.shell`; platform-only fixture proves no subclass; `check-appshell` stays green | a downstream product depends on `ide.workbench` or copies `ActionBars` |
+| **R16** AppShell scope grows beyond M0 | high | medium | Decision 26 fixes the M0/M1 line; the §6.6 inventory is the scope; the conformance fixture grows per service; a service branch that enters M0 is a plan change | a W3b service lands before M0 closes |
+| **R17** generic chrome stays in `ide.workbench`, so downstream must build an own AppShell | high | high | `feature/shell` extracted `ShellChrome`/menu/toolbar/status/branding/window environment into `platform.shell`; the API-only platform fixture proves no subclass; `check-appshell` stays green | a downstream product depends on `ide.workbench` or copies `ActionBars` |
+| **R18** published API modules are stubs while consumers use T0 packages | high | high | W2a contract completion (options, wizard, status, property/nodes) before W2b; the API-only downstream fixture is the gate; `partial` modules are not signed | a module is marked landed without an API-only consumer |
+| **R19** friend packages become permanent hidden API | medium | high | every friend has an owner and removal milestone; `check-api` fails on an expired or undeclared friend; T0 publishes no packages | a friend entry survives its milestone |
+| **R20** editor/workspace extraction overruns M0 | high | high | extract the SPI in M0, finish the consumer migration in M1; friend packages are the transition, not the destination; the cut list protects the M0 contracts | the M0 API-only fixture cannot compile without a T0 import |
 
 ## 17. Plan budget and freeze
 
-The plan is a means, not a deliverable. It now has implementation behind it: W0, W1, W1.5 and W1.6 are on
-`main`; this platform-deliverable refinement is the next review round. Keep the budget.
+The plan is a means, not a deliverable. It now has implementation behind it: W0, W1, W1.5, W1.6, W1.7 and
+the AppShell chrome/declarative composition are on `main`. This re-scope records the API-contract gap and
+moves service breadth to M1; it is the last review round before M0.
 
-- **Budget ~1,200 lines.** A review round **deletes at least as much as it adds**.
+- **Budget ~1,200 lines.** This round replaces speculation (stub “landed” rows, the old 42-test baseline)
+  with the API-reality summary and the measured baseline.
 - **No new appendix without merging or removing one.**
-- **No further review round** until the AppShell conformance fixture passes or the platform distribution is
+- **No further review round** until the API-only downstream fixture passes or the platform distribution is
   produced; W0 and `feature/ci` have already met the earlier gate.
 - **Delete speculation on sight**: a tier marked "proposed", a `libs.*` row for a library that is not bundled,
   an `api.*` module without a consumer #2, a capability (`servers`) before a spike decides it.
@@ -1099,41 +1193,25 @@ add a row when a PR lands and update the affected chapter in the same change.
 
 | PR | What | Plan impact |
 |---|---|---|
-| #2 | FX progress UI: new `nbfx.progress`, `progress.ui` pruned; status element, all-tasks popup, View/Cancel | `platform.progress` replaces `nbfx.progress`; D.4 M0 row; progress is the first **landed** bridge |
-| #5 | navigator for XML/FXML/CSS/Ant/Gradle; new `nbfx.structure.css`, `nbfx.structure.xml`, `CssTokens` | new catalogue rows (§6.3) and migration rows (§7); Appendix F rows |
-| #8 | symlink overlay and single-module builds (`ant module -Dmodule=…`) | the fast loop for every step (§10.3, W12) |
-| #11 | progress-bar styling | theme only |
-| #12 | early `Node` initialization to avoid the startup deadlock | **debt**: the real fix is D.2.1 / H.4.1; keep until `openide.nodes` leaves the runtime |
-| #18 | `check-budget` and cold/windowed startup baselines | W0 budget baseline recorded |
-| #20 | `guard-java-source` | Java-source containment guard and module policy files |
-| #21, #30, #32 | `api-naming` | `Fx*` dropped from exported types; `LayerPaths` moved to `api.layer` |
-| #22–#28 | `api-split` | `api.project`, `api.elements`/`api.file`, `api.progress`/`api.search`, `api.editor`, `api.actions`, `api.views`, `api.dialogs`; `nbfx.api` retired |
-| #29 | CI external-binary cache | CI build speedup |
-| #31, #42 | `cluster-layout` | `nbfx-libs` and the transitional `nbfx-api` (dissolved in W1.7); `platform.actions`; `platform.workspace` |
-| #33 | writer/reader layer contract test | lands the W1 layer contract |
-| #34–#38 | `module-names` | module renames for libs, platform, IDE and Java modules |
-| #39 | `check-baseline` + `check-logging` | both guards landed |
-| #40 | `platform.actions` | action/context classes moved into the merged package |
-| #43 | `lib.javafx` | pinned OpenJFX SDK fetched by `ant javafx-fetch` |
-| #44 | scenario fixture cleanup | project closed before committing the fixture |
-| #46 | bundle updates | progress bundle and structure bundle |
-| #48 | restore removed icons | view icons restored |
-| #50 | update patches | patch paths and RAT exclusions updated |
+| #2–#50 | W0/W1 foundation: FX progress, navigator/structure, fast loop, guardrails, api-naming, api-split, cluster layout, module renames, layer contract test, signatures, RAT | W0/W1 closed; details in git history |
 | #51–#63 | W1 completion: landed-status docs, launcher dependency cleanup, project registry, `java.model`/`SourceAnalysis`, editor split, usages split, object lifecycle cleanup, `check-languages`, annotation dissolution | W1 closed; `platform.editor`, `java.model`, `api.*` modules; `check-languages` |
-| #66, #67 | prune only upstream cluster folders; Apache headers for `ant rat` | build hygiene |
-| #70 | `ci/all-unit-tests` | W1.5 landed |
-| #71, #72 | module and package namespace moves | W1.6 landed |
-| #73 | two-deliverable plan and AppShell scope | §1/§6.6 define the platform deliverable |
-| #74–#76, #78 | element vocabulary, editor project neutralization, navigator/action split, API clusters | W1.7 API boundary landed |
-| #85, #86 | AppShell foundation: view/action APIs, API clusters, property sheet, `check-appshell` | W1.7 boundary started; both merged |
-| #87–#92 | launcher in `platform.launcher`; generic shell and services in `platform.shell`; `ide.workbench` and `ide.actions`; `nbfx.ui` dissolved; shell smoke test | W1.7 boundary landed; all merged |
-| #93 | default `ShellApplication`/`ShellAppProvider`; IDE application extends `ShellApplication` | shell application landed; merged |
-| #94–#96 | platform-only build/delivery guard; AppShell conformance fixture; plan/docs refresh | platform deliverable builds and is conformance-tested; open stack |
+| #66–#96 | W1.5 full test gate; W1.6 namespace moves; W1.7 platform boundary, platform-only delivery, AppShell foundation and conformance | W1.5/W1.6/W1.7 closed |
+| #97–#110 | macOS module gating, `JdkCheck`, JDK dialog styling, bundle guard, installer workflow added/removed, plan chrome revision | build hygiene and release workflow; no architecture change |
+| #112–#120 | AppShell chrome contract, detached chrome/actions/project state, declarative view areas/placement/layout, permanent panes, upstream lifecycle contributions, theme/OS light-dark | W3a chrome and declarative composition landed; `ActionBars` removed; `platform.theme` landed |
+| #122–#126 | macOS appearance flag, theme CSS, `ant guards` | theme follow-up; CI guard aggregate |
+| #140–#159 | shell/view/status/context fixes: dynamic view providers, tab view resolution, active component, open-views menu, shutdown coordinator, progress fill, primary-pane hiding, start-up views, duplicate positions, tests, KEYS, headers | W3a stabilised; no new API contract |
+| #162 | options contract: `OptionsPanelController`/`OptionsDisplayer` in `api.options`; `platform.options` T0 | first W2a contract slice landed; §6.1/§6.1.1 options row |
 
-**Current status:** W0, W1, W1.5, W1.6, and the AppShell boundary (#85–#93) are on `main`. The remaining
-W1.7 PRs #94–#96 add the platform-only build/delivery guard, the first AppShell conformance fixture and the
-documentation refresh. W1.7's boundary is done and the generic shell chrome has landed: `platform.shell` builds the
-main and detached menus/tool bars from the layer, composes the status bar, owns branding, the
-application menu and the window environment, and `ide.workbench` contributes only IDE behavior.
-`ActionBars` is gone. The remaining W3 work is the final API/package boundary and W2 governance.
+**Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
+`main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
+declarative panes/areas/layout, owns branding, the application menu and the window environment, and the theme
+supports light/dark/OS mode. `ActionBars` is gone.
+
+The **API split is complete at module level, not at contract level**. `api.wizard`, `api.status`,
+`api.property`, `api.nodes`, `api.dialogs`, `api.search` and `api.project` are `partial` until W2a moves the
+implementable SPI out of `platform.*`; the options contract landed with #162. `platform.editor` and
+`platform.workspace` still export implementation packages. M0 is **2026-12** (dates unchanged) and now closes
+the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the W2b
+governance for the complete modules. M1 (2027-03) carries AppShell services and IDE core. The next W2a slice is
+wizard/status/property/nodes, not a new service.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

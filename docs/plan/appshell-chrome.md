@@ -20,7 +20,8 @@
 -->
 # AppShell Hardcoding Removal Plan
 
-Status: revised plan, aligned with the API/SPI review  
+Status: design + implementation notes. The status list is [`PLAN.md`](PLAN.md) §18; the API-reality baseline
+is §6.1.1 and the workstream is §11 W2a/W3a/W3b.
 Scope: `nbfx.platform.shell`, `nbfx.platform.menus`, `nbfx.platform.status`, `nbfx.platform.actions`, `nbfx.ide.workbench`  
 Goal: a downstream product can use `ShellApplication` as-is and add menus, toolbars, status elements, application-menu entries, branding and window behaviour through registrations. It must not need to copy `ActionBars`, implement its own `WindowEnvironment`, or write its own application class just to get standard chrome.
 
@@ -592,11 +593,18 @@ Detached chrome is now generic:
 
 Still outstanding:
 
-- `platform.shell` still exports its implementation package because `NbfxTabPane` and the
-  remaining implementation types are not yet split;
+- the shell API/SPI packages are still under the implementation root (`org.netbeans.modules.nbfx.platform.shell.api`/
+  `.spi`); M0 moves them to `org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`;
+- `WindowPaneProvider` returns `NbfxTabPane`; M0 introduces `WindowPaneHost`/`WindowPaneFactory` so a provider
+  never constructs the concrete tab pane, and `NbfxTabPane` becomes internal;
+- `JavaFXLaunchApp`/`NavigatorPaneProvider` still use `NbfxTabPane` statics; M0 moves those operations to
+  `WindowManager`/`ViewManager`/`ShellWindow`, with friend packages only as the transition;
 - apichanges/signature-test coverage for the new API/SPI remains a W2 item;
 - `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
   navigator/dock internals.
+
+The API-only downstream fixture (`PLAN.md` §11 W2a) is the gate: if a product cannot implement the M0
+extension points with API/SPI imports alone, the boundary is not done.
 
 ---
 
@@ -748,8 +756,9 @@ Implemented:
   longer re-read `WindowPaneRegistry` once the shell has started;
 - the one-shell-per-JVM invariant is documented on `ShellApplication` and `Docking`; restarting a
   shell in the same JVM would reuse the static docking area and pane registry.
-- `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` are the deliberate public pane
-  contract for now;
+- `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` remain the pane contract only until the M0
+  shell-window extraction replaces `WindowPaneProvider`'s return type with `WindowPaneHost` and makes the
+  concrete tab pane internal;
 - providers may release their pane through `disposePane`, which the shell calls on stop;
 - `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
   to `Docking.create`;
@@ -774,11 +783,11 @@ Implemented:
 
 Remaining follow-ups:
 
-- a custom pane instance is still a `NbfxTabPane`; a fully custom pane node type would need a
-  wider window abstraction;
-- on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for
-  the permanent-pane model;
-- a custom pane instance is still an `NbfxTabPane`; a non-tab pane abstraction is out of scope.
+- a custom pane instance is still a `NbfxTabPane`; the M0 `WindowPaneHost` contract is the boundary, and a
+  fully custom pane node type remains a wider window abstraction;
+- on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for the
+  permanent-pane model;
+- a non-tab pane abstraction is out of scope.
 
 ---
 
