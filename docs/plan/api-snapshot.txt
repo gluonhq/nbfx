@@ -54,6 +54,7 @@ org.netbeans.api.nbfx.editor.OpenSources
 org.netbeans.api.nbfx.file.FileIconProvider
 org.netbeans.api.nbfx.file.FileSelectionContext
 org.netbeans.api.nbfx.file.FileTypes
+org.netbeans.api.nbfx.icons.ThemedImageView
 org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerPaths
 org.netbeans.api.nbfx.options.OptionsContainerRegistration

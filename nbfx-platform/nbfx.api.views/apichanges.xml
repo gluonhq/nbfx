@@ -76,6 +76,20 @@
             <class package="org.netbeans.api.nbfx.views" name="ViewKind"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewRegistration"/>
         </change>
+        <change id="themed.icons">
+            <api name="netbeansfx_views"/>
+            <summary>Icons with a drawing for dark themes.</summary>
+            <version major="1" minor="7"/>
+            <date day="13" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ThemedImageView</code>, an <code>ImageView</code> with a light and a
+                dark image that shows the one matching the color scheme of its scene, and follows
+                theme changes.
+            </description>
+            <class package="org.netbeans.api.nbfx.icons" name="ThemedImageView"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

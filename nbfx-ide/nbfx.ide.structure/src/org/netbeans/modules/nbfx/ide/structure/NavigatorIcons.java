@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import org.netbeans.api.nbfx.icons.ThemedImageView;
 
 /**
  * Loads and caches the icons of the Navigator panels, 16 px PNG resources next to a panel's classes.
@@ -46,9 +47,14 @@ public final class NavigatorIcons {
         return CACHE.computeIfAbsent(url.toExternalForm(), Image::new);
     }
 
-    /** A fixed-size view of the resource {@code name}, resolved against {@code owner}'s package. */
+    /**
+     * A fixed-size view of the resource {@code name}, resolved against {@code owner}'s package.
+     * When the resource has a dark drawing next to it ({@code a_dark.png} for {@code a.png}) the
+     * view shows that one under a dark theme.
+     */
     public static ImageView view(Class<?> owner, String name) {
-        ImageView view = new ImageView(image(owner, name));
+        ThemedImageView view = new ThemedImageView();
+        view.setIcon(owner, name);
         view.setFitWidth(SIZE);
         view.setFitHeight(SIZE);
         view.setPreserveRatio(true);
