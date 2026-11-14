@@ -75,6 +75,10 @@
                      This is an IDE-tier bridge, not an AppShell dependency; Appendix D.2 records
                      the reuse and its M1b review. Do not remove without a project-model replacement. -->
                 <exclude name="nbfx-ide/nbfx.project/nbproject/project.xml"/>
+                <!-- ide.project.ui reuses the headless ProjectProblemsProvider model and implements
+                     ProjectProblemsImplementation in JavaFX, replacing projectui's Swing panels.
+                     Appendix D.2 records the reuse/replace decision (Decision 28). -->
+                <exclude name="nbfx-ide/nbfx.project.ui/nbproject/project.xml"/>
                 <or>
                     <contains text="org.openide.awt"/>
                     <contains text="org.openide.nodes"/>
