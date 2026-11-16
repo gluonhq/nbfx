@@ -33,6 +33,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import junit.framework.Test;
+import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.project.ProjectLifecycle;
 import org.netbeans.junit.NbModuleSuite;
@@ -124,6 +125,16 @@ public class AppChromeTest extends NbTestCase {
                 registry.find(IdeActionIds.PREVIOUS_PROJECT).isPresent());
         assertNotNull("the project lifecycle service is missing",
                 Lookup.getDefault().lookup(ProjectLifecycle.class));
+
+        // The Options service is declared in api.options and implemented in platform.options. It is
+        // resolved here through the module class loaders: a flat test class path hides an
+        // implementation module that lacks the run dependency on the API module.
+        assertTrue("Options is not registered",
+                registry.find(ActionIds.SELECT_OPTIONS).isPresent());
+        ClassLoader system = Lookup.getDefault().lookup(ClassLoader.class);
+        Class<?> optionsDisplayer = system.loadClass("org.netbeans.api.nbfx.options.OptionsDisplayer");
+        assertNotNull("the Options service cannot be loaded",
+                Lookup.getDefault().lookup(optionsDisplayer));
     }
 
     private static ShellChrome chrome(JavaFXLaunchApp application) throws Exception {
