@@ -94,10 +94,7 @@ final class IgnoreListDialog extends Dialog<Void> {
         HBox content = new HBox(8, entries, buttons); // padded by search.css: the pane's "content" rule wins over code
 
         DialogPane pane = getDialogPane();
-        // a dialog has its own scene: take the application's stylesheets from the window it belongs to
-        if (owner != null && owner.getScene() != null) {
-            pane.getStylesheets().addAll(owner.getScene().getStylesheets());
-        }
+        // the theme module adds the common control styles and the theme to every window
         pane.getStylesheets().add(Objects.requireNonNull(IgnoreListDialog.class.getResource("search.css")).toExternalForm());
         pane.getStyleClass().add("search-ignore-list");
         pane.setContent(content);

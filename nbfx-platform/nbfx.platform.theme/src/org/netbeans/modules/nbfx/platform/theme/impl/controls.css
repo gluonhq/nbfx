@@ -1,0 +1,459 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/*
+ * nbfx common control styles.
+ *
+ * NbfxTheme adds this sheet to every scene as its window is shown, ahead of the scene's own
+ * stylesheets, so the main window, detached windows, dialogs and popups of any module share the
+ * same look for the standard JavaFX controls without loading a stylesheet themselves.
+ *
+ * Only rules for standard controls belong here. Rules for shell chrome (tabs, toolbars, sliding
+ * sides, status bar) stay in the shell's styles.css, and a component keeps its own sheet.
+ */
+
+/** TreeCell, TreeView **/
+
+.tree-cell,
+.tree-cell:hover,
+.tree-cell:focused {
+    -fx-background: -nbfx-surface;
+    -fx-background-color: -fx-background;
+    -fx-text-background-color: -nbfx-text-strong;
+    -fx-text-fill: -fx-text-background-color;
+    -fx-selection-bar: -nbfx-accent;
+    -fx-selection-bar-non-focused: -nbfx-neutral;
+}
+
+/* standard cell */
+.tree-cell {
+    -fx-background: -fx-control-inner-background;
+    -fx-background-color: -fx-background;
+    -fx-text-fill: -fx-text-background-color;
+}
+.tree-cell .label {
+    -fx-text-fill: -fx-text-background-color;
+}
+
+/* Selected rows */
+.tree-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-cell:filled:selected {
+    -fx-background: -fx-selection-bar;
+    -fx-table-cell-border-color: -fx-selection-bar;
+    -fx-text-fill: -nbfx-on-accent;
+}
+.tree-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-cell:filled:selected .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+/* Selected when control is not focused */
+.tree-cell:filled:selected {
+    -fx-background: -fx-selection-bar-non-focused;
+    -fx-table-cell-border-color: -fx-selection-bar-non-focused;
+    -fx-text-fill: -nbfx-text-strong;
+}
+.tree-cell:filled:selected .label {
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+/* focused cell (keyboard navigation) */
+.tree-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-cell:focused {
+    -fx-background-color: -fx-background;
+    -fx-background-insets: 0;
+    -fx-text-fill: -nbfx-on-accent;
+}
+.tree-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-cell:focused .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+/** Drag-and-drop drop indicators. **/
+.tree-cell:drop-into {
+    -fx-border-color: -nbfx-accent;
+    -fx-background-color: -nbfx-accent-tint;
+    -fx-border-width: 1.5;
+    -fx-border-insets: 0;
+}
+.tree-cell:drop-above {
+    -fx-border-color: -nbfx-accent transparent transparent transparent;
+    -fx-border-width: 2 0 0 0;
+    -fx-border-insets: 0;
+}
+.tree-cell:drop-below {
+    -fx-border-color: transparent transparent -nbfx-accent transparent;
+    -fx-border-width: 0 0 2 0;
+    -fx-border-insets: 0;
+}
+
+.tree-cell > .tree-disclosure-node > .arrow,
+.tree-table-row-cell > .tree-disclosure-node > .arrow {
+    -fx-background-color: -nbfx-icon-subtle;
+    -fx-shape: "M4.974 3.174C5.208 2.94 5.592 2.94 5.826 3.174L9.426 6.774C9.66 7.008 9.66 7.392 9.426 7.626L5.826 11.226C5.592 11.46 5.208 11.46 4.974 11.226 4.74 10.992 4.74 10.608 4.974 10.374L8.154 7.2 4.974 4.026C4.74 3.792 4.74 3.408 4.974 3.174Z";
+}
+
+/** TableRow, TableCell, TreeTableRow, TreeTableCell **/
+
+.table-row-cell,
+.table-row-cell:hover,
+.table-row-cell:focused,
+.tree-table-row-cell,
+.tree-table-row-cell:hover,
+.tree-table-row-cell:focused {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-text-background-color: -nbfx-text-strong;
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+/** table-view, tree-table-view not focused **/
+.table-row-cell:filled:selected,
+.tree-table-row-cell:filled:selected {
+    -fx-background: -nbfx-neutral;
+    -fx-background-color: -nbfx-neutral;
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+.table-view:focused > .virtual-flow > .clipped-container > .sheet > .table-row-cell:selected:filled,
+.table-view:focused > .virtual-flow > .clipped-container > .sheet > .table-row-cell:focused,
+.tree-table-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled,
+.tree-table-view:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:focused {
+    -fx-background: -nbfx-accent;
+    -fx-background-color: -nbfx-accent;
+    -fx-text-background-color: -nbfx-on-accent;
+}
+
+.table-view .column-drag-header,
+.tree-table-view .column-drag-header {
+    -fx-background: -nbfx-accent;
+    -fx-background-color: -nbfx-accent;
+}
+
+/* ScrollBars in TreeView, ComboBox, ... */
+
+.virtual-flow > .scroll-bar:vertical,
+.virtual-flow > .scroll-bar:horizontal {
+    -fx-padding: 0;
+}
+
+.virtual-flow > .corner,
+.virtual-flow > .scroll-bar:horizontal,
+.virtual-flow > .scroll-bar:horizontal:focused,
+.virtual-flow > .scroll-bar:vertical,
+.virtual-flow > .scroll-bar:vertical:focused {
+    -fx-background-color: -nbfx-track;
+}
+
+.virtual-flow > .scroll-bar:vertical > .track,
+.virtual-flow > .scroll-bar:horizontal > .track,
+.virtual-flow > .corner {
+    -fx-background-insets: 0;
+}
+
+.virtual-flow > .scroll-bar:horizontal > .track,
+.virtual-flow > .scroll-bar:vertical > .track {
+    -fx-background-color: -nbfx-track;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+}
+
+.virtual-flow > .scroll-bar:horizontal:focused > .track,
+.virtual-flow > .scroll-bar:vertical:focused > .track {
+    -fx-background-color: -nbfx-track-focused;
+}
+
+.virtual-flow > .scroll-bar:horizontal > .increment-button,
+.virtual-flow > .scroll-bar:horizontal > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0em;
+    -fx-padding: 5 0 5 0;
+}
+
+.virtual-flow > .scroll-bar:vertical > .increment-button,
+.virtual-flow > .scroll-bar:vertical > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0em;
+    -fx-padding: 0 5 0 5;
+}
+
+.virtual-flow > .scroll-bar > .increment-button > .increment-arrow,
+.virtual-flow > .scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+.virtual-flow > .scroll-bar:horizontal > .thumb,
+.virtual-flow > .scroll-bar:vertical > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 20;
+}
+
+.virtual-flow > .scroll-bar:horizontal:hover > .thumb,
+.virtual-flow > .scroll-bar:vertical:hover > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb-hover;
+}
+
+.virtual-flow > .scroll-bar:horizontal:pressed > .thumb,
+.virtual-flow > .scroll-bar:vertical:pressed > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb-pressed;
+}
+
+/* ListView - ListCell */
+.list-cell {
+    -fx-padding: 4 8 4 8;
+    -fx-background: -nbfx-surface;
+    -fx-background-color: -fx-background;
+    -fx-text-background-color: -nbfx-text-strong;
+    -fx-text-fill: -fx-text-background-color;
+    -fx-selection-bar: -nbfx-accent;
+    -fx-selection-bar-non-focused: -nbfx-neutral;
+}
+.list-cell .label {
+    -fx-text-fill: -fx-text-background-color;
+}
+
+/* Selected rows */
+.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected {
+    -fx-background: -fx-selection-bar;
+    -fx-table-cell-border-color: -fx-selection-bar;
+    -fx-text-fill: -nbfx-on-accent;
+}
+.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+/* Selected when control is not focused */
+.list-cell:filled:selected {
+    -fx-background: -fx-selection-bar-non-focused;
+    -fx-table-cell-border-color: -fx-selection-bar-non-focused;
+    -fx-text-fill: -nbfx-text-strong;
+}
+.list-cell:filled:selected .label {
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+/* focused cell (keyboard navigation) */
+.list-view:focused > .virtual-flow > .clipped-container > .sheet > .list-cell:focused {
+    -fx-background-color: -fx-background;
+    -fx-background-insets: 0;
+}
+
+/* ComboBox */
+.combo-box-base,
+.combo-box-base:focused,
+.combo-box-base:editable:focused {
+    -fx-min-width: 80;
+    -fx-pref-width: 220;
+    -fx-background-color: -nbfx-chrome, -nbfx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 3, 2;
+}
+
+.combo-box > .list-cell,
+.combo-box > .list-cell:focused {
+    -fx-background: transparent;
+    -fx-background-color: transparent;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-font-size: 0.9em;
+    -fx-padding: 4 8 4 8;
+}
+
+.combo-box > .list-cell .label,
+.combo-box > .list-cell:focused .label {
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+.combo-box-base:editable > .text-field,
+.combo-box-base:editable:focused > .text-field,
+.combo-box-base:editable > .text-field:focused {
+    -fx-background-color: -nbfx-chrome, -nbfx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 2 0 0 2, 1 0 0 1;
+}
+
+.combo-box-base > .arrow-button,
+.combo-box-base:editable > .arrow-button {
+    -fx-background-color: -nbfx-surface;
+    -fx-background-insets: 1;
+    -fx-background-radius: 2;
+    -fx-padding: 4 8 4 8;
+}
+
+.combo-box-base:focused > .arrow-button,
+.combo-box-base:editable:focused > .arrow-button {
+    -fx-background-color: -nbfx-surface;
+    -fx-background-insets: 1;
+}
+
+.combo-box-base > .arrow-button > .arrow {
+    -fx-background-insets: 0;
+    -fx-padding: 2.5 4 2.5 4;
+    -fx-background-color: -nbfx-icon;
+    -fx-shape: "M0 0C-.234-.234-.618-.234-.852 0L-4.026 3.18-7.2 0C-7.434-.234-7.818-.234-8.052 0S-8.286.618-8.052.852L-4.452 4.452C-4.218 4.686-3.834 4.686-3.6 4.452L0 .852C.234.618.234.234 0 0Z";
+}
+
+.combo-box-base > .arrow-button:hover > .arrow {
+    -fx-background-color: -nbfx-icon-hover;
+}
+
+.combo-box-base > .arrow-button:pressed > .arrow {
+    -fx-background-color: -nbfx-icon-pressed;
+}
+
+/* ComboBox and popups */
+.popup .list-view,
+.combo-box-popup .list-view {
+    -fx-background-color: -nbfx-surface;
+    -fx-background-insets: 0;
+    -fx-min-width: 160;
+    -fx-padding: 4 1 4 1;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-font-family: System;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 12, 0.10, 0, 8);
+}
+
+.popup .list-view > .placeholder > .label,
+.combo-box-popup .list-view > .placeholder > .label {
+    -fx-text-fill: -nbfx-text-muted;
+}
+
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell {
+    -fx-padding: 4 0 4 5;
+    /* No alternate highlighting */
+    -fx-background: -nbfx-surface;
+    -fx-background-color: -fx-background;
+    -fx-text-fill: -nbfx-text-strong;
+}
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover {
+    -fx-background: -fx-selection-bar;
+    -fx-background-color: -fx-selection-bar;
+    -fx-text-fill: -nbfx-on-accent;
+}
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover .label,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:hover .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected,
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover,
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected:hover,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected:hover {
+    -fx-background: -fx-selection-bar;
+    -fx-background-color: -fx-background;
+    -fx-background-insets: 0;
+    -fx-text-fill: -nbfx-on-accent;
+}
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected .label,
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover .label,
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected:hover .label,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected .label,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:filled:selected:hover .label,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected:hover .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected {
+    -fx-background: -nbfx-surface;
+    -fx-background-color: -fx-background;
+    -fx-background-insets: 0;
+    -fx-text-fill: -nbfx-text-strong;
+}
+.popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected .label,
+.combo-box-popup .list-view > .virtual-flow > .clipped-container > .sheet > .list-cell:focused:filled:selected .label {
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+/* TextField */
+
+.text-input,
+.text-input:focused {
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-highlight-fill: -nbfx-accent;
+    -fx-highlight-text-fill: -nbfx-on-accent;
+    -fx-prompt-text-fill: -nbfx-text-faint;
+    -fx-cursor: text;
+    -fx-padding: 4 7 4 7;
+}
+
+.text-field {
+    -fx-background-color: -nbfx-chrome, -nbfx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 2 0 0 2, 1 0 0 1;
+}
+.text-field:focused {
+    -fx-background-color: -nbfx-accent, -nbfx-surface;
+}
+
+/** Context Menu **/
+.context-menu {
+    -fx-background-color: -nbfx-surface;
+    -fx-background-insets: 0;
+    -fx-padding: 4 1 4 1;
+    -fx-font-family: System;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 12, 0.10, 0, 8);
+}
+
+.context-menu .menu {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-effect: null;
+}
+
+.context-menu .menu > .right-container > .arrow {
+    -fx-padding: 2 2 2 2;
+    -fx-background-color: -nbfx-icon-menu;
+    -fx-shape: "M0 0C-.234.234-.234.618 0 .852L3.18 4.026 0 7.2c-.234.234-.234.618 0 .852s.618.234.852 0l3.6-3.6c.234-.234.234-.618 0-.852L.852 0C.618-.234.234-.234 0 0Z";
+    -fx-scale-shape: false;
+}
+
+.context-menu .menu:hover > .right-container > .arrow,
+.context-menu .menu:focused > .right-container > .arrow {
+    -fx-background-color: -nbfx-surface;
+}
+
+.context-menu .menu-item,
+.context-menu .menu {
+    -fx-padding: 4 8 4 8;
+}
+
+.context-menu .menu-item:hover,
+.context-menu .menu-item:focused {
+    -fx-background-color: -nbfx-accent;
+}
+
+.context-menu .menu-item > .label {
+    -fx-text-fill: -nbfx-text-strong;
+}
+
+.context-menu .menu-item:hover > .label,
+.context-menu .menu-item:focused > .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+.context-menu .separator {
+    -fx-padding: 4 0 4 0;
+}
+
+.context-menu .menu-item > .graphic-container > .label > .image-view {
+    -fx-fit-width: 16;
+    -fx-fit-height: 16;
+}

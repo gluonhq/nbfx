@@ -56,16 +56,8 @@ final class ProjectProblemsUi {
         if (!pane.getStylesheets().contains(STYLESHEET)) {
             pane.getStylesheets().add(STYLESHEET);
         }
-        if (owner != null && owner.getScene() != null) {
-            Object theme = owner.getScene().getProperties().get(NbfxTheme.THEME_URL_KEY);
-            for (String stylesheet : owner.getScene().getStylesheets()) {
-                // The theme is applied below and must follow the current theme, not the one the
-                // owner was opened with.
-                if (!stylesheet.equals(theme) && !pane.getStylesheets().contains(stylesheet)) {
-                    pane.getStylesheets().add(stylesheet);
-                }
-            }
-        }
+        // The common control styles come with the theme, so the owner's stylesheets are not
+        // copied.
         NbfxTheme.apply(pane);
     }
 

@@ -92,7 +92,8 @@
   </answer>
 
   <answer id="resources-read">
-    <p>The platform stylesheet is bundled as <code>styles.css</code>.</p>
+    <p>The shell chrome stylesheet is bundled as <code>styles.css</code>. The styles of the
+    standard controls come from the theme module.</p>
   </answer>
 
   <answer id="resources-preferences">
