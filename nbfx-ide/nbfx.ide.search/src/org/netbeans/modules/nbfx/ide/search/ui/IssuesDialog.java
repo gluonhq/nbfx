@@ -57,10 +57,7 @@ final class IssuesDialog extends Dialog<Void> {
         table.getColumns().setAll(List.of(file, text));
 
         DialogPane pane = getDialogPane();
-        // a dialog has its own scene: take the application's stylesheets from the window it belongs to
-        if (owner != null && owner.getScene() != null) {
-            pane.getStylesheets().addAll(owner.getScene().getStylesheets());
-        }
+        // the theme module adds the common control styles and the theme to every window
         pane.getStylesheets().add(Objects.requireNonNull(IssuesDialog.class.getResource("search.css")).toExternalForm());
         pane.getStyleClass().add("search-issues");
         pane.setContent(table);

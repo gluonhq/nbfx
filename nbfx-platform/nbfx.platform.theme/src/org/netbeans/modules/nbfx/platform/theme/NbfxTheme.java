@@ -93,11 +93,23 @@ public final class NbfxTheme {
     private static final String DARK_THEME_KEY = "theme.dark";
     private static final String SCHEME_PREFIX = "theme.scheme.";
 
+    /**
+     * Stylesheets every scene gets, whatever module created its window: the look of the standard
+     * controls. They go ahead of the scene's own stylesheets, so a component sheet, the theme and
+     * the brand sheets still override them.
+     */
+    private static final List<String> COMMON_STYLESHEETS = List.of(
+            Objects.requireNonNull(NbfxTheme.class.getResource("impl/controls.css"),
+                    "impl/controls.css").toExternalForm());
+
     private static final Map<Scene, Boolean> SCENES =
             Collections.synchronizedMap(new WeakHashMap<>());
     private static Subscription platformSubscription;
     private static boolean warnedAboutUserDirectory;
-    /** Themes every window as it is shown: dialogs and popups of any module, not only the shell's. */
+    /**
+     * Themes every window as it is shown: dialogs and popups of any module, not only the shell's.
+     * They get the common control styles the same way.
+     */
     private static final ListChangeListener<Window> WINDOWS = change -> {
         while (change.next()) {
             if (change.wasAdded()) {
@@ -367,9 +379,32 @@ public final class NbfxTheme {
     }
 
     /**
-     * Applies the component token defaults and then the current theme to a scene. The theme keeps
-     * its position relative to other stylesheets, such as the brand sheets added after it, and a
-     * scene that is already up to date is not reparsed.
+     * The stylesheets added to every scene ahead of its own: the common control styles.
+     *
+     * @return the stylesheet URLs, in the order they are applied
+     */
+    static List<String> commonStylesheets() {
+        return COMMON_STYLESHEETS;
+    }
+
+    /** Puts the missing common stylesheets at the head of the list, keeping their order. */
+    static void addCommonStylesheets(List<String> sheets) {
+        int insert = 0;
+        for (String common : COMMON_STYLESHEETS) {
+            int index = sheets.indexOf(common);
+            if (index < 0) {
+                sheets.add(insert++, common);
+            } else {
+                insert = index + 1;
+            }
+        }
+    }
+
+    /**
+     * Applies the common control styles, the component token defaults and then the current theme
+     * to a scene. The common styles go first, the theme keeps its position relative to other
+     * stylesheets, such as the brand sheets added after it, and a scene that is already up to date
+     * is not reparsed.
      */
     public static void apply(Scene scene) {
         Objects.requireNonNull(scene, "scene");
@@ -380,6 +415,7 @@ public final class NbfxTheme {
         List<String> tokenSheets = ThemeTokenRegistry.stylesheets();
         String themeUrl = themeUrl(theme);
         List<String> sheets = scene.getStylesheets();
+        addCommonStylesheets(sheets);
         if (isApplied(sheets, tokenSheets, themeUrl)) {
             return;
         }

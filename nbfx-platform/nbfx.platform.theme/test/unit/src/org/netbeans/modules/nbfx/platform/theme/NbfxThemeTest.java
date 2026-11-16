@@ -25,6 +25,7 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -76,6 +77,23 @@ public class NbfxThemeTest {
     public void platformDefaultsAreRegistered() {
         assertFalse("a token-defaults stylesheet must always be available",
                 ThemeTokenRegistry.stylesheets().isEmpty());
+    }
+
+    @Test
+    public void commonStylesheetsGoAheadOfTheSceneSheets() {
+        List<String> common = NbfxTheme.commonStylesheets();
+        assertFalse("the common control styles must always be available", common.isEmpty());
+
+        List<String> sheets = new ArrayList<>(List.of("file:/shell.css", "file:/brand.css"));
+        NbfxTheme.addCommonStylesheets(sheets);
+        assertEquals("the common sheets come first", common, sheets.subList(0, common.size()));
+        assertEquals("the scene's own sheets keep their order",
+                List.of("file:/shell.css", "file:/brand.css"),
+                sheets.subList(common.size(), sheets.size()));
+
+        List<String> again = new ArrayList<>(sheets);
+        NbfxTheme.addCommonStylesheets(again);
+        assertEquals("applying twice adds nothing", sheets, again);
     }
 
     @Test

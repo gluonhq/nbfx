@@ -908,6 +908,13 @@ What landed:
   popups of any module get the token sheets, the theme and the scene color scheme without
   calling `NbfxTheme`; the shell, editor and popups also reapply the theme on scene attach, and
   `NbfxTheme.apply(DialogPane)` themes a dialog pane before it is shown (the close confirmation);
+- the same listener adds the common control styles (`impl/controls.css`: tree, table and list
+  cells, scroll bars, combo boxes, text inputs, context menus) at the head of every scene's
+  stylesheets, so a dialog needs neither an owner nor a dependency on the shell to match the main
+  window. The shell's `styles.css` keeps only the chrome rules (tabs, tool bars, sliding sides,
+  status bar), and a component adds only its own sheet (the wizard dialog adds `wizard.css`). The
+  list of common sheets is internal to `NbfxTheme`; it becomes a registration only when a second
+  module has to contribute one;
 - `ThemeMenuFactory` contributes View > Theme as a dynamic menu;
 - on macOS, AWT (which the platform starts before JavaFX) pins the application appearance to
   Aqua unless `apple.awt.application.appearance=system`, and JavaFX then reports `LIGHT` whatever

@@ -222,8 +222,10 @@ public final class NbfxTabPane extends TabPane {
             NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/platform/shell/styles.css")).toExternalForm();
 
     /**
-     * The URL of the shell stylesheet. A host adds it to its scene; the tabs add it to their own
-     * scene as well, so hosts that embed a pane alone need no extra step.
+     * The URL of the shell stylesheet: tabs, tool bars, sliding sides and the status bar. A host
+     * adds it to its scene; the tabs add it to their own scene as well, so hosts that embed a pane
+     * alone need no extra step. The styles of the standard controls are not in it: the theme
+     * module adds those to every scene.
      *
      * @return the stylesheet URL
      */

@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.wizard;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -48,6 +49,8 @@ public final class WizardDialog {
     private static final ButtonType FINISH = new ButtonType(
             NbBundle.getMessage(WizardDialog.class, "Wizard.finish"), ButtonBar.ButtonData.FINISH);
     private static final ButtonType CANCEL = ButtonType.CANCEL;
+    private static final String STYLESHEET = Objects.requireNonNull(
+            WizardDialog.class.getResource("wizard.css")).toExternalForm();
 
     private WizardDialog() {
     }
@@ -63,6 +66,9 @@ public final class WizardDialog {
         dialog.setTitle(wizard.getDisplayName());
         dialog.setResizable(true);
         DialogPane pane = dialog.getDialogPane();
+        // The theme module adds the common control styles and the theme to every window as it
+        // is shown, so only the wizard's own rules are loaded here.
+        pane.getStylesheets().add(STYLESHEET);
         pane.getButtonTypes().addAll(BACK, NEXT, FINISH, CANCEL);
 
         Label title = new Label();
