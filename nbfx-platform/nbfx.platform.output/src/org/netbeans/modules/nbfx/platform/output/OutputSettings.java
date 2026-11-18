@@ -27,7 +27,8 @@ import org.openide.util.NbPreferences;
 
 /**
  * The look every console shares, as in NetBeans, where Wrap Text and Larger / Smaller Font apply to
- * the whole Output window: the font size and the line wrapping, kept in the module's preferences.
+ * the whole Output window: the font size and the line wrapping, kept in the {@code nbfx/output}
+ * preferences.
  * Used on the JavaFX Application Thread.
  */
 final class OutputSettings {
@@ -36,6 +37,8 @@ final class OutputSettings {
     static final double MIN_FONT_SIZE = 8;
     static final double MAX_FONT_SIZE = 40;
 
+    /** The preferences node, by the {@code nbfx.<capability>.<key>} convention: {@code nbfx/output/fontSize}. */
+    static final String NODE = "nbfx/output";
     private static final String KEY_FONT_SIZE = "fontSize";
     private static final String KEY_WRAP = "wrapText";
 
@@ -52,7 +55,7 @@ final class OutputSettings {
     static synchronized OutputSettings getDefault() {
         if (instance == null) {
             OutputSettings settings = new OutputSettings();
-            Preferences prefs = NbPreferences.forModule(OutputSettings.class);
+            Preferences prefs = NbPreferences.root().node(NODE);
             settings.fontSize.set(clamp(prefs.getDouble(KEY_FONT_SIZE, DEFAULT_FONT_SIZE)));
             settings.wrapText.set(prefs.getBoolean(KEY_WRAP, false));
             settings.fontSize.addListener((obs, was, now) -> prefs.putDouble(KEY_FONT_SIZE, now.doubleValue()));

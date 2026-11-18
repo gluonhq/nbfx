@@ -163,7 +163,7 @@
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
                 <dependency>
-                    <code-name-base>org.netbeans.modules.nbfx.platform.output</code-name-base>
+                    <code-name-base>org.netbeans.modules.nbfx.api.output</code-name-base>
                     <build-prerequisite/><compile-dependency/>
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
@@ -197,6 +197,10 @@
                     </test-dependency>
                     <test-dependency>
                         <code-name-base>org.netbeans.modules.nbfx.ide.build</code-name-base>
+                        <compile-dependency/>
+                    </test-dependency>
+                    <test-dependency>
+                        <code-name-base>org.netbeans.modules.nbfx.api.output</code-name-base>
                         <compile-dependency/>
                     </test-dependency>
                     <test-dependency>

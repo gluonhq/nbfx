@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.build;
 
-import org.netbeans.modules.nbfx.platform.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.ConsolePanel;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;

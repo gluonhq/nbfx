@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.platform.output;
 
 import java.util.function.Consumer;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.ConsoleRun;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
@@ -29,6 +31,7 @@ import javafx.beans.property.SimpleObjectProperty;
  */
 final class ConsoleModel implements ConsolePanel {
 
+    private final String id;
     private final String name;
     private final StringBuilder text = new StringBuilder();
     /** How many times the console was cleared: tells the text of before a clear from the text after it. */
@@ -40,10 +43,65 @@ final class ConsoleModel implements ConsolePanel {
     private Runnable clearer;
     private Runnable shower;
     private final ObjectProperty<Runnable> rerun = new SimpleObjectProperty<>(this, "rerun");
-    private final ObjectProperty<Runnable> stop = new SimpleObjectProperty<>(this, "stop");
+    private final ObjectProperty<Run> run = new SimpleObjectProperty<>(this, "run");
+    /** Brings the Output window on screen; see {@link #show()}. */
+    private final Consumer<ConsoleModel> revealer;
 
+    /**
+     * The run filling the console: its identity is what tells it from the run before, whose end
+     * may be reported after this one started.
+     */
+    final class Run implements ConsoleRun {
+
+        private final Runnable stop;
+
+        private Run(Runnable stop) {
+            this.stop = stop;
+        }
+
+        /** Whether the run can be stopped. */
+        boolean canStop() {
+            return stop != null;
+        }
+
+        /** Stops the activity, if it can be. Called on the JavaFX Application Thread. */
+        void stop() {
+            if (stop != null) {
+                stop.run();
+            }
+        }
+
+        @Override
+        public void finish() {
+            FxThread.run(() -> {
+                if (run.get() == this) {
+                    run.set(null);
+                }
+            });
+        }
+    }
+
+    /** A console nothing reveals: {@link #show()} only brings its tab to the front of a view that has it. */
     ConsoleModel(String name) {
+        this(name, name, console -> {
+        });
+    }
+
+    /**
+     * @param id       what identifies the console among the consoles of its registry
+     * @param name     the name on its tab
+     * @param revealer brings the Output window on screen for a console; called on the JavaFX
+     *                 Application Thread, before the console's tab is brought to the front
+     */
+    ConsoleModel(String id, String name, Consumer<ConsoleModel> revealer) {
+        this.id = id;
         this.name = name;
+        this.revealer = revealer;
+    }
+
+    /** What identifies the console; two consoles may share a name. */
+    String getId() {
+        return id;
     }
 
     @Override
@@ -82,6 +140,8 @@ final class ConsoleModel implements ConsolePanel {
     @Override
     public void show() {
         FxThread.run(() -> {
+            // First the window, which may only now create the view and attach it to this console.
+            revealer.accept(this);
             Runnable target;
             synchronized (this) {
                 target = shower;
@@ -103,8 +163,10 @@ final class ConsoleModel implements ConsolePanel {
     }
 
     @Override
-    public void setStop(Runnable action) {
-        FxThread.run(() -> stop.set(action));
+    public ConsoleRun startRun(Runnable stop) {
+        Run started = new Run(stop);
+        FxThread.run(() -> run.set(started));
+        return started;
     }
 
     /** How to run the activity again, or {@code null}. Read on the JavaFX Application Thread. */
@@ -112,9 +174,15 @@ final class ConsoleModel implements ConsolePanel {
         return rerun;
     }
 
-    /** How to stop the running activity, {@code null} when nothing runs. Read on the JavaFX Application Thread. */
-    ObjectProperty<Runnable> stopProperty() {
-        return stop;
+    /** The run filling the console, {@code null} when nothing runs. Read on the JavaFX Application Thread. */
+    ObjectProperty<Run> runProperty() {
+        return run;
+    }
+
+    /** Forgets how to run again and what runs: the console was closed. Called on the JavaFX Application Thread. */
+    void release() {
+        rerun.set(null);
+        run.set(null);
     }
 
     /**

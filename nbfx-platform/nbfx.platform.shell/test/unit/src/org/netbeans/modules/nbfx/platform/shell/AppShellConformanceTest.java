@@ -37,7 +37,7 @@ import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
 import org.netbeans.modules.nbfx.platform.nodes.PropertySheet;
 import org.netbeans.modules.nbfx.platform.nodes.SimpleFxProperty;
 import org.netbeans.modules.nbfx.platform.nodes.SimpleFxPropertySet;
-import org.netbeans.modules.nbfx.platform.output.ConsoleOutput;
+import org.netbeans.api.nbfx.output.OutputConsole;
 import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
 import org.openide.util.Lookup;
@@ -193,7 +193,9 @@ public class AppShellConformanceTest {
             assertEquals("Conformance", set.getDisplayName());
             assertFalse(set.getProperties().isEmpty());
 
-            assertNotNull(new ConsoleOutput().console("conformance"));
+            OutputConsole output = Lookup.getDefault().lookup(OutputConsole.class);
+            assertNotNull("the platform provides the output consoles", output);
+            assertNotNull(output.console("conformance"));
             assertNotNull(WizardRegistry.discover());
             return null;
         });

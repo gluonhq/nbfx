@@ -304,7 +304,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
 | `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
-| `api.output` | M | **planned — M1** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours, console actions (re-run, stop, tool-contributed) |
+| `api.output` | M | **partial — first slice landed (#171)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity); M1: `OutputWriter`, hyperlinks, folds, colours, tool-contributed console actions |
 | `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
@@ -366,7 +366,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.settings` | settings storage UI (preferences browser, export/import) | planned — M1 |
 | `platform.options` | options window (categories, tabs, search, validity) | **T0** implementation; the panel SPI and displayer live in `api.options` (#162); no public package, spec, arch or apichanges |
 | `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet landed; node views planned M1; T0 implementation, the model is `api.nodes`/`api.property` |
-| `platform.output` | output window view on `api.output` | landed UI: pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model, NetBeans' context menu (copy, wrap, font size, save, clear, close); `api.output` extraction and **window parity M1** (§11 W3b) |
+| `platform.output` | Output window and console service behind `api.output` | **T0** implementation (#171): pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model, NetBeans' context menu (copy, wrap, font size, save, clear, close); no public package, spec, arch or apichanges; **window parity M1** (§11 W3b) |
 | `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | planned — M1 (process first; terminal separate) |
 | `platform.terminal` | VT/xterm model + FX renderer + tabs | planned — M2, after the VT parser/library decision in M1 |
 | `platform.quicksearch` | command palette + providers | planned — M1, after `api.search` is redesigned |
@@ -488,7 +488,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; **API partial: the model moves to `api.nodes` and the editor SPI to `api.property` in M0**; explorer views M1; IDE contributors in `ide.workbench` |
 | Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
 | Progress | `platform.progress` + `api.progress` | landed |
-| Output | `platform.output` + `api.output` | output UI landed (tabs, tool bar, rich-text console, context menu); **`api.output` extraction + window parity M1** |
+| Output | `platform.output` + `api.output` | output UI landed (tabs, tool bar, rich-text console, context menu); `platform.output` is T0 and the console contract is `api.output` (#171, partial); **contract completion + window parity M1** |
 | Execution | `platform.execution` + `api.execution` | planned — M1 (process first) |
 | Terminal | `platform.terminal` + `api.terminal` | planned — M2; M1 chooses the VT parser/library |
 | Quick search | `platform.quicksearch` + `api.search` | **API partial; search contract + palette M1** |
@@ -939,8 +939,8 @@ the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md
 
 **W3b — AppShell services (M1).** Each service is a platform service, not an IDE service; the IDE contributes
 through `ide.workbench`, and the AppShell conformance fixture grows with each branch. Order:
-`feature/dialogs` (contract + implementation), `feature/output-api` (extract `api.output`; then Output window
-parity on it, each a step: colours/ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
+`feature/dialogs` (contract + implementation), `feature/output-api` (`api.output` was extracted with #171, with the console
+service and its run actions; complete its contract, then Output window parity on it, each a step: colours/ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
 in the side decorator —, find/filter bar, input, line limits, tool-contributed actions such as re-run with
 parameters and tool settings, the Output options page), `feature/settings-ui`
 (+ `api.settings`), `feature/search-api` (+ `platform.quicksearch`), `feature/execution` (process/PTY first),
@@ -1101,7 +1101,10 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     unchanged: M0 stays at 2026-12 and M1 at 2027-03. M0 includes the shell/window/workspace public surface and
     the complete plugin contracts for options, wizard, status and property/nodes (because the M0 property sheet
     needs `api.nodes`). Dialogs, output API, settings, search, execution, templates, credentials, favorites,
-    indexing and the finished editor extraction are M1, as is IDE core; terminal is M2. A module whose
+    indexing and the finished editor extraction are M1, as is IDE core; terminal is M2. One exception, by an
+    explicit plan change: the first slice of the output contract (`api.output`: the console service and the
+    run actions the Output window needs) landed with #171, so that the window did not grow a public API in
+    its implementation module; the module stays `partial` and its completion stays M1. A module whose
     contract is incomplete is `partial`/`devel`, is not signed, and does not close M0. If the scope does not
     fit, the cut list or an explicit plan change applies; do not pre-emptively move the dates.
 27. **T0 publishes nothing; friend packages are named and dated.** A T0 module may export an implementation
@@ -1221,7 +1224,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #162 | options contract: `OptionsPanelController`/`OptionsDisplayer` in `api.options`; `platform.options` T0 | first W2a contract slice landed; §6.1/§6.1.1 options row |
 | #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry, show-again preference and open-project notifier | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
 | #167 | common control styles: `controls.css` extracted from the shell's `styles.css` into `platform.theme` and added by `NbfxTheme` to every scene; dialogs stop copying the owner scene's stylesheets (#166) | theme follow-up; `appshell-chrome.md` §19 |
-| #171 | Output window: pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap; `ConsolePanel.setRerun`/`setStop` (`platform.output` 1.1), wired by `ide.build`; inner tabs of Output, Search and Usages marked on focus within | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api` parity steps (M1) |
+| #171 | Output window: pane-styled console tabs (a single console shows without its inner header, the Output tab titled after it), tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap (`ActionIds.OUTPUT_*`). `api.output` extracted early: `OutputConsole` (consoles by id, apart from the name on their tab), `ConsolePanel`, `ConsoleRun`; `platform.output` T0; `ide.build`, `ide.debug`, `ide.workbench` on the API. `api.views` 1.8: `TabPaneActivation` and `ViewProvider.titleProperty()`; the pane tab styles in the theme's common control styles, for the inner tabs of Output, Search and Usages | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api`, Decision 26 |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the

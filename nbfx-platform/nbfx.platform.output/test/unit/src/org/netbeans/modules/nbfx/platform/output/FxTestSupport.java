@@ -67,6 +67,9 @@ final class FxTestSupport {
             CountDownLatch latch = new CountDownLatch(1);
             Platform.startup(latch::countDown);
             latch.await();
+            // Tests show and hide stages: hiding the last one must not shut the toolkit down, or
+            // whatever a later test posts to the FX thread is dropped and the test times out.
+            Platform.setImplicitExit(false);
         }
     }
 }

@@ -278,7 +278,9 @@ final class GradleTasksUI extends BorderPane implements ScanningPanel<GradleTask
         }
         Path dir = directory.toPath();
         String consoleName = task.name() + " " + result.projectName();
-        BuildRunner.run(dir, consoleName, (output, progress) -> GradleTasks.start(dir, List.of(task.path()), output, progress));
+        // The console keeps the starter for Re-run: it holds the task's path, not the task.
+        List<String> tasks = List.of(task.path());
+        BuildRunner.run(dir, consoleName, (output, progress) -> GradleTasks.start(dir, tasks, output, progress));
     }
 
     static String message(String key, Object... args) {

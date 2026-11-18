@@ -21,22 +21,39 @@ package org.netbeans.modules.nbfx.platform.output;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import javafx.css.PseudoClass;
 import javafx.event.Event;
+import javafx.event.EventType;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Labeled;
 import javafx.scene.control.Tab;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.KeyMap;
+import org.netbeans.api.nbfx.icons.ThemedImageView;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.ConsoleRun;
+import org.netbeans.api.nbfx.output.OutputConsole;
+import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
+import org.openide.util.RequestProcessor;
 import org.openide.util.test.MockLookup;
 
 /**
@@ -49,7 +66,7 @@ public class OutputViewTest {
     @Test
     public void everyConsoleGetsATabShowingItsText() throws Exception {
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             output.console("Build").append("before the view\n");
             OutputView view = new OutputView(output, new OutputSettings());
 
@@ -78,7 +95,7 @@ public class OutputViewTest {
     @Test
     public void toolBarFollowsTheSelectedConsole() throws Exception {
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             assertTrue(view.rerunButton().isDisable());
             assertTrue(view.stopButton().isDisable());
@@ -91,15 +108,28 @@ public class OutputViewTest {
             assertTrue(view.stopButton().isDisable());
 
             // Running: it can be stopped, not started again.
-            run.setStop(stops::incrementAndGet);
+            ConsoleRun first = run.startRun(stops::incrementAndGet);
             assertTrue(view.rerunButton().isDisable());
             assertFalse(view.stopButton().isDisable());
             view.stopButton().fire();
             assertEquals(1, stops.get());
 
-            run.setStop(null);
+            // The next run starts before the first one reports its end: Stop stays.
+            ConsoleRun second = run.startRun(stops::incrementAndGet);
+            first.finish();
+            assertFalse(view.stopButton().isDisable());
+            assertTrue(view.rerunButton().isDisable());
+
+            second.finish();
+            assertTrue(view.stopButton().isDisable());
             view.rerunButton().fire();
             assertEquals(1, reruns.get());
+
+            // A run that cannot be stopped is still a run.
+            ConsoleRun unstoppable = run.startRun(null);
+            assertTrue(view.stopButton().isDisable());
+            assertTrue(view.rerunButton().isDisable());
+            unstoppable.finish();
 
             // Another console is selected: it has nothing to run again.
             output.console("Debug");
@@ -113,9 +143,9 @@ public class OutputViewTest {
     @Test
     public void closingATabForgetsItsConsole() throws Exception {
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
-            ConsoleModel run = (ConsoleModel) output.console("Run");
+            ConsoleModel run = output.console("Run");
             run.append("first");
             assertTrue(view.tabs().isVisible());
 
@@ -132,12 +162,177 @@ public class OutputViewTest {
         });
     }
 
+    /** One console: no inner tab header, and the Output tab is titled after the console, as NetBeans. */
+    @Test
+    public void aSingleConsoleIsNamedByTheOutputTab() throws Exception {
+        PseudoClass single = PseudoClass.getPseudoClass("single");
+        FxTestSupport.onFx(() -> {
+            ConsoleRegistry output = new ConsoleRegistry();
+            OutputView view = new OutputView(output, new OutputSettings());
+            assertEquals("Output", view.titleProperty().get());
+            assertFalse(view.tabs().getPseudoClassStates().contains(single));
+
+            ConsoleModel run = output.console("Run (mavenproject5)");
+            assertEquals("Output - Run (mavenproject5)", view.titleProperty().get());
+            assertTrue(view.tabs().getPseudoClassStates().contains(single));
+
+            ConsoleModel build = output.console("Build (mavenproject5)");
+            assertEquals("Output", view.titleProperty().get());
+            assertFalse(view.tabs().getPseudoClassStates().contains(single));
+
+            output.close(run);
+            assertEquals("Output - Build (mavenproject5)", view.titleProperty().get());
+            assertTrue(view.tabs().getPseudoClassStates().contains(single));
+
+            output.close(build);
+            assertEquals("Output", view.titleProperty().get());
+            return null;
+        });
+    }
+
+    /** The tab's own close button, as the user presses it, forgets the console as closing it any other way does. */
+    @Test
+    public void theTabCloseButtonForgetsTheConsole() throws Exception {
+        FxTestSupport.onFx(() -> {
+            ConsoleRegistry output = new ConsoleRegistry();
+            OutputView view = new OutputView(output, new OutputSettings());
+            Stage stage = new Stage();
+            stage.setScene(new Scene(view, 400, 300));
+            stage.show();
+            ConsoleModel run = output.console("Run");
+            run.setRerun(() -> {
+            });
+            output.console("Build");
+            try {
+                view.applyCss();
+                view.layout();
+                Tab tab = view.tabs().getTabs().get(0);
+                ConsolePane pane = (ConsolePane) tab.getContent();
+                Node close = view.tabs().lookupAll(".tab").stream()
+                        .filter(header -> header.lookup(".tab-label") instanceof Labeled label
+                                && "Run".equals(label.getText()))
+                        .map(header -> header.lookup(".tab-close-button"))
+                        .findFirst().orElseThrow();
+                for (EventType<MouseEvent> type : List.of(MouseEvent.MOUSE_PRESSED, MouseEvent.MOUSE_RELEASED)) {
+                    Event.fireEvent(close, new MouseEvent(type, 2, 2, 2, 2, MouseButton.PRIMARY, 1,
+                            false, false, false, false, type == MouseEvent.MOUSE_PRESSED, false, false,
+                            false, false, false, null));
+                }
+
+                assertEquals(1, view.tabs().getTabs().size());
+                assertEquals("Build", view.tabs().getTabs().get(0).getText());
+                assertEquals(List.of(output.console("Build")), output.consoles());
+                assertNull(run.rerunProperty().get());
+                // The closed console is no longer shown: what its activity still writes goes nowhere.
+                run.append("late");
+                assertEquals("", pane.shownText());
+            } finally {
+                stage.hide();
+            }
+            return null;
+        });
+    }
+
+    /**
+     * The view shows the platform's consoles whatever the Lookup holds as the console service -
+     * nothing yet, or somebody else's - and whenever it is created.
+     */
+    @Test
+    public void theViewDoesNotDependOnTheServiceInTheLookup() throws Exception {
+        String name = "OutputViewTest-" + System.nanoTime();
+        try {
+            MockLookup.setInstances();
+            OutputView view = FxTestSupport.onFx(() -> (OutputView) new OutputViewProvider().getView());
+            MockLookup.setInstances((OutputConsole) (id, consoleName) -> {
+                throw new AssertionError("the view must not ask a foreign service for consoles");
+            });
+
+            FxTestSupport.onFx(() -> {
+                ConsoleModel console = ConsoleRegistry.getDefault().console(name);
+                console.append("platform console");
+                Tab tab = view.tabs().getTabs().stream()
+                        .filter(candidate -> name.equals(candidate.getText()))
+                        .findFirst().orElseThrow();
+                assertEquals("platform console", ((ConsolePane) tab.getContent()).shownText());
+                ConsoleRegistry.getDefault().close(console);
+                return null;
+            });
+        } finally {
+            MockLookup.setInstances();
+        }
+    }
+
+    /** A new theme on the scene rebuilds the paragraphs, whose colours the area resolved under the old one. */
+    @Test
+    public void aThemeSwitchRestylesTheText() throws Exception {
+        FxTestSupport.onFx(() -> {
+            ConsoleRegistry output = new ConsoleRegistry();
+            OutputView view = new OutputView(output, new OutputSettings());
+            Stage stage = new Stage();
+            Scene scene = new Scene(view, 400, 300);
+            stage.setScene(scene);
+            stage.show();
+            output.console("Run").append("some output");
+            ConsolePane pane = (ConsolePane) view.tabs().getTabs().get(0).getContent();
+            AtomicInteger restyles = new AtomicInteger();
+            pane.textArea().getModel().addListener(change -> {
+                if (!change.isEdit()) {
+                    restyles.incrementAndGet();
+                }
+            });
+            try {
+                scene.getProperties().put(NbfxTheme.THEME_URL_KEY, "file:/theme/dark.css");
+                assertEquals(1, restyles.get());
+            } finally {
+                stage.hide();
+            }
+            return null;
+        });
+    }
+
+    /** The tool bar icons have a drawing for dark themes next to the one for light themes. */
+    @Test
+    public void toolBarIconsAreThemed() throws Exception {
+        FxTestSupport.onFx(() -> {
+            OutputView view = new OutputView(new ConsoleRegistry(), new OutputSettings());
+
+            assertEquals(4, view.toolBarButtons().size());
+            for (Button button : view.toolBarButtons()) {
+                assertTrue(button.getGraphic() instanceof ThemedImageView);
+                ThemedImageView icon = (ThemedImageView) button.getGraphic();
+                assertNotNull(icon.getLightImage());
+                assertNotNull("no dark drawing for " + button.getTooltip().getText(), icon.getDarkImage());
+                assertNotEquals(icon.getLightImage().getUrl(), icon.getDarkImage().getUrl());
+            }
+            return null;
+        });
+    }
+
+    /** Save As writes the whole console text, off the JavaFX Application Thread. */
+    @Test
+    public void saveAsWritesTheConsoleText() throws Exception {
+        Path file = Files.createTempFile("nbfx-output", ".txt");
+        try {
+            RequestProcessor.Task task = FxTestSupport.onFx(() -> {
+                ConsoleRegistry output = new ConsoleRegistry();
+                OutputView view = new OutputView(output, new OutputSettings());
+                output.console("Run").append("run:\nBUILD SUCCESSFUL\n");
+                return ((ConsolePane) view.tabs().getTabs().get(0).getContent()).saveTo(file);
+            });
+            task.waitFinished();
+
+            assertEquals("run:\nBUILD SUCCESSFUL\n", Files.readString(file));
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
     /** Focus in the console text marks the tab pane active, as focus on its tab header does. */
     @Test
     public void focusInTheTextMarksTheTabsActive() throws Exception {
         PseudoClass active = PseudoClass.getPseudoClass("active");
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
             Stage stage = new Stage();
@@ -166,7 +361,7 @@ public class OutputViewTest {
     @Test
     public void keysActOnTheConsole() throws Exception {
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             OutputSettings settings = new OutputSettings();
             OutputView view = new OutputView(output, settings);
             ConsolePanel run = output.console("Run");
@@ -219,7 +414,7 @@ public class OutputViewTest {
         });
         try {
             FxTestSupport.onFx(() -> {
-                ConsoleOutput output = new ConsoleOutput();
+                ConsoleRegistry output = new ConsoleRegistry();
                 OutputSettings settings = new OutputSettings();
                 OutputView view = new OutputView(output, settings);
                 output.console("Run").append("some output");
@@ -246,7 +441,7 @@ public class OutputViewTest {
     @Test
     public void commandsActOnTheFocusedConsole() throws Exception {
         FxTestSupport.onFx(() -> {
-            ConsoleOutput output = new ConsoleOutput();
+            ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
             Stage stage = new Stage();
@@ -299,6 +494,7 @@ public class OutputViewTest {
             settings.fontSizeProperty().set(OutputSettings.MIN_FONT_SIZE);
             settings.smallerFont();
             assertEquals(OutputSettings.MIN_FONT_SIZE, settings.fontSizeProperty().get(), 0);
+            assertEquals("the preferences follow nbfx.<capability>.<key>", "nbfx/output", OutputSettings.NODE);
             return null;
         });
     }

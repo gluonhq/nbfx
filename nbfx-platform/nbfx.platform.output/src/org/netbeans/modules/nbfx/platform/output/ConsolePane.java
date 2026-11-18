@@ -22,8 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.nio.file.Path;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.MapChangeListener;
 import javafx.scene.control.CheckMenuItem;
@@ -41,9 +40,11 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import jfx.incubator.scene.control.richtext.RichTextArea;
 import jfx.incubator.scene.control.richtext.TextPos;
+import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.modules.nbfx.platform.output.OutputCommands.ConsoleCommand;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.openide.util.NbBundle;
+import org.openide.util.RequestProcessor;
 
 /**
  * The content of a console tab: the console text in a read-only {@link RichTextArea} over a
@@ -53,7 +54,8 @@ import org.openide.util.NbBundle;
  */
 final class ConsolePane extends StackPane {
 
-    private static final Logger LOG = Logger.getLogger(ConsolePane.class.getName());
+    /** Writes the consoles to files, one at a time. */
+    private static final RequestProcessor SAVER = new RequestProcessor("nbfx-output-save", 1);
 
     private static final KeyCombination COPY = shortcut(KeyCode.C);
     private static final KeyCombination PASTE = shortcut(KeyCode.V);
@@ -104,13 +106,19 @@ final class ConsolePane extends StackPane {
         });
         installContextMenu();
         area.addEventFilter(KeyEvent.KEY_PRESSED, this::keyPressed);
-        focusWithinProperty().subscribe(within -> OutputCommands.focusChanged(this, within));
+        focusWithinProperty().subscribe(within -> {
+            if (within) {
+                OutputCommands.activate(this);
+            } else {
+                OutputCommands.deactivate(this);
+            }
+        });
         console.attach(this::append, text::clear, select);
     }
 
     /** Stops following the console and the shared settings; called when the tab goes away. */
     void dispose() {
-        OutputCommands.focusChanged(this, false);
+        OutputCommands.deactivate(this);
         console.detach();
         area.wrapTextProperty().unbind();
         settings.fontSizeProperty().removeListener(fontSizeListener);
@@ -144,15 +152,15 @@ final class ConsolePane extends StackPane {
 
     private void rerun() {
         Runnable rerun = console.rerunProperty().get();
-        if (rerun != null && console.stopProperty().get() == null) {
+        if (rerun != null && console.runProperty().get() == null) {
             rerun.run();
         }
     }
 
     private void stop() {
-        Runnable stop = console.stopProperty().get();
-        if (stop != null) {
-            stop.run();
+        ConsoleModel.Run run = console.runProperty().get();
+        if (run != null) {
+            run.stop();
         }
     }
 
@@ -178,7 +186,7 @@ final class ConsolePane extends StackPane {
         close.run();
     }
 
-    /** Writes the console text, as UTF-8, to a file the user picks. */
+    /** Asks for a file and {@linkplain #saveTo saves} the console text to it. */
     void saveAs() {
         if (getScene() == null) {
             return;
@@ -188,12 +196,25 @@ final class ConsolePane extends StackPane {
         chooser.setInitialFileName(console.getName().replaceAll("[\\\\/:*?\"<>|]", "_") + ".txt");
         File file = chooser.showSaveDialog(getScene().getWindow());
         if (file != null) {
-            try {
-                Files.writeString(file.toPath(), text.text(), StandardCharsets.UTF_8);
-            } catch (IOException ex) {
-                LOG.log(Level.WARNING, "Cannot save the output to " + file, ex);
-            }
+            saveTo(file.toPath());
         }
+    }
+
+    /**
+     * Writes the console text, as UTF-8, to {@code file}, off the JavaFX Application Thread: a long
+     * build log takes time to gather and to write. A failure is reported to the user.
+     *
+     * @return the task doing the writing
+     */
+    RequestProcessor.Task saveTo(Path file) {
+        return SAVER.post(() -> {
+            try {
+                Files.writeString(file, console.text(), StandardCharsets.UTF_8);
+            } catch (IOException | RuntimeException ex) {
+                ErrorReporter.report(message("TITLE_SaveAs"),
+                        NbBundle.getMessage(ConsolePane.class, "ERR_SaveAs", file), null, ex);
+            }
+        });
     }
 
     /** Runs the {@linkplain OutputCommands command} whose shortcut, as the keymap has it, was pressed. */
@@ -201,11 +222,17 @@ final class ConsolePane extends StackPane {
         for (ConsoleCommand command : OutputCommands.all()) {
             KeyCombination shortcut = command.shortcut();
             if (shortcut != null && shortcut.match(event)) {
-                command.runOn(this);
+                run(command);
                 event.consume();
                 return;
             }
         }
+    }
+
+    /** Runs {@code command} on this console: the console the user is acting on is the active one. */
+    private void run(ConsoleCommand command) {
+        OutputCommands.activate(this);
+        command.run();
     }
 
     // --- context menu ---
@@ -215,7 +242,7 @@ final class ConsolePane extends StackPane {
      * behaviour consumes the context-menu request itself, and a press in the text hides it, as a
      * popup anchored on a node does not auto-hide on clicks inside that node. The accelerators
      * are what the items display - for the {@link OutputCommands}, the shortcuts of the keymap -;
-     * {@link #keyPressed} is what handles the keys.
+     * {@link #keyPressed} is what handles the keys. Keys and items run the same registered command.
      */
     private void installContextMenu() {
         MenuItem rerun = item("CTX_Rerun", null, this::rerun);
@@ -236,15 +263,15 @@ final class ConsolePane extends StackPane {
         MenuItem filter = todo("CTX_Filter", FILTER);
 
         CheckMenuItem wrap = new CheckMenuItem(message("CTX_WrapText"));
-        wrap.selectedProperty().bindBidirectional(settings.wrapTextProperty());
-        MenuItem larger = item("CTX_LargerFont", null, this::largerFont);
-        MenuItem smaller = item("CTX_SmallerFont", null, this::smallerFont);
+        wrap.setOnAction(e -> run(OutputCommands.WRAP_TEXT));
+        MenuItem larger = item("CTX_LargerFont", null, () -> run(OutputCommands.LARGER_FONT));
+        MenuItem smaller = item("CTX_SmallerFont", null, () -> run(OutputCommands.SMALLER_FONT));
         // TODO needs the Output page of the Options window
         MenuItem outputSettings = todo("CTX_Settings", null);
 
-        MenuItem saveAs = item("CTX_SaveAs", null, this::saveAs);
-        MenuItem clear = item("CTX_Clear", null, this::clear);
-        MenuItem closeItem = item("CTX_Close", null, this::close);
+        MenuItem saveAs = item("CTX_SaveAs", null, () -> run(OutputCommands.SAVE_AS));
+        MenuItem clear = item("CTX_Clear", null, () -> run(OutputCommands.CLEAR));
+        MenuItem closeItem = item("CTX_Close", null, () -> run(OutputCommands.CLOSE));
 
         // TODO folds: the text model hides the folded lines, a left side decorator draws the handles
         Menu folds = new Menu(message("CTX_OutputFolds"));
@@ -265,9 +292,10 @@ final class ConsolePane extends StackPane {
             saveAs.setAccelerator(OutputCommands.SAVE_AS.shortcut());
             clear.setAccelerator(OutputCommands.CLEAR.shortcut());
             closeItem.setAccelerator(OutputCommands.CLOSE.shortcut());
-            boolean running = console.stopProperty().get() != null;
-            rerun.setDisable(running || console.rerunProperty().get() == null);
-            stop.setDisable(!running);
+            ConsoleModel.Run running = console.runProperty().get();
+            rerun.setDisable(running != null || console.rerunProperty().get() == null);
+            stop.setDisable(running == null || !running.canStop());
+            wrap.setSelected(settings.wrapTextProperty().get());
             copy.setDisable(!area.hasNonEmptySelection());
             larger.setDisable(settings.fontSizeProperty().get() >= OutputSettings.MAX_FONT_SIZE);
             smaller.setDisable(settings.fontSizeProperty().get() <= OutputSettings.MIN_FONT_SIZE);

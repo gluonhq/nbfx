@@ -16,22 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.output;
+package org.netbeans.api.nbfx.output;
 
 /**
- * The application's output consoles. The service is registered in the global Lookup; the output
- * view shows the consoles as tabs.
+ * One activity filling a {@link ConsolePanel}, from {@link ConsolePanel#startRun} to
+ * {@link #finish()}. It is the identity of the run: finishing it ends this run and no other, so a
+ * run that ends after the next one started - its last message still on its way - does not mark
+ * the console as idle.
  *
  * @since 1.0
  */
-public interface OutputConsole {
+public interface ConsoleRun {
 
     /**
-     * Returns the console named {@code name}, creating it if it does not exist. Console creation is
-     * safe from any thread.
-     *
-     * @param name the console name, shown on its tab
-     * @return the console
+     * Ends the run: the console is idle again, unless another run has started on it since. Safe
+     * to call from any thread, and more than once.
      */
-    ConsolePanel console(String name);
+    void finish();
 }

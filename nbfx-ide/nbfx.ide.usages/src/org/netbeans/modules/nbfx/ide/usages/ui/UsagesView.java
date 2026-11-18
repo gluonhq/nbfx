@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.ui;
 
+import org.netbeans.api.nbfx.views.TabPaneActivation;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.modules.nbfx.ide.usages.model.UsagesModel;
@@ -45,8 +46,6 @@ import org.openide.util.Lookup;
 final class UsagesView extends StackPane {
 
     private static final PseudoClass SINGLE = PseudoClass.getPseudoClass("single");
-    /** What the shell's tab panes carry while they hold the focus: the style of the marked tab. */
-    private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
 
     private final UsagesModel model;
     private final UsagesSettings settings;
@@ -70,11 +69,9 @@ final class UsagesView extends StackPane {
         getStyleClass().add("usages-view");
         getStylesheets().add(Objects.requireNonNull(UsagesView.class.getResource("usages.css")).toExternalForm());
 
-        queries.getStyleClass().add("nbfx-tab-pane");
+        // As the panes of the main window, the selected tab marked while the focus is in the results.
+        TabPaneActivation.markActiveOnFocus(queries);
         queries.pseudoClassStateChanged(PseudoClass.getPseudoClass("usages-queries"), true);
-        // As the panes of the main window: the selected tab is marked while the focus is anywhere
-        // in the pane - in the results - and not only on the tab header.
-        queries.focusWithinProperty().subscribe(within -> queries.pseudoClassStateChanged(ACTIVE, within));
         queries.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         queries.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
         empty.getStyleClass().add("usages-empty");

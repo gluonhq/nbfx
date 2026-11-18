@@ -37,6 +37,17 @@
     -fx-padding: 3 0 0 0;
     -fx-background-color: -nbfx-canvas;
 }
+.nbfx-tab-pane:output-tabs:single {
+    -fx-padding: 0;
+}
+/* Hide the tab header while there is a single console: the Output tab itself names it. */
+.nbfx-tab-pane:output-tabs:single > .tab-header-area {
+    -fx-pref-height: 0;
+    -fx-min-height: 0;
+    -fx-max-height: 0;
+    -fx-padding: 0;
+    visibility: hidden;
+}
 
 /* The tool bar beside the tabs: 16px icons in 20px buttons, as the NetBeans tool bars. */
 .tool-bar.output-toolbar {

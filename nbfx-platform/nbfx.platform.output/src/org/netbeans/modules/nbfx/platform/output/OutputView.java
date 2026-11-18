@@ -21,6 +21,8 @@ package org.netbeans.modules.nbfx.platform.output;
 import java.util.List;
 import java.util.Objects;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.ReadOnlyStringProperty;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.collections.ListChangeListener;
 import javafx.css.PseudoClass;
 import javafx.geometry.Orientation;
@@ -31,25 +33,25 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.Tooltip;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
+import org.netbeans.api.nbfx.icons.ThemedImageView;
+import org.netbeans.api.nbfx.views.TabPaneActivation;
 import org.openide.util.NbBundle;
 
 /**
  * The content of the "Output" tab - NetBeans' Output window: one inner tab per console, styled as
  * the panes of the main window, and beside them the vertical tool bar acting on the console of the
  * selected tab - <em>Re-run</em>, <em>Re-run with Different Parameters</em>, <em>Stop</em> and the
- * build tool's settings. Closing an inner tab forgets its console.
+ * build tool's settings. Closing an inner tab forgets its console. A single console shows without
+ * its inner tab header: the view's {@linkplain #titleProperty() title} names it instead.
  */
 final class OutputView extends BorderPane {
 
     private static final PseudoClass OUTPUT_TABS = PseudoClass.getPseudoClass("output-tabs");
+    /** The tab pane holds one console: its header is hidden and the view's own tab names the console. */
+    private static final PseudoClass SINGLE = PseudoClass.getPseudoClass("single");
 
-    /** What the shell's tab panes carry while they hold the focus: the style of the marked tab. */
-    private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
-
-    private final ConsoleOutput output;
+    private final ConsoleRegistry output;
     private final OutputSettings settings;
     private final TabPane tabs = new TabPane();
     private final Button rerun = button("rerun", "TIP_Rerun");
@@ -58,19 +60,18 @@ final class OutputView extends BorderPane {
     private final Button toolSettings = button("options", "TIP_ToolSettings");
     /** Follows the selected console's rerun and stop: kept in a field to move it from console to console. */
     private final InvalidationListener controlsListener = obs -> updateToolBar();
+    private final ReadOnlyStringWrapper title = new ReadOnlyStringWrapper(this, "title", message("Output.title"));
     private ConsoleModel selected;
 
-    OutputView(ConsoleOutput output, OutputSettings settings) {
+    OutputView(ConsoleRegistry output, OutputSettings settings) {
         this.output = Objects.requireNonNull(output);
         this.settings = Objects.requireNonNull(settings);
         getStyleClass().add("output-view");
         getStylesheets().add(Objects.requireNonNull(OutputView.class.getResource("output.css")).toExternalForm());
 
-        tabs.getStyleClass().add("nbfx-tab-pane");
+        // As the panes of the main window, the selected tab marked while the focus is in the text.
+        TabPaneActivation.markActiveOnFocus(tabs);
         tabs.pseudoClassStateChanged(OUTPUT_TABS, true);
-        // As the panes of the main window: the selected tab is marked while the focus is anywhere
-        // in the pane - in the console text - and not only on the tab header.
-        tabs.focusWithinProperty().subscribe(within -> tabs.pseudoClassStateChanged(ACTIVE, within));
         tabs.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         tabs.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
         setLeft(createToolBar());
@@ -84,7 +85,25 @@ final class OutputView extends BorderPane {
             }
         });
         tabs.getSelectionModel().selectedItemProperty().subscribe(tab -> select(tab == null ? null : consoleOf(tab)));
-        tabs.getTabs().subscribe(() -> tabs.setVisible(!tabs.getTabs().isEmpty()));
+        tabs.getTabs().subscribe(this::updateHeader);
+    }
+
+    /**
+     * The title of the tab holding this view: "Output", or "Output - <em>console</em>" while there
+     * is one console, as NetBeans - its inner tab header is then hidden, as the other views do
+     * with a single inner tab.
+     */
+    ReadOnlyStringProperty titleProperty() {
+        return title.getReadOnlyProperty();
+    }
+
+    private void updateHeader() {
+        int count = tabs.getTabs().size();
+        tabs.setVisible(count > 0);
+        tabs.pseudoClassStateChanged(SINGLE, count == 1);
+        title.set(count == 1
+                ? NbBundle.getMessage(OutputView.class, "Output.title.single", tabs.getTabs().get(0).getText())
+                : message("Output.title"));
     }
 
     /** The inner tab pane, for tests. */
@@ -95,6 +114,11 @@ final class OutputView extends BorderPane {
     /** The Re-run button, for tests. */
     Button rerunButton() {
         return rerun;
+    }
+
+    /** The tool bar buttons, in order, for tests. */
+    List<Button> toolBarButtons() {
+        return List.of(rerun, rerunWith, stop, toolSettings);
     }
 
     /** The Stop button, for tests. */
@@ -154,9 +178,9 @@ final class OutputView extends BorderPane {
             }
         });
         stop.setOnAction(e -> {
-            Runnable action = selected == null ? null : selected.stopProperty().get();
-            if (action != null) {
-                action.run();
+            ConsoleModel.Run run = selected == null ? null : selected.runProperty().get();
+            if (run != null) {
+                run.stop();
             }
         });
         // TODO needs the "run with parameters" dialog of the build tool behind the console
@@ -175,26 +199,32 @@ final class OutputView extends BorderPane {
     private void select(ConsoleModel console) {
         if (selected != null) {
             selected.rerunProperty().removeListener(controlsListener);
-            selected.stopProperty().removeListener(controlsListener);
+            selected.runProperty().removeListener(controlsListener);
         }
         selected = console;
         if (selected != null) {
             selected.rerunProperty().addListener(controlsListener);
-            selected.stopProperty().addListener(controlsListener);
+            selected.runProperty().addListener(controlsListener);
         }
         updateToolBar();
     }
 
-    /** Re-run needs a console that can run again and is not running; Stop one that is running. */
+    /** Re-run needs a console that can run again and is not running; Stop one whose run can be stopped. */
     private void updateToolBar() {
-        boolean running = selected != null && selected.stopProperty().get() != null;
-        rerun.setDisable(selected == null || running || selected.rerunProperty().get() == null);
-        stop.setDisable(!running);
+        ConsoleModel.Run run = selected == null ? null : selected.runProperty().get();
+        rerun.setDisable(selected == null || run != null || selected.rerunProperty().get() == null);
+        stop.setDisable(run == null || !run.canStop());
     }
 
+    /**
+     * A tool bar button with the icon {@code icons/<icon>.png}, drawn from its {@code _dark}
+     * counterpart under a dark theme. The icons are NetBeans' (Apache 2.0), from the resources of
+     * its Ant module, {@code extide/o.apache.tools.ant.module}; the dark ones are those,
+     * every pixel a third of the way lighter and a tenth less saturated.
+     */
     private static Button button(String icon, String tooltipKey) {
-        ImageView view = new ImageView(new Image(Objects.requireNonNull(
-                OutputView.class.getResource("icons/" + icon + ".png"), () -> "Missing icon " + icon).toExternalForm()));
+        ThemedImageView view = new ThemedImageView();
+        view.setIcon(OutputView.class, "icons/" + icon + ".png");
         view.setFitWidth(16);
         view.setFitHeight(16);
         view.setPreserveRatio(true);

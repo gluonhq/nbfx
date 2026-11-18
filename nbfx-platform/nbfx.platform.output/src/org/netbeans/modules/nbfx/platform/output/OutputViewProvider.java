@@ -23,6 +23,9 @@ import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
@@ -30,7 +33,7 @@ import org.openide.util.lookup.ServiceProvider;
 
 /**
  * The Output view: a dockable tab, opening along the bottom of the main area by default, that shows
- * every {@link ConsolePanel} as an inner tab of an {@link OutputView}.
+ * every console of the {@link ConsoleRegistry} as an inner tab of an {@link OutputView}.
  *
  * @since 1.0
  */
@@ -45,6 +48,8 @@ public final class OutputViewProvider implements ViewProvider {
     public static final String ID = "output";
 
     private Node view;
+    private final StringProperty title = new SimpleStringProperty(this, "title",
+            NbBundle.getMessage(OutputViewProvider.class, "Output.title"));
 
     @Override
     public String getId() {
@@ -61,13 +66,18 @@ public final class OutputViewProvider implements ViewProvider {
         return DockLocation.CENTER_BOTTOM;
     }
 
+    /** The tab title: the view's once there is one, the plain name of the view until then. */
+    @Override
+    public ObservableValue<String> titleProperty() {
+        return title;
+    }
+
     @Override
     public synchronized Node getView() {
         if (view == null) {
-            // Without the service nothing can write to the output: an empty view.
-            ConsoleOutput output = Lookup.getDefault().lookup(OutputConsole.class) instanceof ConsoleOutput consoles
-                    ? consoles : new ConsoleOutput();
-            view = new OutputView(output, OutputSettings.getDefault());
+            OutputView created = new OutputView(ConsoleRegistry.getDefault(), OutputSettings.getDefault());
+            title.bind(created.titleProperty());
+            view = created;
         }
         return view;
     }
@@ -77,6 +87,18 @@ public final class OutputViewProvider implements ViewProvider {
         ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
         if (manager != null) {
             manager.show(this);
+        }
+    }
+
+    /**
+     * Brings the Output view on screen, if the application has one and a view manager to show it:
+     * a headless application has neither, and its consoles only keep their text. Must run on the
+     * JavaFX Application Thread.
+     */
+    static void reveal() {
+        OutputViewProvider provider = instance();
+        if (provider != null) {
+            provider.show();
         }
     }
 
