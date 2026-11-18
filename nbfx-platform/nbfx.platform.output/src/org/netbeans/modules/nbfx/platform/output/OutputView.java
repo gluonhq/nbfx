@@ -35,7 +35,6 @@ import javafx.scene.control.ToolBar;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import org.netbeans.api.nbfx.icons.ThemedImageView;
-import org.netbeans.api.nbfx.theme.ThemeTokenRegistration;
 import org.netbeans.api.nbfx.views.TabPaneActivation;
 import org.openide.util.NbBundle;
 
@@ -46,7 +45,6 @@ import org.openide.util.NbBundle;
  * build tool's settings. Closing an inner tab forgets its console. A single console shows without
  * its inner tab header: the view's {@linkplain #titleProperty() title} names it instead.
  */
-@ThemeTokenRegistration(id = "output", resource = "output-tokens.css")
 final class OutputView extends BorderPane {
 
     private static final PseudoClass OUTPUT_TABS = PseudoClass.getPseudoClass("output-tabs");

@@ -122,4 +122,14 @@
     -nbfx-popup-selected: #DCEBFA;
     -nbfx-popup-selected-text: #0B57D0;
     -nbfx-popup-separator: #D7DCE3;
+
+    /*
+     * Output window text, by kind. All but one follow the theme through its own tokens; no token
+     * is a green on every theme, so the success colour is a value, which the dark themes override.
+     */
+    -nbfx-output-text: -nbfx-editor-fg;
+    -nbfx-output-error: -nbfx-editor-text-error;
+    -nbfx-output-warning: -nbfx-editor-squiggle-warning;
+    -nbfx-output-success: #1E9347;
+    -nbfx-output-muted: -nbfx-text-faint;
 }

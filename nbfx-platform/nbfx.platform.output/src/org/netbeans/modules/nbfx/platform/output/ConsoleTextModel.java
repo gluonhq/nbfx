@@ -133,7 +133,7 @@ final class ConsoleTextModel extends StyledTextModelViewOnlyBase {
     /**
      * The inline style of text of {@code kind}. The colour is part of it: the area resolves a
      * styled segment to its own inline style, fill included, which a style sheet rule on the text
-     * would not override. The colours are the theme tokens of {@code output-tokens.css}.
+     * would not override. The colours are theme tokens, with their defaults in the theme module.
      */
     private String style(OutputKind kind) {
         return styles.computeIfAbsent(kind, k -> String.format(Locale.ROOT,

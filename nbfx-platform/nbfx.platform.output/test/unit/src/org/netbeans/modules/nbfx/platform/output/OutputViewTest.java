@@ -24,8 +24,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -123,18 +121,14 @@ public class OutputViewTest {
         });
     }
 
-    /** Every kind has its own theme token, each with a default in {@code output-tokens.css}. */
+    /** Every kind has its own theme token; the theme module's test checks that each has a default. */
     @Test
-    public void everyKindHasAThemeToken() throws Exception {
-        String tokens;
-        try (InputStream in = OutputView.class.getResourceAsStream("output-tokens.css")) {
-            tokens = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        }
+    public void everyKindHasAThemeToken() {
         Set<String> seen = new HashSet<>();
         for (OutputKind kind : OutputKind.values()) {
             String token = ConsoleTextModel.token(kind);
+            assertTrue(token, token.startsWith("-nbfx-output-"));
             assertTrue(token, seen.add(token));
-            assertTrue(token, tokens.contains("    " + token + ": "));
         }
     }
 
