@@ -16,17 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
-
-import java.util.List;
+package org.netbeans.api.nbfx.nodes;
 
 /**
- * Contributes the property sets shown for a context object, mirroring {@code Node.getPropertySets()}.
- * Registered via {@code @ServiceProvider}; the {@link PropertySheet} asks every provider for the
- * context it is showing.
+ * Listens for value changes of a {@link PropertyModel}.
+ *
+ * @since 1.0
  */
-public interface PropertiesProvider {
+@FunctionalInterface
+public interface PropertyListener {
 
-    /** The property sets for {@code context}, or an empty list when the provider has nothing to offer. */
-    List<PropertySet> getPropertySets(Object context);
+    /**
+     * Called after a property value changed.
+     *
+     * @param property the property that changed
+     * @param oldValue its previous value
+     * @param newValue its current value
+     */
+    void changed(PropertyModel property, Object oldValue, Object newValue);
 }

@@ -16,29 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.nodes;
 
 import java.util.List;
-import org.netbeans.api.nbfx.actions.ActionContext;
 
 /**
- * Contributes an application-specific context type to the property sheet. The platform property
- * sheet knows files and editor documents; IDE modules add the project context through this SPI.
+ * Contributes the property sets shown for a context object. Providers are registered in the
+ * default Lookup; the property sheet asks every provider for the context it is showing.
+ *
+ * @since 1.0
  */
-public interface PropertyContextType {
+public interface PropertiesProvider {
 
     /**
-     * The context types this provider contributes, so the view can follow their lookup changes.
+     * The property sets for {@code context}, or an empty list when the provider has nothing to
+     * offer.
      *
-     * @return the contributed context types
+     * @param context the object whose properties are shown
+     * @return the property sets, never {@code null}
      */
-    List<Class<?>> contextTypes();
-
-    /**
-     * Selects the object to show properties for from the current action context, or {@code null}.
-     *
-     * @param context the global action context
-     * @return the selected object, or {@code null}
-     */
-    Object select(ActionContext context);
+    List<PropertySetModel> getPropertySets(Object context);
 }

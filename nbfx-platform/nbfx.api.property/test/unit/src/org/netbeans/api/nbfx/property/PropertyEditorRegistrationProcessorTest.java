@@ -44,8 +44,13 @@ public class PropertyEditorRegistrationProcessorTest {
     private static final String SOURCE =
             "package demo;\n"
             + "import org.netbeans.api.nbfx.property.*;\n"
+            + "import org.netbeans.api.nbfx.nodes.PropertyModel;\n"
+            + "import javafx.scene.Node;\n"
             + "@PropertyEditorRegistration(valueType = String.class, position = 5, inline = false)\n"
-            + "public class StringEditor {}\n";
+            + "public class StringEditor implements PropertyEditor {\n"
+            + "    public Class<?> valueType() { return String.class; }\n"
+            + "    public Node createEditor(PropertyModel property) { return null; }\n"
+            + "}\n";
 
     @Test
     public void generatesLayerFragments() throws Exception {

@@ -20,10 +20,12 @@ package org.netbeans.modules.nbfx.platform.nodes;
 
 import javafx.scene.Node;
 import javafx.scene.control.TextField;
-import org.openide.util.lookup.ServiceProvider;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.property.PropertyEditor;
+import org.netbeans.api.nbfx.property.PropertyEditorRegistration;
 
 /** The editor for {@link Number} values (integer and floating point). */
-@ServiceProvider(service = PropertyEditor.class)
+@PropertyEditorRegistration(valueType = Number.class, position = 30)
 public final class NumberPropertyEditor implements PropertyEditor {
 
     @Override
@@ -32,7 +34,7 @@ public final class NumberPropertyEditor implements PropertyEditor {
     }
 
     @Override
-    public Node createEditor(Property property) {
+    public Node createEditor(PropertyModel property) {
         TextField field = new TextField(PropertyEditors.display(property.getValue()));
         field.setEditable(property.isWritable());
         field.textProperty().addListener((observable, old, now) -> {

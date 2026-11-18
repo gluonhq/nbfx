@@ -23,6 +23,7 @@ import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.property.PropertyContextProvider;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public final class PropertiesView implements ViewProvider {
         if (context != null) {
             List<Class<?>> types = new ArrayList<>(List.of(FileObject.class, EditorDocument.class,
                     ViewProvider.class));
-            for (PropertyContextType provider : Lookup.getDefault().lookupAll(PropertyContextType.class)) {
+            for (PropertyContextProvider provider : Lookup.getDefault().lookupAll(PropertyContextProvider.class)) {
                 types.addAll(provider.contextTypes());
             }
             for (Class<?> type : types) {
@@ -78,7 +79,7 @@ public final class PropertiesView implements ViewProvider {
     private void updateContext(ActionContext context) {
         Object selected = firstNonNull(context.lookup(EditorDocument.class), context.lookup(FileObject.class));
         if (selected == null) {
-            for (PropertyContextType provider : Lookup.getDefault().lookupAll(PropertyContextType.class)) {
+            for (PropertyContextProvider provider : Lookup.getDefault().lookupAll(PropertyContextProvider.class)) {
                 selected = provider.select(context);
                 if (selected != null) {
                     break;

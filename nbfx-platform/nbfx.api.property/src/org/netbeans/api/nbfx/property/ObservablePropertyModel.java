@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.property;
 
-import javafx.scene.Node;
+import javafx.beans.value.ObservableValue;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
 
 /**
- * Creates the JavaFX editor for a {@link Property} of a given value type. Registered via
- * {@code @ServiceProvider}; the first editor whose {@link #valueType() type} can hold the property's
- * value type wins.
+ * A {@link PropertyModel} that exposes its value as a JavaFX {@link ObservableValue}. Providers
+ * that already have a JavaFX property can use this instead of the toolkit-free
+ * {@link org.netbeans.api.nbfx.nodes.SimplePropertyModel}.
+ *
+ * @since 1.0
  */
-public interface PropertyEditor {
+public interface ObservablePropertyModel extends PropertyModel {
 
-    /** The value type this editor handles (e.g. {@code String.class}). */
-    Class<?> valueType();
-
-    /** Builds the editor for {@code property}. Called on the JavaFX thread. */
-    Node createEditor(Property property);
+    /** The value as an observable, so the property sheet can bind to it directly. */
+    ObservableValue<Object> valueProperty();
 }

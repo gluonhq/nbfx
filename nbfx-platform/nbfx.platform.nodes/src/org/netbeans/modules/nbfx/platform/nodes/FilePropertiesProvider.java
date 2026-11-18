@@ -19,6 +19,11 @@
 package org.netbeans.modules.nbfx.platform.nodes;
 
 import java.util.List;
+import org.netbeans.api.nbfx.nodes.PropertiesProvider;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.nodes.PropertySetModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.openide.filesystems.FileObject;
 import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
@@ -30,17 +35,17 @@ import org.openide.util.lookup.ServiceProvider;
 public final class FilePropertiesProvider implements PropertiesProvider {
 
     @Override
-    public List<PropertySet> getPropertySets(Object context) {
+    public List<PropertySetModel> getPropertySets(Object context) {
         if (!(context instanceof FileObject file)) {
             return List.of();
         }
-        List<Property> properties = List.of(
+        List<PropertyModel> properties = List.of(
                 readOnly("name", message("FilePropertiesProvider.name"), file.getNameExt()),
                 readOnly("path", message("FilePropertiesProvider.path"), file.getPath()),
                 readOnly("kind", message("FilePropertiesProvider.kind"),
                         message(file.isFolder() ? "FilePropertiesProvider.folder" : "FilePropertiesProvider.file")),
                 readOnly("size", message("FilePropertiesProvider.size"), size(file)));
-        return List.of(new SimpleFxPropertySet("file", message("FilePropertiesProvider.general"), properties));
+        return List.of(new SimplePropertySetModel("file", message("FilePropertiesProvider.general"), properties));
     }
 
     private static String size(FileObject file) {
@@ -51,8 +56,8 @@ public final class FilePropertiesProvider implements PropertiesProvider {
         return size < 0 ? "?" : String.valueOf(size);
     }
 
-    private static Property readOnly(String name, String displayName, Object value) {
-        return new SimpleFxProperty(name, displayName, null, String.class, value, false, false, value);
+    private static PropertyModel readOnly(String name, String displayName, Object value) {
+        return new SimplePropertyModel(name, displayName, null, String.class, value, false, false, value);
     }
 
     private static String message(String key) {

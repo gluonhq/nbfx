@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.api.property.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.property.PropertyEditor;
 import org.netbeans.api.nbfx.property.PropertyEditorRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
@@ -60,7 +61,8 @@ public class PropertyEditorRegistrationProcessor extends LayerGeneratingProcesso
             }
             String valueType = valueTypeOf(registration);
             String fileName = valueType.replace('.', '-').replace('$', '-');
-            File file = layer(element).instanceFile(LayerPaths.PROPERTY_EDITORS, fileName, (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.PROPERTY_EDITORS, fileName,
+                    PropertyEditor.class);
             file.stringvalue("valueType", valueType);
             file.intvalue("position", registration.position());
             file.boolvalue("inline", registration.inline());

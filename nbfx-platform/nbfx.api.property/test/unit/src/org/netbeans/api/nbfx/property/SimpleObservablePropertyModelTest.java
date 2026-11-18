@@ -16,41 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.property;
 
+import java.util.ArrayList;
 import java.util.List;
+import org.junit.Test;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import org.junit.Test;
 
-/** Verifies the simple property/set helpers. */
-public class SimpleFxPropertyTest {
+/** Verifies the JavaFX property model and its neutral listener bridge. */
+public class SimpleObservablePropertyModelTest {
 
     @Test
-    public void writablePropertySetsValue() {
-        SimpleFxProperty property = new SimpleFxProperty("name", "Name", String.class, "a");
-        assertTrue(property.isWritable());
-        assertTrue(property.isDefaultValue());
+    public void valuePropertyAndListenerStayInSync() {
+        SimpleObservablePropertyModel property =
+                new SimpleObservablePropertyModel("name", "Name", String.class, "a");
+        List<Object> changes = new ArrayList<>();
+        property.addListener((model, oldValue, newValue) -> changes.add(newValue));
+
         property.setValue("b");
+
         assertEquals("b", property.getValue());
+        assertEquals("b", property.valueProperty().getValue());
         assertFalse(property.isDefaultValue());
+        assertEquals(List.of("b"), changes);
     }
 
     @Test
     public void readOnlyPropertyIgnoresSetValue() {
-        SimpleFxProperty property = new SimpleFxProperty("name", "Name", null, String.class, "a", false, false, "a");
-        assertFalse(property.isWritable());
-        property.setValue("b");
-        assertEquals("a", property.getValue());
-    }
+        SimpleObservablePropertyModel property = new SimpleObservablePropertyModel(
+                "name", "Name", null, String.class, "a", false, false, "a");
 
-    @Test
-    public void propertySetExposesProperties() {
-        SimpleFxProperty property = new SimpleFxProperty("name", "Name", String.class, "a");
-        SimpleFxPropertySet set = new SimpleFxPropertySet("general", "General", List.of(property));
-        assertEquals("general", set.getName());
-        assertEquals("General", set.getDisplayName());
-        assertEquals(1, set.getProperties().size());
+        property.setValue("b");
+
+        assertEquals("a", property.getValue());
+        assertTrue(property.isDefaultValue());
     }
 }
