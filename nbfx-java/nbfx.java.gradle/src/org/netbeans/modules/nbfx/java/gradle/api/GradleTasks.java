@@ -46,4 +46,16 @@ public final class GradleTasks {
         build.start();
         return build;
     }
+
+    /**
+     * What a line of the standard output of the {@code gradle} process is, for the colour the
+     * Output window gives it: the line announcing a task, the result.
+     *
+     * @param line a line of Gradle's output, without its line break
+     * @return the kind of the line, never {@code null}
+     * @since 1.1
+     */
+    public static BuildOutput.Kind lineKind(String line) {
+        return GradleOutput.lineKind(line);
+    }
 }

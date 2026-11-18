@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.java.gradle.api;
 
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.gradle.tooling.BuildLauncher;
 import org.gradle.tooling.CancellationTokenSource;
 import org.gradle.tooling.GradleConnector;
@@ -37,7 +39,8 @@ import org.gradle.tooling.ProjectConnection;
 /**
  * One in-process Gradle build driven by the Gradle Tooling API: connects to the project (using the
  * wrapper distribution when present, else a default Gradle version), runs the requested tasks on a
- * background thread, and streams their output into a {@link BuildOutput}. Cancellation uses the
+ * background thread, and streams their output into a {@link BuildOutput} - the standard output as
+ * the kinds {@link GradleOutput} gives its lines, the standard error as errors. Cancellation uses the
  * Tooling API's {@link CancellationTokenSource}.
  *
  * @since 1.0
@@ -68,24 +71,24 @@ final class GradleBuild implements BuildExecution {
 
     private void run() {
         try {
-            output.append("Connecting to Gradle...\n");
+            output.append("Connecting to Gradle...\n", Kind.MUTED);
             GradleConnector connector = GradleConnector.newConnector().forProjectDirectory(dir.toFile());
             configureDistribution(connector);
             CancellationTokenSource source = GradleConnector.newCancellationTokenSource();
             token.set(source);
             try (ProjectConnection connection = connector.connect()) {
-                output.append("Connected. Running: " + String.join(" ", tasks) + "\n");
+                output.append("Connected. Running: " + String.join(" ", tasks) + "\n", Kind.MUTED);
                 BuildLauncher launcher = connection.newBuild();
                 launcher.forTasks(tasks);
-                launcher.setStandardOutput(outputStream());
-                launcher.setStandardError(outputStream());
+                launcher.setStandardOutput(outputStream(GradleOutput::lineKind));
+                launcher.setStandardError(outputStream(line -> Kind.ERROR));
                 launcher.setColorOutput(false);
                 launcher.withCancellationToken(source.token());
                 launcher.run();
             }
-            output.append("\nBUILD SUCCESSFUL\n");
+            output.append("\nBUILD SUCCESSFUL\n", Kind.SUCCESS);
         } catch (Throwable ex) {
-            output.append("\nBUILD FAILED: " + ex + "\n");
+            output.append("\nBUILD FAILED: " + ex + "\n", Kind.ERROR);
             java.util.logging.Logger.getLogger(GradleBuild.class.getName())
                     .log(java.util.logging.Level.WARNING, "Gradle build failed", ex);
         } finally {
@@ -127,8 +130,8 @@ final class GradleBuild implements BuildExecution {
         }
     }
 
-    /** An output stream that reassembles lines and forwards them to the {@link BuildOutput}. */
-    private OutputStream outputStream() {
+    /** An output stream that reassembles lines and forwards them to the {@link BuildOutput}, each as the kind {@code kinds} gives it. */
+    private OutputStream outputStream(Function<String, Kind> kinds) {
         return new OutputStream() {
             private final StringBuilder line = new StringBuilder();
 
@@ -153,7 +156,7 @@ final class GradleBuild implements BuildExecution {
 
             private void flushLine() {
                 if (line.length() > 0) {
-                    output.append(line + "\n");
+                    output.append(line + "\n", kinds.apply(line.toString()));
                     line.setLength(0);
                 }
             }

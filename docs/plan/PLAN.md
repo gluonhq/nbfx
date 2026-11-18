@@ -940,8 +940,8 @@ the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md
 **W3b — AppShell services (M1).** Each service is a platform service, not an IDE service; the IDE contributes
 through `ide.workbench`, and the AppShell conformance fixture grows with each branch. Order:
 `feature/dialogs` (contract + implementation), `feature/output-api` (`api.output` was extracted with #171, with the console
-service and its run actions; complete its contract, then Output window parity on it, each a step: output kinds from Maven and Gradle (the kinds, their theme tokens, Ant and the
-error stream of a build run as a process landed), ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
+service and its run actions; complete its contract, then Output window parity on it, each a step (the output kinds, their theme tokens and their use by Ant, Maven, Gradle and the
+error stream of a build run as a process landed): ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
 in the side decorator —, find/filter bar, input, line limits, tool-contributed actions such as re-run with
 parameters and tool settings, the Output options page), `feature/settings-ui`
 (+ `api.settings`), `feature/search-api` (+ `platform.quicksearch`), `feature/execution` (process/PTY first),
@@ -1227,6 +1227,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #167 | common control styles: `controls.css` extracted from the shell's `styles.css` into `platform.theme` and added by `NbfxTheme` to every scene; dialogs stop copying the owner scene's stylesheets (#166) | theme follow-up; `appshell-chrome.md` §19 |
 | #171 | Output window: pane-styled console tabs (a single console shows without its inner header, the Output tab titled after it), tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap (`ActionIds.OUTPUT_*`). `api.output` extracted early: `OutputConsole` (consoles by id, apart from the name on their tab), `ConsolePanel`, `ConsoleRun`; `platform.output` T0; `ide.build`, `ide.debug`, `ide.workbench` on the API. `api.views` 1.8: `TabPaneActivation` and `ViewProvider.titleProperty()`; the pane tab styles in the theme's common control styles, for the inner tabs of Output, Search and Usages | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api`, Decision 26 |
 | #172 | Coloured output: `OutputKind` and `ConsolePanel.append(String, OutputKind)` (`api.output` 1.1), `BuildOutput.Kind` and `BuildActionProvider.lineKind` (`project.ui.api` 1.1), `-nbfx-output-*` theme tokens; Ant coloured in-process and as a process, whose error stream is read apart and shown as errors | §6.2 `platform.output`, §11 W3b `feature/output-api` (kinds, tokens and Ant landed; Maven, Gradle and ANSI SGR remain, M1) |
+| #173 | Coloured Maven and Gradle output, in-process and as a process: goals and tasks muted, the result green or red, errors red, Maven warnings orange, Gradle's standard error read apart and shown as errors; `MavenGoals.lineKind`, `GradleTasks.lineKind` (`java.maven`, `java.gradle` 1.1) | §11 W3b `feature/output-api` (output kinds complete for the three build tools; ANSI SGR and the later parity steps remain, M1) |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
