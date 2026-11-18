@@ -91,4 +91,9 @@ public final class MavenBuildActionProvider implements BuildActionProvider {
         Path windows = dir.resolve(wrapper + ".cmd");
         return Files.isRegularFile(windows) ? windows.toString() : fallback;
     }
+
+    @Override
+    public BuildOutput.Kind lineKind(String line) {
+        return MavenGoals.lineKind(line);
+    }
 }

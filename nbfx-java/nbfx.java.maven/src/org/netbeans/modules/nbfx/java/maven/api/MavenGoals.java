@@ -49,4 +49,16 @@ public final class MavenGoals {
         build.start();
         return build;
     }
+
+    /**
+     * What a line of the {@code mvn} process is, for the colour the Output window gives it: its
+     * {@code [ERROR]} or {@code [WARNING]} prefix, the line announcing a plugin goal, the result.
+     *
+     * @param line a line of Maven's output, without its line break
+     * @return the kind of the line, never {@code null}
+     * @since 1.1
+     */
+    public static BuildOutput.Kind lineKind(String line) {
+        return MavenOutput.lineKind(line);
+    }
 }

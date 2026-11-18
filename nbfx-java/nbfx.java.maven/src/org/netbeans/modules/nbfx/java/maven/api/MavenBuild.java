@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.java.maven.api;
 
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 
 import java.nio.file.Path;
@@ -39,7 +40,8 @@ import org.netbeans.modules.maven.embedder.MavenEmbedder;
  * One in-process Maven build via {@link MavenEmbedder#execute}: sets the goals, base directory and
  * properties on a {@link MavenExecutionRequest} and runs it on a background thread. Maven's Plexus
  * log output is routed through java.util.logging under the embedder's logger, so a {@link Handler}
- * on that logger forwards it to the {@link BuildOutput}.
+ * on that logger forwards it to the {@link BuildOutput}, each message as the kind
+ * {@link MavenOutput} gives it.
  *
  * @since 1.0
  */
@@ -75,7 +77,7 @@ final class MavenBuild implements BuildExecution {
             @Override
             public void publish(LogRecord record) {
                 if (record.getMessage() != null) {
-                    output.append(record.getMessage() + "\n");
+                    output.append(record.getMessage() + "\n", MavenOutput.recordKind(record));
                 }
             }
 
@@ -102,15 +104,15 @@ final class MavenBuild implements BuildExecution {
             }
             MavenExecutionResult result = embedder.execute(request);
             if (result.hasExceptions()) {
-                output.append("\nBUILD FAILED\n");
+                output.append("\nBUILD FAILED\n", Kind.ERROR);
                 for (Throwable failure : result.getExceptions()) {
-                    output.append(String.valueOf(failure.getMessage()) + "\n");
+                    output.append(String.valueOf(failure.getMessage()) + "\n", Kind.ERROR);
                 }
             } else {
-                output.append("\nBUILD SUCCESSFUL\n");
+                output.append("\nBUILD SUCCESSFUL\n", Kind.SUCCESS);
             }
         } catch (Exception ex) {
-            output.append("\nBUILD FAILED: " + ex + "\n");
+            output.append("\nBUILD FAILED: " + ex + "\n", Kind.ERROR);
         } finally {
             logger.removeHandler(handler);
             logger.setLevel(previous);
