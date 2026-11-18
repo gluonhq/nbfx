@@ -64,4 +64,18 @@ public interface BuildActionProvider {
     default BuildExecution start(Path dir, String command, BuildOutput output, BuildProgress progress) {
         return null;
     }
+
+    /**
+     * What a line the tool of {@link #commandLine} wrote to its output stream is, so the CLI runner
+     * can show it in its colour: the tool's own way of naming a step or reporting its result. The
+     * lines of the error stream are errors without asking. Defaults to
+     * {@link BuildOutput.Kind#NORMAL}. Called on the thread reading the process.
+     *
+     * @param line a line of the tool's output, without its line break
+     * @return the kind of the line, never {@code null}
+     * @since 1.1
+     */
+    default BuildOutput.Kind lineKind(String line) {
+        return BuildOutput.Kind.NORMAL;
+    }
 }

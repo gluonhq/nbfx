@@ -19,10 +19,12 @@
 package org.netbeans.modules.nbfx.java.j2seproject;
 
 import org.netbeans.modules.nbfx.project.ui.api.BuildActionProvider;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildCommands;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.regex.Pattern;
 import org.netbeans.spi.project.ProjectServiceProvider;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -75,5 +77,24 @@ public final class AntBuildActionProvider implements BuildActionProvider {
             case BuildCommands.JAVADOC -> List.of("ant", "javadoc");
             default -> null;
         };
+    }
+
+    /** A target as Ant announces it: its name and a colon, alone on the line. */
+    private static final Pattern TARGET = Pattern.compile("[^\\s:\\[\\]]+:");
+
+    /**
+     * Ant's own lines, as NetBeans shows them: the target names muted, the result green or red.
+     * Ant writes what it logs as an error, and the reason of a failed build, to its error stream,
+     * which the runner shows as errors.
+     */
+    @Override
+    public BuildOutput.Kind lineKind(String line) {
+        if (line.startsWith("BUILD SUCCESSFUL")) {
+            return BuildOutput.Kind.SUCCESS;
+        }
+        if (line.startsWith("BUILD FAILED")) {
+            return BuildOutput.Kind.ERROR;
+        }
+        return TARGET.matcher(line).matches() ? BuildOutput.Kind.MUTED : BuildOutput.Kind.NORMAL;
     }
 }

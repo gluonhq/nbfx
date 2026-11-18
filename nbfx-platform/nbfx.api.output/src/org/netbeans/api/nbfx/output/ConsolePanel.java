@@ -30,8 +30,20 @@ public interface ConsolePanel {
     /** The console's name, shown on its tab. */
     String getName();
 
-    /** Appends {@code text} to the console. */
+    /** Appends {@code text} to the console as {@link OutputKind#NORMAL}. */
     void append(String text);
+
+    /**
+     * Appends {@code text} as {@code kind}, which gives it its colour. The default implementation
+     * appends it as plain text.
+     *
+     * @param text the text to append
+     * @param kind what the text is; {@code null} is {@link OutputKind#NORMAL}
+     * @since 1.1
+     */
+    default void append(String text, OutputKind kind) {
+        append(text);
+    }
 
     /** Clears the console. */
     void clear();

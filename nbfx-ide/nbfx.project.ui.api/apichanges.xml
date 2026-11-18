@@ -26,6 +26,23 @@
         <apidef name="nbfx_project_ui_api">NetBeansFX Project UI API</apidef>
     </apidefs>
     <changes>
+        <change id="buildoutput.kind">
+            <api name="nbfx_project_ui_api"/>
+            <summary>Build output has a kind, which gives it its colour.</summary>
+            <version major="1" minor="1"/>
+            <date day="18" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>BuildOutput.Kind</code> and <code>BuildOutput.append(String, Kind)</code>,
+                a default method appending plain text, so a build executor can mark its errors,
+                its warnings and its result without depending on the output module. Adds
+                <code>BuildActionProvider.lineKind(String)</code>, a default method answering
+                <code>NORMAL</code>, for the lines of a build run as a process.
+            </description>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="BuildOutput"/>
+            <class package="org.netbeans.modules.nbfx.project.ui.api" name="BuildActionProvider"/>
+        </change>
         <change id="projectkind.spi">
             <api name="nbfx_project_ui_api"/>
             <summary>Open project-kind SPI for the navigator.</summary>

@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.netbeans.api.nbfx.output.ConsolePanel;
 import org.netbeans.api.nbfx.output.ConsoleRun;
+import org.netbeans.api.nbfx.output.OutputKind;
 
 /**
  * Verifies the console registry, the accumulation of console text and the runs of a console. The
@@ -76,7 +77,7 @@ public class FxOutputTest {
             ConsoleModel console = new ConsoleRegistry().console("Run");
             StringBuilder sink = new StringBuilder();
 
-            console.attach(sink::append, () -> sink.setLength(0), () -> {
+            console.attach((text, kind) -> sink.append(text), () -> sink.setLength(0), () -> {
             });
             console.append("hello");
             console.append(" world");
@@ -101,7 +102,7 @@ public class FxOutputTest {
             console.append("output");
             assertEquals(0, reveals.get());
 
-            console.attach(text -> {
+            console.attach((text, kind) -> {
             }, () -> {
             }, selections::incrementAndGet);
             console.show();
@@ -198,6 +199,27 @@ public class FxOutputTest {
         });
     }
 
+    /** A view attaching late gets the text with the kinds it was appended as. */
+    @Test
+    public void attachReplaysTheKinds() throws Exception {
+        FxTestSupport.onFx(() -> {
+            ConsoleModel console = new ConsoleModel("Build");
+            console.append("run:\n", OutputKind.MUTED);
+            console.append("hello\n");
+            console.append("BUILD SUCCESSFUL\n", OutputKind.SUCCESS);
+            console.append("no kind\n", null);
+            StringBuilder sink = new StringBuilder();
+
+            console.attach((text, kind) -> sink.append(kind).append('[').append(text.strip()).append(']'), () -> {
+            }, () -> {
+            });
+
+            assertEquals("MUTED[run:]NORMAL[hello]SUCCESS[BUILD SUCCESSFUL]NORMAL[no kind]", sink.toString());
+            assertEquals("run:\nhello\nBUILD SUCCESSFUL\nno kind\n", console.text());
+            return null;
+        });
+    }
+
     /** Text appended off the FX thread and still on its way when the view attaches is shown once. */
     @Test
     public void attachDoesNotRepeatPendingText() throws Exception {
@@ -216,7 +238,7 @@ public class FxOutputTest {
             } catch (InterruptedException ex) {
                 throw new AssertionError(ex);
             }
-            console.attach(sink::append, () -> sink.setLength(0), () -> {
+            console.attach((text, kind) -> sink.append(text), () -> sink.setLength(0), () -> {
             });
             assertEquals("pending", sink.toString());
             return null;

@@ -32,6 +32,9 @@
  *   -nbfx-editor-*                  code editor surfaces, highlights, search bar, squiggles
  *   -nbfx-code-*                    syntax colors (Java, XML, CSS, and so on)
  *   -nbfx-popup-*                   completion and breadcrumb popups
+ *   -nbfx-output-*                  optional: Output window text by kind (text, error, warning,
+ *                                   success, muted); they default to the tokens above, and to a
+ *                                   green for a dark surface a theme sets -nbfx-output-success
  *   -fx-*                           JavaFX Modena base colors for stock controls
  *
  * The Modena block (-fx-*) is optional: without it the stock controls keep their JavaFX defaults,
