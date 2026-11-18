@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.java.build.ant;
 
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 import java.io.File;
 import java.nio.file.Path;
@@ -32,7 +33,8 @@ import org.apache.tools.ant.ProjectHelper;
 
 /**
  * One in-process Ant build: configures the {@code build.xml} project, streams Ant's messages into a
- * {@link BuildOutput}, and runs the requested targets on a background thread. Cancellation sets a
+ * {@link BuildOutput} - target names muted, errors and warnings as errors, the result as a success
+ * or an error - and runs the requested targets on a background thread. Cancellation sets a
  * flag that the {@link BuildListener} checks to abort.
  *
  * @since 1.0
@@ -78,11 +80,15 @@ final class AntBuild implements BuildExecution {
                 }
                 project.executeTarget(target);
             }
-            output.append(cancelled.get() ? "\nBUILD CANCELLED\n" : "\nBUILD SUCCESSFUL\n");
+            if (cancelled.get()) {
+                output.append("\nBUILD CANCELLED\n", Kind.ERROR);
+            } else {
+                output.append("\nBUILD SUCCESSFUL\n", Kind.SUCCESS);
+            }
         } catch (BuildException ex) {
-            output.append("\nBUILD FAILED: " + ex.getMessage() + "\n");
+            output.append("\nBUILD FAILED: " + ex.getMessage() + "\n", Kind.ERROR);
         } catch (RuntimeException ex) {
-            output.append("\nBUILD ERROR: " + ex + "\n");
+            output.append("\nBUILD ERROR: " + ex + "\n", Kind.ERROR);
         } finally {
             progress.finish();
         }
@@ -115,7 +121,7 @@ final class AntBuild implements BuildExecution {
         @Override
         public void targetStarted(BuildEvent event) {
             check();
-            output.append("\n" + event.getTarget().getName() + ":\n");
+            output.append("\n" + event.getTarget().getName() + ":\n", Kind.MUTED);
         }
 
         @Override
@@ -141,8 +147,22 @@ final class AntBuild implements BuildExecution {
             }
             String message = event.getMessage();
             if (message != null && !message.isBlank()) {
-                output.append(message + "\n");
+                output.append(message + "\n", kindOf(event));
             }
+        }
+
+        /**
+         * Errors and warnings in the error colour, as NetBeans, which sends both to the error
+         * stream: Ant logs the error stream of what it runs (a {@code java} task) and the
+         * compiler's messages as warnings. An {@code echo} is plain text whatever its level,
+         * which is the warning level unless the build file says otherwise.
+         */
+        private static Kind kindOf(BuildEvent event) {
+            if (event.getPriority() > Project.MSG_WARN) {
+                return Kind.NORMAL;
+            }
+            boolean echo = event.getTask() != null && "echo".equals(event.getTask().getTaskName());
+            return echo && event.getPriority() == Project.MSG_WARN ? Kind.NORMAL : Kind.ERROR;
         }
 
         private void check() {

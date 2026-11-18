@@ -86,6 +86,9 @@
     -nbfx-editor-crumb-hover: #0B4352;
     -nbfx-editor-button-selected-hover: #1A5464;
 
+    /* Output window: the result of a build that passed; the other kinds follow the tokens above */
+    -nbfx-output-success: #859900;
+
     /* Syntax colors, tuned for the dark editor surface */
     -nbfx-code-keyword: #859900;
     -nbfx-code-keyword-directive: #D33682;

@@ -26,6 +26,24 @@
         <apidef name="netbeansfx_output">NetBeansFX Output API</apidef>
     </apidefs>
     <changes>
+        <change id="output.kind">
+            <api name="netbeansfx_output"/>
+            <summary>Console text has a kind, which gives it its colour.</summary>
+            <version major="1" minor="1"/>
+            <date day="19" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>OutputKind</code> (normal, error, warning, success, muted) and
+                <code>ConsolePanel.append(String, OutputKind)</code>, a default method appending
+                plain text. The Output window draws each kind in the colour of its theme token,
+                <code>-nbfx-output-text</code>, <code>-nbfx-output-error</code>,
+                <code>-nbfx-output-warning</code>, <code>-nbfx-output-success</code> and
+                <code>-nbfx-output-muted</code>.
+            </description>
+            <class package="org.netbeans.api.nbfx.output" name="OutputKind"/>
+            <class package="org.netbeans.api.nbfx.output" name="ConsolePanel"/>
+        </change>
         <change id="output.api">
             <api name="netbeansfx_output"/>
             <summary>The output console contract, out of the Output window's module.</summary>

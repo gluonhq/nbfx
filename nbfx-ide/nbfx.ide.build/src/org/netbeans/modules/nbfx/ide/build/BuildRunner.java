@@ -22,6 +22,7 @@ import org.netbeans.api.nbfx.progress.Progress;
 import org.netbeans.api.nbfx.output.ConsolePanel;
 import org.netbeans.api.nbfx.output.ConsoleRun;
 import org.netbeans.api.nbfx.output.OutputConsole;
+import org.netbeans.api.nbfx.output.OutputKind;
 import org.netbeans.modules.nbfx.project.ui.api.BuildActionProvider;
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
@@ -29,6 +30,7 @@ import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openide.util.Lookup;
@@ -153,11 +155,9 @@ public final class BuildRunner {
     /** The CLI fallback: detect the tool from marker files and run it as a process. */
     private static void runCli(Path dir, String command, String consoleName, ConsolePanel console, Progress progress) {
         List<String> commandLine = BuildTool.detect(dir).commandLine(dir, command);
-        if (commandLine == null) {
-            BuildActionProvider provider = BuildActions.providerFor(dir);
-            if (provider != null) {
-                commandLine = provider.commandLine(dir, command);
-            }
+        BuildActionProvider provider = BuildActions.providerFor(dir);
+        if (commandLine == null && provider != null) {
+            commandLine = provider.commandLine(dir, command);
         }
         if (commandLine == null) {
             console.append(NbBundle.getMessage(BuildRunner.class, "BuildCommand.noTool") + "\n");
@@ -173,12 +173,26 @@ public final class BuildRunner {
         Progress.Handle handle = progress == null ? null : progress.start(consoleName, cancel);
         ConsoleRun run = console.startRun(cancel);
         List<String> line = commandLine;
-        ProcessRunner.run(line, dir, console, process::set, () -> {
+        // The project type knows how its tool names its steps and reports its result.
+        Function<String, OutputKind> kinds = provider == null
+                ? text -> OutputKind.NORMAL
+                : text -> outputKind(provider.lineKind(text));
+        ProcessRunner.run(line, dir, console, kinds, process::set, () -> {
             run.finish();
             if (handle != null) {
                 handle.finish();
             }
         });
+    }
+
+    private static OutputKind outputKind(BuildOutput.Kind kind) {
+        return switch (kind) {
+            case ERROR -> OutputKind.ERROR;
+            case WARNING -> OutputKind.WARNING;
+            case SUCCESS -> OutputKind.SUCCESS;
+            case MUTED -> OutputKind.MUTED;
+            case NORMAL -> OutputKind.NORMAL;
+        };
     }
 
     private static BuildOutput output(ConsolePanel console) {
@@ -196,6 +210,11 @@ public final class BuildRunner {
             @Override
             public void append(String text) {
                 console.append(text);
+            }
+
+            @Override
+            public void append(String text, Kind kind) {
+                console.append(text, outputKind(kind));
             }
         };
     }

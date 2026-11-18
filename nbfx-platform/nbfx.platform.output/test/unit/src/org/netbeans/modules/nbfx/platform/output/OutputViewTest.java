@@ -27,8 +27,10 @@ import static org.junit.Assert.assertNull;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import javafx.css.PseudoClass;
 import javafx.event.Event;
@@ -52,6 +54,7 @@ import org.netbeans.api.nbfx.icons.ThemedImageView;
 import org.netbeans.api.nbfx.output.ConsolePanel;
 import org.netbeans.api.nbfx.output.ConsoleRun;
 import org.netbeans.api.nbfx.output.OutputConsole;
+import org.netbeans.api.nbfx.output.OutputKind;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.openide.util.RequestProcessor;
 import org.openide.util.test.MockLookup;
@@ -90,6 +93,43 @@ public class OutputViewTest {
             assertEquals("", ((ConsolePane) run.getContent()).shownText());
             return null;
         });
+    }
+
+    /** Each stretch of a line is drawn as the kind it was appended as, each kind in its theme colour. */
+    @Test
+    public void textIsColouredByKind() throws Exception {
+        FxTestSupport.onFx(() -> {
+            ConsoleRegistry output = new ConsoleRegistry();
+            OutputView view = new OutputView(output, new OutputSettings());
+            ConsolePanel build = output.console("Build");
+            build.append("run:\n", OutputKind.MUTED);
+            build.append("compiling ");
+            build.append("failed\n", OutputKind.ERROR);
+            build.append("\nBUILD SUCCESSFUL", OutputKind.SUCCESS);
+            ConsoleTextModel model = ((ConsolePane) view.tabs().getTabs().get(0).getContent()).textModel();
+
+            assertEquals(List.of(new ConsoleLines.Segment("run:", OutputKind.MUTED)), model.segments(0));
+            assertEquals(List.of(new ConsoleLines.Segment("compiling ", OutputKind.NORMAL),
+                    new ConsoleLines.Segment("failed", OutputKind.ERROR)), model.segments(1));
+            assertEquals(List.of(new ConsoleLines.Segment("BUILD SUCCESSFUL", OutputKind.SUCCESS)), model.segments(3));
+            // The paragraphs the area draws: a segment per stretch, and one for an empty line.
+            assertEquals(1, model.getParagraph(0).getSegmentCount());
+            assertEquals(2, model.getParagraph(1).getSegmentCount());
+            assertEquals(1, model.getParagraph(2).getSegmentCount());
+            assertEquals("failed", model.getParagraph(1).getSegment(1).getText());
+            return null;
+        });
+    }
+
+    /** Every kind has its own theme token; the theme module's test checks that each has a default. */
+    @Test
+    public void everyKindHasAThemeToken() {
+        Set<String> seen = new HashSet<>();
+        for (OutputKind kind : OutputKind.values()) {
+            String token = ConsoleTextModel.token(kind);
+            assertTrue(token, token.startsWith("-nbfx-output-"));
+            assertTrue(token, seen.add(token));
+        }
     }
 
     @Test

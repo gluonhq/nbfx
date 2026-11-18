@@ -20,6 +20,8 @@ package org.netbeans.modules.nbfx.platform.output;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import java.util.List;
+import org.netbeans.api.nbfx.output.OutputKind;
 import org.junit.Test;
 
 /**
@@ -68,6 +70,24 @@ public class ConsoleLinesTest {
         assertEquals("a", lines.line(0));
         assertEquals("b", lines.line(1));
         assertNull(lines.append("\r"));
+    }
+
+    @Test
+    public void linesKeepTheKindsOfTheirText() {
+        ConsoleLines lines = new ConsoleLines();
+
+        lines.append("run", OutputKind.MUTED);
+        lines.append(":", OutputKind.MUTED);
+        lines.append("\n[javac] ");
+        lines.append("warning\nsecond line", OutputKind.WARNING);
+        lines.append("\n\n");
+
+        assertEquals(List.of(new ConsoleLines.Segment("run:", OutputKind.MUTED)), lines.segments(0));
+        assertEquals(List.of(new ConsoleLines.Segment("[javac] ", OutputKind.NORMAL),
+                new ConsoleLines.Segment("warning", OutputKind.WARNING)), lines.segments(1));
+        assertEquals(List.of(new ConsoleLines.Segment("second line", OutputKind.WARNING)), lines.segments(2));
+        assertEquals(List.of(), lines.segments(3));
+        assertEquals("[javac] warning", lines.line(1));
     }
 
     @Test

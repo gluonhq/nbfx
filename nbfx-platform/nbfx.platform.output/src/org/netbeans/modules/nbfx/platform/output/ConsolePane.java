@@ -40,6 +40,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import jfx.incubator.scene.control.richtext.RichTextArea;
 import jfx.incubator.scene.control.richtext.TextPos;
+import org.netbeans.api.nbfx.output.OutputKind;
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.modules.nbfx.platform.output.OutputCommands.ConsoleCommand;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
@@ -134,15 +135,20 @@ final class ConsolePane extends StackPane {
         return area;
     }
 
+    /** The text model, for tests. */
+    ConsoleTextModel textModel() {
+        return text;
+    }
+
     /** The text as the view holds it, for tests. */
     String shownText() {
         return text.text();
     }
 
-    private void append(String delta) {
+    private void append(String delta, OutputKind kind) {
         TextPos caret = area.getCaretPosition();
         boolean follow = caret == null || caret.isSameInsertionIndex(text.end());
-        text.append(delta);
+        text.append(delta, kind);
         if (follow) {
             area.select(text.end());
         }

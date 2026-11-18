@@ -66,6 +66,7 @@ org.netbeans.api.nbfx.options.OptionsSubRegistration
 org.netbeans.api.nbfx.output.ConsolePanel
 org.netbeans.api.nbfx.output.ConsoleRun
 org.netbeans.api.nbfx.output.OutputConsole
+org.netbeans.api.nbfx.output.OutputKind
 org.netbeans.api.nbfx.project.OpenProject
 org.netbeans.api.nbfx.project.ProjectIconProvider
 org.netbeans.api.nbfx.project.ProjectLifecycle

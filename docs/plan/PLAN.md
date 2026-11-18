@@ -304,7 +304,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
 | `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
-| `api.output` | M | **partial — first slice landed (#171)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity); M1: `OutputWriter`, hyperlinks, folds, colours, tool-contributed console actions |
+| `api.output` | M | **partial — first slices landed (#171, #172)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity), `OutputKind` (text coloured by kind through theme tokens); M1: `OutputWriter`, hyperlinks, folds, ANSI colours, tool-contributed console actions |
 | `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
@@ -366,7 +366,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.settings` | settings storage UI (preferences browser, export/import) | planned — M1 |
 | `platform.options` | options window (categories, tabs, search, validity) | **T0** implementation; the panel SPI and displayer live in `api.options` (#162); no public package, spec, arch or apichanges |
 | `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet landed; node views planned M1; T0 implementation, the model is `api.nodes`/`api.property` |
-| `platform.output` | Output window and console service behind `api.output` | **T0** implementation (#171): pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model, NetBeans' context menu (copy, wrap, font size, save, clear, close); no public package, spec, arch or apichanges; **window parity M1** (§11 W3b) |
+| `platform.output` | Output window and console service behind `api.output` | **T0** implementation (#171): pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model coloured by `OutputKind` through `-nbfx-output-*` theme tokens, NetBeans' context menu (copy, wrap, font size, save, clear, close); no public package, spec, arch or apichanges; **window parity M1** (§11 W3b) |
 | `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | planned — M1 (process first; terminal separate) |
 | `platform.terminal` | VT/xterm model + FX renderer + tabs | planned — M2, after the VT parser/library decision in M1 |
 | `platform.quicksearch` | command palette + providers | planned — M1, after `api.search` is redesigned |
@@ -940,7 +940,8 @@ the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md
 **W3b — AppShell services (M1).** Each service is a platform service, not an IDE service; the IDE contributes
 through `ide.workbench`, and the AppShell conformance fixture grows with each branch. Order:
 `feature/dialogs` (contract + implementation), `feature/output-api` (`api.output` was extracted with #171, with the console
-service and its run actions; complete its contract, then Output window parity on it, each a step: colours/ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
+service and its run actions; complete its contract, then Output window parity on it, each a step: output kinds from Maven and Gradle (the kinds, their theme tokens, Ant and the
+error stream of a build run as a process landed), ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
 in the side decorator —, find/filter bar, input, line limits, tool-contributed actions such as re-run with
 parameters and tool settings, the Output options page), `feature/settings-ui`
 (+ `api.settings`), `feature/search-api` (+ `platform.quicksearch`), `feature/execution` (process/PTY first),
@@ -1225,6 +1226,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry, show-again preference and open-project notifier | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
 | #167 | common control styles: `controls.css` extracted from the shell's `styles.css` into `platform.theme` and added by `NbfxTheme` to every scene; dialogs stop copying the owner scene's stylesheets (#166) | theme follow-up; `appshell-chrome.md` §19 |
 | #171 | Output window: pane-styled console tabs (a single console shows without its inner header, the Output tab titled after it), tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap (`ActionIds.OUTPUT_*`). `api.output` extracted early: `OutputConsole` (consoles by id, apart from the name on their tab), `ConsolePanel`, `ConsoleRun`; `platform.output` T0; `ide.build`, `ide.debug`, `ide.workbench` on the API. `api.views` 1.8: `TabPaneActivation` and `ViewProvider.titleProperty()`; the pane tab styles in the theme's common control styles, for the inner tabs of Output, Search and Usages | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api`, Decision 26 |
+| #172 | Coloured output: `OutputKind` and `ConsolePanel.append(String, OutputKind)` (`api.output` 1.1), `BuildOutput.Kind` and `BuildActionProvider.lineKind` (`project.ui.api` 1.1), `-nbfx-output-*` theme tokens; Ant coloured in-process and as a process, whose error stream is read apart and shown as errors | §6.2 `platform.output`, §11 W3b `feature/output-api` (kinds, tokens and Ant landed; Maven, Gradle and ANSI SGR remain, M1) |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the

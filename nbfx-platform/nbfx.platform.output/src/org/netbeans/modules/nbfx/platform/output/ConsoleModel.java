@@ -18,9 +18,13 @@
  */
 package org.netbeans.modules.nbfx.platform.output;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import org.netbeans.api.nbfx.output.ConsolePanel;
 import org.netbeans.api.nbfx.output.ConsoleRun;
+import org.netbeans.api.nbfx.output.OutputKind;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 
@@ -31,15 +35,21 @@ import javafx.beans.property.SimpleObjectProperty;
  */
 final class ConsoleModel implements ConsolePanel {
 
+    /** {@code length} characters of the text, appended as {@code kind}. */
+    private record Stretch(int length, OutputKind kind) {
+    }
+
     private final String id;
     private final String name;
     private final StringBuilder text = new StringBuilder();
+    /** The kind of each stretch of {@link #text}, in order: what a view attaching later needs to colour it. */
+    private final List<Stretch> stretches = new ArrayList<>();
     /** How many times the console was cleared: tells the text of before a clear from the text after it. */
     private int generation;
     /** The generation and the length of the text the view received when it attached. */
     private int attachedGeneration;
     private int attachedLength;
-    private Consumer<String> appender;
+    private BiConsumer<String, OutputKind> appender;
     private Runnable clearer;
     private Runnable shower;
     private final ObjectProperty<Runnable> rerun = new SimpleObjectProperty<>(this, "rerun");
@@ -110,17 +120,24 @@ final class ConsoleModel implements ConsolePanel {
     }
 
     @Override
-    public synchronized void append(String delta) {
+    public void append(String delta) {
+        append(delta, OutputKind.NORMAL);
+    }
+
+    @Override
+    public synchronized void append(String delta, OutputKind kind) {
         if (delta == null || delta.isEmpty()) {
             return;
         }
+        OutputKind as = kind == null ? OutputKind.NORMAL : kind;
         int at = generation;
         int offset = text.length();
         text.append(delta);
+        stretches.add(new Stretch(delta.length(), as));
         FxThread.run(() -> {
-            Consumer<String> target = appenderFor(at, offset);
+            BiConsumer<String, OutputKind> target = appenderFor(at, offset);
             if (target != null) {
-                target.accept(delta);
+                target.accept(delta, as);
             }
         });
     }
@@ -128,6 +145,7 @@ final class ConsoleModel implements ConsolePanel {
     @Override
     public synchronized void clear() {
         text.setLength(0);
+        stretches.clear();
         int at = ++generation;
         FxThread.run(() -> {
             Runnable target = clearerFor(at);
@@ -190,13 +208,17 @@ final class ConsoleModel implements ConsolePanel {
      * Appends and clears made before this call but still on their way to the FX thread are part of
      * what is flushed here, and are not delivered a second time.
      */
-    synchronized void attach(Consumer<String> appender, Runnable clearer, Runnable shower) {
+    synchronized void attach(BiConsumer<String, OutputKind> appender, Runnable clearer, Runnable shower) {
         this.appender = appender;
         this.clearer = clearer;
         this.shower = shower;
         attachedGeneration = generation;
         attachedLength = text.length();
-        appender.accept(text.toString());
+        int from = 0;
+        for (Stretch stretch : stretches) {
+            appender.accept(text.substring(from, from + stretch.length()), stretch.kind());
+            from += stretch.length();
+        }
     }
 
     /** Removes the view hooks: the console keeps accumulating, nothing shows it. */
@@ -207,7 +229,7 @@ final class ConsoleModel implements ConsolePanel {
     }
 
     /** The appender, unless the text appended at {@code offset} of {@code at} was flushed by {@link #attach} or cleared since. */
-    private synchronized Consumer<String> appenderFor(int at, int offset) {
+    private synchronized BiConsumer<String, OutputKind> appenderFor(int at, int offset) {
         if (at != generation || (at == attachedGeneration && offset < attachedLength)) {
             return null;
         }

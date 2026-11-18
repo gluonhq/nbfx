@@ -46,7 +46,8 @@
       from any thread, and an activity tells its console how to run it again and, from its start to
       its end, how to stop it. The platform's Output window (<code>platform.output</code>, an
       implementation module that publishes nothing) provides the service and shows the consoles.
-      Writers, colours, hyperlinks and folds are not part of the contract yet.
+      Text is appended as a kind - normal, error, warning, success, muted - which the theme
+      colours. Writers, hyperlinks and folds are not part of the contract yet.
     </p>
   </answer>
 
@@ -54,6 +55,7 @@
     <ul>
       <li>Build and Run commands stream the tool output into a console and show it.</li>
       <li>A build tells its console how to run it again and how to stop it.</li>
+      <li>A build marks its errors, its warnings and its result, which the Output window colours by theme.</li>
     </ul>
   </answer>
 
