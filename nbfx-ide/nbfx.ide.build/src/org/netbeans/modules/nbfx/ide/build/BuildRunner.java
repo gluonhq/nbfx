@@ -19,8 +19,9 @@
 package org.netbeans.modules.nbfx.ide.build;
 
 import org.netbeans.api.nbfx.progress.Progress;
-import org.netbeans.modules.nbfx.platform.output.ConsolePanel;
-import org.netbeans.modules.nbfx.platform.output.OutputConsole;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.ConsoleRun;
+import org.netbeans.api.nbfx.output.OutputConsole;
 import org.netbeans.modules.nbfx.project.ui.api.BuildActionProvider;
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
@@ -66,6 +67,10 @@ public final class BuildRunner {
      * in the Navigator - in the console {@code consoleName}, cleared and shown first, with
      * cancellable progress: what {@link #run(Path, String, String)} does for a command, without the
      * CLI fallback.
+     * <p>
+     * The console keeps {@code starter} for its <em>Re-run</em> action until the console or the
+     * project of {@code dir} is closed, so the starter should hold what names the build - the
+     * folder, the goals - and not the project's own objects.
      *
      * @since 1.0
      */
@@ -78,12 +83,13 @@ public final class BuildRunner {
             LOG.warning("No OutputConsole service; build output cannot be shown");
             return;
         }
-        ConsolePanel console = output.console(consoleName);
+        ConsolePanel console = output.console(consoleId(dir, consoleName), consoleName);
         console.clear();
         console.show();
+        Reruns.set(console, dir, () -> run(dir, consoleName, starter));
         Progress progress = Lookup.getDefault().lookup(Progress.class);
         try {
-            if (starter.start(output(console), progress(progress, consoleName)) == null) {
+            if (starter.start(output(console), progress(progress, consoleName, console)) == null) {
                 console.append(NbBundle.getMessage(BuildRunner.class, "BuildCommand.noTool") + "\n");
             }
         } catch (RuntimeException | LinkageError t) {
@@ -101,9 +107,11 @@ public final class BuildRunner {
             LOG.warning("No OutputConsole service; build output cannot be shown");
             return;
         }
-        ConsolePanel console = output.console(consoleName);
+        ConsolePanel console = output.console(consoleId(dir, consoleName), consoleName);
         console.clear();
         console.show();
+        // Re-run asks for the project's build action again: it holds the folder and the command only.
+        Reruns.set(console, dir, () -> run(dir, command, consoleName));
 
         Progress progress = Lookup.getDefault().lookup(Progress.class);
         BuildActionProvider provider = BuildActions.providerFor(dir);
@@ -112,7 +120,7 @@ public final class BuildRunner {
         if (provider != null) {
             try {
                 BuildExecution execution = provider.start(dir, command,
-                        output(console), progress(progress, consoleName));
+                        output(console), progress(progress, consoleName, console));
                 if (execution != null) {
                     return;
                 }
@@ -123,6 +131,23 @@ public final class BuildRunner {
             }
         }
         runCli(dir, command, consoleName, console, progress);
+    }
+
+    /**
+     * What identifies the console of a build: its folder with its name, so that the same command
+     * on two projects called alike fills two consoles, and on one project the same console again.
+     */
+    static String consoleId(Path dir, String consoleName) {
+        return dir.toAbsolutePath().normalize() + "\n" + consoleName;
+    }
+
+    /**
+     * The console the builds named {@code consoleName} in {@code dir} write to, or {@code null}
+     * without the output service: for whoever follows the output of a build it starts here.
+     */
+    public static ConsolePanel console(Path dir, String consoleName) {
+        OutputConsole output = Lookup.getDefault().lookup(OutputConsole.class);
+        return output == null ? null : output.console(consoleId(dir, consoleName), consoleName);
     }
 
     /** The CLI fallback: detect the tool from marker files and run it as a process. */
@@ -139,14 +164,17 @@ public final class BuildRunner {
             return;
         }
         AtomicReference<Process> process = new AtomicReference<>();
-        Progress.Handle handle = progress == null ? null : progress.start(consoleName, () -> {
+        Runnable cancel = () -> {
             Process running = process.get();
             if (running != null) {
                 running.destroy();
             }
-        });
+        };
+        Progress.Handle handle = progress == null ? null : progress.start(consoleName, cancel);
+        ConsoleRun run = console.startRun(cancel);
         List<String> line = commandLine;
         ProcessRunner.run(line, dir, console, process::set, () -> {
+            run.finish();
             if (handle != null) {
                 handle.finish();
             }
@@ -172,24 +200,38 @@ public final class BuildRunner {
         };
     }
 
-    private static BuildProgress progress(Progress progress, String name) {
+    /**
+     * The progress of an in-process build, which is also the build's run in {@code console}: the
+     * build can be stopped from the Output window with the cancel action it first reports, the one
+     * its progress handle has, from that first report to its finish. A build reports its progress
+     * more than once - a new message - without becoming another run, and finishing ends this
+     * build's run only: the console may be running the next build by then.
+     */
+    static BuildProgress progress(Progress progress, String name, ConsolePanel console) {
         return new BuildProgress() {
+            private ConsoleRun run;
             private Progress.Handle handle;
 
             @Override
-            public void start(String displayName, Runnable cancel) {
-                if (progress == null) {
+            public synchronized void start(String displayName, Runnable cancel) {
+                if (run != null) {
+                    if (handle != null) {
+                        handle.setMessage(displayName);
+                    }
                     return;
                 }
-                if (handle != null) {
-                    handle.setMessage(displayName);
-                    return;
+                run = console.startRun(cancel);
+                if (progress != null) {
+                    handle = progress.start(displayName, cancel);
                 }
-                handle = progress.start(displayName, cancel);
             }
 
             @Override
-            public void finish() {
+            public synchronized void finish() {
+                if (run != null) {
+                    run.finish();
+                    run = null;
+                }
                 if (handle != null) {
                     handle.finish();
                     handle = null;

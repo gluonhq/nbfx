@@ -20,12 +20,14 @@ package org.netbeans.modules.nbfx.platform.output;
 
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Contributes the Window ▸ Output command that opens the Output view.
+ * Contributes the Window ▸ Output command that opens the Output view, and the commands of the
+ * focused console, whose shortcuts the Keymap options list.
  *
  * @since 1.0
  */
@@ -34,6 +36,9 @@ public final class OutputCommandsProvider implements CommandsProvider {
 
     @Override
     public Collection<Command> createCommands() {
-        return List.of(new SelectOutputCommand());
+        List<Command> commands = new ArrayList<>();
+        commands.add(new SelectOutputCommand());
+        commands.addAll(OutputCommands.commands());
+        return commands;
     }
 }

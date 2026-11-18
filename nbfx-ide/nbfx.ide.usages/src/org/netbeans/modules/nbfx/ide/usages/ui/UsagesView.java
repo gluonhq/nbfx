@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.usages.ui;
 
+import org.netbeans.api.nbfx.views.TabPaneActivation;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.modules.nbfx.ide.usages.model.UsagesModel;
@@ -68,7 +69,8 @@ final class UsagesView extends StackPane {
         getStyleClass().add("usages-view");
         getStylesheets().add(Objects.requireNonNull(UsagesView.class.getResource("usages.css")).toExternalForm());
 
-        queries.getStyleClass().add("nbfx-tab-pane");
+        // As the panes of the main window, the selected tab marked while the focus is in the results.
+        TabPaneActivation.markActiveOnFocus(queries);
         queries.pseudoClassStateChanged(PseudoClass.getPseudoClass("usages-queries"), true);
         queries.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         queries.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);

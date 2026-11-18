@@ -86,6 +86,24 @@ public final class ActionIds {
     /** Shows and selects the Output view (Window menu). */
     public static final String SELECT_OUTPUT = "selectOutput";
 
+    /** Output window: wraps the lines of the consoles, or stops wrapping them. Acts on the active console. */
+    public static final String OUTPUT_WRAP_TEXT = "outputWrapText";
+
+    /** Output window: a larger console font. */
+    public static final String OUTPUT_LARGER_FONT = "outputLargerFont";
+
+    /** Output window: a smaller console font. */
+    public static final String OUTPUT_SMALLER_FONT = "outputSmallerFont";
+
+    /** Output window: saves the text of the active console to a file. */
+    public static final String OUTPUT_SAVE_AS = "outputSaveAs";
+
+    /** Output window: clears the active console. */
+    public static final String OUTPUT_CLEAR = "outputClear";
+
+    /** Output window: closes the tab of the active console. */
+    public static final String OUTPUT_CLOSE = "outputClose";
+
     /** View menu: shows the popup listing every running task. */
     public static final String SHOW_PROGRESS = "showProgress";
 

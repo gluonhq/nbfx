@@ -18,53 +18,32 @@
  */
 package org.netbeans.modules.nbfx.platform.output;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.netbeans.api.nbfx.view.ViewManager;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import org.openide.util.Lookup;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.OutputConsole;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Default {@link OutputConsole}: a concurrent map of consoles and an observable, ordered view of them
- * for the output view.
- *
- * @since 1.0
+ * The platform's {@link OutputConsole}: the consoles of the application's {@link ConsoleRegistry},
+ * which the Output view shows. A console asking to be shown opens the Output window.
  */
 @ServiceProvider(service = OutputConsole.class)
 public final class ConsoleOutput implements OutputConsole {
 
-    private final Map<String, ConsoleModel> consoles = new ConcurrentHashMap<>();
-    private final ObservableList<ConsoleModel> ordered = FXCollections.observableArrayList();
+    private final ConsoleRegistry registry;
+
+    /** The service of the application, for the Lookup. */
+    public ConsoleOutput() {
+        this(ConsoleRegistry.getDefault());
+        registry.setRevealer(console -> OutputViewProvider.reveal());
+    }
+
+    /** A service over {@code registry}, which reveals as it is set to; for tests. */
+    ConsoleOutput(ConsoleRegistry registry) {
+        this.registry = registry;
+    }
 
     @Override
-    public ConsolePanel console(String name) {
-        ConsoleModel model = consoles.computeIfAbsent(name, consoleName -> {
-            ConsoleModel created = new ConsoleModel(consoleName);
-            FxThread.run(() -> ordered.add(created));
-            return created;
-        });
-        showOutputView();
-        return model;
-    }
-
-    /**
-     * Brings the Output view on screen. Called whenever a console is created, so writing to the
-     * output always makes it visible, no matter which activity is writing.
-     */
-    private void showOutputView() {
-        FxThread.run(() -> {
-            ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
-            OutputViewProvider view = OutputViewProvider.instance();
-            if (manager != null && view != null) {
-                manager.show(view);
-            }
-        });
-    }
-
-    /** The consoles in the order they were created, for the output view. */
-    ObservableList<ConsoleModel> consoles() {
-        return ordered;
+    public ConsolePanel console(String id, String name) {
+        return registry.console(id, name);
     }
 }

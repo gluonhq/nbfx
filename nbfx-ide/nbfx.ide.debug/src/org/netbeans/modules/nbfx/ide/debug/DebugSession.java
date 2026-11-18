@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.debug;
 
-import org.netbeans.modules.nbfx.platform.output.ConsolePanel;
-import org.netbeans.modules.nbfx.platform.output.OutputConsole;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.OutputConsole;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -106,6 +106,9 @@ public final class DebugSession {
                 new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));
         int port = readPort(reader, request);
         ConsolePanel console = console(request);
+        if (console != null) {
+            console.show();
+        }
         startPump(reader, console);
 
         Map<String, Object> services = new HashMap<>();

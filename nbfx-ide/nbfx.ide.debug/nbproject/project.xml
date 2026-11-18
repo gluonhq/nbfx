@@ -26,7 +26,7 @@
             <code-name-base>org.netbeans.modules.nbfx.ide.debug</code-name-base>
             <module-dependencies>
                 <dependency>
-                    <code-name-base>org.netbeans.modules.nbfx.platform.output</code-name-base>
+                    <code-name-base>org.netbeans.modules.nbfx.api.output</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>

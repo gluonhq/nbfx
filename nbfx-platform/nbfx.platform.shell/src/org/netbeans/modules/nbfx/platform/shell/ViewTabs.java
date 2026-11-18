@@ -51,7 +51,9 @@ public final class ViewTabs {
     public static Tab create(ViewProvider view, String tooltip) {
         Tab tab = new Tab();
         // A Label graphic (not tab text) is required so the tab can be dragged/detached.
-        Label label = new Label(view.getTitle());
+        Label label = new Label();
+        // The tab follows the view's title, which a view may change with what it shows.
+        label.textProperty().bind(view.titleProperty());
         Node icon = icon(view);
         if (icon != null) {
             label.setGraphic(icon);

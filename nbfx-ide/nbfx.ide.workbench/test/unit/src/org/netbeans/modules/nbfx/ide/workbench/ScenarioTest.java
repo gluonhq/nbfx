@@ -22,8 +22,8 @@ import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.platform.output.ConsolePanel;
-import org.netbeans.modules.nbfx.platform.output.OutputConsole;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.OutputConsole;
 import org.netbeans.modules.nbfx.ide.build.BuildRunner;
 
 import java.io.IOException;
@@ -133,7 +133,7 @@ public class ScenarioTest extends NbTestCase {
 
         OutputConsole output = Lookup.getDefault().lookup(OutputConsole.class);
         assertNotNull("no OutputConsole", output);
-        ConsolePanel console = output.console("w0-scenario");
+        ConsolePanel console = BuildRunner.console(work, "w0-scenario");
         console.clear();
         BuildRunner.run(work, "build", "w0-scenario");
         ScenarioSupport.await("build (console: " + console.text() + ")", 180,

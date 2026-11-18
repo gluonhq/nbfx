@@ -26,6 +26,25 @@
         <apidef name="netbeansfx_views">NetBeansFX View API</apidef>
     </apidefs>
     <changes>
+        <change id="tabpane.activation">
+            <api name="netbeansfx_views"/>
+            <summary>A view's inner tab pane styled and marked active as the main panes.</summary>
+            <version major="1" minor="8"/>
+            <date day="19" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>TabPaneActivation.markActiveOnFocus(TabPane)</code>: the
+                <code>nbfx-tab-pane</code> style class, whose styles moved from the shell's
+                stylesheet to the common control styles of the theme, and the <code>active</code>
+                pseudo-class while the keyboard focus is within the pane. Output, Search and Usages
+                use it for their inner tabs. Adds <code>ViewProvider.titleProperty()</code>, a
+                default method holding <code>getTitle()</code>: the title the view's tab follows,
+                for a view whose content names itself, as the Output window showing one console.
+            </description>
+            <class package="org.netbeans.api.nbfx.views" name="TabPaneActivation"/>
+            <class package="org.netbeans.api.nbfx.view" name="ViewProvider"/>
+        </change>
         <change id="view.placement.types">
             <api name="netbeansfx_views"/>
             <summary>One view placement type and package.</summary>

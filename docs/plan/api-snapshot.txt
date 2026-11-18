@@ -4,6 +4,7 @@
 # nbfx-platform/nbfx.api.file
 # nbfx-platform/nbfx.api.layer
 # nbfx-platform/nbfx.api.options
+# nbfx-platform/nbfx.api.output
 # nbfx-platform/nbfx.api.property
 # nbfx-platform/nbfx.api.status
 # nbfx-platform/nbfx.api.views
@@ -62,6 +63,9 @@ org.netbeans.api.nbfx.options.OptionsDisplayer
 org.netbeans.api.nbfx.options.OptionsPanelController
 org.netbeans.api.nbfx.options.OptionsRegistration
 org.netbeans.api.nbfx.options.OptionsSubRegistration
+org.netbeans.api.nbfx.output.ConsolePanel
+org.netbeans.api.nbfx.output.ConsoleRun
+org.netbeans.api.nbfx.output.OutputConsole
 org.netbeans.api.nbfx.project.OpenProject
 org.netbeans.api.nbfx.project.ProjectIconProvider
 org.netbeans.api.nbfx.project.ProjectLifecycle
@@ -99,6 +103,7 @@ org.netbeans.api.nbfx.views.MenuRegistrations
 org.netbeans.api.nbfx.views.PaneKind
 org.netbeans.api.nbfx.views.PaneRegistration
 org.netbeans.api.nbfx.views.PaneRegistrations
+org.netbeans.api.nbfx.views.TabPaneActivation
 org.netbeans.api.nbfx.views.ToolbarRegistration
 org.netbeans.api.nbfx.views.ToolbarRegistrations
 org.netbeans.api.nbfx.views.ViewArea

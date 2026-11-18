@@ -23,8 +23,8 @@ import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectOpener;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.platform.output.ConsolePanel;
-import org.netbeans.modules.nbfx.platform.output.OutputConsole;
+import org.netbeans.api.nbfx.output.ConsolePanel;
+import org.netbeans.api.nbfx.output.OutputConsole;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -99,6 +99,7 @@ public final class ScenarioRunner {
                 throw new IllegalStateException("OutputConsole is not available");
             }
             ConsolePanel console = output.console("nbfx-scenario");
+            console.show();
             console.clear();
             runProcess(work, List.of("ant", "build"), console);
             ScenarioSupport.await("build", 120, () -> console.text().contains("BUILD SUCCESSFUL"));

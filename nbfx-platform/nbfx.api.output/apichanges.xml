@@ -26,33 +26,27 @@
         <apidef name="netbeansfx_output">NetBeansFX Output API</apidef>
     </apidefs>
     <changes>
-        <change id="output.console.text">
+        <change id="output.api">
             <api name="netbeansfx_output"/>
-            <summary>FxConsole exposes the accumulated text.</summary>
+            <summary>The output console contract, out of the Output window's module.</summary>
             <version major="1" minor="0"/>
-            <date day="21" month="10" year="2026"/>
-            <author login="sven"/>
+            <date day="19" month="11" year="2026"/>
+            <author login="jpereda"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>
-                Adds <code>FxConsole.text()</code>, the text accumulated so far; the headless W0
-                scenario uses it to assert build and run output without reaching into the view.
+                <code>OutputConsole</code> and <code>ConsolePanel</code> move here from
+                <code>platform.output</code>, which no longer publishes a package. Asking for a
+                console no longer opens the Output window: <code>ConsolePanel.show()</code> does.
+                A console can be asked for by an id apart from the name on its tab, with
+                <code>OutputConsole.console(String, String)</code>.
+                A console learns how to run its activity again with
+                <code>ConsolePanel.setRerun(Runnable)</code>, and that one is running, and how to
+                stop it, with <code>ConsolePanel.startRun(Runnable)</code>, whose
+                <code>ConsoleRun</code> ends that run and no other.
             </description>
-            <class package="org.netbeans.modules.nbfx.platform.output" name="FxConsole"/>
-        </change>
-        <change id="output.initial">
-            <api name="netbeansfx_output"/>
-            <summary>Initial pure-JavaFX output consoles.</summary>
-            <version major="1" minor="0"/>
-            <date day="8" month="10" year="2026"/>
-            <author login="sven"/>
-            <compatibility addition="yes" semantic="compatible"/>
-            <description>
-                Introduces <code>FxOutput</code>, <code>FxConsole</code> and the Output view,
-                registered under <code>NbFx/Views</code>. Build and run activities write into named
-                consoles. The API is under development until the MVP freeze.
-            </description>
-            <class package="org.netbeans.modules.nbfx.platform.output" name="FxOutput"/>
-            <class package="org.netbeans.modules.nbfx.platform.output" name="FxConsole"/>
+            <class package="org.netbeans.api.nbfx.output" name="OutputConsole"/>
+            <class package="org.netbeans.api.nbfx.output" name="ConsolePanel"/>
+            <class package="org.netbeans.api.nbfx.output" name="ConsoleRun"/>
         </change>
     </changes>
     <htmlcontents>
@@ -63,7 +57,7 @@
             <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
             <h1>Introduction</h1>
             <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Output API</a>.</p>
-            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.platform.output"/>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.output"/>
             <hr/><p>@FOOTER@</p>
         </body>
     </htmlcontents>

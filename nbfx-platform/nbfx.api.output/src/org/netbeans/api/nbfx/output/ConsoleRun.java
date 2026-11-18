@@ -16,33 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.output;
+package org.netbeans.api.nbfx.output;
 
 /**
- * A named JavaFX output console: the text of a build, a run, a test or any other streaming activity.
- * Appending is safe from any thread; the text is shown on the JavaFX Application Thread.
+ * One activity filling a {@link ConsolePanel}, from {@link ConsolePanel#startRun} to
+ * {@link #finish()}. It is the identity of the run: finishing it ends this run and no other, so a
+ * run that ends after the next one started - its last message still on its way - does not mark
+ * the console as idle.
  *
  * @since 1.0
  */
-public interface ConsolePanel {
-
-    /** The console's name, shown on its tab. */
-    String getName();
-
-    /** Appends {@code text} to the console. Safe to call from any thread. */
-    void append(String text);
-
-    /** Clears the console. Safe to call from any thread. */
-    void clear();
-
-    /** Brings the console's tab to the front, if it is showing. */
-    void show();
+public interface ConsoleRun {
 
     /**
-     * The text accumulated so far. Safe to call from any thread.
-     *
-     * @return the console text, never {@code null}
-     * @since 1.0
+     * Ends the run: the console is idle again, unless another run has started on it since. Safe
+     * to call from any thread, and more than once.
      */
-    String text();
+    void finish();
 }

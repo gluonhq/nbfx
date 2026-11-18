@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.search.ui;
 
+import org.netbeans.api.nbfx.views.TabPaneActivation;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.modules.nbfx.ide.search.model.FindModel;
@@ -84,7 +85,8 @@ final class SearchView extends StackPane {
         getStyleClass().add("search-view");
         getStylesheets().add(Objects.requireNonNull(SearchView.class.getResource("search.css")).toExternalForm());
 
-        queries.getStyleClass().add("nbfx-tab-pane");
+        // As the panes of the main window, the selected tab marked while the focus is in the results.
+        TabPaneActivation.markActiveOnFocus(queries);
         queries.pseudoClassStateChanged(PseudoClass.getPseudoClass("search-results"), true);
         queries.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         queries.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);

@@ -66,8 +66,21 @@ public interface ViewProvider extends Lookup.Provider {
         return getClass().getName();
     }
 
-    /** The title of the tab holding this view. */
+    /** The name of this view: the title of the tab holding it, unless {@link #titleProperty()} says otherwise. */
     String getTitle();
+
+    /**
+     * The title of the tab holding this view, as an observable the tab follows: a view whose
+     * content names itself - the Output window showing a single console - puts that in its tab.
+     * The view is still known by {@link #getTitle()} in menus and in the saved layout. Defaults to
+     * a value holding {@link #getTitle()}.
+     *
+     * @return the tab title; a provider returns the same observable on every call
+     * @since 1.8
+     */
+    default ObservableValue<String> titleProperty() {
+        return new SimpleObjectProperty<>(getTitle());
+    }
 
     /** A short description of this view, used for tooltips. Defaults to {@link #getTitle()}. */
     default String getDescription() {

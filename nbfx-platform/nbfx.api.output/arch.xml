@@ -25,58 +25,60 @@
 
 <api-answers
   question-version="1.29"
-  author="sven"
+  author="jpereda"
 >
 
   &api-questions;
 
   <answer id="arch-what">
     <p>
-      The <b>nbfx Output API</b> provides the pure-JavaFX output consoles: the
-      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxOutput.html">FxOutput</a> service and the
-      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxConsole.html">FxConsole</a> handles, shown by
-      the Output view.
+      The <b>nbfx Output API</b> is the contract of the output consoles: the
+      <a href="@TOP@/org/netbeans/api/nbfx/output/OutputConsole.html">OutputConsole</a> service, the
+      <a href="@TOP@/org/netbeans/api/nbfx/output/ConsolePanel.html">ConsolePanel</a> handles it gives out and the
+      <a href="@TOP@/org/netbeans/api/nbfx/output/ConsoleRun.html">ConsoleRun</a> of an activity writing to one.
     </p>
   </answer>
 
   <answer id="arch-overall">
     <p>
-      Build, run and test activities write into named consoles obtained from the <code>FxOutput</code>
-      service. Each console accumulates text thread-safely and marshals it to the JavaFX Application
-      Thread; the Output view shows the consoles as tabs. The default implementation is registered
-      with <code>@ServiceProvider</code>; the view with <code>@ViewRegistration</code>.
+      Build, run and test activities write into named consoles obtained from the
+      <code>OutputConsole</code> service. The contract has no toolkit type: a console takes text
+      from any thread, and an activity tells its console how to run it again and, from its start to
+      its end, how to stop it. The platform's Output window (<code>platform.output</code>, an
+      implementation module that publishes nothing) provides the service and shows the consoles.
+      Writers, colours, hyperlinks and folds are not part of the contract yet.
     </p>
   </answer>
 
   <answer id="arch-usecases">
     <ul>
-      <li>Build and Run commands stream the tool output into a console.</li>
-      <li>A user opens the Output view to read the streaming output.</li>
+      <li>Build and Run commands stream the tool output into a console and show it.</li>
+      <li>A build tells its console how to run it again and how to stop it.</li>
     </ul>
   </answer>
 
   <answer id="arch-quality">
-    <p>The console registry and accumulation are unit-tested. The API is under development.</p>
+    <p>The contract is exercised by the tests of its implementation and of the build runner. The API is under development.</p>
   </answer>
 
   <answer id="dep-jrejdk">
-    <p>A JDK is required only to compile; JavaFX is provided by the runtime.</p>
+    <p>A JDK is required only to compile.</p>
   </answer>
 
   <answer id="deploy-packages">
-    <p>Only <code>org.netbeans.modules.nbfx.platform.output</code> is public.</p>
+    <p>Only <code>org.netbeans.api.nbfx.output</code> is public.</p>
   </answer>
 
   <answer id="lookup-lookup">
-    <p><code>FxOutput</code> is resolved from the global Lookup.</p>
+    <p>Clients find <code>OutputConsole</code> in the global Lookup.</p>
   </answer>
 
   <answer id="lookup-register">
-    <p><code>FxOutputImpl</code> is registered as the <code>FxOutput</code> service.</p>
+    <p>Nothing; the platform's Output window registers the service.</p>
   </answer>
 
   <answer id="resources-layer">
-    <p>The Output view is registered under <code>NbFx/Views</code>.</p>
+    <p>None.</p>
   </answer>
 
   <answer id="resources-read">
@@ -88,14 +90,11 @@
   </answer>
 
   <answer id="exec-threading">
-    <p>
-      Console appends are safe from any thread; they are marshalled to the JavaFX Application Thread.
-      The Output view is built on the JavaFX Application Thread.
-    </p>
+    <p>Every method of the contract is safe to call from any thread.</p>
   </answer>
 
   <answer id="perf-startup">
-    <p>No console is created until something writes to it.</p>
+    <p>No code runs at startup.</p>
   </answer>
 
   <answer id="perf-exit">
