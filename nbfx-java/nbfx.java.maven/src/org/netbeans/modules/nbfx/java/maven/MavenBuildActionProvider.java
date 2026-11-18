@@ -28,7 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.netbeans.spi.project.ProjectServiceProvider;
 import org.openide.util.lookup.ServiceProvider;
 
@@ -52,35 +51,29 @@ public final class MavenBuildActionProvider implements BuildActionProvider {
 
     @Override
     public List<String> commandLine(Path dir, String command) {
-        String[] goals = goals(command);
-        if (goals == null) {
+        MavenActions.Invocation invocation = MavenActions.forCommand(dir, command);
+        if (invocation == null) {
             return null;
         }
-        List<String> line = new ArrayList<>(goals.length + 1);
+        List<String> line = new ArrayList<>();
         line.add(executable(dir, "mvnw", "mvn"));
-        line.addAll(List.of(goals));
+        if (!invocation.profiles().isEmpty()) {
+            line.add("-P" + String.join(",", invocation.profiles()));
+        }
+        invocation.properties().forEach((name, value) -> line.add("-D" + name + "=" + value));
+        line.addAll(invocation.goals());
         return List.copyOf(line);
     }
 
+    /** Runs what the project's {@code nbactions.xml} maps {@code command} to, or else its default goals. */
     @Override
     public BuildExecution start(Path dir, String command, BuildOutput output, BuildProgress progress) {
-        String[] goals = goals(command);
-        if (goals == null) {
+        MavenActions.Invocation invocation = MavenActions.forCommand(dir, command);
+        if (invocation == null) {
             return null;
         }
-        return MavenGoals.start(dir, List.of(goals), Map.of(), output, progress);
-    }
-
-    private static String[] goals(String command) {
-        return switch (command) {
-            case BuildCommands.BUILD -> new String[] {"package"};
-            case BuildCommands.CLEAN -> new String[] {"clean"};
-            case BuildCommands.REBUILD -> new String[] {"clean", "package"};
-            case BuildCommands.TEST -> new String[] {"test"};
-            case BuildCommands.RUN -> new String[] {"compile", "exec:java"};
-            case BuildCommands.JAVADOC -> new String[] {"javadoc:javadoc"};
-            default -> null;
-        };
+        return MavenGoals.start(dir, invocation.goals(), invocation.properties(), invocation.profiles(),
+                output, progress);
     }
 
     private static String executable(Path dir, String wrapper, String fallback) {

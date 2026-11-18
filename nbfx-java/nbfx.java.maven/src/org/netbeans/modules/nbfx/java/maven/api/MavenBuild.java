@@ -23,7 +23,9 @@ import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -31,8 +33,12 @@ import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import org.apache.maven.execution.AbstractExecutionListener;
+import org.apache.maven.execution.ExecutionEvent;
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionResult;
+import org.apache.maven.plugin.MojoExecution;
+import org.apache.maven.project.MavenProject;
 import org.netbeans.modules.maven.embedder.EmbedderFactory;
 import org.netbeans.modules.maven.embedder.MavenEmbedder;
 
@@ -53,13 +59,16 @@ final class MavenBuild implements BuildExecution {
     private final Path dir;
     private final String[] goals;
     private final Map<String, String> properties;
+    private final List<String> profiles;
     private final BuildOutput output;
     private final BuildProgress progress;
 
-    MavenBuild(Path dir, String[] goals, Map<String, String> properties, BuildOutput output, BuildProgress progress) {
+    MavenBuild(Path dir, String[] goals, Map<String, String> properties, List<String> profiles,
+            BuildOutput output, BuildProgress progress) {
         this.dir = dir;
         this.goals = goals;
         this.properties = properties;
+        this.profiles = profiles;
         this.output = output;
         this.progress = progress;
     }
@@ -95,8 +104,12 @@ final class MavenBuild implements BuildExecution {
             logger.setLevel(Level.FINER);
             MavenEmbedder embedder = EmbedderFactory.getProjectEmbedder();
             MavenExecutionRequest request = embedder.createMavenExecutionRequest();
-            request.setBaseDirectory(dir.toFile());
+            configure(request, dir);
+            request.setExecutionListener(new Progress());
             request.setGoals(List.of(goals));
+            if (!profiles.isEmpty()) {
+                request.setActiveProfiles(new ArrayList<>(profiles));
+            }
             if (!properties.isEmpty()) {
                 Properties userProperties = new Properties();
                 userProperties.putAll(properties);
@@ -117,6 +130,61 @@ final class MavenBuild implements BuildExecution {
             logger.removeHandler(handler);
             logger.setLevel(previous);
             progress.finish();
+        }
+    }
+
+    /**
+     * Writes what {@code mvn} prints as a build goes along and the embedder does not log: the
+     * project being built and each plugin goal as it starts, in Maven's own words, so the output
+     * reads as it does in a terminal and {@link MavenOutput} recognises the goal lines.
+     */
+    private final class Progress extends AbstractExecutionListener {
+
+        @Override
+        public void projectStarted(ExecutionEvent event) {
+            MavenProject project = event.getProject();
+            if (project != null) {
+                output.append("\nBuilding " + project.getName() + " " + project.getVersion() + "\n");
+            }
+        }
+
+        @Override
+        public void mojoStarted(ExecutionEvent event) {
+            MojoExecution mojo = event.getMojoExecution();
+            if (mojo == null) {
+                return;
+            }
+            // The plugin by its artifact id: its goal prefix is in a descriptor nbfx cannot see.
+            StringBuilder line = new StringBuilder("--- ")
+                    .append(mojo.getArtifactId())
+                    .append(':').append(mojo.getVersion())
+                    .append(':').append(mojo.getGoal());
+            if (mojo.getExecutionId() != null) {
+                line.append(" (").append(mojo.getExecutionId()).append(')');
+            }
+            MavenProject project = event.getProject();
+            if (project != null) {
+                line.append(" @ ").append(project.getArtifactId());
+            }
+            line.append(" ---");
+            output.append("\n" + line + "\n", MavenOutput.lineKind(line.toString()));
+        }
+    }
+
+    /**
+     * Points {@code request} at the project in {@code dir}, as {@code mvn} run in that folder does:
+     * its base directory, its {@code pom.xml} - without which Maven builds no project and every
+     * goal needing one fails with "there is no POM in this directory" - and the root of its
+     * {@code .mvn} configuration. A folder without a POM gets none, for the goals that need no
+     * project.
+     */
+    static void configure(MavenExecutionRequest request, Path dir) {
+        File folder = dir.toAbsolutePath().normalize().toFile();
+        request.setBaseDirectory(folder);
+        request.setMultiModuleProjectDirectory(folder);
+        File pom = new File(folder, "pom.xml");
+        if (pom.isFile()) {
+            request.setPom(pom);
         }
     }
 

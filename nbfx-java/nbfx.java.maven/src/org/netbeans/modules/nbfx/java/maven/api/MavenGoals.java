@@ -45,7 +45,21 @@ public final class MavenGoals {
      */
     public static BuildExecution start(Path dir, List<String> goals, Map<String, String> properties,
             BuildOutput output, BuildProgress progress) {
-        MavenBuild build = new MavenBuild(dir, goals.toArray(String[]::new), Map.copyOf(properties), output, progress);
+        return start(dir, goals, properties, List.of(), output, progress);
+    }
+
+    /**
+     * Starts {@code goals} in the project at {@code dir}, with {@code properties} as the user
+     * properties ({@code -Dname=value}) and {@code profiles} activated ({@code -Pname}), streaming
+     * the build's log to {@code output} and reporting to {@code progress}.
+     *
+     * @return the running build, to cancel it
+     * @since 1.2
+     */
+    public static BuildExecution start(Path dir, List<String> goals, Map<String, String> properties,
+            List<String> profiles, BuildOutput output, BuildProgress progress) {
+        MavenBuild build = new MavenBuild(dir, goals.toArray(String[]::new), Map.copyOf(properties),
+                List.copyOf(profiles), output, progress);
         build.start();
         return build;
     }
