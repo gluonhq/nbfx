@@ -304,7 +304,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
 | `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
-| `api.output` | M | **partial — first slice landed (#171)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity); M1: `OutputWriter`, hyperlinks, folds, colours, tool-contributed console actions |
+| `api.output` | M | **partial — first slices landed (#171, #172)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity), `OutputKind` (text coloured by kind through theme tokens); M1: `OutputWriter`, hyperlinks, folds, ANSI colours, tool-contributed console actions |
 | `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
