@@ -23,19 +23,14 @@ import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
-import java.util.List;
-import javafx.collections.ListChangeListener;
 import javafx.scene.Node;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.TextArea;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  * The Output view: a dockable tab, opening along the bottom of the main area by default, that shows
- * every {@link ConsolePanel} as an inner tab.
+ * every {@link ConsolePanel} as an inner tab of an {@link OutputView}.
  *
  * @since 1.0
  */
@@ -49,7 +44,7 @@ public final class OutputViewProvider implements ViewProvider {
     /** The stable id of the view, used by the layout persistence and the view manager. */
     public static final String ID = "output";
 
-    private TabPane pane;
+    private Node view;
 
     @Override
     public String getId() {
@@ -68,35 +63,13 @@ public final class OutputViewProvider implements ViewProvider {
 
     @Override
     public synchronized Node getView() {
-        if (pane == null) {
-            pane = new TabPane();
-            pane.getStyleClass().add("output-view");
-            if (Lookup.getDefault().lookup(OutputConsole.class) instanceof ConsoleOutput output) {
-                for (ConsoleModel console : List.copyOf(output.consoles())) {
-                    addConsoleTab(console);
-                }
-                output.consoles().addListener((ListChangeListener<ConsoleModel>) change -> {
-                    while (change.next()) {
-                        for (ConsoleModel console : change.getAddedSubList()) {
-                            addConsoleTab(console);
-                        }
-                    }
-                });
-            }
+        if (view == null) {
+            // Without the service nothing can write to the output: an empty view.
+            ConsoleOutput output = Lookup.getDefault().lookup(OutputConsole.class) instanceof ConsoleOutput consoles
+                    ? consoles : new ConsoleOutput();
+            view = new OutputView(output, OutputSettings.getDefault());
         }
-        return pane;
-    }
-
-    private void addConsoleTab(ConsoleModel console) {
-        TextArea area = new TextArea();
-        area.setEditable(false);
-        area.setWrapText(false);
-        area.getStyleClass().add("output-console");
-        Tab tab = new Tab(console.getName(), area);
-        console.attach(area::appendText, area::clear,
-                () -> pane.getSelectionModel().select(tab));
-        pane.getTabs().add(tab);
-        pane.getSelectionModel().select(tab);
+        return view;
     }
 
     /** Brings the Output view on screen. Must run on the JavaFX Application Thread. */

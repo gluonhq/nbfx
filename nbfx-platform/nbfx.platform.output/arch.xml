@@ -33,18 +33,21 @@
   <answer id="arch-what">
     <p>
       The <b>nbfx Output API</b> provides the pure-JavaFX output consoles: the
-      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxOutput.html">FxOutput</a> service and the
-      <a href="@TOP@/org/netbeans/modules/nbfx/output/FxConsole.html">FxConsole</a> handles, shown by
+      <a href="@TOP@/org/netbeans/modules/nbfx/platform/output/OutputConsole.html">OutputConsole</a> service and the
+      <a href="@TOP@/org/netbeans/modules/nbfx/platform/output/ConsolePanel.html">ConsolePanel</a> handles, shown by
       the Output view.
     </p>
   </answer>
 
   <answer id="arch-overall">
     <p>
-      Build, run and test activities write into named consoles obtained from the <code>FxOutput</code>
+      Build, run and test activities write into named consoles obtained from the <code>OutputConsole</code>
       service. Each console accumulates text thread-safely and marshals it to the JavaFX Application
-      Thread; the Output view shows the consoles as tabs. The default implementation is registered
-      with <code>@ServiceProvider</code>; the view with <code>@ViewRegistration</code>.
+      Thread; the Output view shows the consoles as tabs, each a read-only rich text area over a
+      model of the console lines, beside a tool bar acting on the selected console. An activity
+      tells its console how to run it again and how to stop it; the tool bar and the context menu
+      of the console offer both. The default implementation is registered with
+      <code>@ServiceProvider</code>; the view with <code>@ViewRegistration</code>.
     </p>
   </answer>
 
@@ -52,11 +55,13 @@
     <ul>
       <li>Build and Run commands stream the tool output into a console.</li>
       <li>A user opens the Output view to read the streaming output.</li>
+      <li>A user runs a build again, or stops it, from its console.</li>
+      <li>A user copies or saves the output, wraps it or changes its font size.</li>
     </ul>
   </answer>
 
   <answer id="arch-quality">
-    <p>The console registry and accumulation are unit-tested. The API is under development.</p>
+    <p>The console registry, the line model and the view are unit-tested. The API is under development.</p>
   </answer>
 
   <answer id="dep-jrejdk">
@@ -68,11 +73,11 @@
   </answer>
 
   <answer id="lookup-lookup">
-    <p><code>FxOutput</code> is resolved from the global Lookup.</p>
+    <p><code>OutputConsole</code> is resolved from the global Lookup.</p>
   </answer>
 
   <answer id="lookup-register">
-    <p><code>FxOutputImpl</code> is registered as the <code>FxOutput</code> service.</p>
+    <p><code>ConsoleOutput</code> is registered as the <code>OutputConsole</code> service.</p>
   </answer>
 
   <answer id="resources-layer">
@@ -84,7 +89,7 @@
   </answer>
 
   <answer id="resources-preferences">
-    <p>None.</p>
+    <p>The module's preferences keep the font size and the line wrapping of the consoles.</p>
   </answer>
 
   <answer id="exec-threading">

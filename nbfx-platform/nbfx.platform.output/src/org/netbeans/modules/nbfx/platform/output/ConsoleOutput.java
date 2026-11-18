@@ -67,4 +67,15 @@ public final class ConsoleOutput implements OutputConsole {
     ObservableList<ConsoleModel> consoles() {
         return ordered;
     }
+
+    /**
+     * Forgets {@code console}, whose tab was closed: asking for its name again gives a new, empty
+     * console in a new tab. An activity still writing to the closed console is not stopped; what it
+     * writes is no longer shown. Called on the JavaFX Application Thread.
+     */
+    void close(ConsoleModel console) {
+        consoles.remove(console.getName(), console);
+        ordered.remove(console);
+        console.detach();
+    }
 }

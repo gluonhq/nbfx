@@ -55,6 +55,8 @@ import org.openide.util.NbBundle;
 final class SearchView extends StackPane {
 
     private static final PseudoClass SINGLE = PseudoClass.getPseudoClass("single");
+    /** What the shell's tab panes carry while they hold the focus: the style of the marked tab. */
+    private static final PseudoClass ACTIVE = PseudoClass.getPseudoClass("active");
     /** Longer tab titles are cut with an ellipsis. */
     static final int TITLE_LIMIT = 40;
 
@@ -86,6 +88,9 @@ final class SearchView extends StackPane {
 
         queries.getStyleClass().add("nbfx-tab-pane");
         queries.pseudoClassStateChanged(PseudoClass.getPseudoClass("search-results"), true);
+        // As the panes of the main window: the selected tab is marked while the focus is anywhere
+        // in the pane - in the results - and not only on the tab header.
+        queries.focusWithinProperty().subscribe(within -> queries.pseudoClassStateChanged(ACTIVE, within));
         queries.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         queries.setTabDragPolicy(TabPane.TabDragPolicy.REORDER);
         empty.getStyleClass().add("search-empty");

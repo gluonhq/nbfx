@@ -304,7 +304,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
 | `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
-| `api.output` | M | **planned — M1** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours |
+| `api.output` | M | **planned — M1** | `OutputConsole`, `OutputWriter`, hyperlinks, folds, colours, console actions (re-run, stop, tool-contributed) |
 | `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
@@ -366,7 +366,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.settings` | settings storage UI (preferences browser, export/import) | planned — M1 |
 | `platform.options` | options window (categories, tabs, search, validity) | **T0** implementation; the panel SPI and displayer live in `api.options` (#162); no public package, spec, arch or apichanges |
 | `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet landed; node views planned M1; T0 implementation, the model is `api.nodes`/`api.property` |
-| `platform.output` | output window view on `api.output` | landed UI; `api.output` extraction M1 |
+| `platform.output` | output window view on `api.output` | landed UI: pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model, NetBeans' context menu (copy, wrap, font size, save, clear, close); `api.output` extraction and **window parity M1** (§11 W3b) |
 | `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | planned — M1 (process first; terminal separate) |
 | `platform.terminal` | VT/xterm model + FX renderer + tabs | planned — M2, after the VT parser/library decision in M1 |
 | `platform.quicksearch` | command palette + providers | planned — M1, after `api.search` is redesigned |
@@ -488,7 +488,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; **API partial: the model moves to `api.nodes` and the editor SPI to `api.property` in M0**; explorer views M1; IDE contributors in `ide.workbench` |
 | Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
 | Progress | `platform.progress` + `api.progress` | landed |
-| Output | `platform.output` + `api.output` | output UI landed; **`api.output` extraction M1** |
+| Output | `platform.output` + `api.output` | output UI landed (tabs, tool bar, rich-text console, context menu); **`api.output` extraction + window parity M1** |
 | Execution | `platform.execution` + `api.execution` | planned — M1 (process first) |
 | Terminal | `platform.terminal` + `api.terminal` | planned — M2; M1 chooses the VT parser/library |
 | Quick search | `platform.quicksearch` + `api.search` | **API partial; search contract + palette M1** |
@@ -939,7 +939,10 @@ the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md
 
 **W3b — AppShell services (M1).** Each service is a platform service, not an IDE service; the IDE contributes
 through `ide.workbench`, and the AppShell conformance fixture grows with each branch. Order:
-`feature/dialogs` (contract + implementation), `feature/output-api` (extract `api.output`), `feature/settings-ui`
+`feature/dialogs` (contract + implementation), `feature/output-api` (extract `api.output`; then Output window
+parity on it, each a step: colours/ANSI SGR, hyperlinks, folds — hidden lines in the console text model, handles
+in the side decorator —, find/filter bar, input, line limits, tool-contributed actions such as re-run with
+parameters and tool settings, the Output options page), `feature/settings-ui`
 (+ `api.settings`), `feature/search-api` (+ `platform.quicksearch`), `feature/execution` (process/PTY first),
 `feature/templates`, `feature/credentials`, `feature/favorites`, `feature/indexing` (reuse
 `parsing.api`/`parsing.indexing`; index-on-open with progress, cancellation and a memory budget —

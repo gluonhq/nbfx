@@ -26,6 +26,22 @@
         <apidef name="netbeansfx_output">NetBeansFX Output API</apidef>
     </apidefs>
     <changes>
+        <change id="output.console.controls">
+            <api name="netbeansfx_output"/>
+            <summary>A console can be run again and stopped from the Output view.</summary>
+            <version major="1" minor="1"/>
+            <date day="18" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ConsolePanel.setRerun(Runnable)</code> and
+                <code>ConsolePanel.setStop(Runnable)</code>, both with a default implementation
+                doing nothing: what the <em>Re-run</em> and <em>Stop</em> buttons and menu items of
+                the Output view call for the console. The Output view shows the consoles in a
+                read-only rich text area, with NetBeans' tool bar and context menu.
+            </description>
+            <class package="org.netbeans.modules.nbfx.platform.output" name="ConsolePanel"/>
+        </change>
         <change id="output.console.text">
             <api name="netbeansfx_output"/>
             <summary>FxConsole exposes the accumulated text.</summary>

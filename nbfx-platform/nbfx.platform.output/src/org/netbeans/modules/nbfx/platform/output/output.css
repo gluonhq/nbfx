@@ -1,0 +1,165 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/* Output view */
+
+.output-view {
+    -fx-background-color: -nbfx-canvas;
+}
+
+/* The console tabs: the pane tabs of the main window, on the canvas of the view. */
+.nbfx-tab-pane:output-tabs > .tab-header-area,
+.nbfx-tab-pane:output-tabs > .tab-header-area > .tab-header-background,
+.nbfx-tab-pane:output-tabs:top > .tab-header-area > .tab-header-background,
+.nbfx-tab-pane:output-tabs:focused > .tab-header-area > .tab-header-background,
+.nbfx-tab-pane:output-tabs:dock-focused > .tab-header-area > .tab-header-background,
+.nbfx-tab-pane:output-tabs:top:focused > .tab-header-area > .tab-header-background,
+.nbfx-tab-pane:output-tabs:top:dock-focused > .tab-header-area > .tab-header-background {
+    -fx-background-color: -nbfx-canvas, -nbfx-canvas;
+}
+
+.nbfx-tab-pane:output-tabs {
+    -fx-padding: 3 0 0 0;
+    -fx-background-color: -nbfx-canvas;
+}
+
+/* The tool bar beside the tabs: 16px icons in 20px buttons, as the NetBeans tool bars. */
+.tool-bar.output-toolbar {
+    -fx-padding: 2 1 2 1;
+    -fx-spacing: 1;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent -nbfx-border transparent transparent;
+    -fx-border-width: 0 1 0 0;
+}
+
+.tool-bar.output-toolbar > .container > .output-tool-button,
+.tool-bar.output-toolbar > .tool-bar-overflow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 2;
+    -fx-content-display: graphic-only;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-pref-width: 20;
+    -fx-pref-height: 20;
+}
+
+.tool-bar.output-toolbar > .container > .output-tool-button:hover,
+.tool-bar.output-toolbar > .tool-bar-overflow-button:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.tool-bar.output-toolbar > .container > .output-tool-button:armed {
+    -fx-background-color: -nbfx-pressed;
+}
+
+.tool-bar.output-toolbar > .container > .output-tool-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+/* The console text: the colours and the scroll bars of the editor. */
+.output-console,
+.output-console:focused {
+    -fx-padding: 0;
+    -fx-content-padding: 2 6 2 6;
+    -fx-background-color: -nbfx-editor-bg;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+}
+
+.output-console .caret {
+    -fx-stroke: -nbfx-editor-fg;
+}
+
+.output-console > .vflow,
+.output-console > .vflow > .scroll-bar,
+.output-console > .vflow > .vport,
+.output-console > .vflow > .vport > .content {
+    -fx-background-color: -nbfx-editor-bg;
+    -fx-background-insets: 0;
+}
+
+.output-console > .vflow > .vport > .content > .selection-highlight {
+    -fx-fill: -nbfx-editor-selection;
+}
+
+.output-console > .vflow > .scroll-bar:vertical,
+.output-console > .vflow > .scroll-bar:horizontal {
+    -fx-padding: 0;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal,
+.output-console > .vflow > .scroll-bar:horizontal:focused,
+.output-console > .vflow > .scroll-bar:vertical,
+.output-console > .vflow > .scroll-bar:vertical:focused {
+    -fx-background-color: -nbfx-track;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal > .track,
+.output-console > .vflow > .scroll-bar:vertical > .track {
+    -fx-background-color: -nbfx-track;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-background-insets: 0;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal:focused > .track,
+.output-console > .vflow > .scroll-bar:vertical:focused > .track {
+    -fx-background-color: -nbfx-track-focused;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal > .increment-button,
+.output-console > .vflow > .scroll-bar:horizontal > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0em;
+    -fx-padding: 5 0 5 0;
+}
+
+.output-console > .vflow > .scroll-bar:vertical > .increment-button,
+.output-console > .vflow > .scroll-bar:vertical > .decrement-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0em;
+    -fx-padding: 0 5 0 5;
+}
+
+.output-console > .vflow > .scroll-bar > .increment-button > .increment-arrow,
+.output-console > .vflow > .scroll-bar > .decrement-button > .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal > .thumb,
+.output-console > .vflow > .scroll-bar:vertical > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb;
+    -fx-background-insets: 0, 2;
+    -fx-background-radius: 20;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal:hover > .thumb,
+.output-console > .vflow > .scroll-bar:vertical:hover > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb-hover;
+}
+
+.output-console > .vflow > .scroll-bar:horizontal:pressed > .thumb,
+.output-console > .vflow > .scroll-bar:vertical:pressed > .thumb {
+    -fx-background-color: transparent, -nbfx-thumb-pressed;
+}

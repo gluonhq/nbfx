@@ -45,4 +45,27 @@ public interface ConsolePanel {
      * @since 1.0
      */
     String text();
+
+    /**
+     * Tells the Output view how to run again what fills this console: its <em>Re-run</em> button
+     * and menu item call {@code rerun} on the JavaFX Application Thread, and are disabled without
+     * one or while the console can be {@linkplain #setStop stopped}. Safe to call from any thread.
+     *
+     * @param rerun starts the activity again, or {@code null} when it cannot be
+     * @since 1.1
+     */
+    default void setRerun(Runnable rerun) {
+    }
+
+    /**
+     * Tells the Output view how to stop the activity filling this console: its <em>Stop</em> button
+     * and menu item call {@code stop} on the JavaFX Application Thread. The activity sets it when it
+     * starts and resets it to {@code null} when it ends, which is how the view knows whether
+     * something is running. Safe to call from any thread.
+     *
+     * @param stop stops the running activity, or {@code null} once nothing is running
+     * @since 1.1
+     */
+    default void setStop(Runnable stop) {
+    }
 }

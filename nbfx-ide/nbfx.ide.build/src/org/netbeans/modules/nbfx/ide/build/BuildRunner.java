@@ -81,9 +81,10 @@ public final class BuildRunner {
         ConsolePanel console = output.console(consoleName);
         console.clear();
         console.show();
+        console.setRerun(() -> run(dir, consoleName, starter));
         Progress progress = Lookup.getDefault().lookup(Progress.class);
         try {
-            if (starter.start(output(console), progress(progress, consoleName)) == null) {
+            if (starter.start(output(console), progress(progress, consoleName, console)) == null) {
                 console.append(NbBundle.getMessage(BuildRunner.class, "BuildCommand.noTool") + "\n");
             }
         } catch (RuntimeException | LinkageError t) {
@@ -104,6 +105,7 @@ public final class BuildRunner {
         ConsolePanel console = output.console(consoleName);
         console.clear();
         console.show();
+        console.setRerun(() -> run(dir, command, consoleName));
 
         Progress progress = Lookup.getDefault().lookup(Progress.class);
         BuildActionProvider provider = BuildActions.providerFor(dir);
@@ -112,7 +114,7 @@ public final class BuildRunner {
         if (provider != null) {
             try {
                 BuildExecution execution = provider.start(dir, command,
-                        output(console), progress(progress, consoleName));
+                        output(console), progress(progress, consoleName, console));
                 if (execution != null) {
                     return;
                 }
@@ -139,14 +141,17 @@ public final class BuildRunner {
             return;
         }
         AtomicReference<Process> process = new AtomicReference<>();
-        Progress.Handle handle = progress == null ? null : progress.start(consoleName, () -> {
+        Runnable cancel = () -> {
             Process running = process.get();
             if (running != null) {
                 running.destroy();
             }
-        });
+        };
+        Progress.Handle handle = progress == null ? null : progress.start(consoleName, cancel);
+        console.setStop(cancel);
         List<String> line = commandLine;
         ProcessRunner.run(line, dir, console, process::set, () -> {
+            console.setStop(null);
             if (handle != null) {
                 handle.finish();
             }
@@ -172,12 +177,17 @@ public final class BuildRunner {
         };
     }
 
-    private static BuildProgress progress(Progress progress, String name) {
+    /**
+     * The progress of an in-process build, which is also what tells {@code console} whether the
+     * build runs: its cancel action is the console's Stop from start to finish.
+     */
+    private static BuildProgress progress(Progress progress, String name, ConsolePanel console) {
         return new BuildProgress() {
             private Progress.Handle handle;
 
             @Override
             public void start(String displayName, Runnable cancel) {
+                console.setStop(cancel);
                 if (progress == null) {
                     return;
                 }
@@ -190,6 +200,7 @@ public final class BuildRunner {
 
             @Override
             public void finish() {
+                console.setStop(null);
                 if (handle != null) {
                     handle.finish();
                     handle = null;
