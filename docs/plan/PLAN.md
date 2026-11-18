@@ -1221,6 +1221,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #162 | options contract: `OptionsPanelController`/`OptionsDisplayer` in `api.options`; `platform.options` T0 | first W2a contract slice landed; §6.1/§6.1.1 options row |
 | #163 | project problems UI: JavaFX `ProjectProblemsImplementation` in `ide.project.ui`, superseding `projectui`/`BrokenReferencesImpl`; project-root resolver entry, show-again preference and open-project notifier | §6.3 `ide.project.ui`, §8 preference, §10.3 tests, Appendix D.2/D.4, Decision 28 |
 | #167 | common control styles: `controls.css` extracted from the shell's `styles.css` into `platform.theme` and added by `NbfxTheme` to every scene; dialogs stop copying the owner scene's stylesheets (#166) | theme follow-up; `appshell-chrome.md` §19 |
+| #171 | Output window: pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap; `ConsolePanel.setRerun`/`setStop` (`platform.output` 1.1), wired by `ide.build`; inner tabs of Output, Search and Usages marked on focus within | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api` parity steps (M1) |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
