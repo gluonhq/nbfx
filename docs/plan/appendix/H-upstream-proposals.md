@@ -166,7 +166,10 @@ default `getLookup()` has “significant potential to deadlocks” (`:1155`).
 `getNodeDelegate()` for non-UI clients. Additive; `openide.loaders` keeps the old types.
 **Buys nbfx.** `openide.loaders` becomes usable without initializing `openide.nodes`, so PR #12's workaround can
 go and `openide.nodes` can be pruned once its 388 dependants retire.
-**Prototype in nbfx.** `ide.project.ui`/`java.model` avoid `getLookup()`/`getNodeDelegate()` where they can;
+**Prototype in nbfx.** `api.layer.LayerInstances`/`LayerEntry` read the class-based `.instance` entries
+without `DataObject`/`InstanceCookie`; `refactor/layer-instances` migrates the six `Lookups.forPath`
+readers (`UiReady`, `PropertyEditors`, `OptionsRegistry`, `WizardRegistry`, `StatusElementRegistry`,
+`ViewRegistry`). `ide.project.ui`/`java.model` avoid `getLookup()`/`getNodeDelegate()` where they can;
 measure with `spike/loaders-node-free`. **Fallback:** keep PR #12 and `openide.nodes`, and say so in §1.
 
 ### H.4.2 `core.ui`: move the Swing warm-up out of the platform
@@ -235,7 +238,7 @@ interface + adapter and keep the friend call behind it, so the proposal is a dif
 | H.2 `api.progress` neutral | `api.progress` (M) + `platform.progress.bridge` | the same neutral model drives the nbfx progress UI **and** an FX `ProgressUIWorkerProvider` |
 | H.3 `openide.awt` neutral | `api.actions.core` + `spike/actions-neutral-core` | the file set is a 1:1 mirror of upstream's neutral classes; a sample plugin compiles against it |
 | H.4 `openide.nodes` headless | `api.nodes` `IconRef` + `spike/nodes-icon-source` | every icon in the app resolves through `IconRef`; no `java.awt`/`javafx` in `api.nodes` |
-| H.4.1 `DataObject` node-free | `spike/loaders-node-free` | `getLookup()`/`getCookie()` work without initializing `openide.nodes` |
+| H.4.1 `DataObject` node-free | `api.layer.LayerInstances` + `spike/loaders-node-free` | nbfx layer readers create their instances without `DataObject`/`InstanceCookie`; `getLookup()`/`getCookie()` work without initializing `openide.nodes` |
 | H.5 `editor.model` | `platform.editor` + `spike/editor-model-spi` | the FX editor implements the neutral SPI; a headless test drives it without a window |
 | H.6 `nbbuild` tooling | `nbfx-tools/` + `check-purity.xml` + `sigtest` on `nbfx.api`/`nbfx.annotations` | the five checks run on nbfx with zero nbfx-specific code |
 | H.7 friend APIs | `platform.launcher` + `spike/runlevel-api`, `spike/maven-embedder-facade` | the friend call sits behind a one-file adapter; the proposal is a diff of that file |

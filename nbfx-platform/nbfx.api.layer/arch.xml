@@ -32,7 +32,10 @@
 
     <answer id="arch-what">
         <p>
-            The <b>NBFX API</b> provides integration between NetBeans and JavaFX tools.
+            The layer API owns the nbfx layer folders: <code>LayerPaths</code> names them and
+            <code>LayerInstances</code>/<code>LayerEntry</code> read the class-based
+            <code>.instance</code> entries the nbfx annotation processors write, with their
+            attributes and layer order, without <code>DataObject</code> or <code>InstanceCookie</code>.
         </p>
     </answer>
     

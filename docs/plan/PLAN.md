@@ -328,7 +328,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.diff` | M | **planned — M2** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
 | `api.tasklist` | M | **planned — M2** | `TaskProvider`, `Task`, `TaskScope` |
 | `api.plugins` | T1 | **planned — M5** | plugin metadata, install/update service surface |
-| `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …); nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
+| `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …) — and `LayerInstances`/`LayerEntry` — the node-free reader of class-based `.instance` entries with their attributes and layer order; nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
 
 **Rule of creation:** an `api.*` module exists only when a second module (or a plugin) needs it. Start with
 T0/T1 inside the owning module and promote deliberately. The table is the **target catalogue**, not a backlog:
@@ -1015,7 +1015,8 @@ feature growth — the cut list kills a spike that becomes a language IDE.
 issue, a prototype in nbfx and a recorded fallback: `chore/upstream-module-tools` (the portable `nbbuild`
 checks, H.6 — portable ant tasks under `nbfx-tools/`), `spike/progress-neutral-spi` (H.2),
 `spike/java-source-headless` (H.1), `spike/actions-neutral-core` (H.3), `spike/nodes-icon-source` (H.4),
-`spike/loaders-node-free` (H.4.1),
+`spike/loaders-node-free` (H.4.1; `api.layer.LayerInstances` is its first slice, then
+`refactor/layer-instances` migrates the six readers),
 `spike/runlevel-api` (H.7), `spike/maven-embedder-facade` (H.7), `spike/editor-model-spi` (H.5, last).
 Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-proposals.md).
 
@@ -1231,7 +1232,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #171 | Output window: pane-styled console tabs (a single console shows without its inner header, the Output tab titled after it), tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap (`ActionIds.OUTPUT_*`). `api.output` extracted early: `OutputConsole` (consoles by id, apart from the name on their tab), `ConsolePanel`, `ConsoleRun`; `platform.output` T0; `ide.build`, `ide.debug`, `ide.workbench` on the API. `api.views` 1.8: `TabPaneActivation` and `ViewProvider.titleProperty()`; the pane tab styles in the theme's common control styles, for the inner tabs of Output, Search and Usages | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api`, Decision 26 |
 | #172 | Coloured output: `OutputKind` and `ConsolePanel.append(String, OutputKind)` (`api.output` 1.1), `BuildOutput.Kind` and `BuildActionProvider.lineKind` (`project.ui.api` 1.1), `-nbfx-output-*` theme tokens; Ant coloured in-process and as a process, whose error stream is read apart and shown as errors | §6.2 `platform.output`, §11 W3b `feature/output-api` (kinds, tokens and Ant landed; Maven, Gradle and ANSI SGR remain, M1) |
 | #173 | Coloured Maven and Gradle output, in-process and as a process: goals and tasks muted, the result green or red, errors red, Maven warnings orange, Gradle's standard error read apart and shown as errors; `MavenGoals.lineKind`, `GradleTasks.lineKind` (`java.maven`, `java.gradle` 1.1) | §11 W3b `feature/output-api` (output kinds complete for the three build tools; ANSI SGR and the later parity steps remain, M1) |
-| #174 | property/nodes contract: `api.nodes` M property model, `api.property` editor/FX model, property sheet on the API, `platform.nodes` T0, `ide.workbench` migration | §6.1/§6.1.1/§6.2, §11 W2a `refactor/nodes-property-contract` |
+| #174 | property/nodes contract: `api.nodes` M property model, `api.property` editor/FX model, property sheet on the API, `platform.nodes` T0, `ide.workbench` migration; `api.layer.LayerInstances`/`LayerEntry` read the class-based layer entries without `DataObject`/`InstanceCookie`, and the remaining layer readers migrate in `refactor/layer-instances` | §6.1/§6.1.1/§6.2, §11 W2a `refactor/nodes-property-contract` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the

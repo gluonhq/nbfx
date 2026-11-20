@@ -36,7 +36,8 @@ import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Generates the layer entry for {@link PropertyEditorRegistration}:
- * {@code NbFx/PropertyEditors/<valueType>.instance} with the handled value type as an attribute.
+ * {@code NbFx/PropertyEditors/<implementation>.instance}, with the implementation class as
+ * {@code instanceClass} and the handled value type, position and inline flag as attributes.
  *
  * @since 1.0
  */
@@ -60,7 +61,8 @@ public class PropertyEditorRegistrationProcessor extends LayerGeneratingProcesso
                 continue;
             }
             String valueType = valueTypeOf(registration);
-            String fileName = valueType.replace('.', '-').replace('$', '-');
+            String fileName = processingEnv.getElementUtils()
+                    .getBinaryName((TypeElement) element).toString().replace('.', '-');
             File file = layer(element).instanceFile(LayerPaths.PROPERTY_EDITORS, fileName,
                     PropertyEditor.class);
             file.stringvalue("valueType", valueType);
