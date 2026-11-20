@@ -22,6 +22,7 @@ import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TreeItem;
@@ -131,12 +132,17 @@ final class PropertySheet extends BorderPane {
         private PropertyModel property;
         private Runnable unsubscribe = () -> {
         };
+        private Runnable unsubscribeEditor = () -> {
+        };
 
         @Override
         protected void updateItem(Object item, boolean empty) {
             super.updateItem(item, empty);
             unsubscribe.run();
             unsubscribe = () -> {
+            };
+            unsubscribeEditor.run();
+            unsubscribeEditor = () -> {
             };
             property = null;
             setText(null);
@@ -155,9 +161,10 @@ final class PropertySheet extends BorderPane {
 
         private void observe(PropertyModel model) {
             if (model instanceof ObservablePropertyModel fx) {
-                ChangeListener<Object> listener = (observable, oldValue, newValue) -> refresh(model);
-                fx.valueProperty().addListener(listener);
-                unsubscribe = () -> fx.valueProperty().removeListener(listener);
+                ObservableValue<Object> observable = fx.valueProperty();
+                ChangeListener<Object> listener = (value, oldValue, newValue) -> refresh(model);
+                observable.addListener(listener);
+                unsubscribe = () -> observable.removeListener(listener);
             } else {
                 PropertySubscription subscription = model.addListener(
                         (changed, oldValue, newValue) -> refresh(model));
@@ -180,14 +187,31 @@ final class PropertySheet extends BorderPane {
             // The editor writes the model while it has the focus; replacing it then would take
             // the caret away mid-edit. External changes, with the editor unfocused, do refresh it.
             Node graphic = getGraphic();
-            if (graphic != null && graphic.isFocused()) {
+            if (graphic != null && graphic.isFocusWithin()) {
                 return;
             }
             showEditor(model);
         }
 
         private void showEditor(PropertyModel model) {
-            setGraphic(PropertyEditors.createEditor(model));
+            unsubscribeEditor.run();
+            unsubscribeEditor = () -> {
+            };
+            Node editor = PropertyEditors.createEditor(model);
+            setGraphic(editor);
+            // A skipped refresh while the editor had the focus is replayed once the focus leaves,
+            // including the focus of a child of a container editor.
+            ChangeListener<Boolean> focusListener = (observable, wasFocused, focused) -> {
+                if (!focused && property == model) {
+                    Platform.runLater(() -> {
+                        if (property == model && !editor.isFocusWithin()) {
+                            showEditor(model);
+                        }
+                    });
+                }
+            };
+            editor.focusWithinProperty().addListener(focusListener);
+            unsubscribeEditor = () -> editor.focusWithinProperty().removeListener(focusListener);
         }
     }
 }

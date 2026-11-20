@@ -19,6 +19,12 @@
 package org.netbeans.modules.nbfx.platform.nodes;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import org.junit.Test;
 import org.netbeans.api.nbfx.nodes.PropertiesProvider;
 import org.netbeans.api.nbfx.nodes.PropertyModel;
@@ -28,6 +34,8 @@ import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.openide.util.test.MockLookup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 
 /** Verifies the property sheet against the toolkit-free model. */
 public class PropertySheetTest {
@@ -48,6 +56,59 @@ public class PropertySheetTest {
                 return null;
             });
         } finally {
+            MockLookup.setInstances();
+        }
+    }
+
+    @Test
+    public void keepsAFocusedEditorAndRefreshesItOnFocusLoss() throws Exception {
+        SimplePropertyModel model = new SimplePropertyModel("name", "Name", String.class, "a");
+        PropertiesProvider provider = context -> List.of(
+                new SimplePropertySetModel("general", "General", List.of(model)));
+        MockLookup.setInstances(provider);
+        AtomicReference<PropertySheet> sheet = new AtomicReference<>();
+        AtomicReference<TextField> field = new AtomicReference<>();
+        AtomicReference<Stage> stage = new AtomicReference<>();
+        try {
+            FxTestSupport.onFx(() -> {
+                PropertySheet sheetValue = new PropertySheet();
+                Button elsewhere = new Button("elsewhere");
+                VBox root = new VBox(sheetValue, elsewhere);
+                Stage stageValue = new Stage();
+                stageValue.setScene(new Scene(root, 400, 300));
+                stageValue.show();
+                sheetValue.setContext("context");
+                sheetValue.tree().getRoot().getChildren().get(0).setExpanded(true);
+                sheetValue.applyCss();
+                sheetValue.layout();
+                TextField fieldValue = (TextField) sheetValue.lookupAll(".text-field")
+                        .iterator().next();
+                fieldValue.requestFocus();
+                assertTrue(fieldValue.isFocusWithin());
+                model.setValue("b");
+                assertSame("the focused editor is kept", fieldValue,
+                        sheetValue.lookupAll(".text-field").iterator().next());
+                assertEquals("the editor keeps the user's text", "a", fieldValue.getText());
+                elsewhere.requestFocus();
+                sheet.set(sheetValue);
+                field.set(fieldValue);
+                stage.set(stageValue);
+                return null;
+            });
+            FxTestSupport.onFx(() -> {
+                TextField refreshed = (TextField) sheet.get().lookupAll(".text-field")
+                        .iterator().next();
+                assertEquals("the editor is refreshed with the model value", "b",
+                        refreshed.getText());
+                return null;
+            });
+        } finally {
+            if (stage.get() != null) {
+                FxTestSupport.onFx(() -> {
+                    stage.get().hide();
+                    return null;
+                });
+            }
             MockLookup.setInstances();
         }
     }
