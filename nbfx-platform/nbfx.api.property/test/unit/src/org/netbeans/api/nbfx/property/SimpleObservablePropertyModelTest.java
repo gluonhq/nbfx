@@ -20,10 +20,13 @@ package org.netbeans.api.nbfx.property;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /** Verifies the JavaFX property model and its neutral listener bridge. */
@@ -42,6 +45,39 @@ public class SimpleObservablePropertyModelTest {
         assertEquals("b", property.valueProperty().getValue());
         assertFalse(property.isDefaultValue());
         assertEquals(List.of("b"), changes);
+    }
+
+    @Test
+    public void valuePropertyIsStable() {
+        SimpleObservablePropertyModel property =
+                new SimpleObservablePropertyModel("name", "Name", String.class, "a");
+
+        assertSame(property.valueProperty(), property.valueProperty());
+    }
+
+    @Test
+    public void sameValueDoesNotNotify() {
+        SimpleObservablePropertyModel property =
+                new SimpleObservablePropertyModel("name", "Name", String.class, "a");
+        List<Object> changes = new ArrayList<>();
+        property.addListener((model, oldValue, newValue) -> changes.add(newValue));
+
+        property.setValue("a");
+
+        assertTrue(changes.isEmpty());
+        assertTrue(property.isDefaultValue());
+    }
+
+    @Test
+    public void listenerReceivesTheObservableModel() {
+        SimpleObservablePropertyModel property =
+                new SimpleObservablePropertyModel("name", "Name", String.class, "a");
+        AtomicReference<PropertyModel> seen = new AtomicReference<>();
+        property.addListener((model, oldValue, newValue) -> seen.set(model));
+
+        property.setValue("b");
+
+        assertSame(property, seen.get());
     }
 
     @Test

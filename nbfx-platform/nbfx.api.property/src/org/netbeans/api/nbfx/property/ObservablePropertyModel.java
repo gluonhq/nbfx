@@ -26,10 +26,16 @@ import org.netbeans.api.nbfx.nodes.PropertyModel;
  * that already have a JavaFX property can use this instead of the toolkit-free
  * {@link org.netbeans.api.nbfx.nodes.SimplePropertyModel}.
  *
- * @since 1.0
+ * @since 1.1
  */
 public interface ObservablePropertyModel extends PropertyModel {
 
-    /** The value as an observable, so the property sheet can bind to it directly. */
+    /**
+     * The value as an observable, so the property sheet can bind to it directly. The same
+     * observable instance is returned on every call; callers add and remove their listener on that
+     * instance.
+     *
+     * @return the value observable, the same instance on every call
+     */
     ObservableValue<Object> valueProperty();
 }

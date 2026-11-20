@@ -18,31 +18,26 @@
  */
 package org.netbeans.api.nbfx.property;
 
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.CopyOnWriteArrayList;
+import javafx.beans.property.ReadOnlyObjectProperty;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.value.ObservableValue;
 import org.netbeans.api.nbfx.nodes.PropertyListener;
 import org.netbeans.api.nbfx.nodes.PropertySubscription;
+import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
 
 /**
- * A simple {@link ObservablePropertyModel} backed by a JavaFX property. Convenience for providers
- * that already hold their values as JavaFX properties.
+ * A simple {@link ObservablePropertyModel} backed by a JavaFX observable and a neutral
+ * {@link SimplePropertyModel}. Providers that already hold their values as JavaFX properties can
+ * use this; the neutral model keeps the value, the equality check and the listener identity.
  *
- * @since 1.0
+ * @since 1.1
  */
 public final class SimpleObservablePropertyModel implements ObservablePropertyModel {
 
-    private final String name;
-    private final String displayName;
-    private final String shortDescription;
-    private final Class<?> valueType;
-    private final boolean writable;
-    private final boolean expert;
-    private final Object defaultValue;
-    private final ReadOnlyObjectWrapper<Object> value = new ReadOnlyObjectWrapper<>(this, "value");
-    private final List<PropertyListener> listeners = new CopyOnWriteArrayList<>();
+    private final SimplePropertyModel delegate;
+    private final ReadOnlyObjectWrapper<Object> valueWrapper;
+    private final ReadOnlyObjectProperty<Object> valueProperty;
 
     /** A writable property whose initial value is also its default. */
     public SimpleObservablePropertyModel(String name, String displayName, Class<?> valueType, Object value) {
@@ -64,79 +59,67 @@ public final class SimpleObservablePropertyModel implements ObservablePropertyMo
     public SimpleObservablePropertyModel(String name, String displayName, String shortDescription,
             Class<?> valueType, Object value, boolean writable, boolean expert,
             Object defaultValue) {
-        this.name = Objects.requireNonNull(name, "name");
-        this.displayName = Objects.requireNonNull(displayName, "displayName");
-        this.shortDescription = shortDescription;
-        this.valueType = valueType;
-        this.writable = writable;
-        this.expert = expert;
-        this.defaultValue = defaultValue;
-        this.value.set(value);
-        this.value.addListener((observable, oldValue, newValue) -> notifyListeners(oldValue, newValue));
+        delegate = new SimplePropertyModel(name, displayName, shortDescription, valueType,
+                value, writable, expert, defaultValue);
+        valueWrapper = new ReadOnlyObjectWrapper<>(this, "value", value);
+        valueProperty = valueWrapper.getReadOnlyProperty();
+        delegate.addListener((property, oldValue, newValue) -> valueWrapper.set(newValue));
     }
 
     @Override
     public String getName() {
-        return name;
+        return delegate.getName();
     }
 
     @Override
     public String getDisplayName() {
-        return displayName;
+        return delegate.getDisplayName();
     }
 
     @Override
     public String getShortDescription() {
-        return shortDescription;
+        return delegate.getShortDescription();
     }
 
     @Override
     public Class<?> getValueType() {
-        return valueType;
+        return delegate.getValueType();
     }
 
     @Override
     public Object getValue() {
-        return value.get();
+        return delegate.getValue();
     }
 
     @Override
     public void setValue(Object newValue) {
-        if (writable) {
-            value.set(newValue);
-        }
+        delegate.setValue(newValue);
     }
 
     @Override
     public boolean isWritable() {
-        return writable;
+        return delegate.isWritable();
     }
 
     @Override
     public boolean isExpert() {
-        return expert;
+        return delegate.isExpert();
     }
 
     @Override
     public boolean isDefaultValue() {
-        return Objects.equals(value.get(), defaultValue);
+        return delegate.isDefaultValue();
     }
 
     @Override
     public ObservableValue<Object> valueProperty() {
-        return value.getReadOnlyProperty();
+        return valueProperty;
     }
 
     @Override
     public PropertySubscription addListener(PropertyListener listener) {
         Objects.requireNonNull(listener, "listener");
-        listeners.add(listener);
-        return () -> listeners.remove(listener);
-    }
-
-    private void notifyListeners(Object oldValue, Object newValue) {
-        for (PropertyListener listener : listeners) {
-            listener.changed(this, oldValue, newValue);
-        }
+        return delegate.addListener(
+                (property, oldValue, newValue) -> listener.changed(this, oldValue, newValue));
     }
 }

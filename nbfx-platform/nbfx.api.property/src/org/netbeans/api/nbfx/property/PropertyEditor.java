@@ -26,7 +26,7 @@ import org.netbeans.api.nbfx.nodes.PropertyModel;
  * registered with {@link PropertyEditorRegistration}; the first editor whose
  * {@link #valueType() type} can hold the property's value type wins.
  *
- * @since 1.0
+ * @since 1.1
  */
 public interface PropertyEditor {
 
