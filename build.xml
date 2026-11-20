@@ -372,7 +372,7 @@
         <!-- register the nbfx cluster dirs so ModuleListParser finds their modules -->
         <replace file="${nbfx.cluster.file}"
                  token="clusters.config.full.list=\"
-                 value="clusters.config.full.list=\&#10;        nb.cluster.nbfx-libs,\&#10;        nb.cluster.nbfx-platform,\&#10;        nb.cluster.nbfx-ide,\&#10;        nb.cluster.nbfx-java,\"/>
+                 value="clusters.config.full.list=\&#10;        nb.cluster.nbfx-libs,\&#10;        nb.cluster.nbfx-platform,\&#10;        nb.cluster.nbfx-ide,\&#10;        nb.cluster.nbfx-java,\&#10;        nb.cluster.nbfx-qa,\"/>
         <!-- drop the modules listed in ${nbfx.cluster.exclude} (nbfx.properties) from the upstream
              cluster lists. The lists are backslash-continued, one "        name,\" per line, so an
              entry is removed together with its line ending; the last entry of a list has no
@@ -409,7 +409,7 @@
         <!-- the entries have no trailing slash: "nbfx-platform/" would match a directory only,
              not the symlink overlay (it then showed as untracked and git clean -X kept it) -->
         <condition property="nbfx.exclude.need">
-            <not><matches string="${nbfx.sub.exclude}" pattern="(?m)^nbfx-libs$"/></not>
+            <not><matches string="${nbfx.sub.exclude}" pattern="(?m)^nbfx-tests$"/></not>
         </condition>
     </target>
 
@@ -419,6 +419,7 @@ nbfx-libs
 nbfx-platform
 nbfx-ide
 nbfx-java
+nbfx-tests
 </echo>
     </target>
 
@@ -432,10 +433,12 @@ nbfx-java
         <symlink action="delete" link="${nbfx.sub.dir}/nbfx-platform" failonerror="false"/>
         <symlink action="delete" link="${nbfx.sub.dir}/nbfx-ide" failonerror="false"/>
         <symlink action="delete" link="${nbfx.sub.dir}/nbfx-java" failonerror="false"/>
+        <symlink action="delete" link="${nbfx.sub.dir}/nbfx-tests" failonerror="false"/>
         <nbfx-overlay-sync-one cluster="nbfx-libs"/>
         <nbfx-overlay-sync-one cluster="nbfx-platform"/>
         <nbfx-overlay-sync-one cluster="nbfx-ide"/>
         <nbfx-overlay-sync-one cluster="nbfx-java"/>
+        <nbfx-overlay-sync-one cluster="nbfx-tests"/>
         <echo message="[nbfx] overlay=sync"/>
     </target>
 
@@ -444,6 +447,7 @@ nbfx-java
         <nbfx-overlay-symlink-one cluster="nbfx-platform"/>
         <nbfx-overlay-symlink-one cluster="nbfx-ide"/>
         <nbfx-overlay-symlink-one cluster="nbfx-java"/>
+        <nbfx-overlay-symlink-one cluster="nbfx-tests"/>
         <echo message="[nbfx] overlay=symlink"/>
     </target>
 
@@ -453,6 +457,7 @@ nbfx-java
         <nbfx-unoverlay-one cluster="nbfx-platform"/>
         <nbfx-unoverlay-one cluster="nbfx-ide"/>
         <nbfx-unoverlay-one cluster="nbfx-java"/>
+        <nbfx-unoverlay-one cluster="nbfx-tests"/>
     </target>
 
     <!-- ======================================================================== -->
@@ -678,7 +683,18 @@ metabuild.hash=${nbfx.nbbuild.hash}
         </antcall>
     </target>
 
-    <target name="test" depends="bootstrap"
+    <!-- The test-only QA cluster is not in the product config; build it first so test dependencies
+         on nbfx.test.fx resolve. `ant build`/release never include it. -->
+    <target name="-test-qa" depends="bootstrap"
+            description="Build the test-only nbfx-qa cluster">
+        <ant antfile="${nbfx.sub.dir}/nbbuild/build.xml" dir="${nbfx.sub.dir}/nbbuild"
+             target="build" inheritall="false">
+            <property name="cluster.config" value="nbfx-qa"/>
+            <property name="clusters.list.file" location="${nbfx.cluster.file}"/>
+        </ant>
+    </target>
+
+    <target name="test" depends="bootstrap,-test-qa"
             description="Run the unit tests of every nbfx module (-Dtest.modules=nbfx-platform/* to filter)">
         <!-- Use the module build files, not bare directories: a stale empty module directory left
              in the sync overlay must not be picked up. Modules without test/unit/src no-op in their
@@ -726,7 +742,12 @@ metabuild.hash=${nbfx.nbbuild.hash}
             <condition><not><available file="${nbfx.sub.dir}/${module}/build.xml"/></not></condition>
         </fail>
         <property name="module.target" value="netbeans"/>
+        <condition property="module.test.unit">
+            <equals arg1="${module.target}" arg2="test-unit"/>
+        </condition>
     </target>
+
+    <target name="-module-test-qa" if="module.test.unit" depends="-test-qa"/>
 
     <target name="-module-sync" unless="nbfx.overlay.symlink">
         <!-- sync overlay: mirror just this module into the submodule (a symlink overlay is the
@@ -740,7 +761,7 @@ metabuild.hash=${nbfx.nbbuild.hash}
         </sync>
     </target>
 
-    <target name="module" depends="-module-check,-module-sync"
+    <target name="module" depends="-module-check,-module-sync,-module-test-qa"
             description="Build one nbfx module into the dist (-Dmodule=&lt;cluster dir&gt;/&lt;module dir&gt;, -Dmodule.target=netbeans)">
         <!-- Runs the module's own build.xml through its path under the submodule, so that its
              ../../nbbuild import resolves there (Ant resolves that import lexically against
@@ -795,6 +816,7 @@ metabuild.hash=${nbfx.nbbuild.hash}
         <nbfx-unoverlay-one cluster="nbfx-platform"/>
         <nbfx-unoverlay-one cluster="nbfx-ide"/>
         <nbfx-unoverlay-one cluster="nbfx-java"/>
+        <nbfx-unoverlay-one cluster="nbfx-tests"/>
         <antcall target="patches-check"/>
         <antcall target="bootstrap"/>
         <echo message="[nbfx] upstream bumped to ${nbfx.submodule.commit}; update nbfx.properties + the submodule gitlink and commit"/>
