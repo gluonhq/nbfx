@@ -19,20 +19,29 @@
 package org.netbeans.modules.nbfx.java.maven;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.Test;
+import org.netbeans.modules.nbfx.ide.build.BuildProcess;
 import org.netbeans.modules.nbfx.java.maven.MavenActions.Invocation;
 import org.netbeans.modules.nbfx.project.ui.api.BuildCommands;
 
-/** Verifies what a build command runs: the project's {@code nbactions.xml} mapping, or else the default goals. */
+/**
+ * Verifies what a build command runs without a project system: the {@code mvn} command line of an
+ * invocation, the default goals, <em>Run</em> from the plugins of the POM, and which of the
+ * project's action files map a command. What NetBeans makes of a mapping needs its project system:
+ * {@link MavenBuildTest} covers it.
+ */
 public class MavenActionsTest {
 
-    /** The mapping of the OpenJFX samples: Run is {@code clean javafx:run}. */
-    private static final String JAVAFX_ACTIONS = """
+    private static final String ACTIONS = """
             <?xml version="1.0" encoding="UTF-8"?>
             <actions>
                 <action>
@@ -46,20 +55,6 @@ public class MavenActionsTest {
                     </goals>
                 </action>
                 <action>
-                    <actionName>debug</actionName>
-                    <goals>
-                        <goal>clean</goal>
-                        <goal>javafx:run@ide-debug</goal>
-                    </goals>
-                    <properties>
-                        <jpda.listen>true</jpda.listen>
-                        <Env.JAVA_TOOL_OPTIONS>-Xmx1g</Env.JAVA_TOOL_OPTIONS>
-                    </properties>
-                    <activatedProfiles>
-                        <activatedProfile>ide</activatedProfile>
-                    </activatedProfiles>
-                </action>
-                <action>
                     <actionName>test</actionName>
                     <goals/>
                 </action>
@@ -67,115 +62,155 @@ public class MavenActionsTest {
             """;
 
     @Test
-    public void theProjectsMappingWins() throws Exception {
-        Path dir = project(JAVAFX_ACTIONS);
+    public void aPlainInvocationIsItsGoalsInBatchMode() {
+        Path dir = Path.of("project").toAbsolutePath();
 
-        Invocation run = MavenActions.forCommand(dir, BuildCommands.RUN);
+        BuildProcess process = Invocation.plain(dir, List.of("clean", "package"), Map.of("skipTests", "true"))
+                .process("mvn");
 
-        assertEquals(List.of("clean", "javafx:run"), run.goals());
-        assertEquals(Map.of(), run.properties());
-        assertEquals(List.of(), run.profiles());
+        assertEquals(List.of("mvn", "-DskipTests=true", "--batch-mode", "clean", "package"), process.commandLine());
+        assertEquals(dir, process.directory());
+        assertEquals("Maven runs on the JDK of the IDE", System.getProperty("java.home"),
+                process.environment().get("JAVA_HOME"));
+    }
+
+    /** Everything a NetBeans run configuration can ask of {@code mvn}, in NetBeans' order. */
+    @Test
+    public void anInvocationCarriesItsOptionsFlagsAndEnvironment() {
+        Path dir = Path.of("reactor").toAbsolutePath();
+        Map<String, String> properties = new LinkedHashMap<>();
+        properties.put("exec.args", "-Xmx1g");
+        properties.put("Env.DISPLAY", ":1");
+        properties.put("Env.JAVA_HOME", "/opt/jdk");
+        properties.put("NbIde.internal", "x");
+        Map<String, String> options = new LinkedHashMap<>();
+        options.put("fail-at-end", "");
+        options.put("threads", "2");
+        Invocation invocation = new Invocation(dir, List.of("install"), properties, List.of("ide", "fast"), options,
+                false, true, true, true, true, "also-make", "app");
+
+        assertEquals(List.of("--fail-at-end", "--threads", "2", "-Dexec.args=-Xmx1g", "--offline", "--batch-mode",
+                "--non-recursive", "--debug", "--errors", "--update-snapshots", "--also-make", "--projects", "app",
+                "-Pide,fast", "install"), invocation.arguments());
+        assertEquals(":1", invocation.environment().get("DISPLAY"));
+        assertEquals("the mapping names the JDK", "/opt/jdk", invocation.environment().get("JAVA_HOME"));
+        assertFalse(invocation.environment().containsKey("Env.DISPLAY"));
     }
 
     @Test
-    public void aMappingCarriesItsPropertiesAndProfiles() throws Exception {
-        Path dir = project(JAVAFX_ACTIONS);
+    public void aReactorFlagAboutTheFolderItselfIsDropped() {
+        Invocation invocation = new Invocation(Path.of("p").toAbsolutePath(), List.of("install"), Map.of(), List.of(),
+                Map.of(), true, false, false, false, false, "also-make", ".");
 
-        Invocation debug = MavenActions.mapped(dir.resolve(MavenActions.ACTIONS_FILE), "debug", "jar");
-
-        assertEquals(List.of("clean", "javafx:run@ide-debug"), debug.goals());
-        assertEquals("environment entries are not properties", Map.of("jpda.listen", "true"), debug.properties());
-        assertEquals(List.of("ide"), debug.profiles());
-    }
-
-    @Test
-    public void aMappingAppliesToItsPackagingsOnly() throws Exception {
-        Path actions = project(JAVAFX_ACTIONS).resolve(MavenActions.ACTIONS_FILE);
-
-        assertEquals(List.of("clean", "javafx:run"), MavenActions.mapped(actions, "run", "jar").goals());
-        assertNull(MavenActions.mapped(actions, "run", "war"));
-        assertEquals("an unknown packaging takes any mapping of the action",
-                List.of("clean", "javafx:run"), MavenActions.mapped(actions, "run", null).goals());
+        assertEquals(List.of("--batch-mode", "install"), invocation.arguments());
     }
 
     @Test
     public void withoutAMappingTheDefaultGoalsRun() throws Exception {
-        Path mapped = project(JAVAFX_ACTIONS);
-        Path plain = project(null);
+        Path dir = project(null, pomWith("", ""));
 
-        assertEquals(List.of("package"), MavenActions.forCommand(mapped, BuildCommands.BUILD).goals());
-        assertEquals("a mapping without goals is disabled",
-                List.of("test"), MavenActions.forCommand(mapped, BuildCommands.TEST).goals());
-        assertEquals(List.of("compile", "exec:java"), MavenActions.forCommand(plain, BuildCommands.RUN).goals());
-        assertEquals(List.of("clean", "package"), MavenActions.forCommand(plain, BuildCommands.REBUILD).goals());
-        assertNull(MavenActions.forCommand(plain, "no-such-command"));
+        assertEquals(List.of("package"), goalsOf(MavenActions.forCommand(dir, BuildCommands.BUILD)));
+        assertEquals(List.of("clean", "package"), goalsOf(MavenActions.forCommand(dir, BuildCommands.REBUILD)));
+        assertEquals(List.of("compile", "exec:java"), goalsOf(MavenActions.forCommand(dir, BuildCommands.RUN)));
+        assertNull(MavenActions.forCommand(dir, "no-such-command"));
+        assertNull(new MavenBuildActionProvider().commandLine(dir, "no-such-command"));
     }
 
-    /** Without a mapping, Run is the goal of the plugin the POM configures to run that kind of application. */
+    /** Without a mapping, Run is the goal of the plugin the POM builds with to run that kind of application. */
     @Test
-    public void runFollowsThePluginsOfThePom() throws Exception {
-        Path javafx = project(null, pomWith("""
+    public void runFollowsTheBuildPluginsOfThePom() throws Exception {
+        Path javafx = project(null, pomWith("", """
                 <build><plugins>
                     <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId></plugin>
                     <plugin><groupId>org.openjfx</groupId><artifactId>javafx-maven-plugin</artifactId><version>0.0.8</version></plugin>
                 </plugins></build>
                 """));
-        Path gluon = project(null, pomWith("""
+        Path gluon = project(null, pomWith("", """
                 <build><plugins>
                     <plugin><groupId>com.gluonhq</groupId><artifactId>gluonfx-maven-plugin</artifactId></plugin>
                     <plugin><groupId>org.openjfx</groupId><artifactId>javafx-maven-plugin</artifactId></plugin>
                 </plugins></build>
                 """));
-        Path managed = project(null, pomWith("""
-                <build><pluginManagement><plugins>
-                    <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
-                </plugins></pluginManagement></build>
-                """));
-        Path plain = project(null, pomWith(""));
 
-        assertEquals(List.of("javafx:run"), MavenActions.forCommand(javafx, BuildCommands.RUN).goals());
+        assertEquals(List.of("javafx:run"), goalsOf(MavenActions.forCommand(javafx, BuildCommands.RUN)));
         assertEquals("the JavaFX plugin runs a Gluon project on the desktop",
-                List.of("javafx:run"), MavenActions.forCommand(gluon, BuildCommands.RUN).goals());
-        assertEquals(List.of("spring-boot:run"), MavenActions.forCommand(managed, BuildCommands.RUN).goals());
-        assertEquals(List.of("compile", "exec:java"), MavenActions.forCommand(plain, BuildCommands.RUN).goals());
+                List.of("javafx:run"), goalsOf(MavenActions.forCommand(gluon, BuildCommands.RUN)));
         assertEquals("only Run depends on the plugins",
-                List.of("package"), MavenActions.forCommand(javafx, BuildCommands.BUILD).goals());
-        assertEquals(List.of("mvn", "javafx:run"),
-                new MavenBuildActionProvider().commandLine(javafx, BuildCommands.RUN));
+                List.of("package"), goalsOf(MavenActions.forCommand(javafx, BuildCommands.BUILD)));
+        assertEquals(List.of("spring-boot:run"),
+                MavenActions.runGoals(Set.of("org.springframework.boot:spring-boot-maven-plugin")));
     }
 
-    /** The project's own mapping still wins over what its plugins suggest. */
+    /** A plugin an aggregator only manages for its modules is not one it runs. */
     @Test
-    public void aMappingWinsOverThePlugins() throws Exception {
-        Path dir = project(JAVAFX_ACTIONS, pomWith("""
+    public void aManagedPluginIsNotARunner() throws Exception {
+        Path managed = project(null, pomWith("", """
+                <build><pluginManagement><plugins>
+                    <plugin><groupId>org.openjfx</groupId><artifactId>javafx-maven-plugin</artifactId></plugin>
+                </plugins></pluginManagement></build>
+                """));
+
+        assertEquals(Set.of(), MavenActions.pluginsOf(managed));
+        assertEquals(List.of("compile", "exec:java"), goalsOf(MavenActions.forCommand(managed, BuildCommands.RUN)));
+    }
+
+    /** A parent or an aggregator has nothing to run; its other commands are untouched. */
+    @Test
+    public void aPomProjectHasNothingToRun() throws Exception {
+        Path parent = project(null, pomWith("<packaging>pom</packaging>", """
                 <build><plugins>
-                    <plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
+                    <plugin><groupId>org.openjfx</groupId><artifactId>javafx-maven-plugin</artifactId></plugin>
                 </plugins></build>
                 """));
 
-        assertEquals(List.of("clean", "javafx:run"), MavenActions.forCommand(dir, BuildCommands.RUN).goals());
+        assertEquals("pom", MavenActions.packagingOf(parent));
+        assertEquals(List.of(), MavenActions.forCommand(parent, BuildCommands.RUN));
+        assertEquals(List.of("package"), goalsOf(MavenActions.forCommand(parent, BuildCommands.BUILD)));
+    }
+
+    /** Only whether, and to which goals, the project's action files map a command is read here. */
+    @Test
+    public void theActionFilesOfTheProjectSayWhichCommandsItMaps() throws Exception {
+        Path dir = project(ACTIONS, pomWith("", ""));
+        Files.writeString(dir.resolve("nbactions-release.xml"), """
+                <actions>
+                    <action>
+                        <actionName>run</actionName>
+                        <goals><goal>verify</goal></goals>
+                    </action>
+                </actions>
+                """);
+
+        List<List<String>> run = MavenActions.mappedGoals(dir, "run");
+        assertEquals(2, run.size());
+        assertTrue(run.contains(List.of("clean", "javafx:run")));
+        assertTrue("the mappings of the project's configurations count", run.contains(List.of("verify")));
+        assertEquals(List.of(List.of()), MavenActions.mappedGoals(dir, "test"));
+        assertEquals(List.of(), MavenActions.mappedGoals(dir, "build"));
+    }
+
+    /** A mapping without goals disables the command, as in NetBeans: nothing runs, the default goals included. */
+    @Test
+    public void aMappingWithoutGoalsDisablesTheCommand() throws Exception {
+        Path dir = project(ACTIONS, pomWith("", ""));
+
+        assertEquals(List.of(), MavenActions.forCommand(dir, BuildCommands.TEST));
+        assertNull("a disabled command has no command line", new MavenBuildActionProvider().commandLine(dir, BuildCommands.TEST));
     }
 
     @Test
-    public void anUnreadableMappingFileFallsBackToTheDefaults() throws Exception {
-        Path dir = project("<actions><action><actionName>run</actionName>");
+    public void anUnreadableActionFileMapsNothing() throws Exception {
+        Path dir = project("<actions><action><actionName>run</actionName>", pomWith("", ""));
 
-        assertEquals(List.of("compile", "exec:java"), MavenActions.forCommand(dir, BuildCommands.RUN).goals());
+        assertEquals(List.of(), MavenActions.mappedGoals(dir, "run"));
+        assertEquals(List.of("compile", "exec:java"), goalsOf(MavenActions.forCommand(dir, BuildCommands.RUN)));
     }
 
-    @Test
-    public void theCommandLineCarriesTheMapping() throws Exception {
-        Path dir = project(JAVAFX_ACTIONS);
-        MavenBuildActionProvider provider = new MavenBuildActionProvider();
-
-        assertEquals(List.of("mvn", "clean", "javafx:run"), provider.commandLine(dir, BuildCommands.RUN));
-        assertEquals(List.of("mvn", "package"), provider.commandLine(dir, BuildCommands.BUILD));
-        assertNull(provider.commandLine(dir, "no-such-command"));
-    }
-
-    /** A folder with a minimal POM and, unless {@code actions} is {@code null}, that {@code nbactions.xml}. */
-    private static Path project(String actions) throws Exception {
-        return project(actions, pomWith(""));
+    /** The goals of the one process {@code processes} is: what follows {@code --batch-mode} on its command line. */
+    private static List<String> goalsOf(List<BuildProcess> processes) {
+        assertEquals(1, processes.size());
+        List<String> line = processes.get(0).commandLine();
+        return line.subList(line.indexOf("--batch-mode") + 1, line.size());
     }
 
     /** A folder with the POM {@code pom} and, unless {@code actions} is {@code null}, that {@code nbactions.xml}. */
@@ -188,13 +223,13 @@ public class MavenActionsTest {
         return dir;
     }
 
-    private static String pomWith(String build) {
+    private static String pomWith(String packaging, String build) {
         return """
                 <project xmlns="http://maven.apache.org/POM/4.0.0">
                     <modelVersion>4.0.0</modelVersion>
                     <groupId>org.netbeans.nbfx.test</groupId>
                     <artifactId>app</artifactId>
                     <version>1.0</version>
-                """ + build + "</project>\n";
+                """ + packaging + build + "</project>\n";
     }
 }

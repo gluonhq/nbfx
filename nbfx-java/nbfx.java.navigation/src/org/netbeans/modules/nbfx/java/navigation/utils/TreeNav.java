@@ -39,7 +39,6 @@ import javafx.scene.control.TreeView;
 import org.netbeans.api.java.source.SourceUtils;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
-import org.openide.util.Exceptions;
 import org.openide.util.RequestProcessor;
 
 /**
@@ -124,6 +123,27 @@ public final class TreeNav {
     }
 
     /**
+     * Whether {@code path}, the folder of a tree node, is {@code target}. The tree is searched after
+     * file events, a deletion among them - a <em>clean</em> removes whole folders -, so either may
+     * be gone from the disk by now: equal paths are the same folder without asking the disk, and
+     * the disk is only asked, to see through links, about two folders that are both there.
+     */
+    static boolean isSameFolder(Path path, Path target) {
+        if (path == null || target == null) {
+            return false;
+        }
+        if (path.equals(target)) {
+            return true;
+        }
+        try {
+            return Files.exists(path) && Files.exists(target) && Files.isSameFile(path, target);
+        } catch (IOException ex) {
+            // Deleted between the check and the comparison: not the same folder any more.
+            return false;
+        }
+    }
+
+    /**
      * Recursively find the TreeItem that corresponds to the provided path
      * @param root start searching from this TreeItem
      * @param target the path
@@ -133,16 +153,11 @@ public final class TreeNav {
         ProjectEntry pEntry = root.getValue();
         if (pEntry.isFileObject() && pEntry.isFolder()) {
             FileObject candidate = pEntry.getFileObject();
-            LOG.info("FOLDER: " + pEntry + " with fo = " + candidate);
             Path cp = FileUtil.toPath(candidate);
-            LOG.info("CP = " + cp);
-            Path path = FileUtil.toPath(pEntry.getFileObject());
-            try {
-                if (Files.isSameFile(path, target)) {
-                    return root;
-                }
-            } catch (IOException ex) {
-                Exceptions.printStackTrace(ex);
+            // Per node visited, on the FX thread, for every file event: not for the default log.
+            LOG.fine(() -> "FOLDER: " + pEntry + " with fo = " + candidate + ", path = " + cp);
+            if (isSameFolder(cp, target)) {
+                return root;
             }
         }
         for (TreeItem<ProjectEntry> entry : root.getChildren()) {

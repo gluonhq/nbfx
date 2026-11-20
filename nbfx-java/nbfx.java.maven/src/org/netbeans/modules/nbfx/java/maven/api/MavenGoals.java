@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.java.maven.api;
 
+import org.netbeans.modules.nbfx.ide.build.BuildProcesses;
+import org.netbeans.modules.nbfx.java.maven.MavenActions;
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
@@ -26,8 +28,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Runs Maven goals in-process, through the NetBeans Maven embedder, for the build commands of a
- * Maven project and for a goal picked elsewhere (the Navigator's <em>Related goals</em>).
+ * Runs Maven goals as an {@code mvn} process, for a goal picked outside the build commands of a
+ * Maven project (the Navigator's <em>Related goals</em>), and tells what the lines {@code mvn}
+ * prints are.
  *
  * @since 1.0
  */
@@ -38,30 +41,17 @@ public final class MavenGoals {
 
     /**
      * Starts {@code goals} in the project at {@code dir}, with {@code properties} as the user
-     * properties ({@code -Dname=value}), streaming the build's log to {@code output} and reporting
-     * to {@code progress}.
+     * properties ({@code -Dname=value}), streaming the build's output to {@code output} and
+     * reporting to {@code progress}.
      *
      * @return the running build, to cancel it
      */
     public static BuildExecution start(Path dir, List<String> goals, Map<String, String> properties,
             BuildOutput output, BuildProgress progress) {
-        return start(dir, goals, properties, List.of(), output, progress);
-    }
-
-    /**
-     * Starts {@code goals} in the project at {@code dir}, with {@code properties} as the user
-     * properties ({@code -Dname=value}) and {@code profiles} activated ({@code -Pname}), streaming
-     * the build's log to {@code output} and reporting to {@code progress}.
-     *
-     * @return the running build, to cancel it
-     * @since 1.2
-     */
-    public static BuildExecution start(Path dir, List<String> goals, Map<String, String> properties,
-            List<String> profiles, BuildOutput output, BuildProgress progress) {
-        MavenBuild build = new MavenBuild(dir, goals.toArray(String[]::new), Map.copyOf(properties),
-                List.copyOf(profiles), output, progress);
-        build.start();
-        return build;
+        List<String> what = List.copyOf(goals);
+        Map<String, String> with = Map.copyOf(properties);
+        return BuildProcesses.start("maven", () -> List.of(MavenActions.forGoals(dir, what, with)),
+                output, progress, MavenGoals::lineKind);
     }
 
     /**

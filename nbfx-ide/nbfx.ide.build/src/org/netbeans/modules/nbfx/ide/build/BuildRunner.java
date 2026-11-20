@@ -29,7 +29,6 @@ import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -152,37 +151,38 @@ public final class BuildRunner {
         return output == null ? null : output.console(consoleId(dir, consoleName), consoleName);
     }
 
-    /** The CLI fallback: detect the tool from marker files and run it as a process. */
+    /**
+     * The CLI fallback: run the command as the command line its project type gives for it, or
+     * else as that of the tool the folder's marker files name. It is resolved on the thread that
+     * runs it, not here on the user interface thread: a project type may read the project for it.
+     */
     private static void runCli(Path dir, String command, String consoleName, ConsolePanel console, Progress progress) {
-        List<String> commandLine = BuildTool.detect(dir).commandLine(dir, command);
         BuildActionProvider provider = BuildActions.providerFor(dir);
-        if (commandLine == null && provider != null) {
-            commandLine = provider.commandLine(dir, command);
-        }
-        if (commandLine == null) {
-            console.append(NbBundle.getMessage(BuildRunner.class, "BuildCommand.noTool") + "\n");
-            return;
-        }
-        AtomicReference<Process> process = new AtomicReference<>();
-        Runnable cancel = () -> {
-            Process running = process.get();
-            if (running != null) {
-                running.destroy();
-            }
-        };
-        Progress.Handle handle = progress == null ? null : progress.start(consoleName, cancel);
-        ConsoleRun run = console.startRun(cancel);
-        List<String> line = commandLine;
+        ProcessRunner.Control control = new ProcessRunner.Control();
+        Progress.Handle handle = progress == null ? null : progress.start(consoleName, control::stop);
+        ConsoleRun run = console.startRun(control::stop);
         // The project type knows how its tool names its steps and reports its result.
-        Function<String, OutputKind> kinds = provider == null
-                ? text -> OutputKind.NORMAL
-                : text -> outputKind(provider.lineKind(text));
-        ProcessRunner.run(line, dir, console, kinds, process::set, () -> {
+        Function<String, BuildOutput.Kind> kinds = provider == null ? text -> BuildOutput.Kind.NORMAL : provider::lineKind;
+        ProcessRunner.run(() -> processes(dir, command, provider), output(console), kinds, control, () -> {
             run.finish();
             if (handle != null) {
                 handle.finish();
             }
         });
+    }
+
+    /**
+     * The process that runs {@code command} in {@code dir}: the command line of {@code provider},
+     * the project type, which knows the project's own settings for the command; without a
+     * provider, or for a command it has no command line for, the plain command line of the tool
+     * the folder's marker files name. {@code null} when neither has one.
+     */
+    static List<BuildProcess> processes(Path dir, String command, BuildActionProvider provider) {
+        List<String> commandLine = provider == null ? null : provider.commandLine(dir, command);
+        if (commandLine == null) {
+            commandLine = BuildTool.detect(dir).commandLine(dir, command);
+        }
+        return commandLine == null ? null : List.of(new BuildProcess(commandLine, dir));
     }
 
     private static OutputKind outputKind(BuildOutput.Kind kind) {

@@ -18,16 +18,14 @@
  */
 package org.netbeans.modules.nbfx.java.maven.api;
 
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
 
 /**
- * What Maven's output is, for the colour the Output window gives it, as NetBeans: the line
- * announcing a plugin goal muted, {@code BUILD SUCCESS} a success, {@code BUILD FAILURE}, errors
- * and warnings in their own colours. The same for a build run in-process, whose messages come as
- * log records, and for one run as a process, whose lines carry their level as a prefix.
+ * What a line of Maven's output is, for the colour the Output window gives it, as NetBeans: the
+ * line announcing a plugin goal muted, {@code BUILD SUCCESS} a success, {@code BUILD FAILURE},
+ * errors and warnings in their own colours, by the {@code [LEVEL]} prefix {@code mvn} gives its
+ * lines.
  */
 final class MavenOutput {
 
@@ -50,19 +48,6 @@ final class MavenOutput {
             return Kind.WARNING;
         }
         return messageKind(line.startsWith(INFO_PREFIX) ? line.substring(INFO_PREFIX.length()) : line);
-    }
-
-    /**
-     * The kind of a message the embedder logged. Its logger turns Maven's warnings, errors and
-     * fatal errors all into {@link Level#FINE} records, so the level alone cannot tell a warning
-     * from an error: the method of that logger which logged the record can, and the record knows
-     * it while it is being published.
-     */
-    static Kind recordKind(LogRecord record) {
-        if (record.getLevel().intValue() >= Level.FINE.intValue()) {
-            return "warn".equals(record.getSourceMethodName()) ? Kind.WARNING : Kind.ERROR;
-        }
-        return messageKind(record.getMessage());
     }
 
     /** The kind of what an informational message says. */
