@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 
@@ -44,7 +46,7 @@ public class ShellChromeTest {
 
     @Test
     public void defaultProviderCreatesDefaultChrome() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ShellChrome chrome = new DefaultShellChromeProvider().create(new ShellContext(Lookup.getDefault()));
             assertNotNull(chrome);
             assertTrue(chrome instanceof DefaultShellChrome);

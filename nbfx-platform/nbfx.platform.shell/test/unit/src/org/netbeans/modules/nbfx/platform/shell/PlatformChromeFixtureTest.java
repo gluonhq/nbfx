@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import javafx.scene.Node;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
@@ -41,7 +43,7 @@ public class PlatformChromeFixtureTest {
 
     @Test
     public void defaultShellShowsThePlatformContributions() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ShellApplication application = new ShellApplication();
             application.start(new Stage());
             ShellChrome chrome = application.getChrome();

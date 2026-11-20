@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
@@ -54,7 +56,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void dynamicSectionsMergeAndFollowTheirItems() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/TestMenu");
             FileObject sub = createFolder(folder, "OnlyDynamic");
@@ -91,7 +93,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void dynamicSectionUpdatesOnlyItsOwnRange() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/RefreshMenu");
             try {
@@ -118,7 +120,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void dynamicSectionSeparatorFollowsEmptiness() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/SeparatorMenu");
             try {
@@ -156,7 +158,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void submenusMergeByPositionAndSeparator() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/PositionMenu");
             FileObject early = createFolder(folder, "EarlySub");
@@ -189,7 +191,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void dynamicDisplayNameBuildsASubmenu() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/SubmenuMenu");
             try {
@@ -216,7 +218,7 @@ public class ShellMenuBarTest {
 
     @Test
     public void profileFiltersMenuItems() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = configRoot();
             FileObject folder = createFolder(root, "NbFx/Menus/ProfileMenu");
             try {

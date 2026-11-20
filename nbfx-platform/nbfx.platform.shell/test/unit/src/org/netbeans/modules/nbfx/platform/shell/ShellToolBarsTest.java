@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import javafx.scene.control.Button;
@@ -44,7 +46,7 @@ public class ShellToolBarsTest {
 
     @Test
     public void profileFiltersToolBarsAndDragHandle() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = FileUtil.getConfigRoot();
             FileObject folder = createFolder(root, "NbFx/Toolbars/profilebar");
             try {
@@ -105,7 +107,7 @@ public class ShellToolBarsTest {
 
     @Test
     public void profileFiltersToolBarItems() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = FileUtil.getConfigRoot();
             FileObject folder = createFolder(root, "NbFx/Toolbars/filteredbar");
             try {
@@ -145,7 +147,7 @@ public class ShellToolBarsTest {
 
     @Test
     public void emptyToolBarsAreSkipped() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             FileObject root = FileUtil.getConfigRoot();
             FileObject empty = createFolder(root, "NbFx/Toolbars/emptybar");
             FileObject full = createFolder(root, "NbFx/Toolbars/fullbar");

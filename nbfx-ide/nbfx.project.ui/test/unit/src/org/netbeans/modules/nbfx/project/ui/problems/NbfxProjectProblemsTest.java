@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.project.ui.problems;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -61,7 +63,7 @@ public class NbfxProjectProblemsTest {
         project = new TestProject(root, provider);
         ProjectProblemsSettings.setShowAgain(true);
         // Start the toolkit before any test that reaches Platform.runLater().
-        FxTestSupport.onFx(() -> { });
+        JavaFxTestSupport.onFx(() -> { });
     }
 
     @After
@@ -180,7 +182,7 @@ public class NbfxProjectProblemsTest {
     @Test
     public void customizerWithoutProblemsDoesNotDeadlockOnTheFxThread() throws InterruptedException {
         TestProject plain = new TestProject(root, null);
-        assertTrue(FxTestSupport.onFx(() -> implementation.showCustomizer(plain).isDone()));
+        assertTrue(JavaFxTestSupport.onFx(() -> implementation.showCustomizer(plain).isDone()));
     }
 
     @Test
