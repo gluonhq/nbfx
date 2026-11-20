@@ -16,35 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.nodes;
 
-import java.util.List;
+/**
+ * Listens for value changes of a {@link PropertyModel}.
+ *
+ * @since 1.0
+ */
+@FunctionalInterface
+public interface PropertyListener {
 
-/** A simple {@link PropertySet} holding a fixed list of properties. */
-public final class SimpleFxPropertySet implements PropertySet {
-
-    private final String name;
-    private final String displayName;
-    private final List<Property> properties;
-
-    public SimpleFxPropertySet(String name, String displayName, List<Property> properties) {
-        this.name = name;
-        this.displayName = displayName;
-        this.properties = List.copyOf(properties);
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    @Override
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    @Override
-    public List<Property> getProperties() {
-        return properties;
-    }
+    /**
+     * Called after a property value changed.
+     *
+     * @param property the property that changed
+     * @param oldValue its previous value
+     * @param newValue its current value
+     */
+    void changed(PropertyModel property, Object oldValue, Object newValue);
 }

@@ -18,11 +18,11 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.nodes.PropertiesProvider;
-import org.netbeans.modules.nbfx.platform.nodes.Property;
-import org.netbeans.modules.nbfx.platform.nodes.PropertySet;
-import org.netbeans.modules.nbfx.platform.nodes.SimpleFxProperty;
-import org.netbeans.modules.nbfx.platform.nodes.SimpleFxPropertySet;
+import org.netbeans.api.nbfx.nodes.PropertiesProvider;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.nodes.PropertySetModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.netbeans.modules.nbfx.project.ui.api.ProjectKindProvider;
 import org.netbeans.modules.nbfx.project.ui.api.ProjectKinds;
 import java.util.List;
@@ -37,23 +37,23 @@ import org.openide.util.lookup.ServiceProvider;
 public final class ProjectPropertiesProvider implements PropertiesProvider {
 
     @Override
-    public List<PropertySet> getPropertySets(Object context) {
+    public List<PropertySetModel> getPropertySets(Object context) {
         if (!(context instanceof Project project)) {
             return List.of();
         }
         ProjectKindProvider kind = ProjectKinds.providerOf(project);
-        List<Property> properties = List.of(
+        List<PropertyModel> properties = List.of(
                 readOnly("name", message("ProjectPropertiesProvider.name"),
                         ProjectKinds.getProjectName(project, kind)),
                 readOnly("type", message("ProjectPropertiesProvider.type"), kind.id()),
                 readOnly("location", message("ProjectPropertiesProvider.location"),
                         project.getProjectDirectory().getPath()));
-        return List.of(new SimpleFxPropertySet("general",
+        return List.of(new SimplePropertySetModel("general",
                 message("ProjectPropertiesProvider.general"), properties));
     }
 
-    private static Property readOnly(String name, String displayName, Object value) {
-        return new SimpleFxProperty(name, displayName, null, String.class, value, false, false, value);
+    private static PropertyModel readOnly(String name, String displayName, Object value) {
+        return new SimplePropertyModel(name, displayName, null, String.class, value, false, false, value);
     }
 
     private static String message(String key) {

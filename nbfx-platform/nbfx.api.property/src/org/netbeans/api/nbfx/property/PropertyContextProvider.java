@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.property;
 
 import java.util.List;
 import org.netbeans.api.nbfx.actions.ActionContext;
@@ -24,8 +24,10 @@ import org.netbeans.api.nbfx.actions.ActionContext;
 /**
  * Contributes an application-specific context type to the property sheet. The platform property
  * sheet knows files and editor documents; IDE modules add the project context through this SPI.
+ *
+ * @since 1.1
  */
-public interface PropertyContextType {
+public interface PropertyContextProvider {
 
     /**
      * The context types this provider contributes, so the view can follow their lookup changes.

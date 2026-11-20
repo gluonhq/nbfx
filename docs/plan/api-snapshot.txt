@@ -3,6 +3,7 @@
 # nbfx-platform/nbfx.api.editor
 # nbfx-platform/nbfx.api.file
 # nbfx-platform/nbfx.api.layer
+# nbfx-platform/nbfx.api.nodes
 # nbfx-platform/nbfx.api.options
 # nbfx-platform/nbfx.api.output
 # nbfx-platform/nbfx.api.property
@@ -57,7 +58,16 @@ org.netbeans.api.nbfx.file.FileSelectionContext
 org.netbeans.api.nbfx.file.FileTypes
 org.netbeans.api.nbfx.icons.ThemedImageView
 org.netbeans.api.nbfx.icons.ToolIcons
+org.netbeans.api.nbfx.layer.LayerEntry
+org.netbeans.api.nbfx.layer.LayerInstances
 org.netbeans.api.nbfx.layer.LayerPaths
+org.netbeans.api.nbfx.nodes.PropertiesProvider
+org.netbeans.api.nbfx.nodes.PropertyListener
+org.netbeans.api.nbfx.nodes.PropertyModel
+org.netbeans.api.nbfx.nodes.PropertySetModel
+org.netbeans.api.nbfx.nodes.PropertySubscription
+org.netbeans.api.nbfx.nodes.SimplePropertyModel
+org.netbeans.api.nbfx.nodes.SimplePropertySetModel
 org.netbeans.api.nbfx.options.OptionsContainerRegistration
 org.netbeans.api.nbfx.options.OptionsDisplayer
 org.netbeans.api.nbfx.options.OptionsPanelController
@@ -75,7 +85,11 @@ org.netbeans.api.nbfx.project.ProjectRegistry
 org.netbeans.api.nbfx.project.ProjectSourceRoots
 org.netbeans.api.nbfx.project.ProjectTypeRegistration
 org.netbeans.api.nbfx.project.SourceRoot
+org.netbeans.api.nbfx.property.ObservablePropertyModel
+org.netbeans.api.nbfx.property.PropertyContextProvider
+org.netbeans.api.nbfx.property.PropertyEditor
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
+org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
 org.netbeans.api.nbfx.status.StatusAlignment
 org.netbeans.api.nbfx.status.StatusMessageService
 org.netbeans.api.nbfx.status.StatusRegistration

@@ -75,6 +75,24 @@
                     <compile-dependency/>
                     <run-dependency><specification-version>1.6</specification-version></run-dependency>
                 </dependency>
+                <dependency>
+                    <code-name-base>org.netbeans.modules.nbfx.api.nodes</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>org.netbeans.modules.nbfx.api.property</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.1</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>org.netbeans.modules.nbfx.api.layer</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.4</specification-version></run-dependency>
+                </dependency>
             </module-dependencies>
             <test-dependencies>
                 <test-type>
@@ -88,11 +106,14 @@
                         <recursive/>
                         <compile-dependency/>
                     </test-dependency>
+                    <test-dependency>
+                        <code-name-base>org.openide.util.lookup</code-name-base>
+                        <compile-dependency/>
+                        <test/>
+                    </test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages>
-                <package>org.netbeans.modules.nbfx.platform.nodes</package>
-            </public-packages>
+            <public-packages/>
         </data>
     </configuration>
 </project>

@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.property;
 
-import java.util.List;
+import javafx.scene.Node;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
 
 /**
- * A named group of {@link Property properties}, shown as a branch in the {@link PropertySheet}.
+ * Creates the JavaFX editor for a {@link PropertyModel} of a given value type. Editors are
+ * registered with {@link PropertyEditorRegistration}; the first editor whose
+ * {@link #valueType() type} can hold the property's value type wins.
+ *
+ * @since 1.1
  */
-public interface PropertySet {
+public interface PropertyEditor {
 
-    /** A stable name, unique among the sets of a context. */
-    String getName();
+    /** The value type this editor handles, for example {@code String.class}. */
+    Class<?> valueType();
 
-    /** The display name shown for the group. */
-    String getDisplayName();
-
-    /** The properties in this group. */
-    List<Property> getProperties();
+    /** Builds the editor for {@code property}. Called on the JavaFX thread. */
+    Node createEditor(PropertyModel property);
 }

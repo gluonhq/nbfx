@@ -34,9 +34,10 @@ import org.netbeans.api.nbfx.actions.RunnableCommand;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.actions.ActionRegistryImpl;
 import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
-import org.netbeans.modules.nbfx.platform.nodes.PropertySheet;
-import org.netbeans.modules.nbfx.platform.nodes.SimpleFxProperty;
-import org.netbeans.modules.nbfx.platform.nodes.SimpleFxPropertySet;
+import org.netbeans.api.nbfx.nodes.PropertiesProvider;
+import org.netbeans.api.nbfx.nodes.PropertySetModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
+import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.netbeans.api.nbfx.output.OutputConsole;
 import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
@@ -186,12 +187,15 @@ public class AppShellConformanceTest {
     @Test
     public void propertySheetOutputProgressAndWizardsWork() throws InterruptedException {
         FxTestSupport.onFx(() -> {
-            PropertySheet sheet = new PropertySheet();
-            assertNotNull(sheet);
-            SimpleFxPropertySet set = new SimpleFxPropertySet("conformance", "Conformance", List.of(
-                    new SimpleFxProperty("name", "Name", String.class, "value")));
-            assertEquals("Conformance", set.getDisplayName());
-            assertFalse(set.getProperties().isEmpty());
+            assertTrue("the Properties view is registered", Lookup.getDefault()
+                    .lookupAll(ViewProvider.class).stream()
+                    .anyMatch(provider -> "properties".equals(provider.getId())));
+            // The property contract a downstream product implements, using API imports only.
+            PropertiesProvider properties = new ConformancePropertiesProvider();
+            List<PropertySetModel> sets = properties.getPropertySets("context");
+            assertEquals(1, sets.size());
+            assertEquals("Conformance", sets.get(0).getDisplayName());
+            assertFalse(sets.get(0).getProperties().isEmpty());
 
             OutputConsole output = Lookup.getDefault().lookup(OutputConsole.class);
             assertNotNull("the platform provides the output consoles", output);
@@ -199,5 +203,18 @@ public class AppShellConformanceTest {
             assertNotNull(WizardRegistry.discover());
             return null;
         });
+    }
+
+    /** The API-only property fixture a downstream product can write. */
+    private static final class ConformancePropertiesProvider implements PropertiesProvider {
+
+        @Override
+        public List<PropertySetModel> getPropertySets(Object context) {
+            if (!(context instanceof String)) {
+                return List.of();
+            }
+            return List.of(new SimplePropertySetModel("conformance", "Conformance",
+                    List.of(new SimplePropertyModel("name", "Name", String.class, "value"))));
+        }
     }
 }
