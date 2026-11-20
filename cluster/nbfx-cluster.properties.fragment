@@ -58,6 +58,7 @@ nb.cluster.nbfx-platform=\
         nbfx.api.file,\
         nbfx.api.language,\
         nbfx.api.layer,\
+        nbfx.api.nodes,\
         nbfx.api.options,\
         nbfx.api.output,\
         nbfx.api.progress,\

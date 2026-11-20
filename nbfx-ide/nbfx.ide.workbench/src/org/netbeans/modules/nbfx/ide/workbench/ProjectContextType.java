@@ -21,14 +21,14 @@ package org.netbeans.modules.nbfx.ide.workbench;
 import java.util.List;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.project.OpenProject;
-import org.netbeans.modules.nbfx.platform.nodes.PropertyContextType;
+import org.netbeans.api.nbfx.property.PropertyContextProvider;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
  * Contributes the selected project to the platform property sheet.
  */
-@ServiceProvider(service = PropertyContextType.class)
-public final class ProjectContextType implements PropertyContextType {
+@ServiceProvider(service = PropertyContextProvider.class)
+public final class ProjectContextType implements PropertyContextProvider {
 
     @Override
     public List<Class<?>> contextTypes() {

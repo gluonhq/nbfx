@@ -16,18 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
-
-import javafx.beans.value.ObservableValue;
+package org.netbeans.api.nbfx.nodes;
 
 /**
- * One row in a {@link PropertySheet}, mirroring the shape of an {@code org.openide.nodes.Node.Property}
- * but for JavaFX. Implementations are usually simple value holders; the sheet edits them through a
- * registered {@link PropertyEditor}.
+ * A property shown in the property sheet: one editable or read-only value of a context object.
+ * <p>
+ * The model is toolkit-free. A JavaFX-facing implementation with an {@code ObservableValue} lives
+ * in {@code org.netbeans.api.nbfx.property.ObservablePropertyModel}; the property sheet adapts this model
+ * to JavaFX when needed.
+ *
+ * @since 1.0
  */
-public interface Property {
+public interface PropertyModel {
 
-    /** A stable name, unique within its property set. */
+    /** The stable name of the property, unique within its set. */
     String getName();
 
     /** The display name shown in the sheet. */
@@ -36,7 +38,7 @@ public interface Property {
     /** A short help text, or {@code null}. */
     String getShortDescription();
 
-    /** The value's type, used to pick an editor. */
+    /** The type of the value, used to choose an editor; may be {@code null} when unknown. */
     Class<?> getValueType();
 
     /** The current value, or {@code null}. */
@@ -54,6 +56,11 @@ public interface Property {
     /** Whether the value currently equals the property's default. */
     boolean isDefaultValue();
 
-    /** The value as an observable, so the sheet can react to changes. */
-    ObservableValue<Object> valueObservable();
+    /**
+     * Registers a listener notified when the value changes.
+     *
+     * @param listener the listener
+     * @return a subscription that removes the listener
+     */
+    PropertySubscription addListener(PropertyListener listener);
 }

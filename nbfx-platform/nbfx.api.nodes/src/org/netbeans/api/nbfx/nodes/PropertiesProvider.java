@@ -16,20 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.nodes;
 
-import javafx.scene.Node;
+import java.util.List;
 
 /**
- * Creates the JavaFX editor for a {@link Property} of a given value type. Registered via
- * {@code @ServiceProvider}; the first editor whose {@link #valueType() type} can hold the property's
- * value type wins.
+ * Contributes the property sets shown for a context object. Providers are registered in the
+ * default Lookup; the property sheet asks every provider for the context it is showing.
+ *
+ * @since 1.0
  */
-public interface PropertyEditor {
+public interface PropertiesProvider {
 
-    /** The value type this editor handles (e.g. {@code String.class}). */
-    Class<?> valueType();
-
-    /** Builds the editor for {@code property}. Called on the JavaFX thread. */
-    Node createEditor(Property property);
+    /**
+     * The property sets for {@code context}, or an empty list when the provider has nothing to
+     * offer.
+     *
+     * @param context the object whose properties are shown
+     * @return the property sets, never {@code null}
+     */
+    List<PropertySetModel> getPropertySets(Object context);
 }

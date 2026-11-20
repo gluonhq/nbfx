@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.api.nbfx.property;
 
-import java.util.List;
+import javafx.beans.value.ObservableValue;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
 
 /**
- * Contributes the property sets shown for a context object, mirroring {@code Node.getPropertySets()}.
- * Registered via {@code @ServiceProvider}; the {@link PropertySheet} asks every provider for the
- * context it is showing.
+ * A {@link PropertyModel} that exposes its value as a JavaFX {@link ObservableValue}. Providers
+ * that already have a JavaFX property can use this instead of the toolkit-free
+ * {@link org.netbeans.api.nbfx.nodes.SimplePropertyModel}.
+ *
+ * @since 1.1
  */
-public interface PropertiesProvider {
+public interface ObservablePropertyModel extends PropertyModel {
 
-    /** The property sets for {@code context}, or an empty list when the provider has nothing to offer. */
-    List<PropertySet> getPropertySets(Object context);
+    /**
+     * The value as an observable, so the property sheet can bind to it directly. The same
+     * observable instance is returned on every call; callers add and remove their listener on that
+     * instance.
+     *
+     * @return the value observable, the same instance on every call
+     */
+    ObservableValue<Object> valueProperty();
 }

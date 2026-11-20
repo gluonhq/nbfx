@@ -28,7 +28,8 @@ import java.lang.annotation.Target;
  * <p>
  * The annotated class must be public, must have a public no-argument constructor and must implement
  * the nbfx property editor SPI. It is published in the generated layer under
- * {@code NbFx/PropertyEditors/<valueType>.instance}.
+ * {@code NbFx/PropertyEditors/<implementation>.instance}, with the implementation class as
+ * {@code instanceClass} and the handled value type as an attribute.
  *
  * @since 1.0
  */

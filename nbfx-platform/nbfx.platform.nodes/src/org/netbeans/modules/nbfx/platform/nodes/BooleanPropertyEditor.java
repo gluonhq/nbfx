@@ -20,10 +20,12 @@ package org.netbeans.modules.nbfx.platform.nodes;
 
 import javafx.scene.Node;
 import javafx.scene.control.CheckBox;
-import org.openide.util.lookup.ServiceProvider;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.property.PropertyEditor;
+import org.netbeans.api.nbfx.property.PropertyEditorRegistration;
 
 /** The editor for {@link Boolean} values. */
-@ServiceProvider(service = PropertyEditor.class)
+@PropertyEditorRegistration(valueType = Boolean.class, position = 20)
 public final class BooleanPropertyEditor implements PropertyEditor {
 
     @Override
@@ -32,7 +34,7 @@ public final class BooleanPropertyEditor implements PropertyEditor {
     }
 
     @Override
-    public Node createEditor(Property property) {
+    public Node createEditor(PropertyModel property) {
         CheckBox box = new CheckBox();
         box.setSelected(Boolean.TRUE.equals(property.getValue()));
         box.setDisable(!property.isWritable());

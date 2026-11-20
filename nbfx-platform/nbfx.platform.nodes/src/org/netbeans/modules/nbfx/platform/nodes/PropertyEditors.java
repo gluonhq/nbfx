@@ -18,28 +18,59 @@
  */
 package org.netbeans.modules.nbfx.platform.nodes;
 
+import java.util.List;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
-import org.openide.util.Lookup;
+import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerInstances;
+import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.property.PropertyEditor;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 
 /**
- * Resolves the {@link PropertyEditor} for a property: the first registered editor whose value type
- * can hold the property's value type, or a read-only label when none matches.
+ * Resolves the {@link PropertyEditor} for a property: the inline editor with the lowest
+ * {@code position} whose value type can hold the property's value type, or a read-only label when
+ * none matches. Editors are registered with {@code @PropertyEditorRegistration}, which writes them
+ * under {@link LayerPaths#PROPERTY_EDITORS}; non-inline editors are skipped.
  */
 public final class PropertyEditors {
 
     private PropertyEditors() {
     }
 
-    public static Node createEditor(Property property) {
+    public static Node createEditor(PropertyModel property) {
         if (property.isWritable()) {
-            for (PropertyEditor editor : Lookup.getDefault().lookupAll(PropertyEditor.class)) {
-                if (editor.valueType().isAssignableFrom(property.getValueType())) {
-                    return editor.createEditor(property);
-                }
+            PropertyEditor editor = findEditor(property.getValueType());
+            if (editor != null) {
+                return editor.createEditor(property);
             }
         }
         return new Label(display(property.getValue()));
+    }
+
+    static PropertyEditor findEditor(Class<?> valueType) {
+        return findEditor(FileUtil.getConfigFile(LayerPaths.PROPERTY_EDITORS), valueType);
+    }
+
+    static PropertyEditor findEditor(FileObject folder, Class<?> valueType) {
+        return findEditor(LayerInstances.load(folder, PropertyEditor.class), valueType);
+    }
+
+    static PropertyEditor findEditor(Iterable<LayerEntry<PropertyEditor>> entries, Class<?> valueType) {
+        if (valueType == null) {
+            return null;
+        }
+        for (LayerEntry<PropertyEditor> entry : entries) {
+            if (Boolean.FALSE.equals(entry.attribute("inline"))) {
+                continue;
+            }
+            if (entry.instance().valueType().isAssignableFrom(valueType)) {
+                return entry.instance();
+            }
+        }
+        return null;
     }
 
     static String display(Object value) {

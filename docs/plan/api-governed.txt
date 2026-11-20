@@ -24,6 +24,7 @@ nbfx-platform/nbfx.api.file
 nbfx-platform/nbfx.api.status
 nbfx-platform/nbfx.api.wizard
 nbfx-platform/nbfx.api.property
+nbfx-platform/nbfx.api.nodes
 nbfx-platform/nbfx.api.options
 nbfx-platform/nbfx.api.output
 nbfx-ide/nbfx.api.project

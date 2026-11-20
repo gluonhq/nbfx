@@ -44,18 +44,40 @@ public class PropertyEditorRegistrationProcessorTest {
     private static final String SOURCE =
             "package demo;\n"
             + "import org.netbeans.api.nbfx.property.*;\n"
+            + "import org.netbeans.api.nbfx.nodes.PropertyModel;\n"
+            + "import javafx.scene.Node;\n"
             + "@PropertyEditorRegistration(valueType = String.class, position = 5, inline = false)\n"
-            + "public class StringEditor {}\n";
+            + "public class StringEditor implements PropertyEditor {\n"
+            + "    public Class<?> valueType() { return String.class; }\n"
+            + "    public Node createEditor(PropertyModel property) { return null; }\n"
+            + "}\n";
+
+    private static final String OTHER_SOURCE =
+            "package demo;\n"
+            + "import org.netbeans.api.nbfx.property.*;\n"
+            + "import org.netbeans.api.nbfx.nodes.PropertyModel;\n"
+            + "import javafx.scene.Node;\n"
+            + "@PropertyEditorRegistration(valueType = String.class, position = 10)\n"
+            + "public class OtherStringEditor implements PropertyEditor {\n"
+            + "    public Class<?> valueType() { return String.class; }\n"
+            + "    public Node createEditor(PropertyModel property) { return null; }\n"
+            + "}\n";
 
     @Test
     public void generatesLayerFragments() throws Exception {
         String xml = ProcessorTestSupport.compile(
                 "org.netbeans.modules.nbfx.api.property.processors.PropertyEditorRegistrationProcessor",
-                Map.of("demo/StringEditor.java", SOURCE));
+                Map.of("demo/StringEditor.java", SOURCE,
+                        "demo/OtherStringEditor.java", OTHER_SOURCE));
 
-        assertTrue(xml, xml.contains("name=\"java-lang-String.instance\""));
+        assertTrue(xml, xml.contains("name=\"demo-StringEditor.instance\""));
+        assertTrue(xml, xml.contains("name=\"demo-OtherStringEditor.instance\""));
+        assertTrue(xml, xml.contains("instanceClass\" stringvalue=\"demo.StringEditor\""));
+        assertTrue(xml, xml.contains("instanceClass\" stringvalue=\"demo.OtherStringEditor\""));
         assertTrue(xml, xml.contains("valueType\" stringvalue=\"java.lang.String\""));
         assertTrue(xml, xml.contains("boolvalue=\"false\" name=\"inline\""));
+        assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"inline\""));
+        assertTrue(xml, !xml.contains("name=\"java-lang-String.instance\""));
         assertLayerPath(xml, LayerPaths.PROPERTY_EDITORS);
     }
 

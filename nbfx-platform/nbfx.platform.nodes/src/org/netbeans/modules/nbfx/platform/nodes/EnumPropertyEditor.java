@@ -21,10 +21,12 @@ package org.netbeans.modules.nbfx.platform.nodes;
 import javafx.collections.FXCollections;
 import javafx.scene.Node;
 import javafx.scene.control.ComboBox;
-import org.openide.util.lookup.ServiceProvider;
+import org.netbeans.api.nbfx.nodes.PropertyModel;
+import org.netbeans.api.nbfx.property.PropertyEditor;
+import org.netbeans.api.nbfx.property.PropertyEditorRegistration;
 
 /** The editor for {@link Enum} values, shown as a choice box. */
-@ServiceProvider(service = PropertyEditor.class)
+@PropertyEditorRegistration(valueType = Enum.class, position = 40)
 public final class EnumPropertyEditor implements PropertyEditor {
 
     @Override
@@ -33,7 +35,7 @@ public final class EnumPropertyEditor implements PropertyEditor {
     }
 
     @Override
-    public Node createEditor(Property property) {
+    public Node createEditor(PropertyModel property) {
         ComboBox<Object> box = new ComboBox<>(FXCollections.observableArrayList(property.getValueType().getEnumConstants()));
         box.setValue(property.getValue());
         box.setDisable(!property.isWritable());

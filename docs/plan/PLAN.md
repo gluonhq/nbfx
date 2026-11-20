@@ -309,8 +309,8 @@ plugin implements is not yet in its API/SPI packages.
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
 | `api.elements` | dissolved | **dissolved** | neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers` → `api.language` (no `java.lang.reflect.Modifier` bits); Java conversion (`SourceModifiers`, `JavaElementTypes`) → `java.elements`; FX `ElementIcons` → `api.editor` |
-| `api.nodes` | M | **planned — contract M0** | `NodeModel`, `ChildrenModel`, `ChildFactory`, `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyEditorRef` (opaque handle), `ExplorerContext`, property-change events; the property sheet is its first consumer |
-| `api.property` | T2-FX | **partial — contract M0** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyEnv`; the editor takes a `PropertyModel` and the handle lives in `api.nodes` (M never depends on a T2-FX module) |
+| `api.nodes` | M | **partial — property contract landed; explorer model M1** | `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`, `SimplePropertyModel`/`SimplePropertySetModel`; `NodeModel`, `ChildrenModel`, `ChildFactory`, `ExplorerContext` land with the first explorer view in M1 |
+| `api.property` | T2-FX | **partial — property-editor contract landed** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyContextProvider`, `ObservablePropertyModel`, `SimpleObservablePropertyModel`; the editor takes the M-tier `PropertyModel`; `PropertyEnv`/`PropertyEditorRef` wait for a custom-editor consumer |
 | `api.usages` | M | **landed** | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
 | `api.project` | M | **partial — M1** | `ProjectRegistry`, `ProjectOpener`, `ProjectLifecycle`, `OpenProject`, `SourceRoot`, `@ProjectTypeRegistration`; the project-kind/build SPI still moves from `project.ui.api`, and `OpenProjects` remains the documented IDE-tier bridge |
 | `api.build` | M | **planned — M1** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
@@ -328,7 +328,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.diff` | M | **planned — M2** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
 | `api.tasklist` | M | **planned — M2** | `TaskProvider`, `Task`, `TaskScope` |
 | `api.plugins` | T1 | **planned — M5** | plugin metadata, install/update service surface |
-| `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …); nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
+| `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …) — and `LayerInstances`/`LayerEntry` — the node-free reader of class-based `.instance` entries with their attributes and layer order; nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
 
 **Rule of creation:** an `api.*` module exists only when a second module (or a plugin) needs it. Start with
 T0/T1 inside the owning module and promote deliberately. The table is the **target catalogue**, not a backlog:
@@ -342,9 +342,10 @@ the contract (Decision 26).
 
 The API split created the modules; it did not finish the contracts. A module is only *landed* when the type a
 consumer or plugin implements is in its exported API/SPI packages and a downstream fixture can implement it
-without importing a T0 module. The remaining M0 gaps are the wizard, status and property/nodes contracts;
-dialogs, search and project complete in M1; the editor/workspace extraction starts in M0 and finishes in M1.
-Options landed with #162.
+without importing a T0 module. The property/nodes contract now has its toolkit-free property model,
+`api.property` editor SPI and the property sheet on it; `NodeModel`/children/explorer context remain M1. The
+remaining M0 gaps are the wizard and status contracts, the shell/window/workspace surface and the editor/SPI
+extraction; dialogs, search and project complete in M1. Options landed with #162.
 
 State vocabulary: **planned** = module not created; **partial** = module exists but its contract is incomplete;
 **landed** = contract complete and consumable; **dissolved** = removed by a step. Run `ant api-audit` for the
@@ -365,7 +366,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | **landed** (themes, token providers, OS light/dark); `org.netbeans.api.nbfx.theme` is T1, the implementation package is internal |
 | `platform.settings` | settings storage UI (preferences browser, export/import) | planned — M1 |
 | `platform.options` | options window (categories, tabs, search, validity) | **T0** implementation; the panel SPI and displayer live in `api.options` (#162); no public package, spec, arch or apichanges |
-| `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet landed; node views planned M1; T0 implementation, the model is `api.nodes`/`api.property` |
+| `platform.nodes` | FX node views + generic property sheet; project/editor property contributors live in `ide.workbench` | property sheet on `api.nodes`/`api.property` landed; node views planned M1; T0 implementation with no public package |
 | `platform.output` | Output window and console service behind `api.output` | **T0** implementation (#171): pane-styled console tabs, tool bar (re-run, stop), read-only `RichTextArea` over a line model coloured by `OutputKind` through `-nbfx-output-*` theme tokens, NetBeans' context menu (copy, wrap, font size, save, clear, close); no public package, spec, arch or apichanges; **window parity M1** (§11 W3b) |
 | `platform.execution` | process launcher, pumps, PTY (JLine), cancellation | planned — M1 (process first; terminal separate) |
 | `platform.terminal` | VT/xterm model + FX renderer + tabs | planned — M2, after the VT parser/library decision in M1 |
@@ -485,7 +486,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Options | `platform.options` + `api.options` | **landed (#162)**; `platform.options` is T0, the controller/displayer contract is `api.options` |
 | Settings | `platform.settings` + `api.settings` | planned — M1 |
 | Wizards | `platform.wizard` + `api.wizard` | landed UI; **API partial: `Wizard`/`WizardPanel` move to `api.wizard` in M0** |
-| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property sheet landed; **API partial: the model moves to `api.nodes` and the editor SPI to `api.property` in M0**; explorer views M1; IDE contributors in `ide.workbench` |
+| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property model and sheet landed on `api.nodes`/`api.property`; **explorer model and views M1**; IDE contributors in `ide.workbench` |
 | Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
 | Progress | `platform.progress` + `api.progress` | landed |
 | Output | `platform.output` + `api.output` | output UI landed (tabs, tool bar, rich-text console, context menu); `platform.output` is T0 and the console contract is `api.output` (#171, partial); **contract completion + window parity M1** |
@@ -897,10 +898,12 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
   `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
   line-separator and project elements; validate the registration type.
-- `refactor/nodes-property-contract` — create `api.nodes` (`NodeModel`, `ChildrenModel`, `ChildFactory`,
-  `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyEditorRef`, `ExplorerContext`), move
-  `PropertyEditor`/`PropertyEnv` to `api.property`, and put the property sheet on the model as its first
-  consumer.
+- `refactor/nodes-property-contract` — create `api.nodes` with the M0 property slice
+  (`PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`,
+  `SimplePropertyModel`/`SimplePropertySetModel`), move `PropertyEditor` to `api.property`, add
+  `PropertyContextProvider`/`ObservablePropertyModel`, and put the property sheet on the model as its first
+  consumer. `NodeModel`, `ChildrenModel`, `ChildFactory` and `ExplorerContext` land with the first explorer
+  view in M1.
 - `refactor/shell-window-contract` — rename the shell API/SPI packages to `org.netbeans.api.nbfx.shell`/
   `org.netbeans.spi.nbfx.shell`; `WindowPaneProvider` returns a `WindowPaneHost`; `NbfxTabPane` becomes
   internal; `WindowManager`/`ViewManager`/`ShellWindow` replace the static tab operations.
@@ -1012,7 +1015,8 @@ feature growth — the cut list kills a spike that becomes a language IDE.
 issue, a prototype in nbfx and a recorded fallback: `chore/upstream-module-tools` (the portable `nbbuild`
 checks, H.6 — portable ant tasks under `nbfx-tools/`), `spike/progress-neutral-spi` (H.2),
 `spike/java-source-headless` (H.1), `spike/actions-neutral-core` (H.3), `spike/nodes-icon-source` (H.4),
-`spike/loaders-node-free` (H.4.1),
+`spike/loaders-node-free` (H.4.1; `api.layer.LayerInstances` is its first slice, then
+`refactor/layer-instances` migrates the six readers),
 `spike/runlevel-api` (H.7), `spike/maven-embedder-facade` (H.7), `spike/editor-model-spi` (H.5, last).
 Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-proposals.md).
 
@@ -1228,6 +1232,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #171 | Output window: pane-styled console tabs (a single console shows without its inner header, the Output tab titled after it), tool bar (re-run, stop), read-only `RichTextArea` console over a line model, NetBeans' context menu, console commands in the Keymap (`ActionIds.OUTPUT_*`). `api.output` extracted early: `OutputConsole` (consoles by id, apart from the name on their tab), `ConsolePanel`, `ConsoleRun`; `platform.output` T0; `ide.build`, `ide.debug`, `ide.workbench` on the API. `api.views` 1.8: `TabPaneActivation` and `ViewProvider.titleProperty()`; the pane tab styles in the theme's common control styles, for the inner tabs of Output, Search and Usages | §6.1 `api.output`, §6.2 `platform.output`, §6.6 Output, §11 W3b `feature/output-api`, Decision 26 |
 | #172 | Coloured output: `OutputKind` and `ConsolePanel.append(String, OutputKind)` (`api.output` 1.1), `BuildOutput.Kind` and `BuildActionProvider.lineKind` (`project.ui.api` 1.1), `-nbfx-output-*` theme tokens; Ant coloured in-process and as a process, whose error stream is read apart and shown as errors | §6.2 `platform.output`, §11 W3b `feature/output-api` (kinds, tokens and Ant landed; Maven, Gradle and ANSI SGR remain, M1) |
 | #173 | Coloured Maven and Gradle output, in-process and as a process: goals and tasks muted, the result green or red, errors red, Maven warnings orange, Gradle's standard error read apart and shown as errors; `MavenGoals.lineKind`, `GradleTasks.lineKind` (`java.maven`, `java.gradle` 1.1) | §11 W3b `feature/output-api` (output kinds complete for the three build tools; ANSI SGR and the later parity steps remain, M1) |
+| #174 | property/nodes contract: `api.nodes` M property model, `api.property` editor/FX model, property sheet on the API, `platform.nodes` T0, `ide.workbench` migration; `api.layer.LayerInstances`/`LayerEntry` read the class-based layer entries without `DataObject`/`InstanceCookie`, and the remaining layer readers migrate in `refactor/layer-instances` | §6.1/§6.1.1/§6.2, §11 W2a `refactor/nodes-property-contract` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
