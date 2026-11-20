@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
 import java.util.Objects;
 
 /**
- * A registered wizard: the metadata declared with
- * {@link org.netbeans.api.nbfx.wizard.WizardRegistration} plus the wizard itself.
+ * A registered wizard: the metadata declared with {@link WizardRegistration} plus the wizard
+ * itself.
  *
  * @param id          the wizard id (the layer file's base name)
  * @param displayName the dialog title
@@ -30,11 +30,12 @@ import java.util.Objects;
  * @param category    the wizard's category
  * @param position    the position among the wizards of the same category
  * @param wizard      the wizard
- * @since 1.0
+ * @since 1.1
  */
 public record WizardEntry(String id, String displayName, String iconName, String category,
         int position, Wizard wizard) {
 
+    /** Creates an entry. */
     public WizardEntry {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");

@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.api.wizard.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.wizard.Wizard;
 import org.netbeans.api.nbfx.wizard.WizardRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
@@ -55,7 +56,7 @@ public class WizardRegistrationProcessor extends LayerGeneratingProcessor {
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(LayerPaths.WIZARDS, registration.id(), (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.WIZARDS, registration.id(), Wizard.class);
             file.stringvalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("category", registration.category());

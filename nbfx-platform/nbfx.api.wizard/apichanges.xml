@@ -26,24 +26,25 @@
         <apidef name="netbeansfx_wizard">NetBeansFX Wizard API</apidef>
     </apidefs>
     <changes>
-        <change id="wizard.initial">
+        <change id="wizard.contract">
             <api name="netbeansfx_wizard"/>
-            <summary>Initial pure-JavaFX wizard framework.</summary>
-            <version major="1" minor="0"/>
-            <date day="8" month="10" year="2026"/>
-            <author login="sven"/>
+            <summary>The JavaFX wizard SPI and its discovery contract.</summary>
+            <version major="1" minor="1"/>
+            <date day="20" month="11" year="2026"/>
+            <author login="svenreimers"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>
-                Introduces <code>FxWizard</code>, <code>FxWizardPanel</code>,
-                <code>WizardEntry</code>, <code>WizardRegistry</code> and
-                <code>FxWizardDialog</code>. Wizards are registered with
-                <code>@WizardRegistration</code> under <code>NbFx/Wizards</code>. The API is under
-                development until the MVP freeze.
+                Moves <code>Wizard</code>, <code>WizardPanel</code> (from
+                <code>WizardPanelHost</code>), <code>WizardEntry</code> and <code>WizardRegistry</code>
+                from <code>platform.wizard</code> to this API module. The processor now validates
+                that the annotated class implements <code>Wizard</code>; the registry reads the
+                class-based layer entries through <code>LayerInstances</code>.
             </description>
-            <class package="org.netbeans.modules.nbfx.platform.wizard" name="FxWizard"/>
-            <class package="org.netbeans.modules.nbfx.platform.wizard" name="FxWizardPanel"/>
-            <class package="org.netbeans.modules.nbfx.platform.wizard" name="WizardRegistry"/>
-            <class package="org.netbeans.modules.nbfx.platform.wizard" name="FxWizardDialog"/>
+            <class package="org.netbeans.api.nbfx.wizard" name="Wizard"/>
+            <class package="org.netbeans.api.nbfx.wizard" name="WizardPanel"/>
+            <class package="org.netbeans.api.nbfx.wizard" name="WizardEntry"/>
+            <class package="org.netbeans.api.nbfx.wizard" name="WizardRegistry"/>
+            <class package="org.netbeans.api.nbfx.wizard" name="WizardDisplayer"/>
         </change>
     </changes>
     <htmlcontents>
@@ -54,7 +55,7 @@
             <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
             <h1>Introduction</h1>
             <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Wizard API</a>.</p>
-            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.platform.wizard"/>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.wizard"/>
             <hr/><p>@FOOTER@</p>
         </body>
     </htmlcontents>

@@ -32,32 +32,35 @@
 
   <answer id="arch-what">
     <p>
-      The <b>nbfx Wizard API</b> defines the annotation with which a module contributes a JavaFX
-      wizard.
+      The <b>nbfx Wizard API</b> defines the JavaFX wizard SPI — <code>Wizard</code> and
+      <code>WizardPanel</code> — the <code>@WizardRegistration</code> annotation, the discovery
+      contract <code>WizardEntry</code>/<code>WizardRegistry</code>, and the
+      <code>WizardDisplayer</code> seam the shell implements.
     </p>
   </answer>
 
   <answer id="arch-overall">
     <p>
-      The module contains the <code>SOURCE</code>-retention <code>@WizardRegistration</code>
-      annotation and a <code>LayerGeneratingProcessor</code> that writes <code>NbFx/Wizards</code>
-      entries into the compiling module's generated layer. The wizard reader consumes those entries
-      through <code>LayerPaths</code>.
+      A module implements <code>Wizard</code>/<code>WizardPanel</code> and declares it with
+      <code>@WizardRegistration</code>. The module's generated layer supplies the id, display name,
+      icon, category and position; <code>WizardRegistry</code> reads those entries through
+      <code>LayerPaths.WIZARDS</code>. The themed <code>WizardDialog</code> in
+      <code>platform.wizard</code> is the T0 implementation that shows the pages.
     </p>
   </answer>
 
   <answer id="arch-usecases">
     <p>
-      A module declares a wizard with <code>@WizardRegistration</code>; the generated layer supplies
-      its id, display name, icon, category and position.
+      A downstream module implements a wizard with API imports only; the shell discovers it through
+      <code>WizardRegistry</code> and shows it in the wizard dialog.
     </p>
   </answer>
 
   <answer id="arch-quality">
     <p>
-      The processor is covered by a unit test that asserts the generated layer fragment for a sample
-      annotated source. The module API is marked <i>under development</i> until the MVP freeze,
-      after which API signature tests (<code>sigtest</code>) are enabled.
+      The registry is unit-tested with layer entries, and the processor test asserts the generated
+      layer fragment for a sample annotated source. The API is under development until the MVP
+      freeze, after which API signature tests (<code>sigtest</code>) are enabled.
     </p>
   </answer>
 

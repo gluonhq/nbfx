@@ -18,9 +18,9 @@
  */
 package org.netbeans.modules.nbfx.project;
 
-import org.netbeans.modules.nbfx.platform.wizard.Wizard;
-import org.netbeans.modules.nbfx.platform.wizard.WizardDialog;
-import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
+import org.netbeans.api.nbfx.wizard.Wizard;
+import org.netbeans.api.nbfx.wizard.WizardDisplayer;
+import org.netbeans.api.nbfx.wizard.WizardRegistry;
 
 /**
  * Runs a registered wizard by id, doing nothing when the wizard module is not loaded.
@@ -35,8 +35,9 @@ public final class Wizards {
     /** Runs the wizard with {@code id}. */
     public static void run(String id) {
         Wizard wizard = WizardRegistry.find(id);
-        if (wizard != null) {
-            WizardDialog.show(wizard);
+        WizardDisplayer displayer = WizardDisplayer.getDefault();
+        if (wizard != null && displayer != null) {
+            displayer.show(wizard);
         }
     }
 }

@@ -16,21 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
 import java.io.IOException;
 import java.util.List;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
+import org.netbeans.api.nbfx.layer.LayerEntry;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
 
+import static org.junit.Assert.assertEquals;
+
 /**
- * Verifies that wizards are read from a layer folder with their metadata and ordered by category,
+ * Verifies that wizards are read from layer entries with their metadata and ordered by category,
  * position and id, falling back to the wizard's own defaults.
  *
- * @since 1.0
+ * @since 1.1
  */
 public class WizardRegistryTest {
 
@@ -46,8 +48,9 @@ public class WizardRegistryTest {
         alpha.setAttribute("category", "Project");
         alpha.setAttribute("position", 10);
 
-        List<WizardEntry> registrations =
-                WizardRegistry.read(folder, List.of(wizard("bravo"), wizard("alpha")));
+        List<WizardEntry> registrations = WizardRegistry.read(List.of(
+                new LayerEntry<>(wizard("bravo"), bravo),
+                new LayerEntry<>(wizard("alpha"), alpha)));
 
         assertEquals(List.of("alpha", "bravo"),
                 registrations.stream().map(WizardEntry::id).toList());
@@ -57,8 +60,10 @@ public class WizardRegistryTest {
     @Test
     public void fallsBackToWizardDefaults() throws IOException {
         FileObject folder = wizardFolder();
+        FileObject file = folder.createData("x", "instance");
 
-        List<WizardEntry> registrations = WizardRegistry.read(folder, List.of(wizard("x")));
+        List<WizardEntry> registrations =
+                WizardRegistry.read(List.of(new LayerEntry<>(wizard("x"), file)));
 
         assertEquals("x", registrations.get(0).id());
         assertEquals("x", registrations.get(0).displayName());
@@ -83,7 +88,7 @@ public class WizardRegistryTest {
             }
 
             @Override
-            public List<WizardPanelHost> getPages() {
+            public List<WizardPanel> getPages() {
                 return List.of();
             }
 

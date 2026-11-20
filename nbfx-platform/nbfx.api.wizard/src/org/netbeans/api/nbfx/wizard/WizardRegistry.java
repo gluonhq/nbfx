@@ -16,26 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
-import org.netbeans.api.nbfx.layer.LayerPaths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.logging.Logger;
+import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerInstances;
+import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
-import org.openide.util.Lookup;
-import org.openide.util.lookup.Lookups;
 
 /**
  * Discovers the {@link Wizard}s registered under {@code NbFx/Wizards} in the module layer.
  *
- * @since 1.0
+ * @since 1.1
  */
 public final class WizardRegistry {
-
-    private static final Logger LOG = Logger.getLogger(WizardRegistry.class.getName());
 
     private WizardRegistry() {
     }
@@ -47,9 +43,7 @@ public final class WizardRegistry {
      * @return the wizard registrations, ordered by category, position and id
      */
     public static List<WizardEntry> discover() {
-        Lookup lookup = Lookups.forPath(LayerPaths.WIZARDS);
-        FileObject folder = FileUtil.getConfigFile(LayerPaths.WIZARDS);
-        return read(folder, lookup.lookupAll(Wizard.class));
+        return read(LayerInstances.load(LayerPaths.WIZARDS, Wizard.class));
     }
 
     /** The registered wizard with {@code id}, or {@code null} if none. */
@@ -61,12 +55,13 @@ public final class WizardRegistry {
                 .orElse(null);
     }
 
-    /** Reads the registrations of {@code wizards}, taking metadata from {@code folder}'s attributes. */
-    static List<WizardEntry> read(FileObject folder, Iterable<? extends Wizard> wizards) {
+    /** Reads the registrations of {@code entries}, taking metadata from each layer entry. */
+    static List<WizardEntry> read(Iterable<LayerEntry<Wizard>> entries) {
         List<WizardEntry> registrations = new ArrayList<>();
-        for (Wizard wizard : wizards) {
-            String id = wizard.getId();
-            FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
+        for (LayerEntry<Wizard> entry : entries) {
+            Wizard wizard = entry.instance();
+            String id = entry.id();
+            FileObject file = entry.file();
             String displayName = stringAttribute(file, "displayName", wizard.getDisplayName());
             String iconName = stringAttribute(file, "iconName", "");
             String category = stringAttribute(file, "category", "");

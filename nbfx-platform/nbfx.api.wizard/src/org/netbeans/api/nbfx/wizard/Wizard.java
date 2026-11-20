@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
 import java.util.List;
 
@@ -27,7 +27,7 @@ import java.util.List;
  * Wizards are registered with {@code @WizardRegistration} and discovered through
  * {@link WizardRegistry}.
  *
- * @since 1.0
+ * @since 1.1
  */
 public interface Wizard {
 
@@ -48,7 +48,7 @@ public interface Wizard {
     }
 
     /** The wizard's pages, in order; must not be empty. */
-    List<WizardPanelHost> getPages();
+    List<WizardPanel> getPages();
 
     /** Performs the wizard's action, after the user presses Finish. Called on the JavaFX thread. */
     void finish();

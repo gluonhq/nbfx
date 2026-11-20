@@ -24,8 +24,8 @@ import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.platform.wizard.Wizard;
-import org.netbeans.modules.nbfx.platform.wizard.WizardPanelHost;
+import org.netbeans.api.nbfx.wizard.Wizard;
+import org.netbeans.api.nbfx.wizard.WizardPanel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,12 +61,12 @@ public final class NewFileWizard implements Wizard {
     private final TextField folder = new TextField(defaultFolder());
     private final TextField name = new TextField("NewClass");
     private final GridPane grid = new GridPane();
-    private final WizardPanelHost page;
+    private final WizardPanel page;
 
     /** Creates the wizard. Must run on the JavaFX Application Thread. */
     public NewFileWizard() {
         buildGrid();
-        page = new WizardPanelHost() {
+        page = new WizardPanel() {
             @Override
             public String getTitle() {
                 return message("NewFileWizard.page.title");
@@ -100,7 +100,7 @@ public final class NewFileWizard implements Wizard {
     }
 
     @Override
-    public List<WizardPanelHost> getPages() {
+    public List<WizardPanel> getPages() {
         return List.of(page);
     }
 

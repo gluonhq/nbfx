@@ -42,7 +42,8 @@ import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
 import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.netbeans.api.nbfx.output.OutputConsole;
 import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
-import org.netbeans.modules.nbfx.platform.wizard.WizardRegistry;
+import org.netbeans.api.nbfx.wizard.WizardDisplayer;
+import org.netbeans.api.nbfx.wizard.WizardRegistry;
 import org.openide.util.Lookup;
 
 import static org.junit.Assert.assertEquals;
@@ -203,6 +204,7 @@ public class AppShellConformanceTest {
             assertNotNull("the platform provides the output consoles", output);
             assertNotNull(output.console("conformance"));
             assertNotNull(WizardRegistry.discover());
+            assertNotNull("the platform provides the wizard displayer", WizardDisplayer.getDefault());
             return null;
         });
     }

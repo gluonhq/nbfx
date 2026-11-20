@@ -43,10 +43,16 @@ public class WizardRegistrationProcessorTest {
 
     private static final String SOURCE =
             "package demo;\n"
+            + "import java.util.List;\n"
             + "import org.netbeans.api.nbfx.wizard.*;\n"
             + "@WizardRegistration(id = \"demo.wizard\", displayName = \"Demo\","
             + " iconName = \"demo.png\", category = \"Project\", position = 3)\n"
-            + "public class DemoWizard {}\n";
+            + "public class DemoWizard implements Wizard {\n"
+            + "    public String getId() { return \"demo.wizard\"; }\n"
+            + "    public String getDisplayName() { return \"Demo\"; }\n"
+            + "    public List<WizardPanel> getPages() { return List.of(); }\n"
+            + "    public void finish() { }\n"
+            + "}\n";
 
     @Test
     public void generatesLayerFragments() throws Exception {

@@ -317,7 +317,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
 | `api.editor` | T2-FX | **partial — contract M0; migration M1** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`; the language decoration/lex SPI still moves out of `platform.editor` |
 | `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
-| `api.wizard` | T2-FX | **partial — contract M0** | only `@WizardRegistration`; `Wizard`, `WizardPanel`, `WizardEntry`/`WizardRegistry` move from `platform.wizard` in M0; the plan's former `WizardIterator`/`WizardDescriptor` names were never implemented |
+| `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
 | `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
 | `api.search` | T2-FX | **partial — M1** | only `TextSearch`/`SearchOptions`; `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` are the M1 contract (`SearchScope` currently lives in `ide.search`) |
 | `api.file` | T2-FX | **transitional — dissolve M0/M1** | `FileIconProvider`, `FileTypes`, `FileSelectionContext`; target is `api.views`/`api.editor`/`ide.file`, not a permanent module |
@@ -374,7 +374,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.credentials` | keyring service + unlock prompt | planned — M1 |
 | `platform.favorites` | favourites view | planned — M1 |
 | `platform.templates` | template model (discovery/creation) | planned — M1; replaces `nbfx.templates` |
-| `platform.wizard` | wizard framework + themed shell | replaces `nbfx.wizard` |
+| `platform.wizard` | T0 themed wizard dialog (`WizardDialog`/CSS); the SPI and discovery are `api.wizard` | replaces `nbfx.wizard` |
 | `platform.launcher` | application entry point; `AppProvider` selects the JavaFX application | landed; replaces `nbfx.launcher`; the IDE app provider is `ide.workbench.NbfxAppProvider` |
 | `platform.macos` | macOS integration (menus, file associations) | replaces `nbfx.macos` |
 
@@ -485,7 +485,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Status bar | `platform.status` + `api.status` | landed renderer; **API partial: `StatusElement`/element SPI move to `api.status` in M0** |
 | Options | `platform.options` + `api.options` | **landed (#162)**; `platform.options` is T0, the controller/displayer contract is `api.options` |
 | Settings | `platform.settings` + `api.settings` | planned — M1 |
-| Wizards | `platform.wizard` + `api.wizard` | landed UI; **API partial: `Wizard`/`WizardPanel` move to `api.wizard` in M0** |
+| Wizards | `platform.wizard` + `api.wizard` | **landed**: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` are `api.wizard`; `platform.wizard` is the T0 themed dialog |
 | Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property model and sheet landed on `api.nodes`/`api.property`; **explorer model and views M1**; IDE contributors in `ide.workbench` |
 | Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
 | Progress | `platform.progress` + `api.progress` | landed |
@@ -894,9 +894,9 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/options-contract` (**landed, #162**) — `OptionsPanelHost` → `api.options.OptionsPanelController`, add
   `OptionsDisplayer`, validate the registration type in the processor, migrate the options window and built-in
   panels; `platform.options` is T0.
-- `refactor/wizard-contract` — `Wizard`/`WizardPanelHost` → `api.wizard.Wizard`/`WizardPanel`; keep
-  `WizardEntry`/`WizardRegistry` as the discovery contract; update the plan names (`WizardIterator`/
-  `WizardDescriptor` were never implemented).
+- `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanelHost` → `api.wizard.Wizard`/
+  `WizardPanel`; `WizardEntry`/`WizardRegistry` are the discovery contract; the processor validates `Wizard`
+  and the registry reads `LayerInstances`; `platform.wizard` is the T0 themed dialog.
 - `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
   `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
   line-separator and project elements; validate the registration type.
@@ -1237,17 +1237,18 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #173 | Coloured Maven and Gradle output, in-process and as a process: goals and tasks muted, the result green or red, errors red, Maven warnings orange, Gradle's standard error read apart and shown as errors; `MavenGoals.lineKind`, `GradleTasks.lineKind` (`java.maven`, `java.gradle` 1.1) | §11 W3b `feature/output-api` (output kinds complete for the three build tools; ANSI SGR and the later parity steps remain, M1) |
 | #174 | property/nodes contract: `api.nodes` M property model, `api.property` editor/FX model, property sheet on the API, `platform.nodes` T0, `ide.workbench` migration; `api.layer.LayerInstances`/`LayerEntry` read the class-based layer entries without `DataObject`/`InstanceCookie`, and the remaining layer readers migrate in `refactor/layer-instances` | §6.1/§6.1.1/§6.2, §11 W2a `refactor/nodes-property-contract` |
 | #175 | Maven projects run, as `mvn` processes: the build commands and the goals run from the Navigator start the wrapper or the IDE's Maven instead of the embedder, so a build can be stopped (the process tree is ended) and builds do not share the project system's embedder. A command follows the project's `nbactions.xml` as NetBeans' own resolver reads it (goals, properties, profiles, options, configuration, folder, reactor flags, environment, pre-action; a mapping without goals disables it); without a mapping, Run is the goal of the plugin the project builds with (`javafx:run`, `gluonfx:run`, `spring-boot:run`, `quarkus:dev`). `ide.build` gains `BuildProcesses`; the process fallback asks the project type before the marker files. The Project Files group of the project tree follows files created, deleted or renamed in the project folder | Decision 8 (Maven builds run as processes) landed for build commands and Navigator goals; the embedder stays for the project model |
+| #181 | wizard contract: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` in `api.wizard`, `platform.wizard` as the T0 themed dialog, processor validation and `LayerInstances` discovery; `api.wizard` 1.1 with `apichanges`, the shell conformance and IDE wizards use the API | §6.1/§6.2, §11 W2a `refactor/wizard-contract` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
 declarative panes/areas/layout, owns branding, the application menu and the window environment, and the theme
 supports light/dark/OS mode. `ActionBars` is gone.
 
-The **API split is complete at module level, not at contract level**. `api.wizard`, `api.status`,
-`api.property`, `api.nodes`, `api.dialogs`, `api.search` and `api.project` are `partial` until W2a moves the
-implementable SPI out of `platform.*`; the options contract landed with #162. `platform.editor` and
-`platform.workspace` still export implementation packages. M0 is **2026-12** (dates unchanged) and now closes
-the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the W2b
-governance for the complete modules. M1 (2027-03) carries AppShell services and IDE core. The next W2a slice is
-wizard/status/property/nodes, not a new service.
+The **API split is complete at module level, not at contract level**. `api.status`, `api.dialogs`,
+`api.search` and `api.project` are `partial` until W2a/W2b moves the implementable SPI out of
+`platform.*`; the options, property/nodes and wizard contracts landed with #162, #174 and #181.
+`platform.editor` and `platform.workspace` still export implementation packages. M0 is **2026-12** (dates
+unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, the API-only
+downstream fixture and the W2b governance for the complete modules. M1 (2027-03) carries AppShell services and
+IDE core. The next W2a slice is status, not a new service.
 The module and source counts are in [`figures.md`](figures.md), not in this table.
