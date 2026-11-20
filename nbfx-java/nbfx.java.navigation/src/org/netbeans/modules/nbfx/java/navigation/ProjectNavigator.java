@@ -41,6 +41,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -96,6 +98,12 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
         // Written by the project's loading thread, read by the FX and lazy-node threads.
         private volatile Project project;
         private volatile ProjectKindProvider kind;
+        /**
+         * The projects that have a node in this tree - the root and its subprojects - by their
+         * folder: what tells, without asking the project system, that a file event is about a
+         * project's own folder.
+         */
+        private final Map<FileObject, Project> shownProjects = new ConcurrentHashMap<>();
         private volatile Thread loadingThread;
         private volatile boolean loadingCancelled;
         /** Whether the focus ring should keep following this project's restored selection. */
@@ -342,6 +350,7 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
             public void fileDataCreated(FileEvent fe) {
                 LOG.info("Data created: " + fe);
                 FileObject fileObject = fe.getFile();
+                syncProjectFiles(state, fileObject);
                 if (PackageScanner.isIgnored(fileObject)) {
                     return;
                 }
@@ -365,12 +374,14 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
             public void fileDeleted(FileEvent fe) {
                 LOG.info("File deleted: " + fe);
                 removeTreeItem(state, fe.getFile());
+                syncProjectFiles(state, fe.getFile());
                 syncPackagesFor(state, fe.getFile());
             }
 
             @Override
             public void fileRenamed(FileRenameEvent fre) {
                 LOG.info("File renamed: " + fre);
+                syncProjectFiles(state, fre.getFile());
                 syncPackagesFor(state, fre.getFile());
             }
 
@@ -637,6 +648,7 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
         LOG.info("Building project node for " + name);
         String icon = NavigatorIcons.getProjectIconName(project, isRoot && !withSources, kind);
         ProjectEntry projectEntry = new ProjectEntry(project.getProjectDirectory(), name, ProjectEntry.Type.NAME, ProjectEntry.BADGE.NO_BADGE, icon);
+        state.shownProjects.put(project.getProjectDirectory(), project);
         ProjectTreeItem projectNode = new ProjectTreeItem(projectEntry);
         if (withSources) {
             TreeNav.setExpandedInvalidationListener(projectNode, () ->
@@ -656,8 +668,13 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
                         ProjectEntry resourcesGroupEntry = new ProjectEntry(source.getRootFolder(), source.getDisplayName(), ProjectEntry.Type.GROUP, ProjectEntry.BADGE.OTHERS_BADGE);
                         children.add(new ProjectTreeItem(resourcesGroupEntry));
                     }
+                    // The project kind lists its files here, on the loading thread, not on the FX thread.
+                    List<ProjectEntry> projectFiles = projectFileEntries(project, kind);
                     Platform.runLater(() -> {
-                        addProjectFilesNode(project, kind, children);
+                        ProjectTreeItem projectFilesNode = createProjectFilesNode(project, kind, projectFiles);
+                        if (projectFilesNode != null) {
+                            children.add(projectFilesNode);
+                        }
                         addLibrariesNode(project, kind, children);
                         addLazyChildren(state, projectNode, children);
                     });
@@ -667,36 +684,119 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
     }
 
     /**
-     * Appends the project's "project files" / "important files" group (from the project-kind
-     * provider), if any. Runs on the FX thread because it attaches tree nodes.
+     * The files of the project's "project files" / "important files" group that exist now, as the
+     * project-kind provider lists them; empty when the kind has no such group. The provider is
+     * asked here, so this is called off the FX thread.
      */
-    private void addProjectFilesNode(Project project, ProjectKindProvider kind, List<TreeItem<ProjectEntry>> children) {
-        String groupName = kind.projectFilesGroupName();
-        if (groupName == null) {
-            return;
-        }
-        List<ProjectFile> projectFiles = kind.projectFiles(project);
-        if (projectFiles.isEmpty()) {
-            return;
+    private static List<ProjectEntry> projectFileEntries(Project project, ProjectKindProvider kind) {
+        if (kind.projectFilesGroupName() == null) {
+            return List.of();
         }
         FileObject dir = project.getProjectDirectory();
-        List<TreeItem<ProjectEntry>> fileChildren = new ArrayList<>();
-        for (ProjectFile file : projectFiles) {
+        List<ProjectEntry> entries = new ArrayList<>();
+        for (ProjectFile file : kind.projectFiles(project)) {
             FileObject fo = dir.getFileObject(file.path());
             if (fo != null && fo.isData()) {
                 String name = file.displayName() != null ? file.displayName() : fo.getNameExt();
-                fileChildren.add(new ProjectTreeItem(new ProjectEntry(fo, name, ProjectEntry.Type.FILE,
-                        ProjectEntry.BADGE.NO_BADGE, NavigatorIcons.getFileIconName(fo))));
+                entries.add(new ProjectEntry(fo, name, ProjectEntry.Type.FILE,
+                        ProjectEntry.BADGE.NO_BADGE, NavigatorIcons.getFileIconName(fo)));
             }
         }
-        if (fileChildren.isEmpty()) {
+        return entries;
+    }
+
+    /** The project's "project files" group over {@code files}; {@code null} for none. Attaches tree nodes: FX thread. */
+    private static ProjectTreeItem createProjectFilesNode(Project project, ProjectKindProvider kind, List<ProjectEntry> files) {
+        if (files.isEmpty()) {
+            return null;
+        }
+        ProjectEntry groupEntry = new ProjectEntry(project.getProjectDirectory(), kind.projectFilesGroupName(),
+                ProjectEntry.Type.FILES, ProjectEntry.BADGE.PROJECTFILES_BADGE);
+        ProjectTreeItem groupNode = new ProjectTreeItem(groupEntry);
+        for (ProjectEntry file : files) {
+            groupNode.getChildren().add(new ProjectTreeItem(file));
+        }
+        return groupNode;
+    }
+
+    /**
+     * Brings the "project files" group of a project in line with its folder after {@code changed},
+     * a file directly in that folder, was created, deleted or renamed. The group lists files by
+     * name and is not a folder of the tree, so the file nodes under it are not found by their
+     * path as the files of a package are: the group is built again - with the POM's
+     * {@code nbactions.xml} gone, or back - and takes the place of the old one.
+     * <p>
+     * Most file events are about files in packages: those end at the first check, a lookup of the
+     * file's folder among the folders of the projects shown. The project kind lists the files
+     * here, on the thread of the file event; only the nodes are attached on the FX thread.
+     */
+    private void syncProjectFiles(RootState state, FileObject changed) {
+        if (!(state instanceof ProjectRootState projectState) || changed == null) {
             return;
         }
-        ProjectEntry groupEntry = new ProjectEntry(dir, groupName, ProjectEntry.Type.FILES,
-                ProjectEntry.BADGE.PROJECTFILES_BADGE);
-        ProjectTreeItem groupNode = new ProjectTreeItem(groupEntry);
-        groupNode.getChildren().setAll(fileChildren);
-        children.add(groupNode);
+        FileObject dir = changed.getParent();
+        Project project = dir == null ? null : projectState.shownProjects.get(dir);
+        ProjectKindProvider kind = projectState.kind;
+        if (project == null || kind == null || kind.projectFilesGroupName() == null) {
+            return;
+        }
+        List<ProjectEntry> files = projectFileEntries(project, kind);
+        runOnFx(() -> {
+            TreeItem<ProjectEntry> projectNode = state.item() == null ? null : findProjectNode(state.item(), dir);
+            if (projectNode != null) {
+                replaceProjectFilesNode(projectNode, createProjectFilesNode(project, kind, files));
+            }
+        });
+    }
+
+    /** The node of the project whose folder is {@code dir}, in or under {@code item}; {@code null} if it is not shown. */
+    private static TreeItem<ProjectEntry> findProjectNode(TreeItem<ProjectEntry> item, FileObject dir) {
+        ProjectEntry entry = item.getValue();
+        if (entry != null && entry.getType() == ProjectEntry.Type.NAME && dir.equals(entry.getFileObject())) {
+            return item;
+        }
+        for (TreeItem<ProjectEntry> child : item.getChildren()) {
+            TreeItem<ProjectEntry> found = findProjectNode(child, dir);
+            if (found != null) {
+                return found;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Puts {@code fresh} where the "project files" group of {@code projectNode} is, keeping it
+     * expanded as it was; removes the group for a {@code null} one; adds it, ahead of the
+     * libraries, to a project that had none. A project node whose children are not loaded yet is
+     * left alone: they are built, with the group as it is then, when the node is expanded.
+     */
+    static void replaceProjectFilesNode(TreeItem<ProjectEntry> projectNode, TreeItem<ProjectEntry> fresh) {
+        List<TreeItem<ProjectEntry>> children = projectNode.getChildren();
+        int group = indexOfType(children, ProjectEntry.Type.FILES);
+        if (group >= 0) {
+            if (fresh == null) {
+                children.remove(group);
+            } else {
+                fresh.setExpanded(children.get(group).isExpanded());
+                children.set(group, fresh);
+            }
+            return;
+        }
+        int libraries = indexOfType(children, ProjectEntry.Type.LIBRARIES);
+        boolean loaded = libraries >= 0 || indexOfType(children, ProjectEntry.Type.GROUP) >= 0;
+        if (fresh != null && loaded) {
+            children.add(libraries >= 0 ? libraries : children.size(), fresh);
+        }
+    }
+
+    private static int indexOfType(List<TreeItem<ProjectEntry>> items, ProjectEntry.Type type) {
+        for (int i = 0; i < items.size(); i++) {
+            ProjectEntry entry = items.get(i).getValue();
+            if (entry != null && entry.getType() == type) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**

@@ -18,81 +18,141 @@
  */
 package org.netbeans.modules.nbfx.ide.build;
 
-import org.netbeans.api.nbfx.output.ConsolePanel;
-import org.netbeans.api.nbfx.output.OutputKind;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput.Kind;
+import org.openide.util.NbBundle;
 
 /**
- * Runs an external process in the background and streams its output into a console: the error
- * stream as errors, each line of the output stream as the kind the caller gives it. The two
- * streams are read apart, so a line of one may come slightly before or after its neighbour of the
- * other.
+ * Runs the processes of a build in the background, one after the other, and streams their output
+ * into the build's output: the error stream as errors, each line of the output stream as the kind the
+ * caller gives it. The two streams are read apart, so a line of one may come slightly before or
+ * after its neighbour of the other.
  *
  * @since 1.0
  */
 final class ProcessRunner {
 
+    /** A run that can be stopped: the process running now, and whether to go on to the next. */
+    static final class Control {
+
+        private final AtomicReference<Process> current = new AtomicReference<>();
+        private volatile boolean stopped;
+
+        /**
+         * Stops the run: the running process and the processes it started - a build tool starts
+         * the compiler, the tests, the application - and no further step.
+         */
+        void stop() {
+            stopped = true;
+            Process running = current.get();
+            if (running != null) {
+                running.descendants().forEach(ProcessHandle::destroy);
+                running.destroy();
+            }
+        }
+
+        boolean isStopped() {
+            return stopped;
+        }
+    }
+
     private ProcessRunner() {
     }
 
     /**
-     * Starts {@code command} in {@code dir} on a daemon thread, streaming into {@code console}.
+     * Resolves the processes of a build and runs them, in order, on a daemon thread, streaming
+     * into {@code console}, the output of the build. A step that fails ends the run, and so does {@link Control#stop()}.
      *
+     * @param steps    gives the processes; called on the daemon thread, as resolving them may read
+     *                 the project. {@code null} from it is "no build tool", an empty list "the
+     *                 project has this command disabled": either is said in the console
      * @param kinds    the kind of a line of the output stream
-     * @param onStart  invoked with the started process, so the caller can cancel it; may be {@code null}
-     * @param onFinish invoked once the process has finished (or failed to start); may be {@code null}
+     * @param control  stops the run
+     * @param onFinish invoked once the run is over; may be {@code null}
      */
-    static void run(List<String> command, Path dir, ConsolePanel console, Function<String, OutputKind> kinds,
-            Consumer<Process> onStart, Runnable onFinish) {
-        Thread thread = new Thread(() -> execute(command, dir, console, kinds, onStart, onFinish), "nbfx-run");
+    static void run(Supplier<List<BuildProcess>> steps, BuildOutput console, Function<String, Kind> kinds,
+            Control control, Runnable onFinish) {
+        Thread thread = new Thread(() -> {
+            try {
+                execute(steps.get(), console, kinds, control);
+            } catch (RuntimeException ex) {
+                console.append("\n[failed: " + ex + "]\n", Kind.ERROR);
+            } finally {
+                if (onFinish != null) {
+                    onFinish.run();
+                }
+            }
+        }, "nbfx-run");
         thread.setDaemon(true);
         thread.start();
     }
 
-    private static void execute(List<String> command, Path dir, ConsolePanel console,
-            Function<String, OutputKind> kinds, Consumer<Process> onStart, Runnable onFinish) {
-        console.append("$ " + String.join(" ", command) + "\n", OutputKind.MUTED);
+    private static void execute(List<BuildProcess> steps, BuildOutput console,
+            Function<String, Kind> kinds, Control control) {
+        if (steps == null) {
+            console.append(NbBundle.getMessage(ProcessRunner.class, "BuildCommand.noTool") + "\n");
+            return;
+        }
+        if (steps.isEmpty()) {
+            console.append(NbBundle.getMessage(ProcessRunner.class, "BuildCommand.disabled") + "\n");
+            return;
+        }
+        for (BuildProcess step : steps) {
+            if (control.isStopped() || execute(step, console, kinds, control) != 0) {
+                return;
+            }
+        }
+    }
+
+    /** Runs {@code step} to its end; the exit value, or -1 when it did not start or was interrupted. */
+    private static int execute(BuildProcess step, BuildOutput console, Function<String, Kind> kinds,
+            Control control) {
+        console.append("$ " + String.join(" ", step.commandLine()) + "\n", Kind.MUTED);
         Process process = null;
         try {
-            process = new ProcessBuilder(command)
-                    .directory(dir.toFile())
-                    .start();
-            if (onStart != null) {
-                onStart.accept(process);
+            ProcessBuilder builder = new ProcessBuilder(step.commandLine()).directory(step.directory().toFile());
+            builder.environment().putAll(step.environment());
+            process = builder.start();
+            control.current.set(process);
+            if (control.isStopped()) {
+                // Stopped while starting: the stop found no process to end.
+                control.stop();
             }
             InputStream errors = process.getErrorStream();
-            Thread errorPump = new Thread(() -> pump(errors, console, line -> OutputKind.ERROR), "nbfx-run-err");
+            Thread errorPump = new Thread(() -> pump(errors, console, line -> Kind.ERROR), "nbfx-run-err");
             errorPump.setDaemon(true);
             errorPump.start();
             pump(process.getInputStream(), console, kinds);
             errorPump.join();
             int exit = process.waitFor();
-            console.append("\n[exit " + exit + "]\n", exit == 0 ? OutputKind.MUTED : OutputKind.ERROR);
+            console.append("\n[exit " + exit + "]\n", exit == 0 ? Kind.MUTED : Kind.ERROR);
+            return exit;
         } catch (IOException ex) {
-            console.append("\n[failed to start: " + ex.getMessage() + "]\n", OutputKind.ERROR);
+            console.append("\n[failed to start: " + ex.getMessage() + "]\n", Kind.ERROR);
+            return -1;
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             if (process != null) {
                 process.destroy();
             }
-            console.append("\n[interrupted]\n", OutputKind.ERROR);
+            console.append("\n[interrupted]\n", Kind.ERROR);
+            return -1;
         } finally {
-            if (onFinish != null) {
-                onFinish.run();
-            }
+            control.current.set(null);
         }
     }
 
     /** Appends the lines of {@code stream} to {@code console} until it ends; a read error ends it too. */
-    private static void pump(InputStream stream, ConsolePanel console, Function<String, OutputKind> kinds) {
+    private static void pump(InputStream stream, BuildOutput console, Function<String, Kind> kinds) {
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {

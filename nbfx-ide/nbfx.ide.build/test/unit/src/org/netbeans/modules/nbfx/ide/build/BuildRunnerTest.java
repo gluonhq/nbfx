@@ -24,11 +24,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +39,8 @@ import org.junit.Test;
 import org.netbeans.api.nbfx.output.ConsolePanel;
 import org.netbeans.api.nbfx.output.ConsoleRun;
 import org.netbeans.api.nbfx.output.OutputConsole;
+import org.netbeans.modules.nbfx.project.ui.api.BuildActionProvider;
+import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
 import org.openide.util.test.MockLookup;
 
@@ -223,6 +228,135 @@ public class BuildRunnerTest {
         assertEquals("Run HelloFX", consoles.get(0).getName());
         assertEquals("Run HelloFX", consoles.get(1).getName());
         assertEquals("Build HelloFX", consoles.get(2).getName());
+    }
+
+    /**
+     * The process fallback asks the project type first: it knows what the project maps the command
+     * to. The tool the folder's marker files name is the fallback for a command it has no command
+     * line for, and for a folder without a project type.
+     */
+    @Test
+    public void theProjectTypesCommandLineWinsOverTheMarkerFiles() throws Exception {
+        Path maven = Files.createTempDirectory("nbfx-build-runner");
+        Files.writeString(maven.resolve("pom.xml"), "<project/>");
+        BuildActionProvider mapped = provider(List.of("mvn", "clean", "javafx:run"));
+        BuildActionProvider silent = provider(null);
+        List<String> markerFiles = BuildTool.detect(maven).commandLine(maven, "run");
+        assertNotNull("the folder is a Maven one by its marker file", markerFiles);
+
+        assertEquals(List.of(new BuildProcess(List.of("mvn", "clean", "javafx:run"), maven)),
+                BuildRunner.processes(maven, "run", mapped));
+        assertEquals(List.of(new BuildProcess(markerFiles, maven)), BuildRunner.processes(maven, "run", silent));
+        assertEquals(List.of(new BuildProcess(markerFiles, maven)), BuildRunner.processes(maven, "run", null));
+        assertNull(BuildRunner.processes(Files.createTempDirectory("nbfx-no-tool"), "run", silent));
+    }
+
+    private static BuildActionProvider provider(List<String> commandLine) {
+        return new BuildActionProvider() {
+            @Override
+            public String projectTypeId() {
+                return "test";
+            }
+
+            @Override
+            public String[] getSupportedActions() {
+                return new String[] {"run"};
+            }
+
+            @Override
+            public List<String> commandLine(Path dir, String command) {
+                return commandLine;
+            }
+        };
+    }
+
+    /** A build run as processes: each in its folder with its environment, the next only after a success, and stoppable. */
+    @Test
+    public void processesRunInOrderUntilOneFails() throws Exception {
+        Path dir = Files.createTempDirectory("nbfx-build-processes");
+        StringBuffer text = new StringBuffer();
+        CountDownLatch finished = new CountDownLatch(1);
+        List<String> started = new ArrayList<>();
+        BuildOutput output = new BuildOutput() {
+            @Override
+            public void clear() {
+            }
+
+            @Override
+            public void show() {
+            }
+
+            @Override
+            public void append(String delta) {
+                text.append(delta);
+            }
+        };
+        BuildProgress progress = new BuildProgress() {
+            @Override
+            public void start(String name, Runnable cancel) {
+                started.add(name);
+            }
+
+            @Override
+            public void finish() {
+                finished.countDown();
+            }
+        };
+        String java = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+
+        BuildProcesses.start("steps", () -> List.of(
+                new BuildProcess(List.of(java, "-version"), dir),
+                new BuildProcess(List.of(java, "--no-such-option-nbfx"), dir, Map.of("NBFX_TEST", "1")),
+                new BuildProcess(List.of(java, "-version"), dir)), output, progress, line -> BuildOutput.Kind.NORMAL);
+
+        assertTrue(finished.await(60, TimeUnit.SECONDS));
+        assertEquals(List.of("steps"), started);
+        assertEquals("the step after the failed one does not run: " + text, 2, count(text.toString(), "$ "));
+        assertTrue(text.toString(), text.indexOf("[exit 0]") >= 0);
+    }
+
+    @Test
+    public void aDisabledCommandSaysSoAndRunsNothing() throws Exception {
+        StringBuffer text = new StringBuffer();
+        CountDownLatch finished = new CountDownLatch(1);
+        BuildOutput output = new BuildOutput() {
+            @Override
+            public void clear() {
+            }
+
+            @Override
+            public void show() {
+            }
+
+            @Override
+            public void append(String delta) {
+                text.append(delta);
+            }
+        };
+        BuildProgress progress = new BuildProgress() {
+            @Override
+            public void start(String name, Runnable cancel) {
+            }
+
+            @Override
+            public void finish() {
+                finished.countDown();
+            }
+        };
+
+        BuildProcesses.start("disabled", List::of, output, progress, line -> BuildOutput.Kind.NORMAL);
+
+        assertTrue(finished.await(30, TimeUnit.SECONDS));
+        assertTrue(text.toString(), text.indexOf("not available") >= 0);
+        assertEquals(0, count(text.toString(), "$ "));
+    }
+
+    private static int count(String text, String part) {
+        int count = 0;
+        for (int at = text.indexOf(part); at >= 0; at = text.indexOf(part, at + part.length())) {
+            count++;
+        }
+        return count;
     }
 
     /** Closing a project takes the re-run actions of the builds under its folder away. */

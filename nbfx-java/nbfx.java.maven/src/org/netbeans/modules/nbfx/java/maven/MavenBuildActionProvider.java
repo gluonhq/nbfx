@@ -18,21 +18,20 @@
  */
 package org.netbeans.modules.nbfx.java.maven;
 
+import java.nio.file.Path;
+import java.util.List;
+import org.netbeans.modules.nbfx.ide.build.BuildProcess;
+import org.netbeans.modules.nbfx.ide.build.BuildProcesses;
+import org.netbeans.modules.nbfx.java.maven.api.MavenGoals;
 import org.netbeans.modules.nbfx.project.ui.api.BuildActionProvider;
 import org.netbeans.modules.nbfx.project.ui.api.BuildCommands;
 import org.netbeans.modules.nbfx.project.ui.api.BuildExecution;
 import org.netbeans.modules.nbfx.project.ui.api.BuildOutput;
 import org.netbeans.modules.nbfx.project.ui.api.BuildProgress;
-import org.netbeans.modules.nbfx.java.maven.api.MavenGoals;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.netbeans.spi.project.ProjectServiceProvider;
 import org.openide.util.lookup.ServiceProvider;
 
-/** Maven build commands, run in-process via {@link MavenBuild} (CLI fallback via mvn/mvnw). */
+/** Maven build commands, run as {@code mvn} processes: see {@link MavenActions}. */
 @ServiceProvider(service = BuildActionProvider.class)
 @ProjectServiceProvider(service = BuildActionProvider.class, projectType = "org-netbeans-modules-maven")
 public final class MavenBuildActionProvider implements BuildActionProvider {
@@ -50,46 +49,28 @@ public final class MavenBuildActionProvider implements BuildActionProvider {
         };
     }
 
+    /**
+     * The command line of {@code command}: of the last of its {@linkplain MavenActions#forCommand
+     * processes}, the command itself. The runner calls this off the user interface thread.
+     */
     @Override
     public List<String> commandLine(Path dir, String command) {
-        String[] goals = goals(command);
-        if (goals == null) {
-            return null;
-        }
-        List<String> line = new ArrayList<>(goals.length + 1);
-        line.add(executable(dir, "mvnw", "mvn"));
-        line.addAll(List.of(goals));
-        return List.copyOf(line);
+        List<BuildProcess> processes = MavenActions.forCommand(dir, command);
+        return processes == null || processes.isEmpty() ? null : processes.get(processes.size() - 1).commandLine();
     }
 
+    /**
+     * Starts {@code command} as {@code mvn} processes, with what the project's {@code nbactions.xml}
+     * maps it to or else its default goals. The project is only read once the build's own thread
+     * runs: nothing here blocks the caller.
+     */
     @Override
     public BuildExecution start(Path dir, String command, BuildOutput output, BuildProgress progress) {
-        String[] goals = goals(command);
-        if (goals == null) {
+        if (MavenActions.defaultGoals(command) == null) {
             return null;
         }
-        return MavenGoals.start(dir, List.of(goals), Map.of(), output, progress);
-    }
-
-    private static String[] goals(String command) {
-        return switch (command) {
-            case BuildCommands.BUILD -> new String[] {"package"};
-            case BuildCommands.CLEAN -> new String[] {"clean"};
-            case BuildCommands.REBUILD -> new String[] {"clean", "package"};
-            case BuildCommands.TEST -> new String[] {"test"};
-            case BuildCommands.RUN -> new String[] {"compile", "exec:java"};
-            case BuildCommands.JAVADOC -> new String[] {"javadoc:javadoc"};
-            default -> null;
-        };
-    }
-
-    private static String executable(Path dir, String wrapper, String fallback) {
-        Path unix = dir.resolve(wrapper);
-        if (Files.isRegularFile(unix)) {
-            return unix.toString();
-        }
-        Path windows = dir.resolve(wrapper + ".cmd");
-        return Files.isRegularFile(windows) ? windows.toString() : fallback;
+        return BuildProcesses.start("maven", () -> MavenActions.forCommand(dir, command), output, progress,
+                MavenGoals::lineKind);
     }
 
     @Override
