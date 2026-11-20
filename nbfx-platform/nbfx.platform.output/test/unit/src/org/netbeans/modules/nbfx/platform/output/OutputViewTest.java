@@ -239,7 +239,7 @@ public class OutputViewTest {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Stage stage = new Stage();
-            stage.setScene(new Scene(view, 400, 300));
+            stage.setScene(themed(new Scene(view, 400, 300)));
             stage.show();
             ConsoleModel run = output.console("Run");
             run.setRerun(() -> {
@@ -311,7 +311,7 @@ public class OutputViewTest {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Stage stage = new Stage();
-            Scene scene = new Scene(view, 400, 300);
+            Scene scene = themed(new Scene(view, 400, 300));
             stage.setScene(scene);
             stage.show();
             output.console("Run").append("some output");
@@ -378,7 +378,7 @@ public class OutputViewTest {
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
             Stage stage = new Stage();
-            stage.setScene(new Scene(new VBox(elsewhere, view), 400, 300));
+            stage.setScene(themed(new Scene(new VBox(elsewhere, view), 400, 300)));
             stage.show();
             output.console("Run").append("some output");
             ConsolePane pane = (ConsolePane) view.tabs().getTabs().get(0).getContent();
@@ -487,7 +487,7 @@ public class OutputViewTest {
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
             Stage stage = new Stage();
-            stage.setScene(new Scene(new VBox(elsewhere, view), 400, 300));
+            stage.setScene(themed(new Scene(new VBox(elsewhere, view), 400, 300)));
             stage.show();
             ConsolePanel run = output.console("Run");
             run.append("some output");
@@ -516,6 +516,12 @@ public class OutputViewTest {
     }
 
     /** Presses {@code code} with the shortcut modifier, whichever key the platform uses for it. */
+    /** Gives the scene the theme, as the application does: output.css only names theme tokens. */
+    private static Scene themed(Scene scene) {
+        NbfxTheme.apply(scene);
+        return scene;
+    }
+
     private static void press(ConsolePane pane, KeyCode code) {
         boolean meta = new KeyCodeCombination(code, KeyCombination.SHORTCUT_DOWN)
                 .match(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, true));

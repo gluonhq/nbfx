@@ -80,8 +80,9 @@ public final class DetachedBars {
             for (ToolBar detached : toolBars.getToolBars()) {
                 for (ToolBar main : mainToolBars.toolBars().getToolBars()) {
                     if (detached.getId() != null && detached.getId().equals(main.getId())) {
+                        // ToolBarContainer keeps managed in step with visible itself; binding
+                        // managed here as well made its listener throw on every toggle.
                         detached.visibleProperty().bind(main.visibleProperty());
-                        detached.managedProperty().bind(detached.visibleProperty());
                         break;
                     }
                 }
@@ -92,7 +93,6 @@ public final class DetachedBars {
         public void dispose() {
             for (ToolBar bar : toolBars.getToolBars()) {
                 bar.visibleProperty().unbind();
-                bar.managedProperty().unbind();
             }
             menu.dispose();
         }

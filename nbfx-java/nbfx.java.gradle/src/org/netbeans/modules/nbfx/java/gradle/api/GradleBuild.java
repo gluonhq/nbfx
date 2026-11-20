@@ -47,7 +47,7 @@ import org.gradle.tooling.ProjectConnection;
  */
 final class GradleBuild implements BuildExecution {
 
-    private static final String DEFAULT_GRADLE_VERSION = "9.8";
+    private static final String DEFAULT_GRADLE_VERSION = "9.8.0";
 
     private final Path dir;
     private final String[] tasks;

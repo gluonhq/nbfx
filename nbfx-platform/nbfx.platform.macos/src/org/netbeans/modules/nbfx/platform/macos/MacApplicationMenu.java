@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.macos;
 
 import org.netbeans.api.nbfx.view.ApplicationMenu;
 import java.awt.Desktop;
+import java.awt.GraphicsEnvironment;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
@@ -44,6 +45,10 @@ public final class MacApplicationMenu implements ApplicationMenu {
 
     @Override
     public void install(Runnable openPreferences, Runnable quit) {
+        if (GraphicsEnvironment.isHeadless()) {
+            // No AWT desktop to register with (headless tests); Desktop.getDesktop() would throw.
+            return;
+        }
         try {
             Desktop desktop = Desktop.getDesktop();
             desktop.setPreferencesHandler(event -> Platform.runLater(openPreferences));
