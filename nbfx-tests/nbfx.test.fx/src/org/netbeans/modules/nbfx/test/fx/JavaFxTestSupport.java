@@ -91,11 +91,15 @@ public final class JavaFxTestSupport {
     /**
      * Hides every window that is still showing. Call it after a test that leaves a stage open: a
      * window that is showing when the test JVM exits may still be repainted while the toolkit
-     * shuts down, and the renderer then rejects the job with a logged exception.
+     * shuts down, and the renderer then rejects the job with a logged exception. Does nothing when
+     * no test has started the toolkit yet.
      *
      * @throws InterruptedException when the test thread is interrupted
      */
     public static void hideWindows() throws InterruptedException {
+        if (!FX_STARTED.get()) {
+            return;
+        }
         onFx(() -> List.copyOf(Window.getWindows()).forEach(Window::hide));
     }
 

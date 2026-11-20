@@ -515,13 +515,13 @@ public class OutputViewTest {
         });
     }
 
-    /** Presses {@code code} with the shortcut modifier, whichever key the platform uses for it. */
     /** Gives the scene the theme, as the application does: output.css only names theme tokens. */
     private static Scene themed(Scene scene) {
         NbfxTheme.apply(scene);
         return scene;
     }
 
+    /** Presses {@code code} with the shortcut modifier, whichever key the platform uses for it. */
     private static void press(ConsolePane pane, KeyCode code) {
         boolean meta = new KeyCodeCombination(code, KeyCombination.SHORTCUT_DOWN)
                 .match(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, false, false, true));
