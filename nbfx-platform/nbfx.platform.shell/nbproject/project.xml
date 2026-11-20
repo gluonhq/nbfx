@@ -151,6 +151,10 @@
                         <compile-dependency/>
                     </test-dependency>
                     <test-dependency>
+                        <code-name-base>org.netbeans.modules.nbfx.test.fx</code-name-base>
+                        <compile-dependency/>
+                    </test-dependency>
+                    <test-dependency>
                         <code-name-base>org.netbeans.modules.nbfx.platform.actions</code-name-base>
                         <compile-dependency/>
                     </test-dependency>

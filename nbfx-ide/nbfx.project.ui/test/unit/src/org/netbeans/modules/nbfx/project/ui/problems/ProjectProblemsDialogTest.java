@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.project.ui.problems;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -48,7 +50,7 @@ public class ProjectProblemsDialogTest {
         FileObject root = FileUtil.createMemoryFileSystem().getRoot().createFolder("proj");
         provider = new TestProject.Provider();
         project = new TestProject(root, provider);
-        FxTestSupport.onFx(() -> { });
+        JavaFxTestSupport.onFx(() -> { });
     }
 
     @Test
@@ -56,7 +58,7 @@ public class ProjectProblemsDialogTest {
         provider.setProblems(List.of(error()));
         ProjectProblemsModel model = load(false);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 ProjectProblemsDialog dialog = new ProjectProblemsDialog(null, model);
                 try {
                     dialog.show();
@@ -70,7 +72,7 @@ public class ProjectProblemsDialogTest {
                 }
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -79,7 +81,7 @@ public class ProjectProblemsDialogTest {
         provider.setProblems(List.of(error(), warning()));
         ProjectProblemsModel model = load(true);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 ProjectProblemsCustomizer dialog = new ProjectProblemsCustomizer(null, model);
                 try {
                     dialog.show();
@@ -93,7 +95,7 @@ public class ProjectProblemsDialogTest {
                 }
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -102,20 +104,20 @@ public class ProjectProblemsDialogTest {
         provider.setProblems(List.of(error(), warning()));
         ProjectProblemsModel model = new ProjectProblemsModel(List.of(project), true);
         AtomicReference<ProjectProblemsCustomizer> dialog = new AtomicReference<>();
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ProjectProblemsCustomizer customizer = new ProjectProblemsCustomizer(null, model);
             customizer.show();
             dialog.set(customizer);
         });
         try {
             model.loaded().get(10, TimeUnit.SECONDS);
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 assertTrue(dialog.get().isShowing());
                 assertEquals(2, dialog.get().problems().getItems().size());
                 dialog.get().close();
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 

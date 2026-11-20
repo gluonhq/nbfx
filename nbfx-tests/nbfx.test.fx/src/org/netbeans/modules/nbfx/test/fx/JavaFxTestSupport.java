@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.nodes;
+package org.netbeans.modules.nbfx.test.fx;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -25,15 +25,28 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javafx.application.Platform;
 
-/** Starts the headless JavaFX toolkit once per test JVM and runs tasks on the FX thread. */
-final class FxTestSupport {
+/**
+ * Starts the headless JavaFX toolkit once per test JVM and runs tasks on the JavaFX thread.
+ * <p>
+ * Test-only support for the nbfx-qa cluster. The module is not in the product cluster config and is
+ * not shipped.
+ */
+public final class JavaFxTestSupport {
 
     private static final AtomicBoolean FX_STARTED = new AtomicBoolean();
 
-    private FxTestSupport() {
+    private JavaFxTestSupport() {
     }
 
-    static <T> T onFx(Supplier<T> task) throws InterruptedException {
+    /**
+     * Runs {@code task} on the JavaFX thread and returns its result.
+     *
+     * @param <T>  the result type
+     * @param task the task
+     * @return the task's result
+     * @throws InterruptedException when the test thread is interrupted
+     */
+    public static <T> T onFx(Supplier<T> task) throws InterruptedException {
         ensureFxStarted();
         CountDownLatch done = new CountDownLatch(1);
         AtomicReference<T> result = new AtomicReference<>();
@@ -58,6 +71,19 @@ final class FxTestSupport {
             throw new AssertionError(failure);
         }
         return result.get();
+    }
+
+    /**
+     * Runs {@code task} on the JavaFX thread.
+     *
+     * @param task the task
+     * @throws InterruptedException when the test thread is interrupted
+     */
+    public static void onFx(Runnable task) throws InterruptedException {
+        onFx(() -> {
+            task.run();
+            return null;
+        });
     }
 
     private static void ensureFxStarted() throws InterruptedException {

@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.beans.property.SimpleObjectProperty;
@@ -87,7 +89,7 @@ public class WindowEnvironmentCapabilityTest {
 
     @Test
     public void tabHomeResolverWins() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             Tab tab = new Tab();
             TabPane pane = new TabPane();
             TabHomeResolver resolver = candidate -> candidate == tab ? pane : null;
@@ -101,7 +103,7 @@ public class WindowEnvironmentCapabilityTest {
 
     @Test
     public void detachedBarsProviderReceivesTheContext() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             SimpleObjectProperty<org.netbeans.api.nbfx.editor.EditorDocument> scope = new SimpleObjectProperty<>();
             Region bars = new Region();
             DetachedBarsProvider provider = context -> bars;

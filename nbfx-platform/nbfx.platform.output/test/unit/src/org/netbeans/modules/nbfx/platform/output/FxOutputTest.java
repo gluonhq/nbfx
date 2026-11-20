@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.output;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
@@ -38,7 +40,7 @@ public class FxOutputTest {
 
     @Test
     public void sameNameYieldsSameConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry registry = new ConsoleRegistry();
 
             assertSame(registry.console("Build"), registry.console("Build"));
@@ -52,7 +54,7 @@ public class FxOutputTest {
     /** The id makes the console, the name only titles it: two consoles may be called the same. */
     @Test
     public void consolesWithTheSameNameAreToldApartByTheirId() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry registry = new ConsoleRegistry();
 
             ConsoleModel maven = registry.console("/maven/hellofx", "Run HelloFX");
@@ -73,7 +75,7 @@ public class FxOutputTest {
 
     @Test
     public void consoleAccumulatesAndClears() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleModel console = new ConsoleRegistry().console("Run");
             StringBuilder sink = new StringBuilder();
 
@@ -92,7 +94,7 @@ public class FxOutputTest {
     /** Asking for a console is not asking to see it: only {@code show()} brings the Output window up. */
     @Test
     public void onlyShowRevealsTheOutputWindow() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry registry = new ConsoleRegistry();
             AtomicInteger reveals = new AtomicInteger();
             AtomicInteger selections = new AtomicInteger();
@@ -114,7 +116,7 @@ public class FxOutputTest {
 
     @Test
     public void closedConsoleIsForgotten() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry registry = new ConsoleRegistry();
             ConsoleModel console = registry.console("Run");
             console.append("first run");
@@ -138,7 +140,7 @@ public class FxOutputTest {
     /** The end of a run reported after the next run started leaves the next run going. */
     @Test
     public void aStaleRunDoesNotEndTheNextOne() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleModel console = new ConsoleRegistry().console("Run");
             AtomicInteger stopsOfA = new AtomicInteger();
             AtomicInteger stopsOfB = new AtomicInteger();
@@ -166,7 +168,7 @@ public class FxOutputTest {
     public void aStaleRunFinishingLateDoesNotEndTheNextOne() throws Exception {
         ConsoleModel console = new ConsoleModel("Run");
         ConsoleRun[] runs = new ConsoleRun[2];
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             runs[0] = console.startRun(() -> {
             });
             // Run A ends on its own thread: its finish is queued behind this FX task...
@@ -183,12 +185,12 @@ public class FxOutputTest {
             return null;
         });
 
-        assertSame(runs[1], FxTestSupport.onFx(() -> console.runProperty().get()));
+        assertSame(runs[1], JavaFxTestSupport.onFx(() -> console.runProperty().get()));
     }
 
     @Test
     public void aRunWithoutAStopActionCannotBeStopped() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleModel console = new ConsoleRegistry().console("Run");
 
             console.startRun(null);
@@ -202,7 +204,7 @@ public class FxOutputTest {
     /** A view attaching late gets the text with the kinds it was appended as. */
     @Test
     public void attachReplaysTheKinds() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleModel console = new ConsoleModel("Build");
             console.append("run:\n", OutputKind.MUTED);
             console.append("hello\n");
@@ -225,7 +227,7 @@ public class FxOutputTest {
     public void attachDoesNotRepeatPendingText() throws Exception {
         ConsoleModel console = new ConsoleModel("Run");
         StringBuilder sink = new StringBuilder();
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             // Appended from another thread while the FX thread is busy here: the delivery is queued.
             Thread writer = new Thread(() -> {
                 console.append("cleared");
@@ -244,9 +246,9 @@ public class FxOutputTest {
             return null;
         });
         // The queued deliveries have run by now.
-        assertEquals("pending", FxTestSupport.onFx(sink::toString));
+        assertEquals("pending", JavaFxTestSupport.onFx(sink::toString));
 
         console.append(" more");
-        assertEquals("pending more", FxTestSupport.onFx(sink::toString));
+        assertEquals("pending more", JavaFxTestSupport.onFx(sink::toString));
     }
 }

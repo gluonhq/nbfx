@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.nodes;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.scene.Scene;
@@ -47,7 +49,7 @@ public class PropertySheetTest {
         PropertiesProvider provider = context -> List.of(set);
         MockLookup.setInstances(provider);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 PropertySheet sheet = new PropertySheet();
                 sheet.setContext("context");
                 assertEquals(1, sheet.tree().getRoot().getChildren().size());
@@ -70,7 +72,7 @@ public class PropertySheetTest {
         AtomicReference<TextField> field = new AtomicReference<>();
         AtomicReference<Stage> stage = new AtomicReference<>();
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 PropertySheet sheetValue = new PropertySheet();
                 Button elsewhere = new Button("elsewhere");
                 VBox root = new VBox(sheetValue, elsewhere);
@@ -95,7 +97,7 @@ public class PropertySheetTest {
                 stage.set(stageValue);
                 return null;
             });
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 TextField refreshed = (TextField) sheet.get().lookupAll(".text-field")
                         .iterator().next();
                 assertEquals("the editor is refreshed with the model value", "b",
@@ -104,7 +106,7 @@ public class PropertySheetTest {
             });
         } finally {
             if (stage.get() != null) {
-                FxTestSupport.onFx(() -> {
+                JavaFxTestSupport.onFx(() -> {
                     stage.get().hide();
                     return null;
                 });

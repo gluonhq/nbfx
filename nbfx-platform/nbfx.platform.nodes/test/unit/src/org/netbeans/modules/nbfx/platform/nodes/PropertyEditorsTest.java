@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.nodes;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -64,7 +66,7 @@ public class PropertyEditorsTest {
 
     @Test
     public void writablePropertyGetsAnEditorAndReadOnlyPropertyDoesNot() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             Node editor = PropertyEditors.createEditor(
                     new SimplePropertyModel("name", "Name", String.class, "value"));
             assertTrue(editor instanceof TextField);

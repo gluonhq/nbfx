@@ -133,3 +133,15 @@ nb.cluster.nbfx-java=\
         nbfx.java.navigation,\
         nbfx.java.navigation.structure,\
         nbfx.java.usages
+
+# --- nbfx-qa: test-only support modules, never in the product ------------------
+# Kept in clusters.config.full.list so test dependencies resolve, but not in
+# clusters.config.nbfx.list; `ant build` and the release never include it.
+nb.cluster.nbfx-qa.dir=nbfx-tests
+nb.cluster.nbfx-qa.depends=\
+        nb.cluster.nbfx-libs
+nb.cluster.nbfx-qa=\
+        nbfx.test.fx
+clusters.config.nbfx-qa.list=\
+        nb.cluster.nbfx-libs,\
+        nb.cluster.nbfx-qa

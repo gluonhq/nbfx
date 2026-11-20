@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -68,7 +70,7 @@ public class WindowPaneProviderTest {
 
     @Test
     public void providerWithTheWrongRoleIsRejected() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ShellApplication shell = new ShellApplication();
             WindowPane declared = new WindowPane("RIGHT_SIDEBAR", "Right", PaneKind.VIEW,
                     "right-sidebar", false, 30);
@@ -104,7 +106,7 @@ public class WindowPaneProviderTest {
         Provider high = new Provider(10, seen);
         Lookup lookup = Lookups.fixed(low, high);
 
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ShellApplication shell = new ShellApplication();
             WindowPane compositionPane = new WindowPane("RIGHT_SIDEBAR", "Right", PaneKind.VIEW,
                     "right-sidebar", false, 30);

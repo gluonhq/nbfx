@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +41,7 @@ public class DockingCompositionTest {
 
     @Test
     public void areaAndLifecycleLookupsUseTheResolvedComposition() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
             NbfxTabPane custom = new NbfxTabPane(PaneRole.of("CUSTOM"));
             WindowPane declaration = new WindowPane("CUSTOM", "Custom", PaneKind.VIEW,

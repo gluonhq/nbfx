@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import static org.junit.Assert.assertEquals;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -33,7 +35,7 @@ public class ViewTabsTitleTest {
 
     @Test
     public void theTabShowsTheNameOfAViewWithoutATitleOfItsOwn() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ViewProvider view = new ViewProvider() {
                 @Override
                 public String getTitle() {
@@ -55,7 +57,7 @@ public class ViewTabsTitleTest {
 
     @Test
     public void theTabFollowsTheTitleOfTheView() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             StringProperty title = new SimpleStringProperty("Output");
             ViewProvider view = new ViewProvider() {
                 @Override

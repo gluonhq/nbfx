@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.output;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -68,7 +70,7 @@ public class OutputViewTest {
 
     @Test
     public void everyConsoleGetsATabShowingItsText() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             output.console("Build").append("before the view\n");
             OutputView view = new OutputView(output, new OutputSettings());
@@ -98,7 +100,7 @@ public class OutputViewTest {
     /** Each stretch of a line is drawn as the kind it was appended as, each kind in its theme colour. */
     @Test
     public void textIsColouredByKind() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             ConsolePanel build = output.console("Build");
@@ -134,7 +136,7 @@ public class OutputViewTest {
 
     @Test
     public void toolBarFollowsTheSelectedConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             assertTrue(view.rerunButton().isDisable());
@@ -182,7 +184,7 @@ public class OutputViewTest {
 
     @Test
     public void closingATabForgetsItsConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             ConsoleModel run = output.console("Run");
@@ -206,7 +208,7 @@ public class OutputViewTest {
     @Test
     public void aSingleConsoleIsNamedByTheOutputTab() throws Exception {
         PseudoClass single = PseudoClass.getPseudoClass("single");
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             assertEquals("Output", view.titleProperty().get());
@@ -233,7 +235,7 @@ public class OutputViewTest {
     /** The tab's own close button, as the user presses it, forgets the console as closing it any other way does. */
     @Test
     public void theTabCloseButtonForgetsTheConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Stage stage = new Stage();
@@ -282,12 +284,12 @@ public class OutputViewTest {
         String name = "OutputViewTest-" + System.nanoTime();
         try {
             MockLookup.setInstances();
-            OutputView view = FxTestSupport.onFx(() -> (OutputView) new OutputViewProvider().getView());
+            OutputView view = JavaFxTestSupport.onFx(() -> (OutputView) new OutputViewProvider().getView());
             MockLookup.setInstances((OutputConsole) (id, consoleName) -> {
                 throw new AssertionError("the view must not ask a foreign service for consoles");
             });
 
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 ConsoleModel console = ConsoleRegistry.getDefault().console(name);
                 console.append("platform console");
                 Tab tab = view.tabs().getTabs().stream()
@@ -305,7 +307,7 @@ public class OutputViewTest {
     /** A new theme on the scene rebuilds the paragraphs, whose colours the area resolved under the old one. */
     @Test
     public void aThemeSwitchRestylesTheText() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Stage stage = new Stage();
@@ -333,7 +335,7 @@ public class OutputViewTest {
     /** The tool bar icons have a drawing for dark themes next to the one for light themes. */
     @Test
     public void toolBarIconsAreThemed() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             OutputView view = new OutputView(new ConsoleRegistry(), new OutputSettings());
 
             assertEquals(4, view.toolBarButtons().size());
@@ -353,7 +355,7 @@ public class OutputViewTest {
     public void saveAsWritesTheConsoleText() throws Exception {
         Path file = Files.createTempFile("nbfx-output", ".txt");
         try {
-            RequestProcessor.Task task = FxTestSupport.onFx(() -> {
+            RequestProcessor.Task task = JavaFxTestSupport.onFx(() -> {
                 ConsoleRegistry output = new ConsoleRegistry();
                 OutputView view = new OutputView(output, new OutputSettings());
                 output.console("Run").append("run:\nBUILD SUCCESSFUL\n");
@@ -371,7 +373,7 @@ public class OutputViewTest {
     @Test
     public void focusInTheTextMarksTheTabsActive() throws Exception {
         PseudoClass active = PseudoClass.getPseudoClass("active");
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
@@ -400,7 +402,7 @@ public class OutputViewTest {
     /** The keys of NetBeans' Output window, with the platform's shortcut modifier. */
     @Test
     public void keysActOnTheConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputSettings settings = new OutputSettings();
             OutputView view = new OutputView(output, settings);
@@ -453,7 +455,7 @@ public class OutputViewTest {
             }
         });
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 ConsoleRegistry output = new ConsoleRegistry();
                 OutputSettings settings = new OutputSettings();
                 OutputView view = new OutputView(output, settings);
@@ -480,7 +482,7 @@ public class OutputViewTest {
     /** The commands the Keymap options list act on the console that has the focus, and only then. */
     @Test
     public void commandsActOnTheFocusedConsole() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ConsoleRegistry output = new ConsoleRegistry();
             OutputView view = new OutputView(output, new OutputSettings());
             Button elsewhere = new Button();
@@ -523,7 +525,7 @@ public class OutputViewTest {
 
     @Test
     public void fontSizeAndWrapAreSharedByTheConsoles() throws Exception {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             OutputSettings settings = new OutputSettings();
             settings.fontSizeProperty().set(OutputSettings.MAX_FONT_SIZE - 1);
 

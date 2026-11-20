@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.scene.Node;
@@ -68,7 +70,7 @@ public class AppShellConformanceTest {
 
     @Test
     public void defaultShellApplicationStarts() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ShellApplication application = new ShellApplication();
             application.start(new Stage());
             assertNotNull(application.getStage());
@@ -172,7 +174,7 @@ public class AppShellConformanceTest {
 
     @Test
     public void actionRegistryWorksWithoutIdeModules() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             ActionRegistry registry = new ActionRegistryImpl();
             AtomicBoolean ran = new AtomicBoolean();
             registry.register(new RunnableCommand("conformance", "Conformance", null, () -> ran.set(true)));
@@ -186,7 +188,7 @@ public class AppShellConformanceTest {
 
     @Test
     public void propertySheetOutputProgressAndWizardsWork() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             assertTrue("the Properties view is registered", Lookup.getDefault()
                     .lookupAll(ViewProvider.class).stream()
                     .anyMatch(provider -> "properties".equals(provider.getId())));

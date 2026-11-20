@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.project.ui.problems;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +46,7 @@ public class ProjectProblemsModelTest {
         FileObject root = FileUtil.createMemoryFileSystem().getRoot().createFolder("proj");
         provider = new TestProject.Provider();
         project = new TestProject(root, provider);
-        FxTestSupport.onFx(() -> { });
+        JavaFxTestSupport.onFx(() -> { });
     }
 
     @Test
@@ -52,13 +54,13 @@ public class ProjectProblemsModelTest {
         provider.setProblems(List.of(error("Missing path"), warning("Old platform")));
         ProjectProblemsModel model = load(false);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 assertEquals(1, model.getProblems().size());
                 assertTrue(model.getProblems().get(0).isError());
                 assertTrue(model.hasErrors());
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -67,13 +69,13 @@ public class ProjectProblemsModelTest {
         provider.setProblems(List.of(error("Missing path"), warning("Old platform")));
         ProjectProblemsModel model = load(true);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 assertEquals(2, model.getProblems().size());
                 assertEquals("Old platform", model.getProblems().get(1).displayName(false));
                 assertTrue(model.getProblems().get(0).displayName(true).contains("proj"));
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -85,9 +87,9 @@ public class ProjectProblemsModelTest {
         provider.setProblems(List.of(problem, problem));
         ProjectProblemsModel model = load(false);
         try {
-            FxTestSupport.onFx(() -> assertEquals(1, model.getProblems().size()));
+            JavaFxTestSupport.onFx(() -> assertEquals(1, model.getProblems().size()));
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -97,10 +99,10 @@ public class ProjectProblemsModelTest {
         ProjectProblemsModel model = load(false);
         try {
             Thread readThread = provider.lastReadThread();
-            Thread fxThread = FxTestSupport.onFx(Thread::currentThread);
+            Thread fxThread = JavaFxTestSupport.onFx(Thread::currentThread);
             assertNotSame("provider reads must not run on the JavaFX thread", fxThread, readThread);
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -109,17 +111,17 @@ public class ProjectProblemsModelTest {
         provider.setProblems(List.of(error("Missing path")));
         ProjectProblemsModel model = load(false);
         try {
-            FxTestSupport.onFx(() -> assertEquals(1, model.getProblems().size()));
+            JavaFxTestSupport.onFx(() -> assertEquals(1, model.getProblems().size()));
 
             provider.setProblems(List.of());
             model.refresh().get(10, TimeUnit.SECONDS);
 
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 assertTrue(model.getProblems().isEmpty());
                 assertFalse(model.hasErrors());
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 
@@ -128,14 +130,14 @@ public class ProjectProblemsModelTest {
         provider.setProblems(List.of(error("Missing path")));
         ProjectProblemsModel model = load(false);
         try {
-            FxTestSupport.onFx(() -> {
+            JavaFxTestSupport.onFx(() -> {
                 ProjectProblemsModel.ProblemItem item = model.getProblems().get(0);
                 assertEquals("Missing path", item.displayName(false));
                 assertTrue(item.displayName(true).contains("Missing path"));
                 assertTrue(item.displayName(true).contains("proj"));
             });
         } finally {
-            FxTestSupport.onFx(model::dispose);
+            JavaFxTestSupport.onFx(model::dispose);
         }
     }
 

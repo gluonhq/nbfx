@@ -64,9 +64,9 @@ directory under a NetBeans source root whose sibling is `nbbuild`.
 
 Therefore the harness makes the cluster dirs visible under `netbeans/` by an **overlay**:
 
-- `nbfx.overlay=sync` (default): `<sync>` mirrors `nbfx-platform/`, `nbfx-ide/`, `nbfx-java/` into
-  `netbeans/`, excluding `build/` and `dist/` (and keeping those of earlier per-module builds, so they
-  stay incremental). Cross-platform.
+- `nbfx.overlay=sync` (default): `<sync>` mirrors `nbfx-platform/`, `nbfx-ide/`, `nbfx-java/` and
+  `nbfx-tests/` into `netbeans/`, excluding `build/` and `dist/` (and keeping those of earlier
+  per-module builds, so they stay incremental). Cross-platform.
 - `nbfx.overlay=symlink`: `netbeans/nbfx-*` are symlinks to the real dirs. Unix-only, fastest dev loop:
   the inner and outer trees are the same files, so edits on either side (an IDE on the outer dirs,
   ScenicView or a per-module build on the inner ones) need no sync and nothing can be lost by an
@@ -95,19 +95,25 @@ and vice versa.
    (`-define-cluster-path` builds `cluster.path` from it; packaging targets too). An external
    `-Dclusters.list.file` alone is not sufficient.
 
-The fragment defines four clusters (dependency direction `nbfx-libs → nbfx-platform → nbfx-ide →
-nbfx-java`) and the lean `clusters.config.nbfx.list`. APIs live in the cluster of their domain; there is no
-`nbfx-api` cluster.
+The fragment defines five clusters (dependency direction `nbfx-libs → nbfx-platform → nbfx-ide →
+nbfx-java`, plus the test-only `nbfx-qa`) and the lean `clusters.config.nbfx.list`. APIs live in the
+cluster of their domain; there is no `nbfx-api` cluster.
 
 ```
 nb.cluster.nbfx-libs.dir=nbfx-libs           no cluster dependency
 nb.cluster.nbfx-platform.dir=nbfx-platform   depends platform, nbfx-libs, ide
 nb.cluster.nbfx-ide.dir=nbfx-ide             depends nbfx-platform, ide, java
 nb.cluster.nbfx-java.dir=nbfx-java           depends nbfx-ide, java, extide, apisupport
+nb.cluster.nbfx-qa.dir=nbfx-tests            depends nbfx-libs; test-only, not in clusters.config.nbfx.list
 
 clusters.config.nbfx.list = platform, nbfx-libs, nbfx-platform, nbfx-ide, nbfx-java,
                             java, ide, extide, apisupport
+
+clusters.config.nbfx-qa.list = nbfx-libs, nbfx-qa
 ```
+
+`nbfx-qa` is in `clusters.config.full.list` so test dependencies resolve, but not in
+`clusters.config.nbfx.list`; `ant build` and the release never include it.
 
 `nbfx-javafx` is created when its first module lands (M3).
 

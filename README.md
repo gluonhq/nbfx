@@ -57,10 +57,12 @@ Dependency direction is `libs → platform → ide → java`.
 | `nb.cluster.nbfx-platform` | `nbfx-platform/` | AppShell + platform services: shell, workspace, actions, menus, status, options, progress, output, wizard, editor and the platform APIs |
 | `nb.cluster.nbfx-ide` | `nbfx-ide/` | IDE building blocks + IDE contributions to the AppShell (`ide.workbench`) and the IDE APIs |
 | `nb.cluster.nbfx-java` | `nbfx-java/` | Java/JVM usage: project types, build, editor semantics, navigation, usages and the Java APIs |
+| `nb.cluster.nbfx-qa` | `nbfx-tests/` | test-only support modules (`nbfx.test.fx`: shared headless FX test support); in the full cluster config, never shipped |
 
 The **platform deliverable** is `nbfx-libs + nbfx-platform`; the **IDE deliverable** is the platform plus
-`nbfx-ide + nbfx-java`. There is no product or assembly tier: downstream projects combine clusters or
-binary modules as they choose.
+`nbfx-ide + nbfx-java`. The `nbfx-qa` cluster exists only so tests can depend on shared test support; it is
+not a deliverable. There is no product or assembly tier: downstream projects combine clusters or binary
+modules as they choose.
 
 ## Releases
 

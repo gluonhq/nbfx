@@ -737,8 +737,10 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
 - **QA placement**: IDE end-to-end scenarios live in the IDE cluster's test module (`ide.workbench` or a
   test-only IDE module) — not in the platform launcher; platform modules keep service tests, and the
   AppShell conformance fixture lives with the platform. `<test-dependency>` may cross layers, is never a run
-  dependency and the test artefact is not shipped; the graph guard treats test edges separately. If scenarios
-  multiply, move them to a test-only `nbfx-qa` cluster.
+  dependency and the test artefact is not shipped; the graph guard treats test edges separately. The test-only
+  `nbfx-qa` cluster exists: `nbfx-tests/nbfx.test.fx` holds the shared `JavaFxTestSupport`, and the cluster is in
+  `clusters.config.full.list` for test dependencies but not in the product `clusters.config.nbfx.list`, so it is
+  never shipped.
 - **Harness**: NetBeans `nbjunit` (the test-file count is in [`figures.md`](figures.md)) + `nbbuild` `sigtest` targets for the
   governed API modules.
 - **All unit tests are a PR gate.** `ant test` discovers every module under `nbfx-*/*` and runs its
@@ -1093,7 +1095,8 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
 22. **QA placement**: IDE end-to-end scenarios live in the IDE cluster's test module (`ide.workbench` or a
     test-only IDE module); platform modules keep service tests, and the AppShell conformance fixture lives
     with the platform; `<test-dependency>` may cross layers, never run dependencies, never shipped; a
-    test-only `nbfx-qa` cluster when scenarios multiply (§10.3).
+    test-only `nbfx-qa` cluster (`nbfx.test.fx`) is in the full config but not the product config; it holds
+    shared test support and is never shipped (§10.3).
 23. **Two deliverables, one AppShell**: the IDE is the primary deliverable; the platform (the AppShell plus
     platform services) is the secondary deliverable. The AppShell is the platform's whole application
     framework, not just `platform.shell`. Downstream projects assemble applications however they choose

@@ -19,5 +19,6 @@
 
 -->
 <project basedir="." default="build" name="nbfx-ide/nbfx.ide.workbench">
+    <property file="../../nbfx-tests/test-fx.properties"/>
     <import file="../../nbbuild/templates/projectized.xml"/>
 </project>

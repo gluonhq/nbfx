@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
+
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,7 +43,7 @@ public class ViewManagerServiceTest {
 
     @Test
     public void reportsOpenViewsAndNotifies() throws InterruptedException {
-        Fixture fixture = FxTestSupport.onFx(() -> {
+        Fixture fixture = JavaFxTestSupport.onFx(() -> {
             NbfxTabPane pane = new NbfxTabPane(PaneRole.DOCKED);
             Tab first = ViewTabs.create(view("test.view", "Test View"), "");
             Tab second = ViewTabs.create(view("test.other", "Other View"), "");
@@ -68,7 +70,7 @@ public class ViewManagerServiceTest {
             return new Fixture(pane, first, manager, listener, changes);
         });
 
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             try {
                 assertTrue(fixture.first().isSelected());
                 assertTrue("selection change reaches the listener",
@@ -83,7 +85,7 @@ public class ViewManagerServiceTest {
 
     @Test
     public void filtersByViewKind() throws InterruptedException {
-        FxTestSupport.onFx(() -> {
+        JavaFxTestSupport.onFx(() -> {
             NbfxTabPane pane = new NbfxTabPane(PaneRole.DOCKED);
             try {
                 Tab tab = ViewTabs.create(view("test.filtered", "Filtered View"), "");
