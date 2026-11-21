@@ -1,0 +1,64 @@
+--- a/platform/openide.loaders/src/org/openide/loaders/DataObject.java
++++ b/platform/openide.loaders/src/org/openide/loaders/DataObject.java
+@@ -123,7 +123,9 @@
+      * &#64;GuardedBy(LOCK)
+        */
+     private transient Node nodeDelegate;
+-    private static final Node BEING_CREATED = Node.EMPTY.cloneNode();
++    private static final class BeingCreated {
++        static final Node INSTANCE = Node.EMPTY.cloneNode();
++    }
+ 
+     /** item with info about this data object 
+      * @GuardedBy(DataObjectPool.getPOOL())
+@@ -320,7 +322,7 @@
+     private final Node getNodeDelegateImpl() {
+         for (;;) {
+             synchronized (LOCK) {
+-                if (nodeDelegate != null && nodeDelegate != BEING_CREATED) {
++                if (nodeDelegate != null && nodeDelegate != BeingCreated.INSTANCE) {
+                     return nodeDelegate;
+                 }
+             }
+@@ -332,9 +334,9 @@
+                 public void run() {
+                     synchronized(LOCK) {
+                         if (nodeDelegate == null) {
+-                            nodeDelegate = BEING_CREATED;
++                            nodeDelegate = BeingCreated.INSTANCE;
+                         } else {
+-                            if (nodeDelegate == BEING_CREATED) {
++                            if (nodeDelegate == BeingCreated.INSTANCE) {
+                                 try {
+                                     LOCK.wait();
+                                 } catch (InterruptedException ex) {
+@@ -346,7 +348,7 @@
+                     }
+                     Node newNode = createNodeDelegate();
+                     synchronized (LOCK) {
+-                        if (nodeDelegate == BEING_CREATED) {
++                        if (nodeDelegate == BeingCreated.INSTANCE) {
+                             nodeDelegate = newNode;
+                         }
+                         LOCK.notifyAll();
+--- a/platform/openide.nodes/src/org/openide/nodes/CookieSet.java
++++ b/platform/openide.nodes/src/org/openide/nodes/CookieSet.java
+@@ -54,7 +54,7 @@
+ 
+     /** Default constructor. */
+     public CookieSet() {
+-        this(null, null);
++        this(new CookieSetLkp(null), null);
+     }
+     
+     private CookieSet(CookieSetLkp ic, Lookup lookup) {
+@@ -90,8 +90,7 @@
+     public Lookup getLookup() {
+         synchronized (QUERY_MODE) {
+             if (lookup == null) {
+-                AbstractNode an = new AbstractNode(this);
+-                lookup = an.getLookup();
++                lookup = ic;
+             }
+         }
+         return lookup;

@@ -171,8 +171,20 @@ go and `openide.nodes` can be pruned once its 388 dependants retire.
 `WizardRegistry` (#181), `OptionsRegistry`, `StatusElementRegistry` and `ViewRegistry` (#176) use
 it. `UiReady` stays on `Lookups.forPath` because `@OnUiReady` is a `@NamedServiceDefinition`, not a
 config `.instance` reader. `ide.project.ui`/`java.model` avoid `getLookup()`/`getNodeDelegate()`
-where they can; measure with `spike/loaders-node-free`. **Fallback:** keep PR #12 and
-`openide.nodes`, and say so in §1.
+where they can; measure with `spike/loaders-node-free`.
+
+**Spike result (`spike/loaders-node-free`).** `nbfx-tests/tools/LoadersProbe.java` opens a file
+through `DataObject.find` and reads `getLookup()`/`getCookie()` under
+`-Xlog:class+init=info`. On the pinned upstream the probe initializes `org.openide.nodes.Node`,
+`AbstractNode` and `Children`; with `patches/0021-loaders-node-free.patch` the same probe completes
+without initializing `Node`. The patch makes `DataObject.BEING_CREATED` lazy and lets
+`CookieSet.getLookup()` return its `CookieSetLkp` instead of creating an `AbstractNode`.
+
+The patch is a prototype, not the complete proposal: the base `DataObject.getLookup()` still
+delegates to the node for non-`MultiDataObject` subclasses, the cookie API is still typed on
+`Node.Cookie`, and a neutral cookie/lookup store plus the `getNodeDelegate()` deprecation remain.
+The upstream change still needs its own review and compatibility run. **Fallback:** keep PR #12 and
+`openide.nodes`, and say so in §1; the nbfx layer readers are already node-free (#174, #176, #181).
 
 ### H.4.2 `core.ui`: move the Swing warm-up out of the platform
 
