@@ -26,6 +26,19 @@
         <apidef name="netbeansfx_wizard">NetBeansFX Wizard API</apidef>
     </apidefs>
     <changes>
+        <change id="wizard.registration">
+            <api name="netbeansfx_wizard"/>
+            <summary>The wizard registration annotation.</summary>
+            <version major="1" minor="0"/>
+            <date day="8" month="10" year="2026"/>
+            <author login="sven"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Introduces <code>@WizardRegistration</code> and the processor that writes
+                <code>NbFx/Wizards/&lt;id&gt;.instance</code> entries.
+            </description>
+            <class package="org.netbeans.api.nbfx.wizard" name="WizardRegistration"/>
+        </change>
         <change id="wizard.contract">
             <api name="netbeansfx_wizard"/>
             <summary>The JavaFX wizard SPI and its discovery contract.</summary>
@@ -36,9 +49,11 @@
             <description>
                 Moves <code>Wizard</code>, <code>WizardPanel</code> (from
                 <code>WizardPanelHost</code>), <code>WizardEntry</code> and <code>WizardRegistry</code>
-                from <code>platform.wizard</code> to this API module. The processor now validates
-                that the annotated class implements <code>Wizard</code>; the registry reads the
-                class-based layer entries through <code>LayerInstances</code>.
+                from <code>platform.wizard</code> to this API module, and adds
+                <code>WizardDisplayer</code>. The processor validates that the annotated class
+                implements <code>Wizard</code> and writes bundle-aware metadata. The registry reads
+                the entries as metadata without creating the wizards; <code>find</code> creates a
+                fresh wizard for each open.
             </description>
             <class package="org.netbeans.api.nbfx.wizard" name="Wizard"/>
             <class package="org.netbeans.api.nbfx.wizard" name="WizardPanel"/>

@@ -21,13 +21,17 @@ package org.netbeans.api.nbfx.wizard;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import org.netbeans.api.nbfx.layer.LayerEntry;
+import java.util.Objects;
 import org.netbeans.api.nbfx.layer.LayerInstances;
 import org.netbeans.api.nbfx.layer.LayerPaths;
-import org.openide.filesystems.FileObject;
+import org.netbeans.api.nbfx.layer.LayerRegistration;
 
 /**
  * Discovers the {@link Wizard}s registered under {@code NbFx/Wizards} in the module layer.
+ * <p>
+ * Discovery reads only the layer metadata; it does not create the wizards.
+ * {@link #find(String)} creates a fresh instance for every open, so a wizard does not keep input
+ * from a previous open.
  *
  * @since 1.1
  */
@@ -37,38 +41,52 @@ public final class WizardRegistry {
     }
 
     /**
-     * Discovers and orders all registered wizards. Reads the configuration filesystem, so it must be
-     * called once the platform is initialized.
+     * Discovers and orders all registered wizards without creating them. Reads the configuration
+     * filesystem, so it must be called once the platform is initialized.
      *
      * @return the wizard registrations, ordered by category, position and id
      */
     public static List<WizardEntry> discover() {
-        return read(LayerInstances.load(LayerPaths.WIZARDS, Wizard.class));
+        return read(LayerInstances.registrations(LayerPaths.WIZARDS, Wizard.class));
     }
 
-    /** The registered wizard with {@code id}, or {@code null} if none. */
+    /**
+     * Creates the registered wizard with {@code id}, or returns {@code null} if none.
+     * <p>
+     * Every call constructs a new wizard instance, so a wizard does not keep state from a previous
+     * open. Call this on the JavaFX Application Thread when the wizard builds controls in its
+     * constructor or in {@link Wizard#getPages()}.
+     *
+     * @param id the registration id
+     * @return a fresh wizard, or {@code null}
+     */
     public static Wizard find(String id) {
-        return discover().stream()
-                .filter(registration -> registration.id().equals(id))
-                .map(WizardEntry::wizard)
-                .findFirst()
-                .orElse(null);
+        Objects.requireNonNull(id, "id");
+        return find(LayerInstances.registrations(LayerPaths.WIZARDS, Wizard.class), id);
     }
 
     /** Reads the registrations of {@code entries}, taking metadata from each layer entry. */
-    static List<WizardEntry> read(Iterable<LayerEntry<Wizard>> entries) {
-        List<WizardEntry> registrations = new ArrayList<>();
-        for (LayerEntry<Wizard> entry : entries) {
-            Wizard wizard = entry.instance();
-            String id = entry.id();
-            FileObject file = entry.file();
-            String displayName = stringAttribute(file, "displayName", wizard.getDisplayName());
-            String iconName = stringAttribute(file, "iconName", "");
-            String category = stringAttribute(file, "category", "");
-            int position = intAttribute(file, "position", Integer.MAX_VALUE);
-            registrations.add(new WizardEntry(id, displayName, iconName, category, position, wizard));
+    static List<WizardEntry> read(Iterable<LayerRegistration<Wizard>> registrations) {
+        List<WizardEntry> entries = new ArrayList<>();
+        for (LayerRegistration<Wizard> registration : registrations) {
+            entries.add(new WizardEntry(
+                    registration.id(),
+                    stringAttribute(registration.attribute("displayName"), registration.id()),
+                    stringAttribute(registration.attribute("iconName"), ""),
+                    stringAttribute(registration.attribute("category"), ""),
+                    intAttribute(registration.attribute("position"), Integer.MAX_VALUE)));
         }
-        return sort(registrations);
+        return sort(entries);
+    }
+
+    /** Creates the first registration with {@code id}. */
+    static Wizard find(Iterable<LayerRegistration<Wizard>> registrations, String id) {
+        for (LayerRegistration<Wizard> registration : registrations) {
+            if (registration.id().equals(id)) {
+                return LayerInstances.instantiate(registration);
+            }
+        }
+        return null;
     }
 
     /** Orders wizards by category, then position, then id. */
@@ -81,13 +99,11 @@ public final class WizardRegistry {
         return List.copyOf(sorted);
     }
 
-    private static String stringAttribute(FileObject file, String name, String fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static String stringAttribute(Object value, String fallback) {
         return value instanceof String text ? text : fallback;
     }
 
-    private static int intAttribute(FileObject file, String name, int fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static int intAttribute(Object value, int fallback) {
         return value instanceof Integer number ? number : fallback;
     }
 }

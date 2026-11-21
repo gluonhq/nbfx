@@ -153,7 +153,7 @@ org.netbeans.libs.nbfx.<library>                      bundled external library  
 
 | Kind | Rule | Examples |
 |---|---|---|
-| SPI/API type | capability noun, no toolkit | `OptionsPanelController`, `WizardIterator`, `ViewProvider`, `PropertyEditor`, `ProjectModel`, `NodeModel`, `Settings`, `Dialogs`, `TerminalSession` |
+| SPI/API type | capability noun, no toolkit | `OptionsPanelController`, `Wizard`, `WizardPanel`, `ViewProvider`, `PropertyEditor`, `ProjectModel`, `NodeModel`, `Settings`, `Dialogs`, `TerminalSession` |
 | Registration annotation | `@<Capability>Registration` | `@ViewRegistration`, `@ActionRegistration`, `@OptionsRegistration`, `@ProjectTypeRegistration` |
 | Implementation type | may carry the toolkit **and must be non-public** in API packages | `FxOptionsWindow` in `…platform.options` (private/package-private) |
 | Service | registered via `@ServiceProvider(service = X.class)` for singletons; via layer annotations for contributions | `Dialogs`, `Settings`, `ActionRegistry`, `FxOptions` |
@@ -317,7 +317,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
 | `api.editor` | T2-FX | **partial — contract M0; migration M1** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`; the language decoration/lex SPI still moves out of `platform.editor` |
 | `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
-| `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
+| `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, metadata-only `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, bundle-aware `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
 | `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
 | `api.search` | T2-FX | **partial — M1** | only `TextSearch`/`SearchOptions`; `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` are the M1 contract (`SearchScope` currently lives in `ide.search`) |
 | `api.file` | T2-FX | **transitional — dissolve M0/M1** | `FileIconProvider`, `FileTypes`, `FileSelectionContext`; target is `api.views`/`api.editor`/`ide.file`, not a permanent module |
@@ -894,9 +894,9 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/options-contract` (**landed, #162**) — `OptionsPanelHost` → `api.options.OptionsPanelController`, add
   `OptionsDisplayer`, validate the registration type in the processor, migrate the options window and built-in
   panels; `platform.options` is T0.
-- `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanelHost` → `api.wizard.Wizard`/
-  `WizardPanel`; `WizardEntry`/`WizardRegistry` are the discovery contract; the processor validates `Wizard`
-  and the registry reads `LayerInstances`; `platform.wizard` is the T0 themed dialog.
+- `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanel` in `api.wizard`;
+  `WizardEntry`/`WizardRegistry` are the metadata-only discovery contract; the processor validates `Wizard`
+  and writes bundle-aware metadata; `WizardDisplayer` is the seam implemented by the T0 `platform.wizard`.
 - `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
   `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
   line-separator and project elements; validate the registration type.

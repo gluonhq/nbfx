@@ -89,7 +89,7 @@ implementation classes in modules that `refactor/api-split` moves to non-exporte
 | `FxProperty` / `FxPropertySet` / `FxPropertyEditor` / `FxPropertyEditors` / `FxPropertiesProvider` / `FxPropertySheet` | `PropertyModel` is already the API name in `api.nodes`; the rest are **(impl)** in `platform.nodes` | `api.nodes` / `api.property` / `platform.nodes` |
 | `FxStatusBar` / `FxStatusElement` | `StatusBar` / `StatusElementHolder` **(impl)** | `platform.status` |
 | `FxWindowSystem` / `FxWindowSystemListener` | `WindowSystem` / `WindowSystemListener` **(impl)** | `platform.workspace` |
-| `FxWizard` / `FxWizardDialog` / `FxWizardPanel` | `Wizard` / `WizardDialog` / `WizardPanelHost` **(impl; the API is `api.wizard.WizardIterator/WizardPanel`)** | `platform.wizard` |
+| `FxWizard` / `FxWizardDialog` / `FxWizardPanel` | `Wizard` / `WizardPanel` (SPI) and `WizardEntry` / `WizardRegistry` (metadata) in `api.wizard`; `WizardDialog` **(impl)** in `platform.wizard` | `api.wizard` / `platform.wizard` |
 | `FxStructurePanel` | `StructurePanel` **(impl)** | `ide.structure` |
 | `FxGuiRunLevel` | `GuiRunLevel` **(impl)** | `platform.launcher` |
 | `FxProgressImpl` | `ProgressOverlay` **(impl)** | `platform.progress` |

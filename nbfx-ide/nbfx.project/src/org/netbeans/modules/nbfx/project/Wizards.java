@@ -34,9 +34,12 @@ public final class Wizards {
 
     /** Runs the wizard with {@code id}. */
     public static void run(String id) {
-        Wizard wizard = WizardRegistry.find(id);
         WizardDisplayer displayer = WizardDisplayer.getDefault();
-        if (wizard != null && displayer != null) {
+        if (displayer == null) {
+            return;
+        }
+        Wizard wizard = WizardRegistry.find(id);
+        if (wizard != null) {
             displayer.show(wizard);
         }
     }

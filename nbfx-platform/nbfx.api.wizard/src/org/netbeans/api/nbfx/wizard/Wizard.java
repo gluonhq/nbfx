@@ -25,7 +25,8 @@ import java.util.List;
  * press Finish.
  * <p>
  * Wizards are registered with {@code @WizardRegistration} and discovered through
- * {@link WizardRegistry}.
+ * {@link WizardRegistry}. A wizard is created fresh for every open; do not use instance fields to
+ * carry state from one open to the next.
  *
  * @since 1.1
  */

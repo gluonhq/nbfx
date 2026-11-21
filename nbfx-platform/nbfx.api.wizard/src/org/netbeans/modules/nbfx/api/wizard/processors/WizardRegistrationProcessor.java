@@ -57,7 +57,7 @@ public class WizardRegistrationProcessor extends LayerGeneratingProcessor {
                 continue;
             }
             File file = layer(element).instanceFile(LayerPaths.WIZARDS, registration.id(), Wizard.class);
-            file.stringvalue("displayName", registration.displayName());
+            file.bundlevalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("category", registration.category());
             file.intvalue("position", registration.position());

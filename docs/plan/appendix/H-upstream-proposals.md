@@ -166,11 +166,13 @@ default `getLookup()` has “significant potential to deadlocks” (`:1155`).
 `getNodeDelegate()` for non-UI clients. Additive; `openide.loaders` keeps the old types.
 **Buys nbfx.** `openide.loaders` becomes usable without initializing `openide.nodes`, so PR #12's workaround can
 go and `openide.nodes` can be pruned once its 388 dependants retire.
-**Prototype in nbfx.** `api.layer.LayerInstances`/`LayerEntry` read the class-based `.instance` entries
-without `DataObject`/`InstanceCookie`; `refactor/layer-instances` migrates the six `Lookups.forPath`
-readers (`UiReady`, `PropertyEditors`, `OptionsRegistry`, `WizardRegistry`, `StatusElementRegistry`,
-`ViewRegistry`). `ide.project.ui`/`java.model` avoid `getLookup()`/`getNodeDelegate()` where they can;
-measure with `spike/loaders-node-free`. **Fallback:** keep PR #12 and `openide.nodes`, and say so in §1.
+**Prototype in nbfx.** `api.layer.LayerInstances`/`LayerRegistration`/`LayerEntry` read the class-based
+`.instance` entries without `DataObject`/`InstanceCookie`; `PropertyEditors` (#174) and `WizardRegistry`
+(#181) are migrated, and `refactor/layer-instances` migrates `OptionsRegistry`,
+`StatusElementRegistry` and `ViewRegistry`. `UiReady` stays on `Lookups.forPath` because
+`@OnUiReady` is a `@NamedServiceDefinition`, not a config `.instance` reader.
+`ide.project.ui`/`java.model` avoid `getLookup()`/`getNodeDelegate()` where they can; measure with
+`spike/loaders-node-free`. **Fallback:** keep PR #12 and `openide.nodes`, and say so in §1.
 
 ### H.4.2 `core.ui`: move the Swing warm-up out of the platform
 
