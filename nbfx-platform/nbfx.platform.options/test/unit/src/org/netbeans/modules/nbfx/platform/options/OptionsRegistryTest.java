@@ -20,11 +20,11 @@ package org.netbeans.modules.nbfx.platform.options;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import javafx.scene.Node;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import org.junit.Test;
+import org.netbeans.api.nbfx.layer.LayerEntry;
 import org.netbeans.api.nbfx.options.OptionsDisplayer;
 import org.netbeans.api.nbfx.options.OptionsPanelController;
 import org.openide.filesystems.FileObject;
@@ -55,8 +55,9 @@ public class OptionsRegistryTest {
         alpha.setAttribute("displayName", "Alpha");
         alpha.setAttribute("position", 10);
 
-        List<OptionsPanelEntry> registrations =
-                OptionsRegistry.read(folder, Map.of("bravo", panel(), "alpha", panel()));
+        List<OptionsPanelEntry> registrations = OptionsRegistry.read(List.of(
+                new LayerEntry<>(panel(), bravo),
+                new LayerEntry<>(panel(), alpha)));
 
         assertEquals(List.of("alpha", "bravo"),
                 registrations.stream().map(OptionsPanelEntry::id).toList());
@@ -66,8 +67,10 @@ public class OptionsRegistryTest {
     @Test
     public void fallsBackToPanelDefaults() throws IOException {
         FileObject folder = optionsFolder();
+        FileObject file = folder.createData("x", "instance");
 
-        List<OptionsPanelEntry> registrations = OptionsRegistry.read(folder, Map.of("x", panel()));
+        List<OptionsPanelEntry> registrations =
+                OptionsRegistry.read(List.of(new LayerEntry<>(panel(), file)));
 
         assertEquals("x", registrations.get(0).id());
         assertEquals("x", registrations.get(0).displayName());

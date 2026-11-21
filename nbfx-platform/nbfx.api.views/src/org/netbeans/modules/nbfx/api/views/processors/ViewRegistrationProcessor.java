@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.api.views.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
@@ -59,7 +60,7 @@ public class ViewRegistrationProcessor extends LayerGeneratingProcessor {
             if (id.isEmpty() && element instanceof TypeElement type) {
                 id = processingEnv.getElementUtils().getBinaryName(type).toString();
             }
-            File file = layer(element).instanceFile(LayerPaths.VIEWS, id, (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.VIEWS, id, ViewProvider.class);
             file.bundlevalue("displayName", registration.displayName());
             file.stringvalue("iconName", registration.iconName());
             file.stringvalue("kind", registration.kind());

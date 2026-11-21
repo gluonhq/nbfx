@@ -102,8 +102,9 @@ cookie/lookup storage out of `Node`, deprecate `getNodeDelegate()` (H.4.1).
 **nbfx code today** does not import `openide.loaders`; `nbfx.project.ui.java` declares the dependency but uses
 nothing from it — remove it in `refactor/java-plumbing` (necessary, not sufficient: the platform still uses
 `DataObject`). The nbfx layer readers use `api.layer.LayerInstances`/`LayerEntry`, which create the
-class-based `.instance` entries without `DataObject`/`InstanceCookie`; `refactor/layer-instances` migrates
-the remaining `Lookups.forPath` readers.
+class-based `.instance` entries without `DataObject`/`InstanceCookie`; the remaining class-based
+readers use `LayerInstances` too. `UiReady` is the only `Lookups.forPath` reader left, because
+`@OnUiReady` is a `@NamedServiceDefinition`, not a config `.instance` entry.
 
 ## D.3 The editor and Java-tooling matrix (50 upstream modules in the measured set — [`../figures.md`](../figures.md))
 
