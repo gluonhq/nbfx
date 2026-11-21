@@ -18,7 +18,13 @@
  */
 package org.netbeans.api.nbfx.layer;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,6 +33,7 @@ import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -94,6 +101,57 @@ public class LayerInstancesTest {
         assertNull(entry.attribute("missing"));
     }
 
+    @Test
+    public void registrationsDoNotCreateInstances() throws Exception {
+        FileObject folder = folder();
+        createEntry(folder, "demo", CountingEditor.class, 10, true);
+        CountingEditor.CREATED.set(0);
+
+        List<LayerRegistration<CountingEditor>> registrations =
+                LayerInstances.registrations(folder, CountingEditor.class);
+
+        assertEquals(1, registrations.size());
+        assertEquals(0, CountingEditor.CREATED.get());
+        assertNotNull(LayerInstances.instantiate(registrations.get(0)));
+        assertEquals(1, CountingEditor.CREATED.get());
+    }
+
+    @Test
+    public void warnsOnceForBrokenRegistration() throws Exception {
+        FileObject folder = FileUtil.createMemoryFileSystem().getRoot()
+                .createFolder("broken-" + System.nanoTime());
+        FileObject missing = folder.createData("missing", "instance");
+        missing.setAttribute("instanceClass", "no.such.Editor");
+
+        Logger logger = Logger.getLogger(LayerInstances.class.getName());
+        List<LogRecord> records = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                records.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        logger.addHandler(handler);
+        try {
+            LayerInstances.registrations(folder, DemoEditor.class);
+            LayerInstances.registrations(folder, DemoEditor.class);
+        } finally {
+            logger.removeHandler(handler);
+        }
+
+        assertEquals(1, records.stream()
+                .filter(record -> record.getLevel().intValue() == Level.WARNING.intValue())
+                .count());
+    }
+
     private static FileObject folder() throws Exception {
         FileSystem fs = FileUtil.createMemoryFileSystem();
         return fs.getRoot().createFolder("editors");
@@ -112,6 +170,16 @@ public class LayerInstancesTest {
     public static final class DemoEditor {
 
         public DemoEditor() {
+        }
+    }
+
+    /** Counts how often the reader creates it. */
+    public static final class CountingEditor {
+
+        static final AtomicInteger CREATED = new AtomicInteger();
+
+        public CountingEditor() {
+            CREATED.incrementAndGet();
         }
     }
 }

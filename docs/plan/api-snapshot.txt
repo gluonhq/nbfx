@@ -61,6 +61,7 @@ org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerEntry
 org.netbeans.api.nbfx.layer.LayerInstances
 org.netbeans.api.nbfx.layer.LayerPaths
+org.netbeans.api.nbfx.layer.LayerRegistration
 org.netbeans.api.nbfx.nodes.PropertiesProvider
 org.netbeans.api.nbfx.nodes.PropertyListener
 org.netbeans.api.nbfx.nodes.PropertyModel

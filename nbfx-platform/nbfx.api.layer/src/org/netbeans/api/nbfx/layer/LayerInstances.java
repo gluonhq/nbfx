@@ -21,6 +21,8 @@ package org.netbeans.api.nbfx.layer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.openide.filesystems.FileObject;
@@ -35,8 +37,9 @@ import org.openide.util.Lookup;
  * no-argument constructor. Entries without it (factory {@code instanceCreate} entries and
  * serialized {@code .ser} entries) are skipped; nbfx registrations use class entries only.
  * <p>
- * The entries are returned in the layer's {@code position} order, the same order
- * {@link #load(String, Class)} sees in the configuration filesystem.
+ * {@link #registrations} reads the entries without creating them; {@link #instantiate} creates one
+ * on demand; {@link #load} is the eager convenience. The entries are returned in the layer's
+ * {@code position} order.
  *
  * @since 1.4
  */
@@ -46,7 +49,71 @@ public final class LayerInstances {
 
     private static final Logger LOG = Logger.getLogger(LayerInstances.class.getName());
 
+    /** The files already reported as broken, so a repeated read does not repeat the warning. */
+    private static final Set<String> WARNED = ConcurrentHashMap.newKeySet();
+
     private LayerInstances() {
+    }
+
+    /**
+     * Reads the class-based entries of {@code type} registered under {@code path}, without creating
+     * their instances.
+     *
+     * @param path the layer folder, for example {@link LayerPaths#PROPERTY_EDITORS}
+     * @param type the type the entries must provide
+     * @param <T>  the type
+     * @return the registrations in layer order, never {@code null}
+     * @since 1.5
+     */
+    public static <T> List<LayerRegistration<T>> registrations(String path, Class<T> type) {
+        return registrations(FileUtil.getConfigFile(path), type);
+    }
+
+    /**
+     * Reads the class-based entries of {@code type} from an already resolved layer folder, without
+     * creating their instances.
+     *
+     * @param folder the layer folder, or {@code null}
+     * @param type   the type the entries must provide
+     * @param <T>    the type
+     * @return the registrations in layer order, never {@code null}
+     * @since 1.5
+     */
+    public static <T> List<LayerRegistration<T>> registrations(FileObject folder, Class<T> type) {
+        Objects.requireNonNull(type, "type");
+        if (folder == null) {
+            return List.of();
+        }
+        List<LayerRegistration<T>> registrations = new ArrayList<>();
+        for (FileObject file : FileUtil.getOrder(List.of(folder.getChildren()), false)) {
+            if (!file.isData() || !file.hasExt("instance")) {
+                continue;
+            }
+            LayerRegistration<T> registration = registration(file, type);
+            if (registration != null) {
+                registrations.add(registration);
+            }
+        }
+        return List.copyOf(registrations);
+    }
+
+    /**
+     * Creates the instance of one registration.
+     *
+     * @param registration the registration to create
+     * @param <T>          the instance type
+     * @return the instance, or {@code null} when it cannot be created
+     * @since 1.5
+     */
+    public static <T> T instantiate(LayerRegistration<T> registration) {
+        Objects.requireNonNull(registration, "registration");
+        try {
+            return registration.type().getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException | LinkageError | SecurityException ex) {
+            warnOnce(registration.file(),
+                    "Cannot create " + registration.type().getName(), ex);
+            return null;
+        }
     }
 
     /**
@@ -70,24 +137,17 @@ public final class LayerInstances {
      * @return the entries in layer order, never {@code null}
      */
     public static <T> List<LayerEntry<T>> load(FileObject folder, Class<T> type) {
-        Objects.requireNonNull(type, "type");
-        if (folder == null) {
-            return List.of();
-        }
         List<LayerEntry<T>> entries = new ArrayList<>();
-        for (FileObject file : FileUtil.getOrder(List.of(folder.getChildren()), false)) {
-            if (!file.isData() || !file.hasExt("instance")) {
-                continue;
-            }
-            T instance = create(file, type);
+        for (LayerRegistration<T> registration : registrations(folder, type)) {
+            T instance = instantiate(registration);
             if (instance != null) {
-                entries.add(new LayerEntry<>(instance, file));
+                entries.add(new LayerEntry<>(instance, registration.file()));
             }
         }
         return List.copyOf(entries);
     }
 
-    private static <T> T create(FileObject file, Class<T> type) {
+    private static <T> LayerRegistration<T> registration(FileObject file, Class<T> type) {
         Object attribute = file.getAttribute(INSTANCE_CLASS);
         String name = attribute instanceof Class<?> clazz ? clazz.getName()
                 : attribute instanceof String text ? text : null;
@@ -97,16 +157,22 @@ public final class LayerInstances {
             return null;
         }
         try {
-            Class<?> clazz = Class.forName(name, true, classLoader());
+            Class<?> clazz = attribute instanceof Class<?> known
+                    ? known : Class.forName(name, false, classLoader());
             if (!type.isAssignableFrom(clazz)) {
                 LOG.log(Level.FINE, "{0} is not a {1}", new Object[]{name, type.getName()});
                 return null;
             }
-            return type.cast(clazz.getDeclaredConstructor().newInstance());
+            return new LayerRegistration<>(file, clazz.asSubclass(type));
         } catch (ReflectiveOperationException | LinkageError | SecurityException ex) {
-            LOG.log(Level.FINE, "Cannot create " + file.getPath(), ex);
+            warnOnce(file, "Cannot load " + name, ex);
             return null;
         }
+    }
+
+    private static void warnOnce(FileObject file, String message, Throwable ex) {
+        Level level = WARNED.add(file.getPath()) ? Level.WARNING : Level.FINE;
+        LOG.log(level, message + " at " + file.getPath(), ex);
     }
 
     private static ClassLoader classLoader() {

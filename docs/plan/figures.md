@@ -12,7 +12,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | of those, subtree exports (`<subpackages>`) | 18 |
 | modules with `arch.xml` | 23 |
 | modules with `apichanges.xml` | 14 |
-| distinct `OpenIDE-Module-Specification-Version` values | 6: 1.0, 1.1, 1.2, 1.4, 1.7, 1.8 |
+| distinct `OpenIDE-Module-Specification-Version` values | 7: 1.0, 1.1, 1.2, 1.4, 1.5, 1.7, 1.8 |
 | public `Fx*` types (total) | 4 |
 | public `Fx*` types in exporting modules | 0 |
 | files constructing TreeView/TreeTableView/TableView/ListView | 26 |
