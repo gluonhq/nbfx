@@ -26,7 +26,7 @@ import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.api.nbfx.status.StatusRegistration;
-import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import org.netbeans.api.nbfx.status.StatusElement;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -43,7 +43,7 @@ import org.openide.util.NbBundle;
  * the globally active editor document on its own.
  */
 @StatusRegistration(id = "caret", alignment = StatusAlignment.RIGHT, position = 10)
-public final class CaretStatusElement implements StatusElementHolder {
+public final class CaretStatusElement implements StatusElement {
 
     private final Label caretPosition = new Label();
     private final HBox group;

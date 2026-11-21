@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.status;
+package org.netbeans.api.nbfx.status;
 
-import org.netbeans.api.nbfx.status.StatusAlignment;
 import java.util.Objects;
 
 /**
@@ -28,11 +27,13 @@ import java.util.Objects;
  * @param alignment the slot the element is placed in
  * @param position  the position within the slot
  * @param element   the element
- * @since 1.0
+ * @since 1.2
  */
-public record StatusElement(String id, StatusAlignment alignment, int position, StatusElementHolder element) {
+public record StatusElementSpec(String id, StatusAlignment alignment, int position,
+        StatusElement element) {
 
-    public StatusElement {
+    /** Creates a spec. */
+    public StatusElementSpec {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(alignment, "alignment");
         Objects.requireNonNull(element, "element");

@@ -85,9 +85,9 @@ public final class ApiAudit {
             new ContractSpec("ViewRegistration", "org.netbeans.api.nbfx.view", "ViewProvider"),
             new ContractSpec("DynamicMenuRegistration", "org.netbeans.api.nbfx.views", "DynamicMenu.Factory"),
             new ContractSpec("OptionsRegistration", "org.netbeans.api.nbfx.options", "OptionsPanelController"),
-            new ContractSpec("WizardRegistration", "org.netbeans.modules.nbfx.platform.wizard", "Wizard"),
-            new ContractSpec("StatusRegistration", "org.netbeans.modules.nbfx.platform.status", "StatusElementHolder"),
-            new ContractSpec("PropertyEditorRegistration", "org.netbeans.modules.nbfx.platform.nodes", "PropertyEditor"),
+            new ContractSpec("WizardRegistration", "org.netbeans.api.nbfx.wizard", "Wizard"),
+            new ContractSpec("StatusRegistration", "org.netbeans.api.nbfx.status", "StatusElement"),
+            new ContractSpec("PropertyEditorRegistration", "org.netbeans.api.nbfx.property", "PropertyEditor"),
             new ContractSpec("ProjectTypeRegistration", "org.netbeans.modules.nbfx.project.ui.api", "ProjectKindProvider")
     );
 

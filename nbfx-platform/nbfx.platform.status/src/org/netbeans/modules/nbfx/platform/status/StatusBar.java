@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.platform.status;
 
 import java.util.List;
+import org.netbeans.api.nbfx.status.StatusElementRegistry;
+import org.netbeans.api.nbfx.status.StatusElementSpec;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
@@ -39,7 +41,7 @@ import javafx.scene.layout.Region;
  */
 public class StatusBar extends BorderPane {
 
-    private final List<StatusElement> elements;
+    private final List<StatusElementSpec> elements;
 
     /** Builds the status bar from every element registered under {@code NbFx/Status}. */
     public StatusBar() {
@@ -51,7 +53,7 @@ public class StatusBar extends BorderPane {
      *
      * @param elements the elements to place, in discovery order
      */
-    public StatusBar(List<StatusElement> elements) {
+    public StatusBar(List<StatusElementSpec> elements) {
         this.elements = List.copyOf(elements);
         getStyleClass().add("status-bar");
 
@@ -59,7 +61,7 @@ public class StatusBar extends BorderPane {
         HBox fill = slot(Pos.CENTER_LEFT, "status-bar-fill", true);
         HBox right = slot(Pos.CENTER_RIGHT, "status-bar-right", false);
 
-        for (StatusElement registered : this.elements) {
+        for (StatusElementSpec registered : this.elements) {
             Node node = registered.element().getNode();
             if (node == null) {
                 continue;
@@ -86,13 +88,13 @@ public class StatusBar extends BorderPane {
     }
 
     /** The elements this bar was built from, in order. */
-    public final List<StatusElement> elements() {
+    public final List<StatusElementSpec> elements() {
         return elements;
     }
 
     /** Disposes every element; called when the window using this status bar is closed. */
     public void dispose() {
-        for (StatusElement registered : elements) {
+        for (StatusElementSpec registered : elements) {
             registered.element().dispose();
         }
     }

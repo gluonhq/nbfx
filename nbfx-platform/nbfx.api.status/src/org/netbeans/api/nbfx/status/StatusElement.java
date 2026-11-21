@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.status;
+package org.netbeans.api.nbfx.status;
 
-import org.netbeans.api.nbfx.status.StatusAlignment;
 import javafx.scene.Node;
 import org.openide.util.Lookup;
 
@@ -26,15 +25,15 @@ import org.openide.util.Lookup;
  * One element of the JavaFX status bar: the caret position, the line separator, the selected
  * project, a progress indicator, the VCS branch...
  * <p>
- * Elements are registered with {@code @StatusRegistration}; the generated layer entry under
- * {@code NbFx/Status} supplies the alignment and position, so the methods here are only a fallback
- * for programmatically created elements. The {@link #getNode() node} is created once, when the
- * status bar is built on the JavaFX Application Thread, and {@link #dispose() disposed} when the
- * status bar goes away.
+ * Elements are registered with {@link StatusRegistration}; the generated layer entry under
+ * {@code NbFx/Status} supplies the id, alignment and position, so the methods here are only a
+ * fallback for programmatically created elements. The {@link #getNode() node} is created once,
+ * when the status bar is built on the JavaFX Application Thread, and {@link #dispose() disposed}
+ * when the status bar goes away.
  *
- * @since 1.0
+ * @since 1.2
  */
-public interface StatusElementHolder {
+public interface StatusElement {
 
     /** The stable identifier of this element; must be unique across the application. */
     String getId();

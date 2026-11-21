@@ -25,7 +25,7 @@ import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
-import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
+import org.netbeans.api.nbfx.status.StatusElementRegistry;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
 

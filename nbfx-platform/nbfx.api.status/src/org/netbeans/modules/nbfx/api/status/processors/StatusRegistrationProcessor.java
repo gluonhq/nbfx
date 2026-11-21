@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.api.status.processors;
 
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.status.StatusElement;
 import org.netbeans.api.nbfx.status.StatusRegistration;
 import java.util.Set;
 import javax.annotation.processing.Processor;
@@ -55,7 +56,7 @@ public class StatusRegistrationProcessor extends LayerGeneratingProcessor {
             if (registration == null) {
                 continue;
             }
-            File file = layer(element).instanceFile(LayerPaths.STATUS, registration.id(), (Class<?>) null);
+            File file = layer(element).instanceFile(LayerPaths.STATUS, registration.id(), StatusElement.class);
             file.stringvalue("alignment", registration.alignment().name());
             file.intvalue("position", registration.position());
             file.write();

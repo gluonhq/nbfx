@@ -92,6 +92,9 @@ org.netbeans.api.nbfx.property.PropertyEditor
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
 org.netbeans.api.nbfx.status.StatusAlignment
+org.netbeans.api.nbfx.status.StatusElement
+org.netbeans.api.nbfx.status.StatusElementRegistry
+org.netbeans.api.nbfx.status.StatusElementSpec
 org.netbeans.api.nbfx.status.StatusMessageService
 org.netbeans.api.nbfx.status.StatusRegistration
 org.netbeans.api.nbfx.theme.ThemeMode
