@@ -32,6 +32,8 @@ import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
+import org.netbeans.api.nbfx.wizard.Wizard;
+import org.netbeans.api.nbfx.wizard.WizardPanel;
 import org.openide.util.NbBundle;
 
 /**
@@ -57,7 +59,7 @@ public final class WizardDialog {
 
     /** Shows {@code wizard} and, if the user presses Finish, runs it. Must run on the FX thread. */
     public static void show(Wizard wizard) {
-        List<WizardPanelHost> pages = wizard.getPages();
+        List<WizardPanel> pages = wizard.getPages();
         if (pages == null || pages.isEmpty()) {
             return;
         }
@@ -83,7 +85,7 @@ public final class WizardDialog {
         int[] index = {0};
         boolean[] visited = new boolean[pages.size()];
         Runnable update = () -> {
-            WizardPanelHost page = pages.get(index[0]);
+            WizardPanel page = pages.get(index[0]);
             visited[index[0]] = true;
             title.setText(page.getTitle());
             content.getChildren().setAll(page.getComponent());
@@ -114,7 +116,7 @@ public final class WizardDialog {
         }
     }
 
-    private static boolean allValid(List<WizardPanelHost> pages, boolean[] visited) {
+    private static boolean allValid(List<WizardPanel> pages, boolean[] visited) {
         for (int i = 0; i < pages.size(); i++) {
             if (visited[i] && !pages.get(i).isValid()) {
                 return false;

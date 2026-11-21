@@ -32,6 +32,7 @@ import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import org.junit.Test;
 
 /**
@@ -43,10 +44,16 @@ public class WizardRegistrationProcessorTest {
 
     private static final String SOURCE =
             "package demo;\n"
+            + "import java.util.List;\n"
             + "import org.netbeans.api.nbfx.wizard.*;\n"
             + "@WizardRegistration(id = \"demo.wizard\", displayName = \"Demo\","
             + " iconName = \"demo.png\", category = \"Project\", position = 3)\n"
-            + "public class DemoWizard {}\n";
+            + "public class DemoWizard implements Wizard {\n"
+            + "    public String getId() { return \"demo.wizard\"; }\n"
+            + "    public String getDisplayName() { return \"Demo\"; }\n"
+            + "    public List<WizardPanel> getPages() { return List.of(); }\n"
+            + "    public void finish() { }\n"
+            + "}\n";
 
     @Test
     public void generatesLayerFragments() throws Exception {
@@ -60,6 +67,48 @@ public class WizardRegistrationProcessorTest {
         assertTrue(xml, xml.contains("category\" stringvalue=\"Project\""));
         assertTrue(xml, xml.contains("intvalue=\"3\""));
         assertLayerPath(xml, LayerPaths.WIZARDS);
+    }
+
+    @Test
+    public void generatesBundleReferenceForDisplayName() throws Exception {
+        String source =
+                "package demo;\n"
+                + "import java.util.List;\n"
+                + "import org.netbeans.api.nbfx.wizard.*;\n"
+                + "import org.openide.util.NbBundle.Messages;\n"
+                + "@Messages(\"BundleWizard.displayName=Bundle wizard\")\n"
+                + "@WizardRegistration(id = \"demo.bundle\","
+                + " displayName = \"#BundleWizard.displayName\")\n"
+                + "public class BundleWizard implements Wizard {\n"
+                + "    public String getId() { return \"demo.bundle\"; }\n"
+                + "    public String getDisplayName() { return \"Bundle wizard\"; }\n"
+                + "    public List<WizardPanel> getPages() { return List.of(); }\n"
+                + "    public void finish() { }\n"
+                + "}\n";
+
+        String xml = ProcessorTestSupport.compile(
+                "org.netbeans.modules.nbfx.api.wizard.processors.WizardRegistrationProcessor",
+                Map.of("demo/BundleWizard.java", source));
+
+        assertTrue(xml, xml.contains(
+                "bundlevalue=\"demo.Bundle#BundleWizard.displayName\""));
+    }
+
+    @Test
+    public void rejectsClassWithoutWizard() throws Exception {
+        String bad =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.wizard.*;\n"
+                + "@WizardRegistration(id = \"demo.bad\", displayName = \"Bad\")\n"
+                + "public class Bad {}\n";
+        try {
+            ProcessorTestSupport.compile(
+                    "org.netbeans.modules.nbfx.api.wizard.processors.WizardRegistrationProcessor",
+                    Map.of("demo/Bad.java", bad));
+            fail("a class that does not implement Wizard must be rejected");
+        } catch (AssertionError expected) {
+            assertTrue(expected.getMessage(), expected.getMessage().contains("Wizard"));
+        }
     }
 
     private static void assertLayerPath(String xml, String path) {

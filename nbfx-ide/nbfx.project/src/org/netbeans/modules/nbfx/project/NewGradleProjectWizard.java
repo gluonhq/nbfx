@@ -21,8 +21,8 @@ package org.netbeans.modules.nbfx.project;
 import org.netbeans.api.nbfx.wizard.WizardRegistration;
 import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.project.ProjectRegistry;
-import org.netbeans.modules.nbfx.platform.wizard.Wizard;
-import org.netbeans.modules.nbfx.platform.wizard.WizardPanelHost;
+import org.netbeans.api.nbfx.wizard.Wizard;
+import org.netbeans.api.nbfx.wizard.WizardPanel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -61,7 +61,7 @@ public final class NewGradleProjectWizard implements Wizard {
     private final TextField packageName = new TextField();
     private boolean packageEdited;
     private final GridPane grid = new GridPane();
-    private final WizardPanelHost page;
+    private final WizardPanel page;
 
     /** Creates the wizard. Must run on the JavaFX Application Thread. */
     public NewGradleProjectWizard() {
@@ -69,7 +69,7 @@ public final class NewGradleProjectWizard implements Wizard {
         packageName.textProperty().addListener((observable, old, now) -> packageEdited = true);
         buildGrid();
         updatePackage();
-        page = new WizardPanelHost() {
+        page = new WizardPanel() {
             @Override
             public String getTitle() {
                 return message("NewGradleProjectWizard.page.title");
@@ -103,7 +103,7 @@ public final class NewGradleProjectWizard implements Wizard {
     }
 
     @Override
-    public List<WizardPanelHost> getPages() {
+    public List<WizardPanel> getPages() {
         return List.of(page);
     }
 

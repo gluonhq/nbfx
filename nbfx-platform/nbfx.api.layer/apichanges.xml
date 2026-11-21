@@ -78,6 +78,22 @@
             <class package="org.netbeans.api.nbfx.layer" name="LayerInstances"/>
             <class package="org.netbeans.api.nbfx.layer" name="LayerEntry"/>
         </change>
+        <change id="layer.registrations">
+            <api name="netbeansfx_layer"/>
+            <summary>Read class-based layer entries without creating them.</summary>
+            <version major="1" minor="5"/>
+            <date day="21" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerInstances.registrations</code> and <code>LayerRegistration</code> to
+                read the declared class and attributes before creating the instance, and
+                <code>LayerInstances.instantiate</code> to create one registration on demand.
+                <code>LayerInstances.load</code> keeps the eager behavior.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerInstances"/>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerRegistration"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

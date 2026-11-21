@@ -7,12 +7,12 @@ Every number the plan states is derived here from the tree. Regenerate with
 | Figure | Value |
 |---|---|
 | nbfx modules | 66 |
-| nbfx source files | 749 |
-| modules exporting packages (`<public-packages>`) | 52 |
-| of those, subtree exports (`<subpackages>`) | 19 |
-| modules with `arch.xml` | 24 |
+| nbfx source files | 752 |
+| modules exporting packages (`<public-packages>`) | 51 |
+| of those, subtree exports (`<subpackages>`) | 18 |
+| modules with `arch.xml` | 23 |
 | modules with `apichanges.xml` | 14 |
-| distinct `OpenIDE-Module-Specification-Version` values | 6: 1.0, 1.1, 1.2, 1.4, 1.7, 1.8 |
+| distinct `OpenIDE-Module-Specification-Version` values | 7: 1.0, 1.1, 1.2, 1.4, 1.5, 1.7, 1.8 |
 | public `Fx*` types (total) | 4 |
 | public `Fx*` types in exporting modules | 0 |
 | files constructing TreeView/TreeTableView/TableView/ListView | 26 |
@@ -25,7 +25,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files using `NbBundle` | 169 |
 | `Bundle.properties` files | 67 |
 | test files | 101 |
-| modules with tests | 39 of 66 |
+| modules with tests | 38 of 66 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
 | upstream modules depending on `org.openide.nodes` | 388 |

@@ -179,6 +179,10 @@
                         <compile-dependency/>
                     </test-dependency>
                     <test-dependency>
+                        <code-name-base>org.netbeans.modules.nbfx.api.wizard</code-name-base>
+                        <compile-dependency/>
+                    </test-dependency>
+                    <test-dependency>
                         <code-name-base>org.netbeans.modules.nbfx.platform.wizard</code-name-base>
                         <compile-dependency/>
                     </test-dependency>

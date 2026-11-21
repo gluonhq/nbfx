@@ -33,9 +33,12 @@
     <answer id="arch-what">
         <p>
             The layer API owns the nbfx layer folders: <code>LayerPaths</code> names them and
-            <code>LayerInstances</code>/<code>LayerEntry</code> read the class-based
-            <code>.instance</code> entries the nbfx annotation processors write, with their
-            attributes and layer order, without <code>DataObject</code> or <code>InstanceCookie</code>.
+            <code>LayerInstances</code> reads the class-based <code>.instance</code> entries the
+            nbfx annotation processors write, with their attributes and layer order, without
+            <code>DataObject</code> or <code>InstanceCookie</code>.
+            <code>LayerInstances.registrations</code> returns <code>LayerRegistration</code>
+            metadata without creating the instances; <code>LayerInstances.instantiate</code> and
+            the eager <code>LayerInstances.load</code> create them on demand.
         </p>
     </answer>
     

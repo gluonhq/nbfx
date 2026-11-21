@@ -16,30 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
 import java.util.Objects;
 
 /**
- * A registered wizard: the metadata declared with
- * {@link org.netbeans.api.nbfx.wizard.WizardRegistration} plus the wizard itself.
+ * The metadata of a registered wizard: the values declared with {@link WizardRegistration}.
+ * <p>
+ * Discovery returns these entries without creating the wizard. Use
+ * {@link WizardRegistry#find(String)} to create a fresh wizard for an entry.
  *
  * @param id          the wizard id (the layer file's base name)
- * @param displayName the dialog title
+ * @param displayName the display name from the layer
  * @param iconName    the icon resource name, or an empty string
  * @param category    the wizard's category
  * @param position    the position among the wizards of the same category
- * @param wizard      the wizard
- * @since 1.0
+ * @since 1.1
  */
 public record WizardEntry(String id, String displayName, String iconName, String category,
-        int position, Wizard wizard) {
+        int position) {
 
+    /** Creates an entry. */
     public WizardEntry {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(iconName, "iconName");
         Objects.requireNonNull(category, "category");
-        Objects.requireNonNull(wizard, "wizard");
     }
 }

@@ -48,7 +48,7 @@ nbfx-internal code is the same, so a violation is a defect in our code, not only
 | `api.search.SearchProvider#search` | BG | must honour the cancellation token |
 | `api.editor.EditorService` / `EditorDocument` | FX | text model lives on FX; semantic services take an immutable snapshot (Appendix B) |
 | `api.editor.intelligence.*` (`GotoProvider`, `HintProvider`, …) | BG | receive a snapshot; cancellable; results are value types |
-| `api.wizard.WizardIterator` panels | FX | `instantiate()`/file I/O may be BG — stated per method |
+| `api.wizard.Wizard` / `WizardPanel` | FX | `find(id)` constructs the wizard; `getPages()`/`getComponent()`/`finish()` run on FX; `discover()` is metadata-only |
 | `api.debug` / `api.profile` backends | BG | session events marshalled by the view layer |
 
 Tests: a violation detector is hard, but the **contract test per SPI** (call from the wrong thread, expect the

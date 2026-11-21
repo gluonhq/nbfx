@@ -61,6 +61,7 @@ org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerEntry
 org.netbeans.api.nbfx.layer.LayerInstances
 org.netbeans.api.nbfx.layer.LayerPaths
+org.netbeans.api.nbfx.layer.LayerRegistration
 org.netbeans.api.nbfx.nodes.PropertiesProvider
 org.netbeans.api.nbfx.nodes.PropertyListener
 org.netbeans.api.nbfx.nodes.PropertyModel
@@ -126,7 +127,12 @@ org.netbeans.api.nbfx.views.ViewKind
 org.netbeans.api.nbfx.views.ViewRegistration
 org.netbeans.api.nbfx.views.WindowLayoutRegistration
 org.netbeans.api.nbfx.views.WindowLayoutRegistrations
+org.netbeans.api.nbfx.wizard.Wizard
+org.netbeans.api.nbfx.wizard.WizardDisplayer
+org.netbeans.api.nbfx.wizard.WizardEntry
+org.netbeans.api.nbfx.wizard.WizardPanel
 org.netbeans.api.nbfx.wizard.WizardRegistration
+org.netbeans.api.nbfx.wizard.WizardRegistry
 org.netbeans.modules.nbfx.platform.shell.ActiveComponentContextService
 org.netbeans.modules.nbfx.platform.shell.AppState
 org.netbeans.modules.nbfx.platform.shell.CaretStatusElement

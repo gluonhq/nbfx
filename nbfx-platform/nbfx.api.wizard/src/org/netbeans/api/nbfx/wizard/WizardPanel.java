@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.wizard;
+package org.netbeans.api.nbfx.wizard;
 
 import javafx.scene.Node;
 
 /**
- * One page of an {@link Wizard}: a title, a JavaFX component, and whether the input is valid.
+ * One page of a {@link Wizard}: a title, a JavaFX component, and whether the input is valid.
  *
- * @since 1.0
+ * @since 1.1
  */
-public interface WizardPanelHost {
+public interface WizardPanel {
 
     /** The page title, shown above the component. */
     String getTitle();
