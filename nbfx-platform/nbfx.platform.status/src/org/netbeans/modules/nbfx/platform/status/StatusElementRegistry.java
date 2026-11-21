@@ -18,24 +18,23 @@
  */
 package org.netbeans.modules.nbfx.platform.status;
 
+import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerInstances;
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Logger;
-import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
-import org.openide.util.lookup.Lookups;
 
 /**
- * Discovers the {@link StatusElementHolder}s registered under {@code NbFx/Status} in the module layer.
+ * Discovers the {@link StatusElementHolder}s registered under {@code NbFx/Status} in the module
+ * layer.
  * <p>
- * Instances are resolved through the folder's {@link Lookup}; the registered {@code alignment} and
- * {@code position} attributes, read straight from the configuration filesystem, take precedence
- * over the values reported by the element itself, so placement is declared with
- * {@code @StatusRegistration} rather than in code.
+ * The layer entry is authoritative for the id, alignment and position; the element supplies the
+ * node and lifecycle. The registered attributes take precedence over the values reported by the
+ * element itself, so placement is declared with {@code @StatusRegistration} rather than in code.
  *
  * @since 1.0
  */
@@ -87,22 +86,24 @@ public final class StatusElementRegistry {
      * @return all elements, ordered by slot, position and id
      */
     public static List<StatusElement> discover(List<StatusElement> additional, Lookup services) {
-        Lookup lookup = Lookups.forPath(LayerPaths.STATUS);
-        FileObject folder = FileUtil.getConfigFile(LayerPaths.STATUS);
+        return read(LayerInstances.load(LayerPaths.STATUS, StatusElementHolder.class),
+                additional, services);
+    }
+
+    /** Reads the registrations of {@code entries} and merges {@code additional}. */
+    static List<StatusElement> read(Iterable<LayerEntry<StatusElementHolder>> entries,
+            List<StatusElement> additional, Lookup services) {
         List<StatusElement> elements = new ArrayList<>(additional);
         for (StatusElement element : additional) {
             element.element().init(services);
         }
-        for (StatusElementHolder element : lookup.lookupAll(StatusElementHolder.class)) {
+        for (LayerEntry<StatusElementHolder> entry : entries) {
+            StatusElementHolder element = entry.instance();
             element.init(services);
-            FileObject file = folder == null ? null : folder.getFileObject(element.getId(), "instance");
-            StatusAlignment alignment = file == null
-                    ? element.alignment()
-                    : parseAlignment(file.getAttribute("alignment"), element.alignment());
-            int position = file == null
-                    ? element.position()
-                    : parsePosition(file.getAttribute("position"), element.position());
-            elements.add(new StatusElement(element.getId(), alignment, position, element));
+            StatusAlignment alignment = parseAlignment(
+                    entry.attribute("alignment"), element.alignment());
+            int position = parsePosition(entry.attribute("position"), element.position());
+            elements.add(new StatusElement(entry.id(), alignment, position, element));
         }
         return sort(elements);
     }

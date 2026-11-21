@@ -22,12 +22,10 @@ import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.views.ViewKind;
-import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
-import javafx.scene.Node;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -317,17 +315,7 @@ public class FxWindowSystemTest {
     private static ViewSpec reg(String id, int position,
             boolean openAtStartup, boolean navigator, ViewArea area, PersistenceType persistenceType) {
         return new ViewSpec(id, id, "", ViewKind.TOOL, position, navigator, area,
-                openAtStartup, persistenceType, new ViewProvider() {
-                    @Override
-                    public String getTitle() {
-                        return id;
-                    }
-
-                    @Override
-                    public Node getView() {
-                        return null;
-                    }
-                });
+                openAtStartup, persistenceType);
     }
 
     private static List<String> viewsOf(WindowState state, String areaId) {

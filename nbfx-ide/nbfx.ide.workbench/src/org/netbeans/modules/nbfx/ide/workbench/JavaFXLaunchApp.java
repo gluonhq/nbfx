@@ -333,11 +333,6 @@ public class JavaFXLaunchApp extends ShellApplication {
                 return view;
             }
         }
-        for (ViewSpec registration : ViewRegistry.discover()) {
-            if (registration.id().equals(viewId)) {
-                return registration.view();
-            }
-        }
         return null;
     }
 
@@ -674,9 +669,6 @@ public class JavaFXLaunchApp extends ShellApplication {
         Map<String, ViewProvider> views = new HashMap<>();
         for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
             views.putIfAbsent(view.getId(), view);
-        }
-        for (ViewSpec spec : specs) {
-            views.putIfAbsent(spec.id(), spec.view());
         }
         return new ViewCatalog(specs, byId, views);
     }

@@ -18,7 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
+import org.netbeans.api.nbfx.layer.LayerInstances;
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.layer.LayerRegistration;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
@@ -28,10 +30,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Logger;
-import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
-import org.openide.util.lookup.Lookups;
 
 /**
  * Discovers the {@link ViewProvider}s registered under {@code NbFx/Views} in the module layer.
@@ -39,7 +38,11 @@ import org.openide.util.lookup.Lookups;
  * Views are declared with {@code @ViewRegistration}, which writes an
  * {@code NbFx/Views/<id>.instance} entry carrying the display name, icon, default location,
  * position and navigator flag. The registered attributes take precedence over the values reported
- * by the view itself, so placement is declared rather than coded.
+ * by the view itself, so placement is declared rather than coded. The layer entry is also
+ * authoritative for the id.
+ * <p>
+ * Discovery reads metadata only. The view itself is a {@link ViewProvider} service in the global
+ * lookup, resolved by {@link #provider(String)} when its tab is created.
  *
  * @since 1.0
  */
@@ -55,51 +58,77 @@ public final class ViewRegistry {
 
     /**
      * Discovers and orders all registered views. Reads the configuration filesystem, so it must be
-     * called once the platform is initialized.
+     * called once the platform is initialized. Does not create the views.
      *
      * @return the view registrations, ordered by location, position and id
      */
     public static List<ViewSpec> discover() {
-        Lookup lookup = Lookups.forPath(LayerPaths.VIEWS);
-        FileObject folder = FileUtil.getConfigFile(LayerPaths.VIEWS);
-        return read(folder, lookup.lookupAll(ViewProvider.class));
+        return read(LayerInstances.registrations(LayerPaths.VIEWS, ViewProvider.class));
     }
 
     /**
      * The registration of the view with {@code id}, or {@code null} when no view declares it. Reads
-     * the configuration filesystem like {@link #discover()}.
+     * the configuration filesystem like {@link #discover()}; does not create the view.
      *
      * @param id the view id
      * @return the registration, or {@code null}
      */
     public static ViewSpec find(String id) {
-        for (ViewSpec registration : discover()) {
-            if (registration.id().equals(id)) {
-                return registration;
+        return find(LayerInstances.registrations(LayerPaths.VIEWS, ViewProvider.class), id);
+    }
+
+    /**
+     * The view service with {@code id}, or {@code null} when no service is registered. Views are
+     * published in the global lookup by their {@link ViewProvider#getId() id}; the layer entry only
+     * supplies the metadata.
+     *
+     * @param id the view id
+     * @return the view, or {@code null}
+     */
+    public static ViewProvider provider(String id) {
+        for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
+            if (view.getId().equals(id)) {
+                return view;
             }
         }
         return null;
     }
 
-    /** Reads the registrations of {@code views}, taking placement from {@code folder}'s attributes. */
-    static List<ViewSpec> read(FileObject folder, Iterable<? extends ViewProvider> views) {
-        List<ViewSpec> registrations = new ArrayList<>();
-        for (ViewProvider view : views) {
-            String id = view.getId();
-            FileObject file = folder == null ? null : folder.getFileObject(id, "instance");
-            String displayName = stringAttribute(file, "displayName", view.getTitle());
-            String iconName = stringAttribute(file, "iconName", "");
-            ViewKind kind = ViewKind.of(stringAttribute(file, "kind", ViewKind.TOOL_ID));
-            DockLocation location = locationAttribute(file, view.getDefaultLocation());
-            int position = intAttribute(file, "position", Integer.MAX_VALUE);
-            boolean navigator = booleanAttribute(file, "navigator");
-            ViewArea area = areaAttribute(file, location);
-            boolean openAtStartup = booleanAttribute(file, "openAtStartup");
-            PersistenceType persistenceType = persistenceAttribute(file);
-            registrations.add(new ViewSpec(id, displayName, iconName, kind, position,
-                    navigator, area, openAtStartup, persistenceType, view));
+    /** Reads the registrations of {@code entries}, taking placement from each layer entry. */
+    static List<ViewSpec> read(Iterable<LayerRegistration<ViewProvider>> registrations) {
+        List<ViewSpec> specs = new ArrayList<>();
+        for (LayerRegistration<ViewProvider> registration : registrations) {
+            specs.add(read(registration));
         }
-        return sort(registrations);
+        return sort(specs);
+    }
+
+    /** Creates the first registration with {@code id}. */
+    static ViewSpec find(Iterable<LayerRegistration<ViewProvider>> registrations, String id) {
+        for (LayerRegistration<ViewProvider> registration : registrations) {
+            if (registration.id().equals(id)) {
+                return read(registration);
+            }
+        }
+        return null;
+    }
+
+    private static ViewSpec read(LayerRegistration<ViewProvider> registration) {
+        String displayName = stringAttribute(
+                registration.attribute("displayName"), registration.id());
+        String iconName = stringAttribute(registration.attribute("iconName"), "");
+        ViewKind kind = ViewKind.of(
+                stringAttribute(registration.attribute("kind"), ViewKind.TOOL_ID));
+        DockLocation location = locationAttribute(
+                registration.attribute("location"), DockLocation.LEFT);
+        int position = intAttribute(registration.attribute("position"), Integer.MAX_VALUE);
+        boolean navigator = booleanAttribute(registration.attribute("navigator"));
+        ViewArea area = areaAttribute(registration.attribute("area"), location);
+        boolean openAtStartup = booleanAttribute(registration.attribute("openAtStartup"));
+        PersistenceType persistenceType =
+                persistenceAttribute(registration.attribute("persistenceType"));
+        return new ViewSpec(registration.id(), displayName, iconName, kind, position,
+                navigator, area, openAtStartup, persistenceType);
     }
 
     /** Orders views by location, then position, then id, so the layout is stable. */
@@ -112,23 +141,19 @@ public final class ViewRegistry {
         return List.copyOf(sorted);
     }
 
-    private static String stringAttribute(FileObject file, String name, String fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static String stringAttribute(Object value, String fallback) {
         return value instanceof String text ? text : fallback;
     }
 
-    private static int intAttribute(FileObject file, String name, int fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static int intAttribute(Object value, int fallback) {
         return value instanceof Integer number ? number : fallback;
     }
 
-    private static boolean booleanAttribute(FileObject file, String name) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static boolean booleanAttribute(Object value) {
         return Boolean.TRUE.equals(value);
     }
 
-    private static DockLocation locationAttribute(FileObject file, DockLocation fallback) {
-        Object value = file == null ? null : file.getAttribute("location");
+    private static DockLocation locationAttribute(Object value, DockLocation fallback) {
         if (value instanceof String name) {
             try {
                 return DockLocation.valueOf(name);
@@ -144,16 +169,14 @@ public final class ViewRegistry {
      * {@link ViewArea}, or the area the {@code location} docks into by default. Empty areas (never
      * declared) and unknown area ids fall back to the location's default area.
      */
-    static ViewArea areaAttribute(FileObject file, DockLocation location) {
-        Object value = file == null ? null : file.getAttribute("area");
+    static ViewArea areaAttribute(Object value, DockLocation location) {
         if (value instanceof String id && !id.isBlank()) {
             return ViewAreaRegistry.find(id).orElseGet(() -> defaultArea(location));
         }
         return defaultArea(location);
     }
 
-    private static PersistenceType persistenceAttribute(FileObject file) {
-        Object value = file == null ? null : file.getAttribute("persistenceType");
+    private static PersistenceType persistenceAttribute(Object value) {
         if (value instanceof String name) {
             try {
                 return PersistenceType.valueOf(name);

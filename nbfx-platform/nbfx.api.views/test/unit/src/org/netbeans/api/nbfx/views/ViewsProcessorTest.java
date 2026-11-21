@@ -31,6 +31,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
@@ -45,6 +46,8 @@ public class ViewsProcessorTest {
     private static final String SOURCE =
             "package demo;\n"
             + "import org.netbeans.api.nbfx.views.*;\n"
+            + "import org.netbeans.api.nbfx.view.ViewProvider;\n"
+            + "import javafx.scene.Node;\n"
             + "@ViewRegistration(id = \"demo.view\", displayName = \"Demo View\","
             + " kind = ViewKind.OUTPUT_ID,"
             + " location = DockLocation.LEFT_BOTTOM, openAtStartup = true)\n"
@@ -52,7 +55,10 @@ public class ViewsProcessorTest {
             + "@MenuRegistration(id = \"Inspect\", path = \"ContextMenus/Editor\", position = 100,"
             + " separatorBefore = true)\n"
             + "@ToolbarRegistration(id = \"Main\", displayName = \"Main\", position = 10)\n"
-            + "public class DemoViews {}\n";
+            + "public class DemoViews implements ViewProvider {\n"
+            + "    public String getTitle() { return \"Demo\"; }\n"
+            + "    public Node getView() { return null; }\n"
+            + "}\n";
 
     private static final String PROCESSORS = String.join(",",
             "org.netbeans.modules.nbfx.api.views.processors.ViewRegistrationProcessor",
@@ -173,6 +179,20 @@ public class ViewsProcessorTest {
         assertTrue(xml, xml.contains("name=\"RIGHT_SIDEBAR\""));
         assertTrue(xml, xml.contains("area\" stringvalue=\"right-sidebar\""));
         assertTrue(xml, xml.contains("boolvalue=\"true\" name=\"keepWhenEmpty\""));
+    }
+
+    @Test
+    public void rejectsClassWithoutViewProvider() throws Exception {
+        String bad =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.views.*;\n"
+                + "@ViewRegistration(id = \"demo.bad\", displayName = \"Bad\")\n"
+                + "public class Bad {}\n";
+        AssertionError rejected = assertThrows(AssertionError.class, () ->
+                ProcessorTestSupport.compile(
+                        "org.netbeans.modules.nbfx.api.views.processors.ViewRegistrationProcessor",
+                        Map.of("demo/Bad.java", bad)));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("ViewProvider"));
     }
 
     private static void assertLayerPath(String xml, String path) {

@@ -22,7 +22,8 @@
 
 `PLAN.md` promises a plugin API and "the FX thread never blocks", but no SPI has a thread rule, no view has
 an owner, and no leak test exists. The tree shows the cost: **134 `subscribe(` call sites, 22 files that
-mention `dispose()`** ([`../figures.md`](../figures.md)), 163 per-call `Lookup` uses, 4 registries on `Lookups.forPath`. This appendix is the
+mention `dispose()`** ([`../figures.md`](../figures.md)), 163 per-call `Lookup` uses, one remaining
+`Lookups.forPath` reader (`UiReady`, a `@NamedServiceDefinition`). This appendix is the
 part of the API surface a third-party author must be able to read before writing a plugin.
 
 ## E.1 Threading contract
@@ -96,13 +97,15 @@ fixed later without breaking plugins.
 
 ## E.5 The `Lookup` rule (precise, testable)
 
-`PLAN.md` §5/§11 say "registries cache `Lookup.Result`s; never `Lookups.forPath` per query". The tree has 163
-per-call `Lookup` uses and 4 registries that resolve via `Lookups.forPath` (`OptionsRegistry:47`,
-`StatusElementRegistry:67`, `ViewRegistry:60`, `WizardRegistry:50`). Meaning:
+`PLAN.md` §5/§11 say "registries cache their contributions; never `Lookups.forPath` per query". The tree has
+163 per-call `Lookup` uses; the config `.instance` registries resolve through
+`api.layer.LayerInstances` (`PropertyEditors`, `WizardRegistry`, `OptionsRegistry`,
+`StatusElementRegistry`, `ViewRegistry`). `UiReady` remains on `Lookups.forPath` because
+`@OnUiReady` is a `@NamedServiceDefinition`, resolved once at UI-ready dispatch. Meaning:
 
-1. **Layer resolution happens once**, at registry initialisation, into a retained `Lookup.Result`.
-2. **Iteration uses `Result.allInstances()`** (fires on change) or a cached `List`, never a fresh
-   `Lookups.forPath(...).lookupAll(...)` per user action.
+1. **Layer resolution is explicit**: registries read `LayerInstances` once per discovery; they do not
+   call `Lookups.forPath(...).lookupAll(...)` per user action.
+2. **Iteration uses the returned snapshot** or a cached `List`, never a fresh layer lookup per action.
 3. **A "call" is a user action, a repaint, or a document change** — the testable definition. The guard/unit
    test counts `forPath` invocations across N actions (must stay constant).
 4. **Singleton services** are `@ServiceProvider`; contributions are layer registrations (Decision 4).

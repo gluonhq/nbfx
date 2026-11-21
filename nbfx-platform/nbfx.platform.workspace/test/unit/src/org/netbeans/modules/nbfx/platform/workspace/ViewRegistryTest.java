@@ -18,17 +18,18 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
+import org.netbeans.api.nbfx.layer.LayerRegistration;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration;
-import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.views.ViewKind;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import java.io.IOException;
 import java.util.List;
-import javafx.scene.Node;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.openide.filesystems.FileObject;
@@ -36,8 +37,9 @@ import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
 
 /**
- * Verifies that views are read from a layer folder with their placement attributes and ordered by
- * location, position and id, falling back to the view's own defaults.
+ * Verifies that views are read from layer metadata with their placement attributes and ordered by
+ * location, position and id, falling back to the layer entry defaults. The views themselves are
+ * global services and are not created by the registry.
  *
  * @since 1.0
  */
@@ -65,8 +67,9 @@ public class ViewRegistryTest {
         alpha.setAttribute("position", 10);
         alpha.setAttribute("navigator", true);
 
-        List<ViewSpec> registrations =
-                ViewRegistry.read(folder, List.of(view("zeta"), view("alpha")));
+        List<ViewSpec> registrations = ViewRegistry.read(List.of(
+                new LayerRegistration<>(zeta, ViewProvider.class),
+                new LayerRegistration<>(alpha, ViewProvider.class)));
 
         assertEquals(List.of("alpha", "zeta"),
                 registrations.stream().map(ViewSpec::id).toList());
@@ -83,12 +86,13 @@ public class ViewRegistryTest {
     @Test
     public void readsWindowSystemAttributes() throws IOException {
         FileObject folder = viewFolder();
-        FileObject view = folder.createData("v", "instance");
-        view.setAttribute("area", "output");
-        view.setAttribute("openAtStartup", true);
-        view.setAttribute("persistenceType", "ONLY_OPENED");
+        FileObject file = folder.createData("v", "instance");
+        file.setAttribute("area", "output");
+        file.setAttribute("openAtStartup", true);
+        file.setAttribute("persistenceType", "ONLY_OPENED");
 
-        ViewSpec registration = ViewRegistry.read(folder, List.of(view("v"))).get(0);
+        ViewSpec registration = ViewRegistry.read(
+                List.of(new LayerRegistration<>(file, ViewProvider.class))).get(0);
 
         assertEquals(ViewArea.OUTPUT, registration.area());
         assertEquals("the area owns the location", DockLocation.CENTER_BOTTOM,
@@ -103,17 +107,20 @@ public class ViewRegistryTest {
         FileObject file = folder.createData("v", "instance");
         file.setAttribute("location", "DETACHED");
 
-        ViewSpec registration = ViewRegistry.read(folder, List.of(view("v"))).get(0);
+        ViewSpec registration = ViewRegistry.read(
+                List.of(new LayerRegistration<>(file, ViewProvider.class))).get(0);
 
         assertEquals(DockLocation.LEFT, registration.location());
         assertEquals(ViewArea.EXPLORER, registration.area());
     }
 
     @Test
-    public void fallsBackToViewDefaults() throws IOException {
+    public void fallsBackToLayerDefaults() throws IOException {
         FileObject folder = viewFolder();
+        FileObject file = folder.createData("v", "instance");
 
-        List<ViewSpec> registrations = ViewRegistry.read(folder, List.of(view("v")));
+        List<ViewSpec> registrations =
+                ViewRegistry.read(List.of(new LayerRegistration<>(file, ViewProvider.class)));
 
         assertEquals("v", registrations.get(0).id());
         assertEquals("v", registrations.get(0).displayName());
@@ -124,27 +131,31 @@ public class ViewRegistryTest {
         assertEquals(ViewRegistration.PersistenceType.ALWAYS, registrations.get(0).persistenceType());
     }
 
+    @Test
+    public void findReadsTheMatch() throws IOException {
+        FileObject folder = viewFolder();
+        LayerRegistration<ViewProvider> alpha =
+                new LayerRegistration<>(folder.createData("alpha", "instance"), ViewProvider.class);
+        LayerRegistration<ViewProvider> bravo =
+                new LayerRegistration<>(folder.createData("bravo", "instance"), ViewProvider.class);
+
+        ViewSpec found = ViewRegistry.find(List.of(alpha, bravo), "bravo");
+
+        assertNotNull(found);
+        assertEquals("bravo", found.id());
+    }
+
+    @Test
+    public void findReturnsNullForUnknownId() throws IOException {
+        FileObject folder = viewFolder();
+        LayerRegistration<ViewProvider> alpha =
+                new LayerRegistration<>(folder.createData("alpha", "instance"), ViewProvider.class);
+
+        assertNull(ViewRegistry.find(List.of(alpha), "missing"));
+    }
+
     private static FileObject viewFolder() throws IOException {
         FileSystem fs = FileUtil.createMemoryFileSystem();
         return FileUtil.createFolder(fs.getRoot(), "NbFx/Views");
-    }
-
-    private static ViewProvider view(String id) {
-        return new ViewProvider() {
-            @Override
-            public String getId() {
-                return id;
-            }
-
-            @Override
-            public String getTitle() {
-                return id;
-            }
-
-            @Override
-            public Node getView() {
-                return null;
-            }
-        };
     }
 }
