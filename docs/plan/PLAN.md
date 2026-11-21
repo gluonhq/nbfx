@@ -897,7 +897,7 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanel` in `api.wizard`;
   `WizardEntry`/`WizardRegistry` are the metadata-only discovery contract; the processor validates `Wizard`
   and writes bundle-aware metadata; `WizardDisplayer` is the seam implemented by the T0 `platform.wizard`.
-- `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
+- `refactor/status-contract` (**landed, #185**) — merge `StatusElementHolder` into `api.status.StatusElement` (the current
   `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
   line-separator and project elements; validate the registration type.
 - `refactor/nodes-property-contract` — create `api.nodes` with the M0 property slice
@@ -1240,6 +1240,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #175 | Maven projects run, as `mvn` processes: the build commands and the goals run from the Navigator start the wrapper or the IDE's Maven instead of the embedder, so a build can be stopped (the process tree is ended) and builds do not share the project system's embedder. A command follows the project's `nbactions.xml` as NetBeans' own resolver reads it (goals, properties, profiles, options, configuration, folder, reactor flags, environment, pre-action; a mapping without goals disables it); without a mapping, Run is the goal of the plugin the project builds with (`javafx:run`, `gluonfx:run`, `spring-boot:run`, `quarkus:dev`). `ide.build` gains `BuildProcesses`; the process fallback asks the project type before the marker files. The Project Files group of the project tree follows files created, deleted or renamed in the project folder | Decision 8 (Maven builds run as processes) landed for build commands and Navigator goals; the embedder stays for the project model |
 | #176 | layer reader migration: `OptionsRegistry`, `StatusElementRegistry` and `ViewRegistry` read the class-based layer entries through `api.layer.LayerInstances`; `UiReady` remains the named-service exception; `ViewRegistry.find` creates only the requested provider | H.4.1, Appendix D.2.1, §11 W9 `spike/loaders-node-free` |
 | #181 | wizard contract: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` in `api.wizard`, `platform.wizard` as the T0 themed dialog, processor validation and `LayerInstances` discovery; `api.wizard` 1.1 with `apichanges`, the shell conformance and IDE wizards use the API | §6.1/§6.2, §11 W2a `refactor/wizard-contract` |
+| #185 | status contract: `StatusElement`, `StatusElementSpec` and `StatusElementRegistry` in `api.status`; `platform.status` is the T0 renderer; the processor validates `StatusElement`; caret, line-separator, project, progress, message and git-branch elements use the API | §6.1/§6.2, §11 W2a `refactor/status-contract` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
