@@ -86,7 +86,8 @@ public class MavenBuildTest extends NbTestCase {
     public static Test suite() {
         return NbModuleSuite.createConfiguration(MavenBuildTest.class)
                 .clusters(".*")
-                .enableModules(".*")
+                // every module but the GraalVM-only autoload, which cannot be enabled on a plain JDK
+                .enableModules("(?!org\\.netbeans\\.libs\\.graalsdk\\.system).*")
                 .gui(false)
                 .suite();
     }

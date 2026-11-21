@@ -26,6 +26,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
+import org.junit.After;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.views.DockLocation;
@@ -60,6 +61,12 @@ import static org.junit.Assert.assertTrue;
  * the classpath boundary itself.
  */
 public class AppShellConformanceTest {
+
+    /** The started shell leaves its window open; see {@link JavaFxTestSupport#hideWindows()}. */
+    @After
+    public void hideWindows() throws InterruptedException {
+        JavaFxTestSupport.hideWindows();
+    }
 
     @Test
     public void noIdeModulesOnThePlatformClasspath() {

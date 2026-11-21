@@ -172,8 +172,9 @@ public class ShellMenuBarTest {
                 createRef(folder, "first.ref", "test.static", 10);
                 createRef(folder, "last.ref", "test.static", 300);
 
-                ShellMenuBar bar = new ShellMenuBar(
-                        new ShellContext(Lookups.fixed(resolver())));
+                // The default lookup supplies the factories of the dynamic menus the real layers declare.
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(new org.openide.util.lookup.ProxyLookup(
+                        Lookups.fixed(resolver()), Lookup.getDefault())));
                 try {
                     Menu menu = menu(bar, "PositionMenu");
                     assertNotNull("the test menu was not built", menu);

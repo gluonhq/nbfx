@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.test.fx;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Platform;
+import javafx.stage.Stage;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -35,5 +36,19 @@ public class JavaFxTestSupportTest {
 
         assertTrue(onFx.get());
         assertFalse(Platform.isImplicitExit());
+    }
+
+    @Test
+    public void hideWindowsHidesAShowingStage() throws Exception {
+        Stage stage = JavaFxTestSupport.onFx(() -> {
+            Stage shown = new Stage();
+            shown.show();
+            return shown;
+        });
+        assertTrue(JavaFxTestSupport.onFx(stage::isShowing));
+
+        JavaFxTestSupport.hideWindows();
+
+        assertFalse(JavaFxTestSupport.onFx(stage::isShowing));
     }
 }

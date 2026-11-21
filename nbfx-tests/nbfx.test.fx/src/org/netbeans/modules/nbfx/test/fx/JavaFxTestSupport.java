@@ -18,12 +18,14 @@
  */
 package org.netbeans.modules.nbfx.test.fx;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import javafx.application.Platform;
+import javafx.stage.Window;
 
 /**
  * Starts the headless JavaFX toolkit once per test JVM and runs tasks on the JavaFX thread.
@@ -84,6 +86,21 @@ public final class JavaFxTestSupport {
             task.run();
             return null;
         });
+    }
+
+    /**
+     * Hides every window that is still showing. Call it after a test that leaves a stage open: a
+     * window that is showing when the test JVM exits may still be repainted while the toolkit
+     * shuts down, and the renderer then rejects the job with a logged exception. Does nothing when
+     * no test has started the toolkit yet.
+     *
+     * @throws InterruptedException when the test thread is interrupted
+     */
+    public static void hideWindows() throws InterruptedException {
+        if (!FX_STARTED.get()) {
+            return;
+        }
+        onFx(() -> List.copyOf(Window.getWindows()).forEach(Window::hide));
     }
 
     private static void ensureFxStarted() throws InterruptedException {

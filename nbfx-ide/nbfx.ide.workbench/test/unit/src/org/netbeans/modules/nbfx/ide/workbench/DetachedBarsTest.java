@@ -70,7 +70,8 @@ public class DetachedBarsTest extends NbTestCase {
     public static Test suite() {
         return NbModuleSuite.createConfiguration(DetachedBarsTest.class)
                 .clusters(".*")
-                .enableModules(".*")
+                // every module but the GraalVM-only autoload, which cannot be enabled on a plain JDK
+                .enableModules("(?!org\\.netbeans\\.libs\\.graalsdk\\.system).*")
                 .gui(false)
                 .suite();
     }
@@ -80,8 +81,10 @@ public class DetachedBarsTest extends NbTestCase {
         ScenarioSupport.onFx(() -> {
             RecordingRegistry registry = new RecordingRegistry();
             List<Command> scoped = new ArrayList<>();
+            // The default lookup supplies the factories of the dynamic menus the real layers declare.
             DetachedBarsContext context = new DetachedBarsContext(
-                    Lookups.fixed(registry), new SimpleObjectProperty<EditorDocument>(), scoped);
+                    new ProxyLookup(Lookups.fixed(registry), Lookup.getDefault()),
+                    new SimpleObjectProperty<EditorDocument>(), scoped);
             Node chrome = DetachedBars.create(context, null);
             VBox box = (VBox) chrome;
             MenuBar menuBar = (MenuBar) box.getChildren().get(0);
@@ -143,6 +146,11 @@ public class DetachedBarsTest extends NbTestCase {
 
             file.setSelected(false);
             assertFalse("the main toolbar is not hidden", mainBar.isVisible());
+            ToolBar detachedFile = ((ToolBarContainer) box.getChildren().get(1)).getToolBars().stream()
+                    .filter(bar -> "file".equals(bar.getId()))
+                    .findFirst().orElseThrow();
+            assertFalse("the detached toolbar does not follow the main one", detachedFile.isVisible());
+            assertFalse("a hidden detached toolbar still takes up space", detachedFile.isManaged());
             return null;
         });
     }

@@ -94,6 +94,14 @@ jobs:
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ bootstrap
           ant -Dbinaries.server=http://netbeans.osuosl.org/binaries/ build
 
+      # GradleBuildTest runs a project without a wrapper, so the Tooling API fetches the default
+      # Gradle distribution. The key follows the file that holds that version.
+      - name: Cache the Gradle distribution used by GradleBuildTest
+        uses: actions/cache@v6
+        with:
+          path: ~/.gradle/wrapper/dists
+          key: ${{ runner.os }}-gradle-dist-${{ hashFiles('nbfx-java/nbfx.java.gradle/src/org/netbeans/modules/nbfx/java/gradle/api/GradleBuild.java') }}
+
       - name: Unit tests (all nbfx modules)
         timeout-minutes: 25
         run: ant test

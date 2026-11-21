@@ -26,6 +26,7 @@ import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import org.junit.After;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
@@ -40,6 +41,12 @@ import static org.junit.Assert.assertTrue;
  * subclass, picks up the annotated action, menu, tool bar, dynamic section and status element.
  */
 public class PlatformChromeFixtureTest {
+
+    /** The started shell leaves its window open; see {@link JavaFxTestSupport#hideWindows()}. */
+    @After
+    public void hideWindows() throws InterruptedException {
+        JavaFxTestSupport.hideWindows();
+    }
 
     @Test
     public void defaultShellShowsThePlatformContributions() throws InterruptedException {
