@@ -22,12 +22,12 @@ import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.views.ViewKind;
-import org.netbeans.api.nbfx.view.ViewProvider;
 import java.util.Objects;
 
 /**
- * A registered view: the metadata declared with
- * {@link org.netbeans.api.nbfx.views.ViewRegistration} plus the view itself.
+ * A registered view's metadata, as declared with
+ * {@link org.netbeans.api.nbfx.views.ViewRegistration}. The view itself is a
+ * {@code ViewProvider} service in the global lookup, resolved by {@link #id()}.
  *
  * @param id               the view id (the layer file's base name)
  * @param displayName      the tab title
@@ -39,12 +39,11 @@ import java.util.Objects;
  *                         the location's default
  * @param openAtStartup    whether the view's tab is attached when the window system starts up
  * @param persistenceType  how the view's tab and state survive restarts
- * @param view             the view
  * @since 1.0
  */
 public record ViewSpec(String id, String displayName, String iconName, ViewKind kind,
         int position, boolean navigator, ViewArea area,
-        boolean openAtStartup, PersistenceType persistenceType, ViewProvider view) {
+        boolean openAtStartup, PersistenceType persistenceType) {
 
     public ViewSpec {
         Objects.requireNonNull(id, "id");
@@ -53,7 +52,6 @@ public record ViewSpec(String id, String displayName, String iconName, ViewKind 
         Objects.requireNonNull(kind, "kind");
         Objects.requireNonNull(area, "area");
         Objects.requireNonNull(persistenceType, "persistenceType");
-        Objects.requireNonNull(view, "view");
     }
 
     /** Where the view is docked first, derived from its registered area. */

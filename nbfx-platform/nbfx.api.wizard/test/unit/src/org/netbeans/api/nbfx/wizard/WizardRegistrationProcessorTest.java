@@ -31,8 +31,8 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import org.junit.Test;
 
 /**
@@ -101,14 +101,11 @@ public class WizardRegistrationProcessorTest {
                 + "import org.netbeans.api.nbfx.wizard.*;\n"
                 + "@WizardRegistration(id = \"demo.bad\", displayName = \"Bad\")\n"
                 + "public class Bad {}\n";
-        try {
-            ProcessorTestSupport.compile(
-                    "org.netbeans.modules.nbfx.api.wizard.processors.WizardRegistrationProcessor",
-                    Map.of("demo/Bad.java", bad));
-            fail("a class that does not implement Wizard must be rejected");
-        } catch (AssertionError expected) {
-            assertTrue(expected.getMessage(), expected.getMessage().contains("Wizard"));
-        }
+        AssertionError rejected = assertThrows(AssertionError.class, () ->
+                ProcessorTestSupport.compile(
+                        "org.netbeans.modules.nbfx.api.wizard.processors.WizardRegistrationProcessor",
+                        Map.of("demo/Bad.java", bad)));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("Wizard"));
     }
 
     private static void assertLayerPath(String xml, String path) {

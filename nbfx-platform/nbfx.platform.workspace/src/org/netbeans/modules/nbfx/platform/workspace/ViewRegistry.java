@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
-import org.netbeans.api.nbfx.layer.LayerEntry;
 import org.netbeans.api.nbfx.layer.LayerInstances;
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.netbeans.api.nbfx.layer.LayerRegistration;
@@ -31,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.logging.Logger;
+import org.openide.util.Lookup;
 
 /**
  * Discovers the {@link ViewProvider}s registered under {@code NbFx/Views} in the module layer.
@@ -40,6 +40,9 @@ import java.util.logging.Logger;
  * position and navigator flag. The registered attributes take precedence over the values reported
  * by the view itself, so placement is declared rather than coded. The layer entry is also
  * authoritative for the id.
+ * <p>
+ * Discovery reads metadata only. The view itself is a {@link ViewProvider} service in the global
+ * lookup, resolved by {@link #provider(String)} when its tab is created.
  *
  * @since 1.0
  */
@@ -55,17 +58,17 @@ public final class ViewRegistry {
 
     /**
      * Discovers and orders all registered views. Reads the configuration filesystem, so it must be
-     * called once the platform is initialized.
+     * called once the platform is initialized. Does not create the views.
      *
      * @return the view registrations, ordered by location, position and id
      */
     public static List<ViewSpec> discover() {
-        return read(LayerInstances.load(LayerPaths.VIEWS, ViewProvider.class));
+        return read(LayerInstances.registrations(LayerPaths.VIEWS, ViewProvider.class));
     }
 
     /**
      * The registration of the view with {@code id}, or {@code null} when no view declares it. Reads
-     * the configuration filesystem like {@link #discover()}.
+     * the configuration filesystem like {@link #discover()}; does not create the view.
      *
      * @param id the view id
      * @return the registration, or {@code null}
@@ -74,40 +77,58 @@ public final class ViewRegistry {
         return find(LayerInstances.registrations(LayerPaths.VIEWS, ViewProvider.class), id);
     }
 
-    /** Creates the first registration with {@code id}. */
-    static ViewSpec find(Iterable<LayerRegistration<ViewProvider>> registrations, String id) {
-        for (LayerRegistration<ViewProvider> registration : registrations) {
-            if (registration.id().equals(id)) {
-                ViewProvider view = LayerInstances.instantiate(registration);
-                return view == null ? null : read(new LayerEntry<>(view, registration.file()));
+    /**
+     * The view service with {@code id}, or {@code null} when no service is registered. Views are
+     * published in the global lookup by their {@link ViewProvider#getId() id}; the layer entry only
+     * supplies the metadata.
+     *
+     * @param id the view id
+     * @return the view, or {@code null}
+     */
+    public static ViewProvider provider(String id) {
+        for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
+            if (view.getId().equals(id)) {
+                return view;
             }
         }
         return null;
     }
 
     /** Reads the registrations of {@code entries}, taking placement from each layer entry. */
-    static List<ViewSpec> read(Iterable<LayerEntry<ViewProvider>> entries) {
-        List<ViewSpec> registrations = new ArrayList<>();
-        for (LayerEntry<ViewProvider> entry : entries) {
-            registrations.add(read(entry));
+    static List<ViewSpec> read(Iterable<LayerRegistration<ViewProvider>> registrations) {
+        List<ViewSpec> specs = new ArrayList<>();
+        for (LayerRegistration<ViewProvider> registration : registrations) {
+            specs.add(read(registration));
         }
-        return sort(registrations);
+        return sort(specs);
     }
 
-    private static ViewSpec read(LayerEntry<ViewProvider> entry) {
-        ViewProvider view = entry.instance();
-        String displayName = stringAttribute(entry.attribute("displayName"), view.getTitle());
-        String iconName = stringAttribute(entry.attribute("iconName"), "");
-        ViewKind kind = ViewKind.of(stringAttribute(entry.attribute("kind"), ViewKind.TOOL_ID));
+    /** Creates the first registration with {@code id}. */
+    static ViewSpec find(Iterable<LayerRegistration<ViewProvider>> registrations, String id) {
+        for (LayerRegistration<ViewProvider> registration : registrations) {
+            if (registration.id().equals(id)) {
+                return read(registration);
+            }
+        }
+        return null;
+    }
+
+    private static ViewSpec read(LayerRegistration<ViewProvider> registration) {
+        String displayName = stringAttribute(
+                registration.attribute("displayName"), registration.id());
+        String iconName = stringAttribute(registration.attribute("iconName"), "");
+        ViewKind kind = ViewKind.of(
+                stringAttribute(registration.attribute("kind"), ViewKind.TOOL_ID));
         DockLocation location = locationAttribute(
-                entry.attribute("location"), view.getDefaultLocation());
-        int position = intAttribute(entry.attribute("position"), Integer.MAX_VALUE);
-        boolean navigator = booleanAttribute(entry.attribute("navigator"));
-        ViewArea area = areaAttribute(entry.attribute("area"), location);
-        boolean openAtStartup = booleanAttribute(entry.attribute("openAtStartup"));
-        PersistenceType persistenceType = persistenceAttribute(entry.attribute("persistenceType"));
-        return new ViewSpec(entry.id(), displayName, iconName, kind, position,
-                navigator, area, openAtStartup, persistenceType, view);
+                registration.attribute("location"), DockLocation.LEFT);
+        int position = intAttribute(registration.attribute("position"), Integer.MAX_VALUE);
+        boolean navigator = booleanAttribute(registration.attribute("navigator"));
+        ViewArea area = areaAttribute(registration.attribute("area"), location);
+        boolean openAtStartup = booleanAttribute(registration.attribute("openAtStartup"));
+        PersistenceType persistenceType =
+                persistenceAttribute(registration.attribute("persistenceType"));
+        return new ViewSpec(registration.id(), displayName, iconName, kind, position,
+                navigator, area, openAtStartup, persistenceType);
     }
 
     /** Orders views by location, then position, then id, so the layout is stable. */

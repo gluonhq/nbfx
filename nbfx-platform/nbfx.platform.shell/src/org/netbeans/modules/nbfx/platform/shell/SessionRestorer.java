@@ -32,6 +32,7 @@ import org.netbeans.modules.nbfx.platform.shell.SlidingArea;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.view.ViewManager;
+import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
@@ -364,8 +365,13 @@ public final class SessionRestorer {
             if (introduced.contains(spec.id())) {
                 continue;
             }
-            if (!manager.isShowing(spec.view())) {
-                manager.show(spec.view());
+            ViewProvider view = ViewRegistry.provider(spec.id());
+            if (view == null) {
+                LOG.warning("View " + spec.id() + " is registered but has no ViewProvider service");
+                continue;
+            }
+            if (!manager.isShowing(view)) {
+                manager.show(view);
             }
             introduced.add(spec.id());
             changed = true;
