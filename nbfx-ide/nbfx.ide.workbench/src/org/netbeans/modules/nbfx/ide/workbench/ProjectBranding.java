@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellBranding;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;

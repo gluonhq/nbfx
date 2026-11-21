@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 import org.openide.util.lookup.Lookups;
 
 /**
- * Dispatches {@link org.netbeans.modules.nbfx.platform.shell.api.OnUiReady} tasks on the FX thread.
+ * Dispatches {@link org.netbeans.api.nbfx.shell.OnUiReady} tasks on the FX thread.
  * <p>
  * {@code @OnUiReady} is a {@code @NamedServiceDefinition}, so its tasks live in
  * {@code META-INF/namedservices/NbFx/UIReady}, not in the configuration filesystem. This

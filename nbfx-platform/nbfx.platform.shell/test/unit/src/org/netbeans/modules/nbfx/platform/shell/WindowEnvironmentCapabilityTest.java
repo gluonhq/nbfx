@@ -27,11 +27,11 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
 import org.junit.Test;
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsProvider;
-import org.netbeans.modules.nbfx.platform.shell.api.NavigatorRevealState;
-import org.netbeans.modules.nbfx.platform.shell.api.ProjectSwitcher;
-import org.netbeans.modules.nbfx.platform.shell.api.TabHomeResolver;
+import org.netbeans.api.nbfx.shell.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.DetachedBarsProvider;
+import org.netbeans.api.nbfx.shell.NavigatorRevealState;
+import org.netbeans.api.nbfx.shell.ProjectSwitcher;
+import org.netbeans.api.nbfx.shell.TabHomeResolver;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 

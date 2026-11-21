@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
@@ -27,7 +28,6 @@ import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;

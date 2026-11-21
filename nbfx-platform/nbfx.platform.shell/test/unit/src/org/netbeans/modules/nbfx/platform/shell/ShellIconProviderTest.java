@@ -23,8 +23,8 @@ import javafx.scene.layout.Region;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellIconProvider;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 

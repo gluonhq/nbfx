@@ -21,7 +21,7 @@ package org.netbeans.modules.nbfx.ide.workbench;
 import java.util.Set;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
+import org.netbeans.api.nbfx.shell.ShellChromeProfile;
 
 /**
  * The reduced chrome of a detached editor window: save actions, editor commands, view toggles and

@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.List;
@@ -91,7 +92,7 @@ public class AppShellConformanceTest {
             assertSame(application.getRoot(), application.getWindow().root());
 
             NbfxTabPane sidebar = (NbfxTabPane) Docking.primary(
-                    NbfxTabPane.PaneRole.of("RIGHT_SIDEBAR"));
+                    PaneRole.of("RIGHT_SIDEBAR"));
             assertNotNull("the registered custom pane is instantiated", sidebar);
             assertEquals(PaneKind.VIEW, NbfxTabPane.kindOf(sidebar));
             assertSame("the editor pane remains the dock area's main pane",

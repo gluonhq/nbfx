@@ -18,18 +18,20 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowManager;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
+import org.netbeans.spi.nbfx.shell.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPaneContext;
+import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import javafx.scene.control.Tab;
@@ -45,17 +47,20 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
     private final SessionRestorer sessionRestorer;
     private final List<NavigatorView> providers;
     private final Consumer<NbfxTabPane> paneSink;
+    private final WindowManager windowManager;
 
     NavigatorPaneProvider(SessionRestorer sessionRestorer,
             Collection<? extends NavigatorView> providers,
-            Consumer<NbfxTabPane> paneSink) {
+            Consumer<NbfxTabPane> paneSink,
+            WindowManager windowManager) {
         this.sessionRestorer = sessionRestorer;
         this.providers = List.copyOf(providers);
         this.paneSink = paneSink;
+        this.windowManager = windowManager;
     }
 
     @Override
-    public NbfxTabPane createPane(WindowPane pane, WindowPaneContext context) {
+    public WindowPaneHost createPane(WindowPane pane, WindowPaneContext context) {
         return PaneRole.NAVIGATOR.name().equals(pane.id()) ? createNavigator() : null;
     }
 
@@ -79,13 +84,13 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
             // empty order means the user closed them all, and docking them here would flash them into
             // the pane until the project's own layout removed them again.
             if (layout.isEmpty() || order.contains(provider.getId())) {
-                NbfxTabPane.attachTab(navigator, createTab(provider, providers));
+                windowManager.attach(navigator, createTab(provider, providers));
             }
         }
         String selected = navigatorSelectedOf(layout);
         if (selected != null) {
             for (Tab tab : navigator.getTabs()) {
-                if (selected.equals(NbfxTabPane.viewId(tab))) {
+                if (selected.equals(windowManager.viewId(tab))) {
                     navigator.getSelectionModel().select(tab);
                     break;
                 }

@@ -46,7 +46,7 @@ import org.netbeans.junit.NbModuleSuite;
 import org.netbeans.junit.NbTestCase;
 import org.netbeans.modules.nbfx.platform.shell.ToolBarContainer;
 import org.netbeans.modules.nbfx.platform.shell.ToolBarHost;
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.DetachedBarsContext;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;

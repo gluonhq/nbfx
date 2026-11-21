@@ -18,9 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
+import org.netbeans.api.nbfx.shell.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellCommandResolver;
 
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;

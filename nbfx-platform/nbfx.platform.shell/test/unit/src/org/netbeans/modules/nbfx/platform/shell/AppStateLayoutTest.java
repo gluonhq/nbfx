@@ -18,13 +18,13 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import java.util.List;
 import javafx.geometry.Side;

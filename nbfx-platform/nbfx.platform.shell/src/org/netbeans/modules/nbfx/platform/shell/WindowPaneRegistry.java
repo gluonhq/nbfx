@@ -26,8 +26,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Logger;
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.openide.filesystems.FileChangeAdapter;
 import org.openide.filesystems.FileEvent;
 import org.openide.filesystems.FileObject;
@@ -109,7 +110,7 @@ public final class WindowPaneRegistry {
     }
 
     /** The default role for showing a view when no area resolves; never the editor pane. */
-    public static NbfxTabPane.PaneRole defaultViewRole() {
+    public static PaneRole defaultViewRole() {
         return defaultViewRole(discover());
     }
 
@@ -118,12 +119,12 @@ public final class WindowPaneRegistry {
      * navigator role when no permanent view pane is declared, which keeps a view placeable even in
      * a partially configured shell.
      */
-    public static NbfxTabPane.PaneRole defaultViewRole(List<WindowPane> panes) {
+    public static PaneRole defaultViewRole(List<WindowPane> panes) {
         return panes.stream()
                 .filter(pane -> pane.kind() == PaneKind.VIEW)
                 .min(Comparator.comparingInt(WindowPane::position))
                 .map(WindowPane::role)
-                .orElse(NbfxTabPane.PaneRole.NAVIGATOR);
+                .orElse(PaneRole.NAVIGATOR);
     }
 
     private static void invalidate(FileEvent event) {
@@ -159,7 +160,7 @@ public final class WindowPaneRegistry {
             LOG.warning("Ignoring pane with invalid role id: " + id);
             return null;
         }
-        if (!NbfxTabPane.PaneRole.of(id).isPermanent()) {
+        if (!PaneRole.of(id).isPermanent()) {
             LOG.warning("Ignoring pane with reserved non-permanent role id: " + id);
             return null;
         }

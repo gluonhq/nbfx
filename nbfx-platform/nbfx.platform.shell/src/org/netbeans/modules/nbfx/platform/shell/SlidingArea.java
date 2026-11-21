@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea.Anchor;

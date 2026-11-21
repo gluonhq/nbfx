@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellChrome;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;

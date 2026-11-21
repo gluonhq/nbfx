@@ -18,12 +18,12 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsProvider;
-import org.netbeans.modules.nbfx.platform.shell.api.NavigatorRevealState;
-import org.netbeans.modules.nbfx.platform.shell.api.ProjectSwitcher;
-import org.netbeans.modules.nbfx.platform.shell.api.TabHomeResolver;
-import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+import org.netbeans.api.nbfx.shell.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.DetachedBarsProvider;
+import org.netbeans.api.nbfx.shell.NavigatorRevealState;
+import org.netbeans.api.nbfx.shell.ProjectSwitcher;
+import org.netbeans.api.nbfx.shell.TabHomeResolver;
+import org.netbeans.api.nbfx.shell.WindowEnvironmentContribution;
 
 import java.util.List;
 import java.util.Objects;

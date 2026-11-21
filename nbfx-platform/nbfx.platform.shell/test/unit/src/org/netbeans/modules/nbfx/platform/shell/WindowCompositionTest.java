@@ -20,9 +20,9 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
 import org.junit.Test;
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 
 import static org.junit.Assert.assertEquals;

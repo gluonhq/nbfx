@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+import org.netbeans.api.nbfx.shell.ShellIconProvider;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.List;
@@ -26,10 +28,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
+import org.netbeans.spi.nbfx.shell.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPaneContext;
+import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
@@ -82,7 +83,7 @@ public class WindowPaneProviderTest {
                 }
 
                 @Override
-                public void disposePane(NbfxTabPane pane) {
+                public void disposePane(WindowPaneHost pane) {
                     disposed.set(true);
                 }
             };
@@ -113,11 +114,11 @@ public class WindowPaneProviderTest {
             WindowComposition composition = new WindowComposition(List.of(compositionPane), null);
             WindowPaneContext context = new WindowPaneContext(lookup, composition.panes(), shell);
 
-            NbfxTabPane pane = shell.createPane(compositionPane, context);
+            WindowPaneHost pane = shell.createPane(compositionPane, context);
 
             assertSame(high.created, pane);
             assertNull(low.created);
-            assertEquals(PaneRole.of("RIGHT_SIDEBAR"), NbfxTabPane.roleOf(pane));
+            assertEquals(PaneRole.of("RIGHT_SIDEBAR"), pane.role());
             assertEquals(composition.panes(), seen.get().panes());
             assertSame(shell, seen.get().window());
             assertEquals(composition.panes(), context.panes());

@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.List;
@@ -29,7 +30,6 @@ import org.junit.Test;
 import org.netbeans.api.nbfx.view.ViewInfo;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.ViewKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

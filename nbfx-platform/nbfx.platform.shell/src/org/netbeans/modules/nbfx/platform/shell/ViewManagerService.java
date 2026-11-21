@@ -27,6 +27,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Logger;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.view.ViewInfo;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -131,7 +132,7 @@ public class ViewManagerService implements ViewManager {
         TabPane focused = NbfxTabPane.componentPane();
         List<ViewInfo> result = new ArrayList<>();
         for (TabPane pane : NbfxTabPane.tabPanes()) {
-            boolean detached = NbfxTabPane.roleOf(pane) == NbfxTabPane.PaneRole.DETACHED;
+            boolean detached = NbfxTabPane.roleOf(pane) == PaneRole.DETACHED;
             for (Tab tab : pane.getTabs()) {
                 if (!(tab.getProperties().get(NbfxTabPane.VIEW_PROVIDER_KEY)
                         instanceof ViewProvider view)) {

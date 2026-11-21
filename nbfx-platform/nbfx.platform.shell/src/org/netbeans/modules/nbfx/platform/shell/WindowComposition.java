@@ -20,7 +20,8 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
 import java.util.Optional;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 
 /**
@@ -53,7 +54,7 @@ public record WindowComposition(List<WindowPane> panes, DockTree tree) {
      * The default role for a view when no area resolves; never the editor pane, and the built-in
      * navigator role when the composition declares no view pane.
      */
-    public NbfxTabPane.PaneRole defaultViewRole() {
+    public PaneRole defaultViewRole() {
         return WindowPaneRegistry.defaultViewRole(panes);
     }
 }

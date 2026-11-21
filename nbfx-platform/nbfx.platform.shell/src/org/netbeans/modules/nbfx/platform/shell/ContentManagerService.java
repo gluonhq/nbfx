@@ -39,6 +39,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Region;
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
@@ -61,7 +62,7 @@ public class ContentManagerService implements ContentManager {
 
     public ContentManagerService() {
         LOG.info("Creating main pane");
-        mainPane = new NbfxTabPane(NbfxTabPane.PaneRole.MAIN);
+        mainPane = new NbfxTabPane(PaneRole.MAIN);
     }
 
     public Region getMainPane() {

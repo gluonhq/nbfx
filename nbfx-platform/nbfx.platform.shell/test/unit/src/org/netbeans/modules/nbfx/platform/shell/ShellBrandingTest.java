@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+import org.netbeans.api.nbfx.shell.ShellBranding;
 import org.junit.Test;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;

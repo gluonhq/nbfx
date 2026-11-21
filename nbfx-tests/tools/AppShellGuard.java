@@ -75,7 +75,7 @@ public final class AppShellGuard {
                 }
             }
         }
-        Path api = platform.resolve("nbfx.platform.shell/src/org/netbeans/modules/nbfx/platform/shell/api");
+        Path api = platform.resolve("nbfx.api.shell/src/org/netbeans");
         if (Files.isDirectory(api)) {
             try (Stream<Path> files = Files.walk(api)) {
                 for (Path file : (Iterable<Path>) files

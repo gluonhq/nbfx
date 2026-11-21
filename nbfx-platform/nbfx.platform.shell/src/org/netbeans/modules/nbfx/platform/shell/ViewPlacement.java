@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import javafx.scene.control.TabPane;
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewArea;
@@ -64,7 +65,7 @@ public final class ViewPlacement {
     }
 
     /** The default view role from the composition, or the registry fallback without one. */
-    public static NbfxTabPane.PaneRole defaultViewRole() {
+    public static PaneRole defaultViewRole() {
         WindowComposition composition = Docking.composition();
         return composition == null
                 ? WindowPaneRegistry.defaultViewRole()

@@ -18,14 +18,17 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProvider;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownCoordinator;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownImpact;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownSelection;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
+import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellWindow;
+import org.netbeans.api.nbfx.shell.ShellChromeProvider;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownCoordinator;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownSelection;
+import org.netbeans.api.nbfx.shell.ShellBranding;
+import org.netbeans.api.nbfx.shell.WindowManager;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,9 +65,9 @@ import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneContext;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPaneProvider;
+import org.netbeans.spi.nbfx.shell.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPaneContext;
+import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.WindowSink;
 import org.netbeans.modules.nbfx.platform.workspace.WindowState;
@@ -126,7 +129,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** Providers resolved for this shell, in priority order. */
     private List<WindowPaneProvider> paneProviderList = List.of();
     /** Providers that created a pane, so their resources are released with the shell. */
-    private final Map<NbfxTabPane, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
+    private final Map<WindowPaneHost, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
+    private final WindowManager windowManager = new DefaultWindowManager();
 
     @Override
     public final void start(Stage stage) {
@@ -142,7 +146,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (panes.isEmpty()) {
             throw new IllegalStateException("The shell has no primary pane");
         }
-        mainPane = panes.get(NbfxTabPane.PaneRole.MAIN.name());
+        mainPane = panes.get(PaneRole.MAIN.name());
         if (mainPane == null) {
             mainPane = panes.values().iterator().next();
         }
@@ -316,6 +320,11 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         return slidingArea;
     }
 
+    @Override
+    public final WindowManager windowManager() {
+        return windowManager;
+    }
+
     /** The persisted shell state, for a product that contributes project/session state. */
     protected final AppState getAppState() {
         return appState;
@@ -342,7 +351,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      * @return the lookup, never {@code null}
      */
     protected Lookup shellLookup() {
-        return new ProxyLookup(Lookups.fixed(this), Lookup.getDefault());
+        return new ProxyLookup(Lookups.fixed(this, windowManager), Lookup.getDefault());
     }
 
     /**
@@ -371,16 +380,16 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      *
      * @param pane    the declared pane
      * @param context the narrow shell context
-     * @return the concrete pane, never {@code null}
+     * @return the pane host, never {@code null}
      */
-    protected NbfxTabPane createPane(WindowPane pane, WindowPaneContext context) {
+    protected WindowPaneHost createPane(WindowPane pane, WindowPaneContext context) {
         if (pane.role().isMain() || pane.kind() == PaneKind.EDITOR) {
             return createMainPane();
         }
         List<WindowPaneProvider> candidates = paneProviderList.isEmpty()
                 ? providers(context) : paneProviderList;
         for (WindowPaneProvider provider : candidates) {
-            NbfxTabPane instance = provider.createPane(pane, context);
+            WindowPaneHost instance = provider.createPane(pane, context);
             if (instance != null) {
                 paneProviders.put(instance, provider);
                 return instance;
@@ -402,18 +411,20 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             WindowPaneContext context) {
         Map<String, NbfxTabPane> panes = new LinkedHashMap<>();
         for (WindowPane pane : composition.panes()) {
-            NbfxTabPane.PaneRole declared = pane.role();
-            NbfxTabPane instance = createPane(pane, context);
-            if (instance == null) {
+            PaneRole declared = pane.role();
+            WindowPaneHost host = createPane(pane, context);
+            if (host == null) {
                 LOG.warning("No pane instance for registered pane " + pane.id());
                 continue;
             }
-            if (!declared.equals(NbfxTabPane.roleOf(instance))) {
-                LOG.warning("Pane provider returned role " + NbfxTabPane.roleOf(instance)
+            NbfxTabPane instance = host instanceof NbfxTabPane paneInstance ? paneInstance : null;
+            if (instance == null || !declared.equals(instance.role())) {
+                LOG.warning("Pane provider returned "
+                        + (instance == null ? "an unsupported host" : "role " + instance.role())
                         + " for declared pane " + pane.id() + "; using a default pane");
-                WindowPaneProvider provider = paneProviders.remove(instance);
+                WindowPaneProvider provider = paneProviders.remove(host);
                 if (provider != null) {
-                    provider.disposePane(instance);
+                    provider.disposePane(host);
                 }
                 instance = new NbfxTabPane(declared, pane.kind());
             }
@@ -424,7 +435,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     /** Releases panes created by providers; a provider that owns resources cleans up here. */
     private void disposePanes() {
-        for (Map.Entry<NbfxTabPane, WindowPaneProvider> entry : paneProviders.entrySet()) {
+        for (Map.Entry<WindowPaneHost, WindowPaneProvider> entry : paneProviders.entrySet()) {
             try {
                 entry.getValue().disposePane(entry.getKey());
             } catch (RuntimeException ex) {
@@ -468,7 +479,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /**
      * Called after the window is showing, on the JavaFX Application Thread, before the
      * {@code @OnUiReady} tasks. Kept as a subclass compatibility hook; product contributions use
-     * {@link org.netbeans.modules.nbfx.platform.shell.api.OnUiReady} instead.
+     * {@link org.netbeans.api.nbfx.shell.OnUiReady} instead.
      */
     protected void started() {
     }
@@ -587,7 +598,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (manager instanceof ContentManagerService service && service.getMainPane() instanceof NbfxTabPane pane) {
             return pane;
         }
-        return new NbfxTabPane(NbfxTabPane.PaneRole.MAIN);
+        return new NbfxTabPane(PaneRole.MAIN);
     }
 
     /**

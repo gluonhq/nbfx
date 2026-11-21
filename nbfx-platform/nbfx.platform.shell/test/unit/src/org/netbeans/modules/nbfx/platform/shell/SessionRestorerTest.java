@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.List;
@@ -57,7 +58,7 @@ public class SessionRestorerTest {
     @Test
     public void viewTabsMoveToTheDefaultViewPane() throws InterruptedException {
         JavaFxTestSupport.onFx(() -> {
-            NbfxTabPane navigator = new NbfxTabPane(NbfxTabPane.PaneRole.NAVIGATOR);
+            NbfxTabPane navigator = new NbfxTabPane(PaneRole.NAVIGATOR);
             try {
                 Tab tab = ViewTabs.create(new View(), "Removed Pane View");
 
