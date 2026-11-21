@@ -18,16 +18,13 @@
  */
 package org.netbeans.modules.nbfx.platform.options;
 
-import org.netbeans.api.nbfx.layer.LayerPaths;
-import org.netbeans.api.nbfx.options.OptionsPanelController;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
-import org.openide.util.lookup.Lookups;
+import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerInstances;
+import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.options.OptionsPanelController;
 
 /**
  * Discovers the {@link OptionsPanelController}s registered under {@code NbFx/Options} in the module
@@ -48,50 +45,20 @@ final class OptionsRegistry {
      * @return the panel registrations, ordered by position then id
      */
     static List<OptionsPanelEntry> discover() {
-        FileObject folder = FileUtil.getConfigFile(LayerPaths.OPTIONS);
-        if (folder == null) {
-            return List.of();
-        }
-        Map<String, OptionsPanelController> panelsByClass = new LinkedHashMap<>();
-        for (OptionsPanelController panel : Lookups.forPath(LayerPaths.OPTIONS)
-                .lookupAll(OptionsPanelController.class)) {
-            panelsByClass.putIfAbsent(panel.getClass().getName(), panel);
-        }
+        return read(LayerInstances.load(LayerPaths.OPTIONS, OptionsPanelController.class));
+    }
+
+    /** Reads the registrations of {@code entries}, taking metadata from each layer entry. */
+    static List<OptionsPanelEntry> read(Iterable<LayerEntry<OptionsPanelController>> entries) {
         List<OptionsPanelEntry> registrations = new ArrayList<>();
-        for (FileObject file : folder.getChildren()) {
-            if (!file.isData() || !file.hasExt("instance")) {
-                continue;
-            }
-            Object className = file.getAttribute("instanceClass");
-            if (!(className instanceof String name)) {
-                continue;
-            }
-            OptionsPanelController panel = panelsByClass.get(name);
-            if (panel != null) {
-                registrations.add(read(file, panel));
-            }
+        for (LayerEntry<OptionsPanelController> entry : entries) {
+            registrations.add(new OptionsPanelEntry(
+                    entry.id(),
+                    stringAttribute(entry.attribute("displayName"), entry.id()),
+                    intAttribute(entry.attribute("position"), Integer.MAX_VALUE),
+                    entry.instance()));
         }
         return sort(registrations);
-    }
-
-    /** Reads the registrations of {@code panels}, keyed by the layer file's base name. */
-    static List<OptionsPanelEntry> read(FileObject folder, Map<String, OptionsPanelController> panels) {
-        List<OptionsPanelEntry> registrations = new ArrayList<>();
-        for (Map.Entry<String, OptionsPanelController> entry : panels.entrySet()) {
-            FileObject file = folder == null ? null : folder.getFileObject(entry.getKey(), "instance");
-            registrations.add(read(entry.getKey(), file, entry.getValue()));
-        }
-        return sort(registrations);
-    }
-
-    private static OptionsPanelEntry read(FileObject file, OptionsPanelController panel) {
-        return read(file.getName(), file, panel);
-    }
-
-    private static OptionsPanelEntry read(String id, FileObject file, OptionsPanelController panel) {
-        String displayName = stringAttribute(file, "displayName", id);
-        int position = intAttribute(file, "position", Integer.MAX_VALUE);
-        return new OptionsPanelEntry(id, displayName, position, panel);
     }
 
     /** Orders panels by position, then id. */
@@ -103,13 +70,11 @@ final class OptionsRegistry {
         return List.copyOf(sorted);
     }
 
-    private static String stringAttribute(FileObject file, String name, String fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static String stringAttribute(Object value, String fallback) {
         return value instanceof String text ? text : fallback;
     }
 
-    private static int intAttribute(FileObject file, String name, int fallback) {
-        Object value = file == null ? null : file.getAttribute(name);
+    private static int intAttribute(Object value, int fallback) {
         return value instanceof Integer number ? number : fallback;
     }
 }

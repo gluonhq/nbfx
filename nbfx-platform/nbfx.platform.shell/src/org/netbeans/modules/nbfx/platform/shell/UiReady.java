@@ -24,6 +24,11 @@ import org.openide.util.lookup.Lookups;
 
 /**
  * Dispatches {@link org.netbeans.modules.nbfx.platform.shell.api.OnUiReady} tasks on the FX thread.
+ * <p>
+ * {@code @OnUiReady} is a {@code @NamedServiceDefinition}, so its tasks live in
+ * {@code META-INF/namedservices/NbFx/UIReady}, not in the configuration filesystem. This
+ * deliberately stays on {@link Lookups#forPath}; {@code LayerInstances} only reads config
+ * {@code .instance} entries.
  */
 final class UiReady {
 

@@ -18,15 +18,20 @@
  */
 package org.netbeans.modules.nbfx.platform.status;
 
+import org.netbeans.api.nbfx.layer.LayerEntry;
 import org.netbeans.api.nbfx.status.StatusAlignment;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.scene.Node;
+import org.junit.Test;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileSystem;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import org.junit.Test;
 
 /**
  * Verifies the ordering applied to registered status elements: by slot, then position, then id.
@@ -81,9 +86,36 @@ public class StatusElementRegistryTest {
             }
         };
         Lookup services = Lookups.fixed();
-        StatusElementRegistry.discover(List.of(
+        StatusElementRegistry.read(List.of(), List.of(
                 new StatusElement("contextual", StatusAlignment.LEFT, 1, holder)), services);
         assertSame(services, received.get());
+    }
+
+    @Test
+    public void readsAttributesFromLayerEntries() throws IOException {
+        FileSystem fs = FileUtil.createMemoryFileSystem();
+        FileObject folder = FileUtil.createFolder(fs.getRoot(), "NbFx/Status");
+        FileObject file = folder.createData("registered", "instance");
+        file.setAttribute("alignment", "RIGHT");
+        file.setAttribute("position", 7);
+
+        StatusElementHolder holder = new StatusElementHolder() {
+            @Override
+            public String getId() {
+                return "implementation-id";
+            }
+
+            @Override
+            public Node getNode() {
+                return null;
+            }
+        };
+        List<StatusElement> elements = StatusElementRegistry.read(
+                List.of(new LayerEntry<>(holder, file)), List.of(), Lookups.fixed());
+
+        assertEquals("registered", elements.get(0).id());
+        assertEquals(StatusAlignment.RIGHT, elements.get(0).alignment());
+        assertEquals(7, elements.get(0).position());
     }
 
     private static StatusElement element(String id, StatusAlignment alignment, int position) {
