@@ -91,6 +91,7 @@ org.netbeans.api.nbfx.property.PropertyContextProvider
 org.netbeans.api.nbfx.property.PropertyEditor
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
+org.netbeans.api.nbfx.shell.AreaState
 org.netbeans.api.nbfx.shell.DetachedBarsContext
 org.netbeans.api.nbfx.shell.DetachedBarsProvider
 org.netbeans.api.nbfx.shell.NavigatorRevealState
@@ -110,6 +111,10 @@ org.netbeans.api.nbfx.shell.TabHomeResolver
 org.netbeans.api.nbfx.shell.WindowEnvironmentContribution
 org.netbeans.api.nbfx.shell.WindowManager
 org.netbeans.api.nbfx.shell.WindowPaneHost
+org.netbeans.api.nbfx.shell.WindowSink
+org.netbeans.api.nbfx.shell.WindowState
+org.netbeans.api.nbfx.shell.WindowSystem
+org.netbeans.api.nbfx.shell.WindowSystemListener
 org.netbeans.api.nbfx.shell.shutdown.ShutdownCoordinator
 org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact
 org.netbeans.api.nbfx.shell.shutdown.ShutdownParticipant
@@ -150,8 +155,11 @@ org.netbeans.api.nbfx.views.TabPaneActivation
 org.netbeans.api.nbfx.views.ToolbarRegistration
 org.netbeans.api.nbfx.views.ToolbarRegistrations
 org.netbeans.api.nbfx.views.ViewArea
+org.netbeans.api.nbfx.views.ViewAreaRegistry
 org.netbeans.api.nbfx.views.ViewKind
 org.netbeans.api.nbfx.views.ViewRegistration
+org.netbeans.api.nbfx.views.ViewRegistry
+org.netbeans.api.nbfx.views.ViewSpec
 org.netbeans.api.nbfx.views.WindowLayoutRegistration
 org.netbeans.api.nbfx.views.WindowLayoutRegistrations
 org.netbeans.api.nbfx.wizard.Wizard

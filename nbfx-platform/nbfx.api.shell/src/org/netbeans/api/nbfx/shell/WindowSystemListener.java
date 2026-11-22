@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.shell;
 
 /**
  * Listener for the window-system load/save lifecycle, notified by {@link WindowSystem}. The nbfx

@@ -23,7 +23,7 @@ import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
-import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
+import org.netbeans.api.nbfx.views.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 
 /**

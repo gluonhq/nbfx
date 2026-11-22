@@ -18,8 +18,15 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
+import org.netbeans.api.nbfx.shell.AreaState;
+import org.netbeans.api.nbfx.shell.WindowSink;
+import org.netbeans.api.nbfx.shell.WindowState;
+import org.netbeans.api.nbfx.shell.WindowSystem;
+import org.netbeans.api.nbfx.shell.WindowSystemListener;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
+import org.netbeans.api.nbfx.views.ViewRegistry;
+import org.netbeans.api.nbfx.views.ViewSpec;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -67,7 +74,7 @@ import org.openide.util.lookup.ServiceProvider;
  * @since 1.0
  */
 @ServiceProvider(service = WindowSystem.class)
-public final class WindowSystem {
+public final class DefaultWindowSystem implements WindowSystem {
 
     /** The lifecycle phases; the window system guards its methods with them. */
     private enum Phase {
@@ -111,7 +118,7 @@ public final class WindowSystem {
      * {@link #setSink(WindowSink)} from its {@code start()}, before the first {@link #load()}; until
      * then a no-op sink is used, so the system can be looked up and driven safely.
      */
-    public WindowSystem() {
+    public DefaultWindowSystem() {
         this(ViewRegistry::discover, new ViewStateStore(), null, Lookup.getDefault());
     }
 
@@ -122,11 +129,11 @@ public final class WindowSystem {
      * @param store         the persisted-state store
      * @param sink          the JavaFX shell adapter, or {@code null} until {@link #setSink(WindowSink)}
      */
-    WindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink) {
+    DefaultWindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink) {
         this(registrations, store, sink, Lookup.getDefault());
     }
 
-    WindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink,
+    DefaultWindowSystem(Supplier<List<ViewSpec>> registrations, ViewStateStore store, WindowSink sink,
             Lookup services) {
         this.registrations = Objects.requireNonNull(registrations, "registrations");
         this.store = Objects.requireNonNull(store, "store");

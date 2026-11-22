@@ -26,6 +26,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
+import org.netbeans.api.nbfx.shell.AreaState;
+import org.netbeans.api.nbfx.shell.WindowState;
+import org.netbeans.api.nbfx.shell.WindowSystem;
 import org.openide.util.NbPreferences;
 
 /**

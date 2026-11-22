@@ -26,7 +26,7 @@ import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
-import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.api.nbfx.views.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.shell.DocumentCloser;
 import java.io.File;
 import java.util.ArrayList;

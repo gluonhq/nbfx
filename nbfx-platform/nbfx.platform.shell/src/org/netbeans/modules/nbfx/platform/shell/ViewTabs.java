@@ -19,8 +19,8 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.view.ViewProvider;
-import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
-import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.api.nbfx.views.ViewSpec;
+import org.netbeans.api.nbfx.views.ViewRegistry;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;

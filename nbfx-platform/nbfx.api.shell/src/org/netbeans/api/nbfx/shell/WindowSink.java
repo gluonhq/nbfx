@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.shell;
 
 /**
  * The seam between the pure window-system orchestration ({@link WindowSystem}) and the JavaFX

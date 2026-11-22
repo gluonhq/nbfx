@@ -73,7 +73,13 @@
                     <code-name-base>org.netbeans.modules.nbfx.api.views</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
-                    <run-dependency><specification-version>1.6</specification-version></run-dependency>
+                    <run-dependency><specification-version>1.9</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>org.netbeans.modules.nbfx.api.shell</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
                 </dependency>
                 <dependency>
                     <code-name-base>org.netbeans.modules.nbfx.api.layer</code-name-base>
@@ -96,9 +102,11 @@
                     </test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages>
-                <subpackages>org.netbeans.modules.nbfx.platform.workspace</subpackages>
-            </public-packages>
+            <friend-packages>
+                <friend>org.netbeans.modules.nbfx.platform.shell</friend>
+                <friend>org.netbeans.modules.nbfx.ide.workbench</friend>
+                <package>org.netbeans.modules.nbfx.platform.workspace</package>
+            </friend-packages>
         </data>
     </configuration>
 </project>
