@@ -22,6 +22,10 @@ import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.project.OpenProject;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsChangeKind;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 import org.netbeans.modules.nbfx.project.context.ProjectContext;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,18 +61,22 @@ final class GitStatusView extends BorderPane {
 
     private static final RequestProcessor RP = new RequestProcessor("nbfx-git", 1);
 
-    private final ObservableList<GitClient.Change> changes = FXCollections.observableArrayList();
-    private final TableView<GitClient.Change> table = new TableView<>(changes);
+    /** What the table compares; the commit takes every change, so it is the last commit against the disk. */
+    private static final VcsCompareMode MODE = VcsCompareMode.HEAD_VS_WORKING_TREE;
+
+    private final ObservableList<VcsFileStatus> changes = FXCollections.observableArrayList();
+    private final TableView<VcsFileStatus> table = new TableView<>(changes);
     private final Label branch = new Label();
     private final Button commit = new Button(message("Git.commit"));
 
     GitStatusView() {
         getStyleClass().add("git-view");
 
-        TableColumn<GitClient.Change, String> status = new TableColumn<>(message("Git.column.status"));
-        status.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().status()));
+        TableColumn<VcsFileStatus, String> status = new TableColumn<>(message("Git.column.status"));
+        status.setCellValueFactory(cell -> new SimpleStringProperty(
+                cell.getValue().change(MODE).map(GitStatusView::label).orElse("")));
         status.setPrefWidth(140);
-        TableColumn<GitClient.Change, String> file = new TableColumn<>(message("Git.column.file"));
+        TableColumn<VcsFileStatus, String> file = new TableColumn<>(message("Git.column.file"));
         file.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().path()));
         table.getColumns().add(status);
         table.getColumns().add(file);
@@ -114,11 +122,12 @@ final class GitStatusView extends BorderPane {
                 }
                 Path root = GitClient.rootOf(dir);
                 String branchName = GitClient.branch(root);
-                List<GitClient.Change> status = GitClient.status(root);
+                VcsStatus status = GitClient.status(root);
+                List<VcsFileStatus> files = status.files(MODE);
                 Platform.runLater(() -> {
                     branch.setText(message("Git.branch") + ": " + branchName);
-                    changes.setAll(status);
-                    commit.setDisable(status.isEmpty());
+                    changes.setAll(files);
+                    commit.setDisable(files.isEmpty());
                 });
             } catch (RuntimeException | java.io.IOException ex) {
                 Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
@@ -169,6 +178,10 @@ final class GitStatusView extends BorderPane {
     private static Path selectedProject() {
         OpenProject project = ProjectContext.selectedProject();
         return project == null ? null : Paths.get(project.getPath());
+    }
+
+    private static String label(VcsChangeKind kind) {
+        return message("Git.kind." + kind.name());
     }
 
     private static String message(String key) {

@@ -18,14 +18,13 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 /**
  * A thin client over the {@code git} command line: repository detection, branch, status and commit.
@@ -34,10 +33,6 @@ import java.util.stream.Collectors;
  * @since 1.0
  */
 final class GitClient {
-
-    /** One changed file: a human-readable status and its path. */
-    record Change(String status, String path) {
-    }
 
     /** The exit code and merged output of a git command. */
     record Result(int exitCode, String output) {
@@ -60,19 +55,21 @@ final class GitClient {
         return result.exitCode() == 0 ? result.output().trim() : "";
     }
 
-    static List<Change> status(Path root) throws IOException {
-        Result result = result(root, "status", "--porcelain");
+    /**
+     * The changed files of the repository, with the index and the working tree told apart, so that one
+     * read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Untracked files
+     * are listed one by one, not by folder.
+     */
+    static VcsStatus status(Path root) throws IOException {
+        Result result = result(root, "status", "--porcelain=v2", "-z", "--untracked-files=all");
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }
-        List<Change> changes = new ArrayList<>();
-        for (String line : result.output().split("\n")) {
-            if (line.length() < 4) {
-                continue;
-            }
-            changes.add(new Change(describe(line.substring(0, 2)), line.substring(3).trim()));
+        try {
+            return GitStatusParser.parse(result.output());
+        } catch (IllegalArgumentException ex) {
+            throw new IOException(ex.getMessage(), ex);
         }
-        return changes;
     }
 
     static Result addAll(Path root) {
@@ -91,10 +88,10 @@ final class GitClient {
         command.addAll(List.of(args));
         try {
             Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            // Read as is: the status records end with a NUL and their paths may hold any other character.
             String output;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                output = reader.lines().collect(Collectors.joining("\n"));
+            try (InputStream in = process.getInputStream()) {
+                output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             }
             return new Result(process.waitFor(), output);
         } catch (InterruptedException ex) {
@@ -103,33 +100,5 @@ final class GitClient {
         } catch (IOException ex) {
             return new Result(1, ex.getMessage());
         }
-    }
-
-    /** A human-readable description of a two-character porcelain status. */
-    private static String describe(String code) {
-        if (code.equals("??")) {
-            return "Untracked";
-        }
-        if (code.equals("!!")) {
-            return "Ignored";
-        }
-        String index = describeOne(code.charAt(0));
-        String worktree = describeOne(code.charAt(1));
-        if (index.isEmpty()) {
-            return worktree.isEmpty() ? code.trim() : worktree;
-        }
-        return worktree.isEmpty() ? index : index + ", " + worktree;
-    }
-
-    private static String describeOne(char status) {
-        return switch (status) {
-            case 'A' -> "Added";
-            case 'M' -> "Modified";
-            case 'D' -> "Deleted";
-            case 'R' -> "Renamed";
-            case 'C' -> "Copied";
-            case 'U' -> "Conflicted";
-            default -> "";
-        };
     }
 }
