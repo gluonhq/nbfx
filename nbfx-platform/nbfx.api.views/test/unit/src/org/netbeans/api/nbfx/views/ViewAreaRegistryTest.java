@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.views;
 
 import java.io.IOException;
 import java.util.List;

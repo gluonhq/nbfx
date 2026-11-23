@@ -109,6 +109,23 @@
             </description>
             <class package="org.netbeans.api.nbfx.icons" name="ThemedImageView"/>
         </change>
+        <change id="view.metadata.public">
+            <api name="netbeansfx_views"/>
+            <summary>The view metadata and area discovery move into the view API.</summary>
+            <version major="1" minor="9"/>
+            <date day="22" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ViewSpec</code>, <code>ViewRegistry</code> and <code>ViewAreaRegistry</code>
+                to the API. The registry reads the <code>NbFx/Views</code> registrations through
+                <code>LayerInstances</code>; the docking implementation in
+                <code>nbfx.platform.workspace</code> becomes internal.
+            </description>
+            <class package="org.netbeans.api.nbfx.views" name="ViewSpec"/>
+            <class package="org.netbeans.api.nbfx.views" name="ViewRegistry"/>
+            <class package="org.netbeans.api.nbfx.views" name="ViewAreaRegistry"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

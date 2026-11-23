@@ -28,7 +28,7 @@ import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockHost;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
-import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
+import org.netbeans.api.nbfx.views.ViewAreaRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.WindowLayoutRegistry;
 import java.util.ArrayList;
 import java.util.EnumMap;

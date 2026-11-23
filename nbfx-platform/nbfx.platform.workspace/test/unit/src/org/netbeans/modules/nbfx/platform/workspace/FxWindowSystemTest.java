@@ -18,10 +18,16 @@
  */
 package org.netbeans.modules.nbfx.platform.workspace;
 
+import org.netbeans.api.nbfx.shell.AreaState;
+import org.netbeans.api.nbfx.shell.WindowSink;
+import org.netbeans.api.nbfx.shell.WindowState;
+import org.netbeans.api.nbfx.shell.WindowSystem;
+import org.netbeans.api.nbfx.shell.WindowSystemListener;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.views.ViewKind;
+import org.netbeans.api.nbfx.views.ViewSpec;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -107,7 +113,7 @@ public class FxWindowSystemTest {
                 reg("beta", 20, false, false, ViewArea.EXPLORER),
                 reg("zeta", 5, true, true, ViewArea.EDITOR));
         RecordingSink sink = new RecordingSink();
-        WindowSystem windowSystem = new WindowSystem(regs, newStore("firstLoad"), sink);
+        WindowSystem windowSystem = new DefaultWindowSystem(regs, newStore("firstLoad"), sink);
 
         windowSystem.init();
         windowSystem.load();
@@ -130,7 +136,7 @@ public class FxWindowSystemTest {
         store.save(new WindowState(List.of(AreaState.docked("explorer", List.of("beta", "alpha"), "beta")),
                 5, 6, 1200, 800, true, Map.of()));
 
-        initAndLoad(new WindowSystem(regs, store, sink));
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
         assertEquals(List.of("beta", "alpha"), viewsOf(applied, "explorer"));
@@ -150,7 +156,7 @@ public class FxWindowSystemTest {
                 reg("alpha", 10, true, true, ViewArea.EXPLORER),
                 reg("beta", 20, false, false, ViewArea.EXPLORER));
 
-        initAndLoad(new WindowSystem(regs, store, sink));
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
         assertEquals(List.of("beta"), viewsOf(applied, "explorer"));
@@ -166,7 +172,7 @@ public class FxWindowSystemTest {
         Supplier<List<ViewSpec>> regs = () -> List.of(
                 reg("alpha", 10, true, true, ViewArea.EXPLORER));
 
-        initAndLoad(new WindowSystem(regs, store, sink));
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
         assertEquals(ViewArea.defaults().size(), applied.areas().size());
@@ -184,7 +190,7 @@ public class FxWindowSystemTest {
                 reg("hidden", 5, true, false, ViewArea.EXPLORER, PersistenceType.NEVER),
                 reg("alpha", 10, true, true, ViewArea.EXPLORER));
 
-        initAndLoad(new WindowSystem(regs, store, sink));
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
         assertEquals(List.of("alpha"), viewsOf(applied, "explorer"));
@@ -197,7 +203,7 @@ public class FxWindowSystemTest {
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of(
                 reg("alpha", 10, true, true, ViewArea.EXPLORER));
-        WindowSystem first = new WindowSystem(regs, store, sink);
+        WindowSystem first = new DefaultWindowSystem(regs, store, sink);
         first.init();
         first.load();
         sink.snapshotState = new WindowState(
@@ -206,7 +212,7 @@ public class FxWindowSystemTest {
         first.save();
 
         RecordingSink secondSink = new RecordingSink();
-        initAndLoad(new WindowSystem(regs, store, secondSink));
+        initAndLoad(new DefaultWindowSystem(regs, store, secondSink));
 
         WindowState restored = secondSink.applied.get(0);
         assertEquals(List.of("alpha"), viewsOf(restored, "explorer"));
@@ -223,7 +229,7 @@ public class FxWindowSystemTest {
         Supplier<List<ViewSpec>> regs = () -> List.of(
                 reg("alpha", 10, true, true, ViewArea.EXPLORER));
 
-        initAndLoad(new WindowSystem(regs, store, sink));
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
 
         WindowState applied = sink.applied.get(0);
         assertEquals(List.of("alpha"), viewsOf(applied, "explorer"));
@@ -240,7 +246,7 @@ public class FxWindowSystemTest {
         Supplier<List<ViewSpec>> regs = () -> List.of(
                 reg("alpha", 10, true, true, ViewArea.EXPLORER),
                 reg("beta", 20, false, false, ViewArea.EXPLORER));
-        WindowSystem windowSystem = new WindowSystem(regs, store, sink);
+        WindowSystem windowSystem = new DefaultWindowSystem(regs, store, sink);
         initAndLoad(windowSystem);
         assertEquals(List.of("beta"), viewsOf(sink.applied.get(0), "explorer"));
 
@@ -253,7 +259,7 @@ public class FxWindowSystemTest {
     @Test
     public void lifecycleGuards() {
         ViewStateStore store = newStore("guards");
-        WindowSystem windowSystem = new WindowSystem(() -> List.of(), store, new RecordingSink());
+        WindowSystem windowSystem = new DefaultWindowSystem(() -> List.of(), store, new RecordingSink());
 
         assertThrows(IllegalStateException.class, windowSystem::load);
         windowSystem.init();
@@ -264,6 +270,7 @@ public class FxWindowSystemTest {
         assertThrows(IllegalStateException.class, windowSystem::load);
         windowSystem.show();
         windowSystem.save();
+        windowSystem.resetLayout();
         windowSystem.hide();
     }
 
@@ -273,7 +280,7 @@ public class FxWindowSystemTest {
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of();
         RecordingListener listener = new RecordingListener(() -> { });
-        WindowSystem windowSystem = new WindowSystem(regs, store, sink,
+        WindowSystem windowSystem = new DefaultWindowSystem(regs, store, sink,
                 org.openide.util.lookup.Lookups.fixed(listener));
         windowSystem.init();
         windowSystem.load();
@@ -288,7 +295,7 @@ public class FxWindowSystemTest {
         ViewStateStore store = newStore("listener");
         RecordingSink sink = new RecordingSink();
         Supplier<List<ViewSpec>> regs = () -> List.of();
-        WindowSystem windowSystem = new WindowSystem(regs, store, sink);
+        WindowSystem windowSystem = new DefaultWindowSystem(regs, store, sink);
         RecordingListener listener = new RecordingListener(() -> assertEquals(0, sink.applied.size()));
         windowSystem.addWindowSystemListener(listener);
         windowSystem.init();

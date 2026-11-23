@@ -32,13 +32,17 @@
 
     <answer id="arch-what">
         <p>
-            The <b>NBFX API</b> provides integration between NetBeans and JavaFX tools.
+            The <b>NBFX View API</b> defines the view/view-model contracts, the registration
+            annotations, the area and window-layout metadata, and the metadata-only view discovery
+            (<code>ViewSpec</code>, <code>ViewRegistry</code>, <code>ViewAreaRegistry</code>).
         </p>
     </answer>
     
     <answer id="arch-overall">
         <p>
-            Provides interfaces for project configuration, editor completion, and UI binding.
+            A module declares a view with <code>@ViewRegistration</code>; the processor writes the
+            layer metadata and the registries read it through <code>LayerInstances</code>. The
+            docking implementation and the concrete window remain in the platform modules.
         </p>
     </answer>
     

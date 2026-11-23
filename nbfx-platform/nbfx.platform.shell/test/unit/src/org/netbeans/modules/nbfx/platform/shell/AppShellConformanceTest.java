@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.views.ViewSpec;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.List;
@@ -43,7 +44,7 @@ import org.netbeans.api.nbfx.nodes.PropertySetModel;
 import org.netbeans.api.nbfx.nodes.SimplePropertyModel;
 import org.netbeans.api.nbfx.nodes.SimplePropertySetModel;
 import org.netbeans.api.nbfx.output.OutputConsole;
-import org.netbeans.modules.nbfx.platform.workspace.ViewAreaRegistry;
+import org.netbeans.api.nbfx.views.ViewAreaRegistry;
 import org.netbeans.api.nbfx.wizard.WizardDisplayer;
 import org.netbeans.api.nbfx.wizard.WizardRegistry;
 import org.openide.util.Lookup;

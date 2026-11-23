@@ -298,9 +298,9 @@ plugin implements is not yet in its API/SPI packages.
 | Module | Tier | State | Contents |
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
-| `api.views` | T2-FX | **landed; M0 adds `ViewSpec`/`ViewRegistry`** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
+| `api.views` | T2-FX | **landed (1.9)** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
 | `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
-| `api.shell` | T2-FX | **landed** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; `platform.shell` is the T0 implementation |
+| `api.shell` | T2-FX | **landed** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation |
 | `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
@@ -345,8 +345,8 @@ The API split created the modules; it did not finish the contracts. A module is 
 consumer or plugin implements is in its exported API/SPI packages and a downstream fixture can implement it
 without importing a T0 module. The property/nodes contract now has its toolkit-free property model,
 `api.property` editor SPI and the property sheet on it; `NodeModel`/children/explorer context remain M1. The
-wizard, status and shell/window contracts have landed; the remaining M0 gaps are the workspace public surface
-and the editor/SPI extraction, while dialogs, search and project complete in M1. Options landed with #162.
+wizard, status, shell/window and workspace contracts have landed; the remaining M0 gap is the editor/SPI
+extraction, while dialogs, search and project complete in M1. Options landed with #162.
 
 State vocabulary: **planned** = module not created; **partial** = module exists but its contract is incomplete;
 **landed** = contract complete and consumable; **dissolved** = removed by a step. Run `ant api-audit` for the
@@ -358,7 +358,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 |---|---|---|
 | `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** the `api.shell` contracts/SPI, `DefaultShellChrome`/`ToolBarHost`, `ShellMenuBar`/`ShellToolBars`, `ShellChromeProfile`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `ShellCommandsProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window and detached windows both use it and supply contributions; `ActionBars` has been removed. **M0 extraction landed (#186):** the API/SPI packages are `api.shell` (`org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`); `WindowPaneProvider` returns a `WindowPaneHost` created by `WindowPaneContext.createHost`; `PaneRole` and `WindowManager` are public; `NbfxTabPane` and the implementation root are internal, friend-only for `ide.workbench`, `project.ui` and `java.navigation` during the transition; the stable window facade is `ShellWindow` |
 | `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | landed; project/Java-vocabulary coupling removed. **M0/M1 extraction:** the language decoration/lex SPI moves to `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; the language/IDE consumers migrate off implementation packages |
-| `platform.workspace` | docking model + FX docking view | landed; replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction:** `ViewSpec`/`ViewRegistry` move to `api.views`; `WindowSystem`/`WindowState`/`WindowSink` move to the shell API; the docking internals stay internal friend packages for `platform.shell` |
+| `platform.workspace` | docking model + FX docking view; **T0**, no public package | replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction landed (#187):** `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` are `api.views`; `WindowSystem`/`WindowSink`/`WindowState`/`AreaState`/`WindowSystemListener` are `api.shell`, with `DefaultWindowSystem` as the service implementation; `ViewStateStore` and the docking internals stay internal, friend-only for `platform.shell` and `ide.workbench` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
 | `platform.status` | status bar + element rendering; **T0**, no public package | replaces `nbfx.statusbar`; friend of `platform.shell` |
@@ -477,10 +477,10 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 
 | AppShell service | Modules | State |
 |---|---|---|
-| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` + `api.shell` | workspace landed; generic shell and session landed; `api.shell` has `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost` and the pane-provider SPI; `ViewSpec`/`ViewRegistry` and `WindowSystem` move in the workspace-public-surface slice |
+| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` + `api.shell` | landed: `api.shell` has `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, the pane-provider SPI and the `WindowSystem`/`WindowSink`/`WindowState` lifecycle; the docking model stays in T0 `platform.workspace`, friend-only for `platform.shell` and `ide.workbench` |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
-| Views and view areas | `platform.workspace` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`) + `api.views` (`@ViewRegistration`, `@AreaRegistration`) + `platform.shell` (view manager) | view metadata, areas, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up all consume the registrations; the dock area takes an explicit main role, so pane order no longer decides where content goes, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up. M0 moves `ViewSpec`/`ViewRegistry` into `api.views` |
+| Views and view areas | `api.views` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `ViewArea`, `@ViewRegistration`, `@AreaRegistration`) + `platform.workspace` (docking model) + `platform.shell` (view manager) | landed: view metadata, area discovery, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up consume the registrations; the dock area takes an explicit main role, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up |
 | Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections; detached windows use `DetachedBars` with a reduced profile |
 | Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. The M0 extraction is landed: the API/SPI packages are `api.shell` and `NbfxTabPane` is internal |
 | Status bar | `platform.status` + `api.status` | landed: the element SPI and registry are `api.status`, the renderer is T0 `platform.status` |
@@ -912,8 +912,10 @@ M0 extension point into its API/SPI module and migrate consumers:
   `WindowPaneHost`; `PaneRole` and `WindowManager` are public; `NbfxTabPane` is internal (friend-only for the
   built-in product modules); `WindowManager`/`ViewManager`/`ShellWindow` replace the product-facing static
   tab operations.
-- `refactor/workspace-public-surface` — `ViewSpec`/`ViewRegistry` → `api.views`; `WindowSystem`/`WindowState`/
-  `WindowSink` → the shell API; docking internals become friend packages for `platform.shell`.
+- `refactor/workspace-public-surface` (**landed, #187**) — `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` →
+  `api.views`; `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` → `api.shell`,
+  with `DefaultWindowSystem` as the service implementation; `platform.workspace` becomes a T0 module whose
+  docking internals are friend-only for `platform.shell` and `ide.workbench`.
 - `refactor/editor-spi` — move the language decoration/lex SPI to `api.editor`/`org.netbeans.spi.nbfx.editor`;
   migrate `java.editor`, `ide.editor.xml` and `ide.editor.css`; `CodeEditor`/`SearchSupport`/breadcrumb widgets
   stay internal. The consumer migration may finish in M1.
@@ -1244,6 +1246,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #176 | layer reader migration: `OptionsRegistry`, `StatusElementRegistry` and `ViewRegistry` read the class-based layer entries through `api.layer.LayerInstances`; `UiReady` remains the named-service exception; `ViewRegistry.find` creates only the requested provider | H.4.1, Appendix D.2.1, §11 W9 `spike/loaders-node-free` |
 | #181 | wizard contract: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` in `api.wizard`, `platform.wizard` as the T0 themed dialog, processor validation and `LayerInstances` discovery; `api.wizard` 1.1 with `apichanges`, the shell conformance and IDE wizards use the API | §6.1/§6.2, §11 W2a `refactor/wizard-contract` |
 | #185 | status contract: `StatusElement`, `StatusElementSpec` and `StatusElementRegistry` in `api.status`; `platform.status` is the T0 renderer; the processor validates `StatusElement`; caret, line-separator, project, progress, message and git-branch elements use the API | §6.1/§6.2, §11 W2a `refactor/status-contract` |
+| #187 | workspace public surface: `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` in `api.views` (1.9); `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` in `api.shell` with `DefaultWindowSystem` as the service; `platform.workspace` becomes T0 and friend-only for `platform.shell`/`ide.workbench` | §6.1/§6.2, §11 W2a `refactor/workspace-public-surface`, `appshell-chrome.md` §13/§16 |
 | #186 | shell/window contract: new `api.shell` module with the shell API/SPI (`ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, chrome/branding/context/icon, window-environment capabilities, shutdown, `WindowPaneProvider`/`WindowPaneFactory`); `platform.shell` becomes a T0 implementation with friend-only packages; `WindowPaneProvider` returns `WindowPaneHost` and `NbfxTabPane`/`Docking`/`AppState` are internal | §6.1/§6.2, §11 W2a `refactor/shell-window-contract`, `appshell-chrome.md` §12/§15 |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
@@ -1253,9 +1256,9 @@ supports light/dark/OS mode. `ActionBars` is gone.
 
 The **API split is complete at module level, not at contract level**. `api.dialogs`, `api.search` and
 `api.project` are `partial` until W2a/W2b moves the implementable SPI out of `platform.*`; the options,
-property/nodes, wizard, status and shell/window contracts landed with #162, #174, #181, #185 and #186.
-`platform.editor` and `platform.workspace` still export implementation packages. M0 is **2026-12** (dates
-unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, the API-only
-downstream fixture and the W2b governance for the complete modules. M1 (2027-03) carries AppShell services and
-IDE core. The next W2a slice is the workspace public surface, then editor and api.file.
+property/nodes, wizard, status, shell/window and workspace contracts landed with #162, #174, #181, #185, #186 and #187.
+`platform.editor` still exports implementation packages. M0 is **2026-12** (dates unchanged) and now closes
+the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the
+W2b governance for the complete modules; the editor SPI extraction remains. M1 (2027-03) carries AppShell
+services and IDE core. The next W2a slice is `api.file`, then the editor SPI.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

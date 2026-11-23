@@ -58,7 +58,7 @@ Goal: a downstream product can use `ShellApplication` as-is and add menus, toolb
 
 ### 3.1 `ShellApplication`
 
-Provides window lifecycle, `WindowSystem` sink, session capture/restore, close confirmation, primary pane creation, and the hooks `prepare`, `createPanes`, `decorate`, `sceneReady`, `started`, `restoreSession`, `captureSession`, `stopping`.
+Provides window lifecycle, the `WindowSystem` service (`api.shell`, implemented by `DefaultWindowSystem`), session capture/restore, close confirmation, primary pane creation, and the hooks `prepare`, `createPanes`, `decorate`, `sceneReady`, `started`, `restoreSession`, `captureSession`, `stopping`.
 
 Missing:
 
@@ -624,7 +624,7 @@ The action/menu/toolbar/status/view **leaves** are registration-driven, but the 
 Implemented in this increment:
 
 - `@AreaRegistration` and `AreaRegistrationProcessor`;
-- `ViewAreaRegistry` merges layer-declared areas with the platform defaults;
+- `ViewAreaRegistry` (in `api.views`) merges layer-declared areas with the platform defaults;
 - `PlatformViewAreas` declares the default areas in the layer;
 - `@ViewRegistration.area` resolves custom areas through the registry;
 - `Docking` uses the registered explorer weight;
@@ -633,6 +633,9 @@ Implemented in this increment:
   placement;
 - `@WindowLayoutRegistration` + `WindowLayoutRegistry` declare the first-run dock tree, and
   `Docking.create` applies it when its permanent roles match.
+- `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` are `api.views` 1.9; the window-state/lifecycle
+  types (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`) are
+  `api.shell`; `platform.workspace` keeps the docking model and `ViewStateStore` internal.
 
 Still imperative:
 
@@ -819,7 +822,7 @@ treats an explicit `Integer.MAX_VALUE` position as “append”; only the no-pos
 the registered `ViewSpec.position()`.
 
 The API move is recorded in `nbfx.api.views/apichanges.xml`; the module is now at specification
-version 1.4.
+version 1.9, and the window-state types are in `api.shell`.
 
 ---
 
@@ -854,7 +857,7 @@ A product no longer needs to subclass `ShellApplication` for the standard lifecy
 - `@OnUiReady` is the nbfx counterpart of NetBeans `@OnShowing`: it writes to the nbfx-owned
   `NbFx/UIReady` named-service path and runs on the FX thread after the shell is showing.
   `org.openide.windows` remains forbidden by the purity guard.
-- `WindowSystemListener` services are discovered from the lookup for load/save notifications.
+- `WindowSystemListener` services (`api.shell`) are discovered from the lookup for load/save notifications.
 - `NavigatorRevealer.reveal(file, index)` defaults to `false`, so an unindexed-only revealer cannot
   steal an indexed request from a later revealer.
 - `ProjectOpenerService` owns the directory chooser and logs when the shell, window or selected

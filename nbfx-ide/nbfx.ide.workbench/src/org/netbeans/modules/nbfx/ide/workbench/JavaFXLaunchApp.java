@@ -42,10 +42,8 @@ import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane;
 import org.netbeans.modules.nbfx.platform.shell.ViewStateStore;
 import org.netbeans.modules.nbfx.platform.shell.ViewPlacement;
 import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
-import org.netbeans.modules.nbfx.platform.workspace.WindowSystem;
-import org.netbeans.modules.nbfx.platform.workspace.DockTree;
-import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
-import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
+import org.netbeans.api.nbfx.views.ViewSpec;
+import org.netbeans.api.nbfx.views.ViewRegistry;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.actions.ActionRegistry;

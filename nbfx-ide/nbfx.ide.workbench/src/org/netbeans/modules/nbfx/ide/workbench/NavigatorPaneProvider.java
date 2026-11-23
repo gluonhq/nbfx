@@ -32,8 +32,8 @@ import org.netbeans.modules.nbfx.platform.shell.ViewTabs;
 import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.spi.nbfx.shell.WindowPaneContext;
 import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
-import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
-import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
+import org.netbeans.api.nbfx.views.ViewRegistry;
+import org.netbeans.api.nbfx.views.ViewSpec;
 import javafx.scene.control.Tab;
 import org.openide.util.NbBundle;
 

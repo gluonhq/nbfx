@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.views;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,7 +36,7 @@ import org.openide.filesystems.FileUtil;
  * defaults in {@link ViewArea#defaults()}. A registered area with a default id overrides the default
  * metadata; new ids add new docking destinations.
  *
- * @since 1.0
+ * @since 1.9
  */
 public final class ViewAreaRegistry {
 

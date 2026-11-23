@@ -23,7 +23,7 @@ import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewArea;
-import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
+import org.netbeans.api.nbfx.views.ViewSpec;
 
 /**
  * Resolves where a view belongs. The registered {@link ViewSpec#area() area} wins; without one,

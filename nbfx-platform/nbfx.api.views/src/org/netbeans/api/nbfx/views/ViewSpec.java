@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.views;
 
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewRegistration.PersistenceType;
@@ -39,7 +39,7 @@ import java.util.Objects;
  *                         the location's default
  * @param openAtStartup    whether the view's tab is attached when the window system starts up
  * @param persistenceType  how the view's tab and state survive restarts
- * @since 1.0
+ * @since 1.9
  */
 public record ViewSpec(String id, String displayName, String iconName, ViewKind kind,
         int position, boolean navigator, ViewArea area,

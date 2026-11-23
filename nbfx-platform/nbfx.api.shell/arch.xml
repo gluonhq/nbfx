@@ -35,7 +35,7 @@
       The <b>nbfx Shell API</b> is the product-facing contract of the generic JavaFX application
       shell: the window facade and pane/tab manager, pane roles and hosts, the chrome and branding
       contracts, the UI-ready hook, the window-environment capabilities, the shutdown contract and
-      the pane-provider SPI. The shell implementation is <code>nbfx.platform.shell</code>.
+      the pane-provider SPI, the window-system lifecycle and its <code>WindowSink</code>/<code>WindowState</code> model. The shell implementation is <code>nbfx.platform.shell</code>.
     </p>
   </answer>
 

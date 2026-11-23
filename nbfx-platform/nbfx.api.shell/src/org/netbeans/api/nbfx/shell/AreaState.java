@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.workspace;
+package org.netbeans.api.nbfx.shell;
 
 import java.util.List;
 import java.util.Objects;
