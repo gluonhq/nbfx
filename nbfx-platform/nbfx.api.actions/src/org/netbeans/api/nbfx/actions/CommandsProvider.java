@@ -20,7 +20,6 @@ package org.netbeans.api.nbfx.actions;
 
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.file.FileSelectionContext;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -40,7 +39,7 @@ public interface CommandsProvider {
 
     /**
      * Creates this provider's commands, resolving whatever context they need (for example
-     * {@link EditorContext} or {@link FileSelectionContext}) from the global Lookup.
+     * {@link EditorContext} or {@code org.netbeans.api.nbfx.views.FileSelectionContext}) from the global Lookup.
      *
      * @return the commands to register; empty if a required context is unavailable
      */

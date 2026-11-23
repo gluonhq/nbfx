@@ -24,7 +24,7 @@ import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.ActionContext;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
-import org.netbeans.api.nbfx.file.FileSelectionContext;
+import org.netbeans.api.nbfx.views.FileSelectionContext;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;

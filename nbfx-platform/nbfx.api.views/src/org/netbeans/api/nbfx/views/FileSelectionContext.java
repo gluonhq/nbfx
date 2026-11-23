@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.file;
+package org.netbeans.api.nbfx.views;
 
 import javafx.beans.value.ObservableValue;
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.api.nbfx.file;
+package org.netbeans.api.nbfx.editor;
 
 import javafx.scene.Node;
 import org.openide.filesystems.FileObject;

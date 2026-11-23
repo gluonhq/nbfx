@@ -49,7 +49,7 @@ import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
-import org.netbeans.api.nbfx.file.FileSelectionContext;
+import org.netbeans.api.nbfx.views.FileSelectionContext;
 import org.netbeans.api.nbfx.project.OpenProject;
 import org.netbeans.api.nbfx.project.ProjectIconProvider;
 import org.netbeans.api.nbfx.project.ProjectRegistry;

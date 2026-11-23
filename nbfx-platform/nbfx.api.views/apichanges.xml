@@ -121,7 +121,11 @@
                 to the API. The registry reads the <code>NbFx/Views</code> registrations through
                 <code>LayerInstances</code>; the docking implementation in
                 <code>nbfx.platform.workspace</code> becomes internal.
+                <code>FileSelectionContext</code> moves here from the dissolved
+                <code>org.netbeans.api.nbfx.file</code> package; that move is incompatible for
+                consumers of the old package.
             </description>
+            <class package="org.netbeans.api.nbfx.views" name="FileSelectionContext"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewSpec"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewRegistry"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewAreaRegistry"/>

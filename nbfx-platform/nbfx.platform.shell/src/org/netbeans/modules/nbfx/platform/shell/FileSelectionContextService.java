@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.api.nbfx.file.FileSelectionContext;
+import org.netbeans.api.nbfx.views.FileSelectionContext;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;

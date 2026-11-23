@@ -298,7 +298,7 @@ plugin implements is not yet in its API/SPI packages.
 | Module | Tier | State | Contents |
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
-| `api.views` | T2-FX | **landed (1.9)** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
+| `api.views` | T2-FX | **landed (1.9)** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `FileSelectionContext`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
 | `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
 | `api.shell` | T2-FX | **landed** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation |
 | `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
@@ -316,12 +316,12 @@ plugin implements is not yet in its API/SPI packages.
 | `api.project` | M | **partial — M1** | `ProjectRegistry`, `ProjectOpener`, `ProjectLifecycle`, `OpenProject`, `SourceRoot`, `@ProjectTypeRegistration`; the project-kind/build SPI still moves from `project.ui.api`, and `OpenProjects` remains the documented IDE-tier bridge |
 | `api.build` | M | **planned — M1** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
 | `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | **partial — contract M0; migration M1** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`; the language decoration/lex SPI still moves out of `platform.editor` |
+| `api.editor` | T2-FX | **partial — contract M0; migration M1 (1.1)** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`, `FileTypes`, `FileIconProvider`; the language decoration/lex SPI still moves out of `platform.editor` |
 | `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
 | `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, metadata-only `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, bundle-aware `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
 | `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
 | `api.search` | T2-FX | **partial — M1** | only `TextSearch`/`SearchOptions`; `SearchProvider`, `SearchRequest`, `SearchResult`, `SearchScope` are the M1 contract (`SearchScope` currently lives in `ide.search`) |
-| `api.file` | T2-FX | **transitional — dissolve M0/M1** | `FileIconProvider`, `FileTypes`, `FileSelectionContext`; target is `api.views`/`api.editor`/`ide.file`, not a permanent module |
+| `api.file` | dissolved | **dissolved (#188)** | `FileSelectionContext` → `api.views`; `FileTypes`/`FileIconProvider` → `api.editor` |
 | `api.debug` | M | **planned — M2** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
 | `api.profile` | M | **planned — M2** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
 | `api.tests` | M | **planned — M2** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
@@ -501,7 +501,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Launcher | `platform.launcher` | landed; `AppProvider` + generic `GuiRunLevel`/`LauncherInstall` |
 | Editor core | `platform.editor` + `api.editor` | landed; **API extraction M0 start, M1 finish** (language SPI off the implementation packages) |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell starts without projects; `OpenProjects` is the documented bridge until M1 review |
-| File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` dissolves in M0/M1 |
+| File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` is dissolved (#188) |
 
 **Chrome contract rules.** `ShellChrome` is a composition contract, not a second implementation:
 `Node top()`, `Node bottom()` and `void dispose()`. Concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
@@ -520,7 +520,7 @@ and the implementation root is removed from `public-packages`. The detailed cont
 
 | Cluster | API modules |
 |---|---|
-| `nbfx-platform` | `api.actions`, `api.dialogs`, `api.editor`, `api.file` (transitional), `api.layer`, `api.options`, `api.progress`, `api.property`, `api.search`, `api.shell`, `api.status`, `api.views`, `api.wizard`, `api.settings`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
+| `nbfx-platform` | `api.actions`, `api.dialogs`, `api.editor`, `api.layer`, `api.options`, `api.progress`, `api.property`, `api.search`, `api.shell`, `api.status`, `api.views`, `api.wizard`, `api.settings`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
 | `nbfx-ide` | `api.project`, `api.build`, `api.project.customizer`, `api.editor.intelligence`, `api.usages`, `api.debug`, `api.profile`, `api.tests`, `api.vcs`, `api.diff`, `api.tasklist` |
 | `nbfx-java` | `java.elements` (from `api.elements`) |
 
@@ -540,7 +540,7 @@ a declared friend package; the compiler plus the friend guard enforce it.
 
 | Current module | Target |
 |---|---|
-| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers`) + `java.elements` (`SourceModifiers`/`JavaElementTypes`) + `api.editor` (`ElementIcons`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.views`/`api.editor`/`ide.file`. Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
+| `nbfx.api` (61 classes in 12 packages + 4 root classes) | `api.actions`; `api.views` (from `api.view` + `api.icons`); `api.status`; `api.editor` (from `api.editor` + `api.breadcrumbs` + `api.completion`); `api.elements` → `api.language` (neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers`) + `java.elements` (`SourceModifiers`/`JavaElementTypes`) + `api.editor` (`ElementIcons`); `api.project`; `api.build`; `api.progress`; `api.search`; `api.file` → `api.views` (`FileSelectionContext`)/`api.editor` (`FileTypes`, `FileIconProvider`). Root classes: `Cancellation` → `api.progress`, `ContentManager` → `api.editor`, `ErrorReporter` → `api.dialogs`, `FxApplicationMenu` → `api.views`/`platform.menus` |
 | `nbfx.annotations` | dissolved: annotations move into their `api.*` module; path constants are owned by `api.layer.LayerPaths` |
 | `nbfx-api` cluster | **dissolved (W1.7, landed)**: each API module moved to its domain cluster (§6.6); the API tier stays module metadata |
 | `nbfx.actions`, `nbfx.context` | `platform.actions` |
@@ -919,8 +919,8 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/editor-spi` — move the language decoration/lex SPI to `api.editor`/`org.netbeans.spi.nbfx.editor`;
   migrate `java.editor`, `ide.editor.xml` and `ide.editor.css`; `CodeEditor`/`SearchSupport`/breadcrumb widgets
   stay internal. The consumer migration may finish in M1.
-- `refactor/api-file-dissolve` — move `FileSelectionContext`/`FileTypes`/`FileIconProvider` to
-  `api.views`/`api.editor`/`ide.file`.
+- `refactor/api-file-dissolve` (**landed, #188**) — `FileSelectionContext` → `api.views`;
+  `FileTypes`/`FileIconProvider` → `api.editor` (1.1); the `api.file` module is dissolved.
 
 Acceptance: the API-only downstream fixture implements options, wizard, status and property using API/SPI only;
 no M0 consumer imports a T0 package except through a named friend; the property sheet runs on `api.nodes`.
@@ -1246,8 +1246,9 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #176 | layer reader migration: `OptionsRegistry`, `StatusElementRegistry` and `ViewRegistry` read the class-based layer entries through `api.layer.LayerInstances`; `UiReady` remains the named-service exception; `ViewRegistry.find` creates only the requested provider | H.4.1, Appendix D.2.1, §11 W9 `spike/loaders-node-free` |
 | #181 | wizard contract: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` in `api.wizard`, `platform.wizard` as the T0 themed dialog, processor validation and `LayerInstances` discovery; `api.wizard` 1.1 with `apichanges`, the shell conformance and IDE wizards use the API | §6.1/§6.2, §11 W2a `refactor/wizard-contract` |
 | #185 | status contract: `StatusElement`, `StatusElementSpec` and `StatusElementRegistry` in `api.status`; `platform.status` is the T0 renderer; the processor validates `StatusElement`; caret, line-separator, project, progress, message and git-branch elements use the API | §6.1/§6.2, §11 W2a `refactor/status-contract` |
-| #187 | workspace public surface: `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` in `api.views` (1.9); `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` in `api.shell` with `DefaultWindowSystem` as the service; `platform.workspace` becomes T0 and friend-only for `platform.shell`/`ide.workbench` | §6.1/§6.2, §11 W2a `refactor/workspace-public-surface`, `appshell-chrome.md` §13/§16 |
 | #186 | shell/window contract: new `api.shell` module with the shell API/SPI (`ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, chrome/branding/context/icon, window-environment capabilities, shutdown, `WindowPaneProvider`/`WindowPaneFactory`); `platform.shell` becomes a T0 implementation with friend-only packages; `WindowPaneProvider` returns `WindowPaneHost` and `NbfxTabPane`/`Docking`/`AppState` are internal | §6.1/§6.2, §11 W2a `refactor/shell-window-contract`, `appshell-chrome.md` §12/§15 |
+| #187 | workspace public surface: `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` in `api.views` (1.9); `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` in `api.shell` with `DefaultWindowSystem` as the service; `platform.workspace` becomes T0 and friend-only for `platform.shell`/`ide.workbench` | §6.1/§6.2, §11 W2a `refactor/workspace-public-surface`, `appshell-chrome.md` §13/§16 |
+| #188 | api.file dissolution: `FileSelectionContext` → `api.views`; `FileTypes`/`FileIconProvider` → `api.editor` (1.1); all consumers rewired and the `api.file` module removed | §6.1/§6.2, §11 W2a `refactor/api-file-dissolve` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
@@ -1256,9 +1257,9 @@ supports light/dark/OS mode. `ActionBars` is gone.
 
 The **API split is complete at module level, not at contract level**. `api.dialogs`, `api.search` and
 `api.project` are `partial` until W2a/W2b moves the implementable SPI out of `platform.*`; the options,
-property/nodes, wizard, status, shell/window and workspace contracts landed with #162, #174, #181, #185, #186 and #187.
+property/nodes, wizard, status, shell/window, workspace and api.file contracts landed with #162, #174, #181, #185, #186, #187 and #188.
 `platform.editor` still exports implementation packages. M0 is **2026-12** (dates unchanged) and now closes
 the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the
 W2b governance for the complete modules; the editor SPI extraction remains. M1 (2027-03) carries AppShell
-services and IDE core. The next W2a slice is `api.file`, then the editor SPI.
+services and IDE core. The next W2a slice is the editor SPI.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

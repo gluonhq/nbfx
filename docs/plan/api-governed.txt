@@ -20,7 +20,6 @@ nbfx-platform/nbfx.api.views
 nbfx-platform/nbfx.api.actions
 nbfx-platform/nbfx.api.editor
 nbfx-platform/nbfx.api.layer
-nbfx-platform/nbfx.api.file
 nbfx-platform/nbfx.api.status
 nbfx-platform/nbfx.api.shell
 nbfx-platform/nbfx.api.wizard
