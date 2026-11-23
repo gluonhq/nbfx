@@ -44,7 +44,7 @@ import org.openide.util.Lookup;
  * Discovery reads metadata only. The view itself is a {@link ViewProvider} service in the global
  * lookup, resolved by {@link #provider(String)} when its tab is created.
  *
- * @since 1.0
+ * @since 1.9
  */
 public final class ViewRegistry {
 

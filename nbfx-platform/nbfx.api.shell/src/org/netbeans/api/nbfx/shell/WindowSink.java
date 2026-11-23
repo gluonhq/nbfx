@@ -20,9 +20,8 @@ package org.netbeans.api.nbfx.shell;
 
 /**
  * The seam between the pure window-system orchestration ({@link WindowSystem}) and the JavaFX
- * shell. The shell - {@code JavaFXLaunchApp} and its dock panes, or a dedicated shell class once
- * the window chapter lands - implements this interface and registers it in the global {@code Lookup};
- * {@link WindowSystem} then never talks to JavaFX directly (purity), all JavaFX lives here.
+ * shell. The running shell implements this interface and registers itself as the system's sink;
+ * {@link WindowSystem} then never talks to JavaFX directly, all JavaFX lives here.
  *
  * <p>Implementations must run on the JavaFX Application Thread. The window-system lifecycle methods
  * ({@link WindowSystem#load()}, {@link WindowSystem#save()}...) are invoked from the FX thread by

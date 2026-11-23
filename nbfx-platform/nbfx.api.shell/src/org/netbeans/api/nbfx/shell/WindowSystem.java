@@ -28,6 +28,10 @@ package org.netbeans.api.nbfx.shell;
  * The system merges the layer defaults derived from the view registrations with the persisted state
  * maintained by the shell, and talks to the live window only through {@link WindowSink}. All methods
  * run on the JavaFX Application Thread.
+ * <p>
+ * Lifecycle: {@link #init()} → {@link #load()} → {@link #show()}; {@link #save()} and
+ * {@link #resetLayout()} are valid once loaded and remain valid while shown. Calling them in an
+ * earlier phase throws {@link IllegalStateException}.
  *
  * @since 1.0
  */
@@ -56,7 +60,12 @@ public interface WindowSystem {
     /** Captures the live shell state and persists it. */
     void save();
 
-    /** Drops the persisted state and reloads the layer defaults. */
+    /**
+     * Drops the persisted state and reloads the layer defaults. Valid after {@link #load()},
+     * including while the window is shown.
+     *
+     * @throws IllegalStateException when called before {@link #load()}
+     */
     void resetLayout();
 
     /**
@@ -65,4 +74,11 @@ public interface WindowSystem {
      * @param listener the listener to add
      */
     void addWindowSystemListener(WindowSystemListener listener);
+
+    /**
+     * Removes a lifecycle listener.
+     *
+     * @param listener the listener to remove
+     */
+    void removeWindowSystemListener(WindowSystemListener listener);
 }

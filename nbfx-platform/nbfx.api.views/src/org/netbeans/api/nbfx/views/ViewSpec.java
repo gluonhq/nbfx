@@ -39,7 +39,7 @@ import java.util.Objects;
  *                         the location's default
  * @param openAtStartup    whether the view's tab is attached when the window system starts up
  * @param persistenceType  how the view's tab and state survive restarts
- * @since 1.0
+ * @since 1.9
  */
 public record ViewSpec(String id, String displayName, String iconName, ViewKind kind,
         int position, boolean navigator, ViewArea area,

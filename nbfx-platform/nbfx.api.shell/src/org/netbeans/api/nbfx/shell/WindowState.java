@@ -32,7 +32,7 @@ import java.util.Objects;
  *   <li>the <b>defaults derived from the module layer</b> - the areas, their default view order and
  *       the start-up tabs ({@code openAtStartup} / {@code navigator} registrations); and</li>
  *   <li>the <b>persisted state</b> - what the user moved, opened, closed, detached and resized last
- *       session, stored by the shell's state store; the persisted state wins over the layer defaults
+ *       session, stored by the window system's state store; the persisted state wins over the layer defaults
  *       and stale entries are pruned the way NetBeans prunes modes and components whose declaring
  *       module disappeared.</li>
  * </ul>

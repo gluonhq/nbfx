@@ -53,7 +53,7 @@
 **Current state.** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The API split is complete at module level but **not at contract level**: options landed with #162;
 wizard, status, property/nodes, dialogs, search and project are `partial` until W2a moves the implementable SPI
-out of `platform.*`; `platform.editor` and `platform.workspace` still export implementation packages.
+out of `platform.*`; `platform.editor` still exports implementation packages (`platform.workspace` is already T0).
 Milestone dates are unchanged (M0 2026-12, M1 2027-03); M0 now closes the plugin contracts, the
 shell/window/workspace public surface and the API-only downstream fixture, while M1 carries AppShell services
 and IDE core. The next W2a slice is wizard/status/property/nodes. Milestones and exit criteria are in §10; the

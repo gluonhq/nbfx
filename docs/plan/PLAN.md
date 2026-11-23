@@ -1260,5 +1260,5 @@ property/nodes, wizard, status, shell/window and workspace contracts landed with
 `platform.editor` still exports implementation packages. M0 is **2026-12** (dates unchanged) and now closes
 the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the
 W2b governance for the complete modules; the editor SPI extraction remains. M1 (2027-03) carries AppShell
-services and IDE core. The next W2a slice is the editor SPI, then api.file.
+services and IDE core. The next W2a slice is `api.file`, then the editor SPI.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

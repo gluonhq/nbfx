@@ -148,6 +148,7 @@ public final class DefaultWindowSystem implements WindowSystem {
      *
      * @param sink the shell
      */
+    @Override
     public void setSink(WindowSink sink) {
         this.sink = Objects.requireNonNull(sink, "sink");
     }
@@ -167,6 +168,7 @@ public final class DefaultWindowSystem implements WindowSystem {
     /**
      * Discovers the view registrations. Called once, before {@link #load()}.
      */
+    @Override
     public synchronized void init() {
         if (phase != Phase.IDLE) {
             throw new IllegalStateException("init() already called; phase=" + phase);
@@ -184,6 +186,7 @@ public final class DefaultWindowSystem implements WindowSystem {
      * Restores the window layout: the persisted state merged over the layer-derived defaults, applied
      * to the shell. Requires {@link #init()}.
      */
+    @Override
     public synchronized void load() {
         require(Phase.INIT, "load()");
         loadInternal();
@@ -202,6 +205,7 @@ public final class DefaultWindowSystem implements WindowSystem {
     }
 
     /** Makes the main window visible; requires {@link #load()}. */
+    @Override
     public synchronized void show() {
         require(Phase.LOADED, "show()");
         sink().show();
@@ -209,6 +213,7 @@ public final class DefaultWindowSystem implements WindowSystem {
     }
 
     /** Hides the main window (just before exit). */
+    @Override
     public synchronized void hide() {
         if (phase == Phase.IDLE || phase == Phase.INIT) {
             return;
@@ -220,6 +225,7 @@ public final class DefaultWindowSystem implements WindowSystem {
      * Captures the current shell state and persists it. Requires {@link #load()}; can be called
      * repeatedly. Never touches the layer-derived defaults.
      */
+    @Override
     public synchronized void save() {
         if (phase != Phase.LOADED && phase != Phase.SHOWN) {
             throw new IllegalStateException("save() requires phase LOADED or SHOWN but is " + phase);
@@ -234,8 +240,12 @@ public final class DefaultWindowSystem implements WindowSystem {
      * deleting {@code Windows2Local} / the NetBeans {@code Reset Windows} action. Requires
      * {@link #load()}.
      */
+    @Override
     public synchronized void resetLayout() {
-        require(Phase.LOADED, "resetLayout()");
+        if (phase != Phase.LOADED && phase != Phase.SHOWN) {
+            throw new IllegalStateException(
+                    "resetLayout() requires phase LOADED or SHOWN but is " + phase);
+        }
         store.clear();
         apply(defaultAreasAndPayloads());
     }
@@ -245,9 +255,15 @@ public final class DefaultWindowSystem implements WindowSystem {
      *
      * @param listener the listener to add
      */
+    @Override
     public synchronized void addWindowSystemListener(WindowSystemListener listener) {
         Objects.requireNonNull(listener, "listener");
         listeners.add(listener);
+    }
+
+    @Override
+    public synchronized void removeWindowSystemListener(WindowSystemListener listener) {
+        listeners.remove(listener);
     }
 
     private WindowState defaultAreasAndPayloads() {

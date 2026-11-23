@@ -270,6 +270,7 @@ public class FxWindowSystemTest {
         assertThrows(IllegalStateException.class, windowSystem::load);
         windowSystem.show();
         windowSystem.save();
+        windowSystem.resetLayout();
         windowSystem.hide();
     }
 
