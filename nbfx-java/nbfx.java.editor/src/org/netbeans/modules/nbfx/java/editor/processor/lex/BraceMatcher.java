@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.editor.processor.lex;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
+import org.netbeans.api.nbfx.editor.TokenCategory;
 import org.netbeans.api.java.lexer.JavaTokenId;
 import org.netbeans.api.lexer.Token;
 import org.netbeans.api.lexer.TokenHierarchy;

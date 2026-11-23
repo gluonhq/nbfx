@@ -44,6 +44,7 @@ import jfx.incubator.scene.control.richtext.model.CodeTextModel;
 import jfx.incubator.scene.control.richtext.model.ContentChange;
 import jfx.incubator.scene.control.richtext.model.StyledTextModel;
 import org.netbeans.api.queries.FileEncodingQuery;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 import org.openide.filesystems.FileObject;
 
 /**

@@ -39,6 +39,7 @@ org.netbeans.api.nbfx.completion.CompletionItem
 org.netbeans.api.nbfx.completion.CompletionProvider
 org.netbeans.api.nbfx.completion.SimpleCompletionItem
 org.netbeans.api.nbfx.css.CssTokens
+org.netbeans.api.nbfx.editor.BreadcrumbsElements
 org.netbeans.api.nbfx.editor.CaretInfo
 org.netbeans.api.nbfx.editor.ContentManager
 org.netbeans.api.nbfx.editor.EditorAnnotation
@@ -53,7 +54,13 @@ org.netbeans.api.nbfx.editor.FileIconProvider
 org.netbeans.api.nbfx.editor.FileTypes
 org.netbeans.api.nbfx.editor.HyperlinkProvider
 org.netbeans.api.nbfx.editor.InMemorySourceFactory
+org.netbeans.api.nbfx.editor.LineDecoration
+org.netbeans.api.nbfx.editor.MarkedDecoration
 org.netbeans.api.nbfx.editor.OpenSources
+org.netbeans.api.nbfx.editor.SourceContext
+org.netbeans.api.nbfx.editor.SourceUtils
+org.netbeans.api.nbfx.editor.TextPosResult
+org.netbeans.api.nbfx.editor.TokenCategory
 org.netbeans.api.nbfx.icons.ThemedImageView
 org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerEntry
@@ -170,6 +177,11 @@ org.netbeans.api.nbfx.wizard.WizardRegistry
 org.netbeans.modules.nbfx.platform.theme.NbfxTheme
 org.netbeans.modules.nbfx.platform.theme.ThemeMenuFactory
 org.netbeans.modules.nbfx.platform.theme.ThemeTokenRegistry
+org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor
+org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator
+org.netbeans.spi.nbfx.editor.CachingBreadcrumbsProvider
+org.netbeans.spi.nbfx.editor.CompletionImportSupport
+org.netbeans.spi.nbfx.editor.SyntaxDecoratorFactory
 org.netbeans.spi.nbfx.shell.WindowPane
 org.netbeans.spi.nbfx.shell.WindowPaneContext
 org.netbeans.spi.nbfx.shell.WindowPaneFactory

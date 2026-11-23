@@ -17,9 +17,9 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.java.editor.processor.semantics;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
+import org.netbeans.api.nbfx.editor.TokenCategory;
 import com.sun.source.tree.ClassTree;
 import com.sun.source.tree.CompilationUnitTree;
 import com.sun.source.tree.IdentifierTree;

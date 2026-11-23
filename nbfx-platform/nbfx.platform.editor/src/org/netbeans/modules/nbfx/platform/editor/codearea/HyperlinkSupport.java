@@ -28,6 +28,7 @@ import javafx.scene.input.MouseEvent;
 import jfx.incubator.scene.control.richtext.CodeArea;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 

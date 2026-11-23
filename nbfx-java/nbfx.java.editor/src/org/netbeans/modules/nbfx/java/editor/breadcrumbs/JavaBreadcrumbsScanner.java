@@ -17,7 +17,7 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.java.editor.breadcrumbs;
-import org.netbeans.modules.nbfx.platform.editor.breadcrumbs.BreadcrumbsElements;
+import org.netbeans.api.nbfx.editor.BreadcrumbsElements;
 
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;

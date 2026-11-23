@@ -22,7 +22,7 @@ import org.netbeans.api.nbfx.completion.CompletionContext;
 import org.netbeans.api.nbfx.completion.CompletionItem;
 import org.netbeans.api.nbfx.language.SourceElementKind;
 import org.netbeans.api.nbfx.completion.CompletionProvider;
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
+import org.netbeans.api.nbfx.editor.SourceUtils;
 
 import com.sun.jfx.incubator.scene.control.richtext.CaretInfo;
 import com.sun.jfx.incubator.scene.control.richtext.RichTextAreaSkinHelper;
@@ -37,6 +37,7 @@ import javafx.scene.input.KeyEvent;
 import jfx.incubator.scene.control.richtext.CodeArea;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
+import org.netbeans.spi.nbfx.editor.CompletionImportSupport;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 

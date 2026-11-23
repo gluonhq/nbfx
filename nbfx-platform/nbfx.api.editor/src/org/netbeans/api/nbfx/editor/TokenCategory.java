@@ -16,12 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.decoration;
+package org.netbeans.api.nbfx.editor;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
+ * The token categories the built-in decorators use. The set is currently closed and includes the
+ * CSS/XML vocabulary; a custom-category API is a follow-up before the API freeze.
+ * <p>
  * Token categories recognized by the parsers, each mapped to a
  * style that defines how matching tokens are styled.
  */

@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.java.editor.processor.semantics.detector;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.TokenCategory;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 import com.sun.source.tree.Tree;
 import com.sun.source.util.TreePath;
 import org.netbeans.api.java.lexer.JavaTokenId;

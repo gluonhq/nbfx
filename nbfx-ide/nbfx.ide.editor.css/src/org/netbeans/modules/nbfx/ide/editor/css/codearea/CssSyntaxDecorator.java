@@ -17,11 +17,11 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.ide.editor.css.codearea;
-import org.netbeans.modules.nbfx.platform.editor.codearea.BaseSyntaxDecorator;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 
-import org.netbeans.modules.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
+import org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor;
 import org.netbeans.modules.nbfx.ide.editor.css.processor.lex.CssLexDecorationProcessor;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.SourceContext;
+import org.netbeans.api.nbfx.editor.SourceContext;
 import org.openide.filesystems.FileObject;
 
 /**

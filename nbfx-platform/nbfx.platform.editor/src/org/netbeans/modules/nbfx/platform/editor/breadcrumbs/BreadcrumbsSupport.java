@@ -22,7 +22,7 @@ import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsProvider;
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
+import org.netbeans.api.nbfx.editor.SourceUtils;
 import javafx.application.Platform;
 import javafx.util.Subscription;
 import jfx.incubator.scene.control.richtext.CodeArea;

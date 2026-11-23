@@ -18,10 +18,12 @@
  */
 package org.netbeans.modules.nbfx.platform.editor.codearea;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.LineDecoration;
-import org.netbeans.modules.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.SourceContext;
+import org.netbeans.api.nbfx.editor.LineDecoration;
+import org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor;
+import org.netbeans.api.nbfx.editor.SourceContext;
 import java.util.List;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
+import org.netbeans.spi.nbfx.editor.SyntaxDecoratorFactory;
 import org.openide.filesystems.FileObject;
 
 /**

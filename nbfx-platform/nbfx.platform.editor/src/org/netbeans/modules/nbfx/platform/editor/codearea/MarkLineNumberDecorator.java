@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.editor.codearea;
 
 import org.netbeans.api.nbfx.editor.EditorAnnotation;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.geometry.Bounds;

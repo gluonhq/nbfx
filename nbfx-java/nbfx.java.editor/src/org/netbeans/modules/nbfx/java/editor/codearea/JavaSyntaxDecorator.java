@@ -17,17 +17,17 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.java.editor.codearea;
-import org.netbeans.modules.nbfx.platform.editor.codearea.BaseSyntaxDecorator;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.LineDecoration;
-import org.netbeans.modules.nbfx.platform.editor.decoration.MarkedDecoration;
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
-import org.netbeans.modules.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
+import org.netbeans.api.nbfx.editor.LineDecoration;
+import org.netbeans.api.nbfx.editor.MarkedDecoration;
+import org.netbeans.api.nbfx.editor.TokenCategory;
+import org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor;
 import org.netbeans.modules.nbfx.java.editor.processor.lex.JavaLexDecorationProcessor;
 import org.netbeans.modules.nbfx.java.editor.processor.semantics.JavaFileProcessor;
 import org.netbeans.modules.nbfx.java.editor.processor.semantics.MarkOccurrencesProcessor;
 import org.netbeans.modules.nbfx.java.editor.processor.semantics.JavaSourceContext;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 import javafx.application.Platform;
 import jfx.incubator.scene.control.richtext.Marker;
 import jfx.incubator.scene.control.richtext.SyntaxDecorator;

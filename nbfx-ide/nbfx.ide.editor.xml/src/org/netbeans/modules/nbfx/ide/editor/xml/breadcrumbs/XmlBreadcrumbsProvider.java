@@ -17,7 +17,7 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.ide.editor.xml.breadcrumbs;
-import org.netbeans.modules.nbfx.platform.editor.breadcrumbs.CachingBreadcrumbsProvider;
+import org.netbeans.spi.nbfx.editor.CachingBreadcrumbsProvider;
 
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;

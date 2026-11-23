@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.codearea;
+package org.netbeans.spi.nbfx.editor;
 
 import org.netbeans.api.nbfx.editor.HyperlinkProvider;
-import org.netbeans.modules.nbfx.platform.editor.decoration.LineDecoration;
-import org.netbeans.modules.nbfx.platform.editor.decoration.MarkedDecoration;
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
-import org.netbeans.modules.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.LineDecoration;
+import org.netbeans.api.nbfx.editor.MarkedDecoration;
+import org.netbeans.api.nbfx.editor.TokenCategory;
+import org.netbeans.api.nbfx.editor.SourceUtils;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 import jfx.incubator.scene.control.richtext.SyntaxDecorator;
 import jfx.incubator.scene.control.richtext.SelectionSegment;
 import jfx.incubator.scene.control.richtext.Marker;

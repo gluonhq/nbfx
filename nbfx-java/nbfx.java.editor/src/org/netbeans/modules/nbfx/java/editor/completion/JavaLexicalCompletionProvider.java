@@ -97,7 +97,7 @@ import static org.netbeans.modules.nbfx.java.editor.completion.support.JavaCompl
 public final class JavaLexicalCompletionProvider implements CompletionProvider {
 
     private static final ResourceBundle BUNDLE =
-            ResourceBundle.getBundle("org.netbeans.modules.nbfx.platform.editor.completion.CompletionUI");
+            ResourceBundle.getBundle("org.netbeans.modules.nbfx.java.editor.Bundle");
 
     // Keyword set from the Java lexer, filtered by primary category and sorted alphabetically.
     // Includes the Java contextual keywords (sealed/non-sealed/permits/record/yield).

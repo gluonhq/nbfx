@@ -16,15 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.completion;
+package org.netbeans.spi.nbfx.editor;
 
-import java.util.Optional;
+import org.openide.filesystems.FileObject;
 
-/** Language support for adding a missing import when a completion item is committed. */
-public interface CompletionImportSupport {
+/** Creates the syntax decorator for one editor language. */
+public interface SyntaxDecoratorFactory {
 
-    /** A single text insertion: {@code text} goes in at global character {@code offset}. */
-    record ImportEdit(int offset, String text) {}
+    boolean supports(String extension);
 
-    Optional<ImportEdit> computeImport(String source, String fullyQualifiedName);
+    BaseSyntaxDecorator create(FileObject file);
 }
