@@ -101,6 +101,26 @@ public class WindowPaneProviderTest {
     }
 
     @Test
+    public void providerCanAskTheContextForItsHost() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            ShellApplication shell = new ShellApplication();
+            WindowPane declared = new WindowPane("RIGHT_SIDEBAR", "Right", PaneKind.VIEW,
+                    "right-sidebar", false, 30);
+            WindowPaneProvider provider = (pane, context) -> context.createHost(pane);
+            Lookup lookup = Lookups.fixed(provider);
+            WindowPaneContext context = new WindowPaneContext(lookup, List.of(declared), shell,
+                    (pane, ctx) -> new NbfxTabPane(pane.role(), pane.kind()));
+
+            Map<String, NbfxTabPane> panes = shell.instantiatePanes(
+                    new WindowComposition(List.of(declared), null), context);
+
+            assertEquals(PaneRole.of("RIGHT_SIDEBAR"),
+                    NbfxTabPane.roleOf(panes.get("RIGHT_SIDEBAR")));
+            return null;
+        });
+    }
+
+    @Test
     public void highestPriorityProviderCreatesThePane() throws InterruptedException {
         AtomicReference<WindowPaneContext> seen = new AtomicReference<>();
         Provider low = new Provider(0, seen);

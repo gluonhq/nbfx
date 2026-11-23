@@ -37,7 +37,8 @@
                 Adds the shell window facade (<code>ShellWindow</code>, <code>WindowManager</code>,
                 <code>PaneRole</code>, <code>WindowPaneHost</code>), the chrome and branding contracts,
                 the UI-ready hook, the window-environment capabilities and the shutdown contract, plus
-                the <code>WindowPaneProvider</code> SPI. The implementation stays in
+                the <code>WindowPaneProvider</code> SPI and the <code>WindowPaneFactory</code> that
+                lets a provider obtain a shell-owned <code>WindowPaneHost</code>. The implementation stays in
                 <code>nbfx.platform.shell</code>, whose packages are friend-only for the built-in
                 product modules.
             </description>
@@ -66,6 +67,7 @@
             <class package="org.netbeans.api.nbfx.shell.shutdown" name="ShutdownSelection"/>
             <class package="org.netbeans.spi.nbfx.shell" name="WindowPane"/>
             <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneContext"/>
+            <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneFactory"/>
             <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneProvider"/>
         </change>
     </changes>

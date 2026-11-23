@@ -22,7 +22,8 @@ package org.netbeans.api.nbfx.shell;
  * Publishes the running shell window to services that only have the global lookup, such as
  * {@code @OnUiReady} tasks. The provider is set while the shell is running and cleared on stop.
  * <p>
- * The shell is one per JVM, so this is a single window, not a window manager.
+ * The shell is one per JVM, so this publishes a single window; window and pane management is
+ * available through {@link ShellWindow#windowManager()}.
  *
  * @since 1.0
  */

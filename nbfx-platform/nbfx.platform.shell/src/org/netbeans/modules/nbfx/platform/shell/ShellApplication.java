@@ -140,7 +140,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
         Lookup shellLookup = shellLookup();
-        WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition.panes(), this);
+        WindowPaneContext paneContext = new WindowPaneContext(shellLookup, composition.panes(), this,
+                this::createPaneHost);
         paneProviderList = providers(paneContext);
         Map<String, NbfxTabPane> panes = instantiatePanes(composition, paneContext);
         if (panes.isEmpty()) {
@@ -370,6 +371,11 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     /** Called before the primary panes are created, on the JavaFX Application Thread. */
     protected void prepare() {
+    }
+
+    /** Creates the shell-owned host a provider fills; the concrete pane stays internal. */
+    private WindowPaneHost createPaneHost(WindowPane pane, WindowPaneContext context) {
+        return new NbfxTabPane(pane.role(), pane.kind());
     }
 
     /**

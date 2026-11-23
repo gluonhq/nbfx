@@ -85,7 +85,8 @@ public final class AppShellGuard {
                             "org.netbeans.api.nbfx.editor.",
                             "org.netbeans.api.nbfx.project.",
                             "org.netbeans.modules.nbfx.project.",
-                            "org.netbeans.modules.nbfx.ide.")) {
+                            "org.netbeans.modules.nbfx.ide.",
+                            "org.netbeans.modules.nbfx.platform.")) {
                         if (text.contains("import " + forbidden)) {
                             violations.add(root.relativize(file) + ": API imports " + forbidden + "*");
                         }

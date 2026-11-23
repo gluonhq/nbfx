@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.netbeans.api.nbfx.shell.ShellWindow;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
 import org.openide.util.Lookup;
 
 /**
@@ -32,16 +33,29 @@ import org.openide.util.Lookup;
  * The shell window is available once the window structure exists; during pane creation the
  * {@link #window() window} is the shell facade but its root and main pane are not assigned yet.
  *
- * @param lookup the shell lookup
- * @param panes  the registered panes of the resolved composition
- * @param window the shell window facade, or {@code null}
+ * @param lookup      the shell lookup
+ * @param panes       the registered panes of the resolved composition
+ * @param window      the shell window facade, or {@code null}
+ * @param paneFactory creates the shell-owned host for a declared pane
  * @since 1.0
  */
-public record WindowPaneContext(Lookup lookup, List<WindowPane> panes, ShellWindow window) {
+public record WindowPaneContext(Lookup lookup, List<WindowPane> panes, ShellWindow window,
+        WindowPaneFactory paneFactory) {
 
     public WindowPaneContext {
         Objects.requireNonNull(lookup, "lookup");
+        Objects.requireNonNull(paneFactory, "paneFactory");
         panes = List.copyOf(panes);
+    }
+
+    /**
+     * Creates a context without a host factory. Intended for tests and for code that never asks the
+     * context for a host; {@link #createHost(WindowPane)} fails when called.
+     */
+    public WindowPaneContext(Lookup lookup, List<WindowPane> panes, ShellWindow window) {
+        this(lookup, panes, window, (pane, context) -> {
+            throw new IllegalStateException("No window pane host factory in this context");
+        });
     }
 
     /** The registered pane with {@code id}, if declared. */
@@ -52,5 +66,16 @@ public record WindowPaneContext(Lookup lookup, List<WindowPane> panes, ShellWind
     /** The shell window once it is available. */
     public Optional<ShellWindow> shellWindow() {
         return Optional.ofNullable(window);
+    }
+
+    /**
+     * Creates the shell-owned host for {@code pane}. A provider returns this host instead of
+     * constructing the concrete tab pane, which is internal to the shell.
+     *
+     * @param pane the declaration to instantiate
+     * @return the host, never {@code null}
+     */
+    public WindowPaneHost createHost(WindowPane pane) {
+        return Objects.requireNonNull(paneFactory.create(pane, this), "host");
     }
 }

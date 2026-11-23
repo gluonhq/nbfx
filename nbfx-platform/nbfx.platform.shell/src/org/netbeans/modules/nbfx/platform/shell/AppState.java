@@ -402,7 +402,7 @@ public final class AppState {
     }
 
     /**
-     * A persisted pane: its {@link org.netbeans.modules.nbfx.platform.shell.PaneRole role},
+     * A persisted pane: its {@link org.netbeans.api.nbfx.shell.PaneRole role},
      * its bounds (only meaningful, and only valid, for a detached pane), its tabs in order, the
      * index of the selected one ({@code -1} when the pane is empty) and, for a pane minimized to a
      * sliding side of the main window, how it is {@linkplain Minimized minimized} ({@code null} for

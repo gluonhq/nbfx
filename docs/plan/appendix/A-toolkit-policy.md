@@ -143,8 +143,8 @@ An expired exemption fails the build. No exemption for `javax.swing.text.Documen
 ```
 | module (owner)        | friend package(s)                         | friend consumer                         | reason | remove by |
 |-----------------------|-------------------------------------------|-----------------------------------------|--------|-----------|
-| platform.workspace    | docking internals (DockArea, DockTree, …) | platform.shell                          | shell composes the dock | M1 review |
-| platform.shell        | implementation root                       | shell tests; ide.workbench only for the transition | transition to API/SPI | M0 |
+| platform.workspace    | docking internals (DockArea, DockTree, …) | platform.shell, ide.workbench (DockTree only) | shell composes the dock; workbench reset layout | M1 review |
+| platform.shell        | implementation root                       | shell tests; ide.workbench, project.ui, java.navigation (transition) | transition to API/SPI; project.ui/java.navigation only FileDragAndDrop/DesktopActions | M1 |
 | platform.editor       | codearea/processor internals              | java.editor, ide.editor.xml/css         | consumer migration | M1 |
 | platform.status       | StatusBar/registry internals              | platform.shell                          | shell composes the status bar | M1 review |
 | platform.theme        | implementation package                    | platform.shell/editor                   | token application | M1 review |

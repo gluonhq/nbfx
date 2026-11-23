@@ -40,6 +40,7 @@ public class WindowManagerTest {
         JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
             NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            NbfxTabPane custom = new NbfxTabPane(PaneRole.of("TEST_PRIMARY"));
             try {
                 WindowManager manager = new ShellApplication().windowManager();
                 Tab view = new Tab("view");
@@ -51,16 +52,22 @@ public class WindowManagerTest {
                 assertEquals("demo.view", manager.viewId(view));
                 assertSame(view, manager.findViewTab("demo.view").orElseThrow());
 
+                assertSame(custom, manager.primary(custom.role()).orElseThrow());
+
                 manager.move(view, other, 0);
                 assertSame(other, manager.paneOf(view).orElseThrow());
                 assertEquals(0, other.getTabs().indexOf(view));
                 assertSame(view, manager.findViewTab("demo.view").orElseThrow());
 
+                Tab second = new Tab("second");
+                manager.attach(other, second);
+                assertSame(second, other.getSelectionModel().getSelectedItem());
                 manager.select(view);
                 assertSame(view, other.getSelectionModel().getSelectedItem());
             } finally {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
+                NbfxTabPane.unregister(custom);
             }
             return null;
         });

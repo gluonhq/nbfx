@@ -504,13 +504,22 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      * change, so nothing else would move the caret there. A tab of a minimized pane slides in.
      */
     public static void selectTabAndMoveToFront(Tab tab) {
-        Platform.runLater(() -> {
-            if (tab.getTabPane() == null) {
-                return;
-            }
-            selectTabAndMoveToFront(tab.getTabPane(), tab);
-            focusDocument(tab);
-        });
+        if (tab == null) {
+            return;
+        }
+        if (Platform.isFxApplicationThread()) {
+            selectTabAndMoveToFrontNow(tab);
+        } else {
+            Platform.runLater(() -> selectTabAndMoveToFrontNow(tab));
+        }
+    }
+
+    private static void selectTabAndMoveToFrontNow(Tab tab) {
+        if (tab.getTabPane() == null) {
+            return;
+        }
+        selectTabAndMoveToFront(tab.getTabPane(), tab);
+        focusDocument(tab);
     }
 
     /** The title shown in {@code tab}'s header: its label graphic's text, or its plain text. */

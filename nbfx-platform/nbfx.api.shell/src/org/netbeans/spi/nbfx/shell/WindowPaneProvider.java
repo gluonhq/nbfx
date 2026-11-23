@@ -24,6 +24,9 @@ import org.netbeans.api.nbfx.shell.WindowPaneHost;
  * Creates the pane for a registered {@link WindowPane}. Products register a provider in the shell
  * lookup when the pane needs product services. The editor pane is always resolved through the
  * content manager and never through a provider.
+ * <p>
+ * A provider obtains the shell-owned host from {@link WindowPaneContext#createHost(WindowPane)} and
+ * fills it; it never constructs the shell's concrete tab pane, which is internal.
  *
  * @since 1.0
  */
@@ -40,7 +43,7 @@ public interface WindowPaneProvider {
      * role}; the window composition and persisted layouts are keyed by it.
      *
      * @param pane    the declaration to instantiate
-     * @param context the narrow shell context
+     * @param context the narrow shell context, which creates the host
      * @return the pane host, or {@code null} to decline
      */
     WindowPaneHost createPane(WindowPane pane, WindowPaneContext context);

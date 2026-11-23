@@ -36,14 +36,17 @@ import org.netbeans.api.nbfx.view.ViewManager;
 public interface WindowManager {
 
     /**
-     * Every live pane: the docked panes in layout order, then detached windows.
+     * Every live pane: docked panes in layout order, then detached windows. The list includes
+     * permanent, hidden, minimized and transient panes (for example the sliding pane); use
+     * {@link #primary(PaneRole)} when only a registered permanent pane is wanted.
      *
      * @return the panes, never {@code null}
      */
     List<WindowPaneHost> panes();
 
     /**
-     * The single permanent pane playing {@code role}, or empty when it does not exist (yet).
+     * The first pane playing {@code role}, or empty when it does not exist (yet). A transient role
+     * such as {@link PaneRole#DETACHED} or {@link PaneRole#SLIDE} can also be resolved.
      *
      * @param role the pane role
      * @return the pane, or empty
@@ -51,7 +54,8 @@ public interface WindowManager {
     Optional<WindowPaneHost> primary(PaneRole role);
 
     /**
-     * The pane that currently holds {@code tab}, or empty when the tab is not docked anywhere.
+     * The pane that currently holds {@code tab}, including a detached window's pane, or empty when
+     * the tab is not attached to any pane.
      *
      * @param tab the tab
      * @return the pane, or empty
@@ -75,7 +79,9 @@ public interface WindowManager {
     String viewId(Tab tab);
 
     /**
-     * Selects {@code tab} and brings its window to the front.
+     * Selects {@code tab} and brings its window to the front. Called on the JavaFX Application
+     * Thread it takes effect immediately; called from another thread it is scheduled on that
+     * thread. A {@code null} tab is ignored; a tab that has no pane is ignored.
      *
      * @param tab the tab to select
      */

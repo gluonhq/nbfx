@@ -595,7 +595,7 @@ Landed in the M0 shell/window extraction (#186):
 
 - the API/SPI packages are `org.netbeans.api.nbfx.shell`, `org.netbeans.api.nbfx.shell.shutdown` and
   `org.netbeans.spi.nbfx.shell`, in the `api.shell` module;
-- `WindowPaneProvider` returns a `WindowPaneHost`; `PaneRole` and `WindowManager` are public;
+- `WindowPaneProvider` returns a `WindowPaneHost` from `WindowPaneContext.createHost` (`WindowPaneFactory`); `PaneRole` and `WindowManager` are public;
   `NbfxTabPane`, `Docking`, `AppState` and the other implementation services are internal;
 - `platform.shell` has no public package: its implementation package is a named friend of
   `ide.workbench`, `project.ui` and `java.navigation` during the transition;
@@ -637,7 +637,7 @@ Implemented in this increment:
 Still imperative:
 
 - `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide which permanent panes exist;
-- `NbfxTabPane.PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
+- `PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
 - custom permanent panes need a role registry before a product can declare a different window
   shape.
 

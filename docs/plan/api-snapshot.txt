@@ -165,4 +165,5 @@ org.netbeans.modules.nbfx.platform.theme.ThemeMenuFactory
 org.netbeans.modules.nbfx.platform.theme.ThemeTokenRegistry
 org.netbeans.spi.nbfx.shell.WindowPane
 org.netbeans.spi.nbfx.shell.WindowPaneContext
+org.netbeans.spi.nbfx.shell.WindowPaneFactory
 org.netbeans.spi.nbfx.shell.WindowPaneProvider
