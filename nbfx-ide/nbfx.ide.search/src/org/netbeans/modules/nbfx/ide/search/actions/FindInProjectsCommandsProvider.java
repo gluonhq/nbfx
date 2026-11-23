@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.ide.search.actions;
 
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
-import org.netbeans.api.nbfx.file.FileSelectionContext;
+import org.netbeans.api.nbfx.views.FileSelectionContext;
 import org.netbeans.modules.nbfx.ide.search.model.FindModel;
 import java.util.ArrayList;
 import java.util.Collection;

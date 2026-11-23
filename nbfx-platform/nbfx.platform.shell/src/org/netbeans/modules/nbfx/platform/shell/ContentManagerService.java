@@ -23,7 +23,7 @@ import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
-import org.netbeans.api.nbfx.file.FileIconProvider;
+import org.netbeans.api.nbfx.editor.FileIconProvider;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

@@ -55,7 +55,6 @@ nb.cluster.nbfx-platform=\
         nbfx.api.actions,\
         nbfx.api.dialogs,\
         nbfx.api.editor,\
-        nbfx.api.file,\
         nbfx.api.language,\
         nbfx.api.layer,\
         nbfx.api.nodes,\

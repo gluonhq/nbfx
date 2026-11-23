@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation.utils;
 
-import org.netbeans.api.nbfx.file.FileIconProvider;
+import org.netbeans.api.nbfx.editor.FileIconProvider;
 import javafx.scene.Node;
 import org.openide.filesystems.FileObject;
 import org.openide.util.lookup.ServiceProvider;

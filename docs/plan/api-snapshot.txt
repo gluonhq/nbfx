@@ -1,7 +1,6 @@
 # nbfx-ide/nbfx.api.project
 # nbfx-platform/nbfx.api.actions
 # nbfx-platform/nbfx.api.editor
-# nbfx-platform/nbfx.api.file
 # nbfx-platform/nbfx.api.layer
 # nbfx-platform/nbfx.api.nodes
 # nbfx-platform/nbfx.api.options
@@ -50,12 +49,11 @@ org.netbeans.api.nbfx.editor.EditorPreview
 org.netbeans.api.nbfx.editor.EditorService
 org.netbeans.api.nbfx.editor.EditorSettings
 org.netbeans.api.nbfx.editor.ElementIcons
+org.netbeans.api.nbfx.editor.FileIconProvider
+org.netbeans.api.nbfx.editor.FileTypes
 org.netbeans.api.nbfx.editor.HyperlinkProvider
 org.netbeans.api.nbfx.editor.InMemorySourceFactory
 org.netbeans.api.nbfx.editor.OpenSources
-org.netbeans.api.nbfx.file.FileIconProvider
-org.netbeans.api.nbfx.file.FileSelectionContext
-org.netbeans.api.nbfx.file.FileTypes
 org.netbeans.api.nbfx.icons.ThemedImageView
 org.netbeans.api.nbfx.icons.ToolIcons
 org.netbeans.api.nbfx.layer.LayerEntry
@@ -146,6 +144,7 @@ org.netbeans.api.nbfx.views.DockLocation
 org.netbeans.api.nbfx.views.DynamicMenu
 org.netbeans.api.nbfx.views.DynamicMenuRegistration
 org.netbeans.api.nbfx.views.DynamicMenuRegistrations
+org.netbeans.api.nbfx.views.FileSelectionContext
 org.netbeans.api.nbfx.views.MenuRegistration
 org.netbeans.api.nbfx.views.MenuRegistrations
 org.netbeans.api.nbfx.views.PaneKind

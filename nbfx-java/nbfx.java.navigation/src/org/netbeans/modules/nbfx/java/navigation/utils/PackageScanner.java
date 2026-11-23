@@ -25,7 +25,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.netbeans.api.nbfx.editor.ContentManager;
-import org.netbeans.api.nbfx.file.FileTypes;
+import org.netbeans.api.nbfx.editor.FileTypes;
 import org.netbeans.modules.nbfx.java.navigation.ProjectEntry;
 import org.netbeans.api.queries.VisibilityQuery;
 import org.openide.filesystems.FileObject;

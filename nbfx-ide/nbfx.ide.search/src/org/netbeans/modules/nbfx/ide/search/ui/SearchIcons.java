@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.search.ui;
 
-import org.netbeans.api.nbfx.file.FileIconProvider;
+import org.netbeans.api.nbfx.editor.FileIconProvider;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.netbeans.api.nbfx.project.ProjectIconProvider;
 import java.net.URL;

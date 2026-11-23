@@ -39,7 +39,7 @@ import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.api.nbfx.file.FileTypes;
+import org.netbeans.api.nbfx.editor.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
 import org.netbeans.api.nbfx.shell.PaneRole;

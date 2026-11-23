@@ -18,8 +18,6 @@
  */
 package org.netbeans.api.nbfx.editor;
 
-import org.netbeans.api.nbfx.file.FileIconProvider;
-
 import java.util.List;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
