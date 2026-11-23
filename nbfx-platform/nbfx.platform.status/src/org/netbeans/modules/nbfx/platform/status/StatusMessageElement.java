@@ -26,6 +26,7 @@ import javafx.scene.control.OverrunStyle;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import org.netbeans.api.nbfx.status.StatusAlignment;
+import org.netbeans.api.nbfx.status.StatusElement;
 import org.netbeans.api.nbfx.status.StatusMessageService;
 import org.netbeans.api.nbfx.status.StatusRegistration;
 import org.openide.util.Lookup;
@@ -36,7 +37,7 @@ import org.openide.util.Lookup;
  * progress bar and the fixed elements stay on the right.
  */
 @StatusRegistration(id = "message", alignment = StatusAlignment.FILL, position = 0)
-public final class StatusMessageElement implements StatusElementHolder {
+public final class StatusMessageElement implements StatusElement {
 
     private final Consumer<String> listener = this::textChanged;
     private Label node;

@@ -7,10 +7,10 @@ Every number the plan states is derived here from the tree. Regenerate with
 | Figure | Value |
 |---|---|
 | nbfx modules | 66 |
-| nbfx source files | 752 |
-| modules exporting packages (`<public-packages>`) | 51 |
-| of those, subtree exports (`<subpackages>`) | 18 |
-| modules with `arch.xml` | 23 |
+| nbfx source files | 753 |
+| modules exporting packages (`<public-packages>`) | 50 |
+| of those, subtree exports (`<subpackages>`) | 17 |
+| modules with `arch.xml` | 22 |
 | modules with `apichanges.xml` | 14 |
 | distinct `OpenIDE-Module-Specification-Version` values | 7: 1.0, 1.1, 1.2, 1.4, 1.5, 1.7, 1.8 |
 | public `Fx*` types (total) | 4 |

@@ -299,7 +299,7 @@ plugin implements is not yet in its API/SPI packages.
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
 | `api.views` | T2-FX | **landed; M0 adds `ViewSpec`/`ViewRegistry`** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
-| `api.status` | T2-FX | **partial — contract M0** | `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; the element SPI and `StatusElement` still move from `platform.status` to `api.status` in M0 |
+| `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
 | `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
@@ -360,7 +360,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.workspace` | docking model + FX docking view | landed; replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction:** `ViewSpec`/`ViewRegistry` move to `api.views`; `WindowSystem`/`WindowState`/`WindowSink` move to the shell API; the docking internals stay internal friend packages for `platform.shell` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
-| `platform.status` | status bar + element rendering | replaces `nbfx.statusbar` |
+| `platform.status` | status bar + element rendering; **T0**, no public package | replaces `nbfx.statusbar`; friend of `platform.shell` |
 | `platform.dialogs` | dialog host, notification line, toasts, exception reporting | API partial (`ErrorReporter` only); API contract and implementation M1 |
 | `platform.progress` | progress UI (status line, all-tasks popup, task details) | replaces `nbfx.progress` (landed, PR #2 — §18) |
 | `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | **landed** (themes, token providers, OS light/dark); `org.netbeans.api.nbfx.theme` is T1, the implementation package is internal |
@@ -482,7 +482,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Views and view areas | `platform.workspace` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`) + `api.views` (`@ViewRegistration`, `@AreaRegistration`) + `platform.shell` (view manager) | view metadata, areas, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up all consume the registrations; the dock area takes an explicit main role, so pane order no longer decides where content goes, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up. M0 moves `ViewSpec`/`ViewRegistry` into `api.views` |
 | Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections; detached windows use `DetachedBars` with a reduced profile |
 | Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. M0 moves the API/SPI packages to the global roots and makes `NbfxTabPane` internal |
-| Status bar | `platform.status` + `api.status` | landed renderer; **API partial: `StatusElement`/element SPI move to `api.status` in M0** |
+| Status bar | `platform.status` + `api.status` | landed: the element SPI and registry are `api.status`, the renderer is T0 `platform.status` |
 | Options | `platform.options` + `api.options` | **landed (#162)**; `platform.options` is T0, the controller/displayer contract is `api.options` |
 | Settings | `platform.settings` + `api.settings` | planned — M1 |
 | Wizards | `platform.wizard` + `api.wizard` | **landed**: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` are `api.wizard`; `platform.wizard` is the T0 themed dialog |
@@ -897,9 +897,9 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanel` in `api.wizard`;
   `WizardEntry`/`WizardRegistry` are the metadata-only discovery contract; the processor validates `Wizard`
   and writes bundle-aware metadata; `WizardDisplayer` is the seam implemented by the T0 `platform.wizard`.
-- `refactor/status-contract` — merge `StatusElementHolder` into `api.status.StatusElement` (the current
-  `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
-  line-separator and project elements; validate the registration type.
+- `refactor/status-contract` (**landed, #185**) — merge `StatusElementHolder` into `api.status.StatusElement`;
+  `StatusElementSpec` is the public metadata registration and `StatusElementEntry` the loaded instance; migrate
+  the caret, line-separator and project elements; validate the registration type.
 - `refactor/nodes-property-contract` — create `api.nodes` with the M0 property slice
   (`PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`,
   `SimplePropertyModel`/`SimplePropertySetModel`), move `PropertyEditor` to `api.property`, add
@@ -1240,17 +1240,18 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #175 | Maven projects run, as `mvn` processes: the build commands and the goals run from the Navigator start the wrapper or the IDE's Maven instead of the embedder, so a build can be stopped (the process tree is ended) and builds do not share the project system's embedder. A command follows the project's `nbactions.xml` as NetBeans' own resolver reads it (goals, properties, profiles, options, configuration, folder, reactor flags, environment, pre-action; a mapping without goals disables it); without a mapping, Run is the goal of the plugin the project builds with (`javafx:run`, `gluonfx:run`, `spring-boot:run`, `quarkus:dev`). `ide.build` gains `BuildProcesses`; the process fallback asks the project type before the marker files. The Project Files group of the project tree follows files created, deleted or renamed in the project folder | Decision 8 (Maven builds run as processes) landed for build commands and Navigator goals; the embedder stays for the project model |
 | #176 | layer reader migration: `OptionsRegistry`, `StatusElementRegistry` and `ViewRegistry` read the class-based layer entries through `api.layer.LayerInstances`; `UiReady` remains the named-service exception; `ViewRegistry.find` creates only the requested provider | H.4.1, Appendix D.2.1, §11 W9 `spike/loaders-node-free` |
 | #181 | wizard contract: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` in `api.wizard`, `platform.wizard` as the T0 themed dialog, processor validation and `LayerInstances` discovery; `api.wizard` 1.1 with `apichanges`, the shell conformance and IDE wizards use the API | §6.1/§6.2, §11 W2a `refactor/wizard-contract` |
+| #185 | status contract: `StatusElement`, `StatusElementSpec` and `StatusElementRegistry` in `api.status`; `platform.status` is the T0 renderer; the processor validates `StatusElement`; caret, line-separator, project, progress, message and git-branch elements use the API | §6.1/§6.2, §11 W2a `refactor/status-contract` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
 declarative panes/areas/layout, owns branding, the application menu and the window environment, and the theme
 supports light/dark/OS mode. `ActionBars` is gone.
 
-The **API split is complete at module level, not at contract level**. `api.status`, `api.dialogs`,
-`api.search` and `api.project` are `partial` until W2a/W2b moves the implementable SPI out of
-`platform.*`; the options, property/nodes and wizard contracts landed with #162, #174 and #181.
+The **API split is complete at module level, not at contract level**. `api.dialogs`, `api.search` and
+`api.project` are `partial` until W2a/W2b moves the implementable SPI out of `platform.*`; the options,
+property/nodes, wizard and status contracts landed with #162, #174, #181 and the status slice.
 `platform.editor` and `platform.workspace` still export implementation packages. M0 is **2026-12** (dates
 unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, the API-only
 downstream fixture and the W2b governance for the complete modules. M1 (2027-03) carries AppShell services and
-IDE core. The next W2a slice is status, not a new service.
+IDE core. The next W2a slice is shell/window, then workspace, editor and api.file.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

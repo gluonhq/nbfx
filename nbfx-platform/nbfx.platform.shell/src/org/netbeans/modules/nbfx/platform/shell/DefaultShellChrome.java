@@ -25,7 +25,7 @@ import org.netbeans.modules.nbfx.platform.shell.api.ShellCommandResolver;
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
-import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
+import org.netbeans.api.nbfx.status.StatusElementRegistry;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
 
@@ -57,7 +57,7 @@ public final class DefaultShellChrome implements ShellChrome, ToolBarHost {
         this.top = hasMenus || hasToolBars
                 ? new VBox(menuBuilder.menuBar(), toolBarBuilder.container())
                 : null;
-        this.statusBar = new StatusBar(StatusElementRegistry.discover(context.lookup()));
+        this.statusBar = new StatusBar(StatusElementRegistry.load(context.lookup()));
     }
 
     /** The context this chrome was created for. */

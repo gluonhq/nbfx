@@ -27,7 +27,7 @@ import java.lang.annotation.Target;
  * Registers a JavaFX status bar element.
  * <p>
  * The annotated class must be public, must have a public no-argument constructor and must implement
- * the nbfx status element SPI. It is published in the generated layer under
+ * {@link StatusElement}. It is published in the generated layer under
  * {@code NbFx/Status/<id>.instance} together with its alignment and position.
  *
  * @since 1.0

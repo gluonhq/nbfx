@@ -22,7 +22,7 @@ import org.netbeans.api.nbfx.project.ProjectRegistry;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.api.nbfx.status.StatusRegistration;
 import org.netbeans.modules.nbfx.platform.shell.StatusElementSupport;
-import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import org.netbeans.api.nbfx.status.StatusElement;
 import javafx.util.Subscription;
 import org.openide.util.Lookup;
 import javafx.geometry.Orientation;
@@ -36,7 +36,7 @@ import javafx.scene.layout.HBox;
  * {@code project}; it follows the {@link ProjectRegistry} on its own.
  */
 @StatusRegistration(id = "project", alignment = StatusAlignment.LEFT, position = 0)
-public final class ProjectStatusElement implements StatusElementHolder {
+public final class ProjectStatusElement implements StatusElement {
 
     private final HBox group;
     private final Label label = new Label();

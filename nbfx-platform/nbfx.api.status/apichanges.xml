@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<?xml-stylesheet type="text/xsl" href="../../nbbuild/javadoctools/apichanges.xsl"?>
+<!DOCTYPE apichanges PUBLIC "-//NetBeans//DTD API changes list 1.0//EN" "../../nbbuild/javadoctools/apichanges.dtd">
+<apichanges>
+    <apidefs>
+        <apidef name="netbeansfx_status">NetBeansFX Status API</apidef>
+    </apidefs>
+    <changes>
+        <change id="status.contract">
+            <api name="netbeansfx_status"/>
+            <summary>The JavaFX status element SPI, metadata-only discovery and per-shell loading contract.</summary>
+            <version major="1" minor="2"/>
+            <date day="21" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>StatusElement</code> (moved from the T0 status bar renderer),
+                <code>StatusElementSpec</code>, <code>StatusElementEntry</code> and
+                <code>StatusElementRegistry</code>. <code>discover()</code> reads metadata only;
+                <code>load()</code> instantiates a fresh set for one shell. The registry reads the
+                class-based layer entries through <code>LayerInstances</code>; the processor validates
+                that the annotated class implements <code>StatusElement</code>.
+            </description>
+            <class package="org.netbeans.api.nbfx.status" name="StatusElement"/>
+            <class package="org.netbeans.api.nbfx.status" name="StatusElementSpec"/>
+            <class package="org.netbeans.api.nbfx.status" name="StatusElementEntry"/>
+            <class package="org.netbeans.api.nbfx.status" name="StatusElementRegistry"/>
+        </change>
+    </changes>
+    <htmlcontents>
+        <head>
+            <title>Change History for the NetBeansFX Status API</title>
+        </head>
+        <body>
+            <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
+            <h1>Introduction</h1>
+            <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Status API</a>.</p>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.status"/>
+            <hr/><p>@FOOTER@</p>
+        </body>
+    </htmlcontents>
+</apichanges>

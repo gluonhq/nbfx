@@ -31,6 +31,7 @@ import javax.tools.JavaFileObject;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
@@ -45,7 +46,10 @@ public class StatusRegistrationProcessorTest {
             "package demo;\n"
             + "import org.netbeans.api.nbfx.status.*;\n"
             + "@StatusRegistration(id = \"demo.status\", alignment = StatusAlignment.RIGHT, position = 5)\n"
-            + "public class DemoStatus {}\n";
+            + "public class DemoStatus implements StatusElement {\n"
+            + "    public String getId() { return \"demo.status\"; }\n"
+            + "    public javafx.scene.Node getNode() { return null; }\n"
+            + "}\n";
 
     @Test
     public void generatesLayerFragments() throws Exception {
@@ -57,6 +61,20 @@ public class StatusRegistrationProcessorTest {
         assertTrue(xml, xml.contains("alignment\" stringvalue=\"RIGHT\""));
         assertTrue(xml, xml.contains("intvalue=\"5\""));
         assertLayerPath(xml, LayerPaths.STATUS);
+    }
+
+    @Test
+    public void rejectsClassWithoutStatusElement() throws Exception {
+        String bad =
+                "package demo;\n"
+                + "import org.netbeans.api.nbfx.status.*;\n"
+                + "@StatusRegistration(id = \"demo.bad\", alignment = StatusAlignment.LEFT)\n"
+                + "public class Bad {}\n";
+        AssertionError rejected = assertThrows(AssertionError.class, () ->
+                ProcessorTestSupport.compile(
+                        "org.netbeans.modules.nbfx.api.status.processors.StatusRegistrationProcessor",
+                        Map.of("demo/Bad.java", bad)));
+        assertTrue(rejected.getMessage(), rejected.getMessage().contains("StatusElement"));
     }
 
     private static void assertLayerPath(String xml, String path) {

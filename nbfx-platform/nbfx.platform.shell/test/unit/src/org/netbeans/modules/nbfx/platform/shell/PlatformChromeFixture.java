@@ -35,7 +35,7 @@ import org.netbeans.api.nbfx.views.DynamicMenu;
 import org.netbeans.api.nbfx.views.DynamicMenuRegistration;
 import org.netbeans.api.nbfx.views.MenuRegistration;
 import org.netbeans.api.nbfx.views.ToolbarRegistration;
-import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import org.netbeans.api.nbfx.status.StatusElement;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 import org.openide.util.lookup.ServiceProviders;
@@ -55,7 +55,7 @@ import org.openide.util.lookup.ServiceProviders;
     @ServiceProvider(service = DynamicMenu.Factory.class)
 })
 public final class PlatformChromeFixture implements CommandsProvider, DynamicMenu.Factory,
-        StatusElementHolder {
+        StatusElement {
 
     /** The fixture action id. */
     public static final String ACTION = "conformance.action";

@@ -102,7 +102,7 @@ The remaining detached-bar path is the last `ActionBars` user and is the next re
 - `@StatusRegistration` → `NbFx/Status/<id>.instance` with alignment/position.
 - `ActionRegistry` / `Command`.
 - `ToolBarContainer`, `AppState.initToolbars`.
-- `StatusBar` and `StatusElementRegistry`.
+- `StatusBar` (T0) and `StatusElementRegistry` (api.status).
 
 ---
 
@@ -128,7 +128,7 @@ Product contributions:
 - chrome replacement: `ShellChromeProvider` (or `ShellApplication.createChrome`);
 - branding/title: `ShellBranding`;
 - detached-window behaviour: `DetachedBarsFactory`/`WindowEnvironmentContribution.Factory`;
-- status: registered `StatusElementHolder`s.
+- status: registered `StatusElement`s.
 
 `ShellApplication` remains concrete; subclassing is only for a different window layout/lifecycle, not for standard chrome.
 
@@ -330,9 +330,9 @@ IDE no longer installs it.
 |---|---|
 | `nbfx.api.actions` | `Command`, `ActionRegistry`, `ActionLayerReader`, `ActionRef` |
 | `nbfx.api.views` | `@MenuRegistration`, `@ToolbarRegistration`, `@DynamicMenuRegistration`, `DynamicMenu`, `ShellChrome`/`ShellChromeProvider` if public |
-| `nbfx.api.status` | `StatusElement`, `@StatusRegistration` |
+| `nbfx.api.status` | `StatusElement`, `StatusElementSpec`, `StatusElementRegistry`, `@StatusRegistration` |
 | `nbfx.platform.actions` | action registry, keymap, scoped commands |
-| `nbfx.platform.status` | `StatusBar`, `StatusElementRegistry` |
+| `nbfx.platform.status` | `StatusBar` (T0; no public package) |
 | `nbfx.platform.menus` | menu/toolbar registrations and generic menu vocabulary; no JavaFX builder |
 | `nbfx.platform.shell` | `DefaultShellChrome`, `ShellMenuBar`, `ShellToolBars`, `ShellStatusComposer`, `ShellActions`, `DefaultWindowEnvironment`, `ShellBranding` implementation, `ShellContext`, `DefaultShellChromeProvider` |
 | `nbfx.platform.launcher` | `AppProvider`, `ShellApplication` launch |
@@ -447,7 +447,7 @@ Exit: platform-only shell shows menus/toolbars from registrations; IDE unchanged
 
 ### Phase 3 — `refactor/shell-status-branding`
 
-- Compose `platform.status.StatusBar` via `StatusElementRegistry`; no new status bar.
+- Compose `platform.status.StatusBar` via `api.status.StatusElementRegistry`; no new status bar.
 - Platform editor status registrations; IDE project status `@StatusRegistration`.
 - `ShellBranding`/title; IDE `ProjectBranding`.
 - Default `ApplicationMenu` installation.

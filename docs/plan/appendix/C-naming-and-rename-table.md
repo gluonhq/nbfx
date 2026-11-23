@@ -87,7 +87,7 @@ implementation classes in modules that `refactor/api-split` moves to non-exporte
 | `FxOutput` / `FxOutputImpl` / `FxConsole` | `OutputConsole` / `OutputConsoleImpl` / `ConsolePanel` | `api.output` / `platform.output` |
 | `FxProjectCustomizerDialog` / `FxProjectCustomizerPanel` / `FxProjectCustomizers` | `CustomizerDialog` / `CustomizerPanel` / `Customizers` | `platform.project.customizer` (impl) / `api.project.customizer` |
 | `FxProperty` / `FxPropertySet` / `FxPropertyEditor` / `FxPropertyEditors` / `FxPropertiesProvider` / `FxPropertySheet` | `PropertyModel` is already the API name in `api.nodes`; the rest are **(impl)** in `platform.nodes` | `api.nodes` / `api.property` / `platform.nodes` |
-| `FxStatusBar` / `FxStatusElement` | `StatusBar` / `StatusElementHolder` **(impl)** | `platform.status` |
+| `FxStatusBar` / `FxStatusElement` | `StatusElement` (SPI) in `api.status`; `StatusBar` **(impl)** in `platform.status` | `api.status` / `platform.status` |
 | `FxWindowSystem` / `FxWindowSystemListener` | `WindowSystem` / `WindowSystemListener` **(impl)** | `platform.workspace` |
 | `FxWizard` / `FxWizardDialog` / `FxWizardPanel` | `Wizard` / `WizardPanel` (SPI) and `WizardEntry` / `WizardRegistry` (metadata) in `api.wizard`; `WizardDialog` **(impl)** in `platform.wizard` | `api.wizard` / `platform.wizard` |
 | `FxStructurePanel` | `StructurePanel` **(impl)** | `ide.structure` |

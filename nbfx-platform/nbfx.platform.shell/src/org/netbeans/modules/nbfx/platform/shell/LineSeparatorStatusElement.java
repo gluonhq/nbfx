@@ -25,7 +25,7 @@ import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.api.nbfx.status.StatusRegistration;
-import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import org.netbeans.api.nbfx.status.StatusElement;
 import java.util.function.Consumer;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -46,7 +46,7 @@ import org.openide.util.NbBundle;
  * {@code line-separator}; it follows the globally active editor document on its own.
  */
 @StatusRegistration(id = "line-separator", alignment = StatusAlignment.RIGHT, position = 20)
-public final class LineSeparatorStatusElement implements StatusElementHolder {
+public final class LineSeparatorStatusElement implements StatusElement {
 
     private final Label lineSeparator = new Label();
     private final HBox group;

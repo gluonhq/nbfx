@@ -41,8 +41,7 @@ import org.netbeans.junit.NbTestCase;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
-import org.netbeans.modules.nbfx.platform.status.StatusElement;
-import org.netbeans.modules.nbfx.platform.status.StatusElementRegistry;
+import org.netbeans.api.nbfx.status.StatusElementRegistry;
 import org.openide.util.Lookup;
 
 /**
@@ -102,7 +101,7 @@ public class AppChromeTest extends NbTestCase {
         assertEquals(List.of("file", "clipboard", "edit", "build", "debug"), toolBarIds);
         assertNotNull("the main window has no status bar", chrome.bottom());
         List<String> statusIds = StatusElementRegistry.discover().stream()
-                .map(StatusElement::id).toList();
+                .map(spec -> spec.id()).toList();
         assertTrue("the project status element is missing: " + statusIds, statusIds.contains("project"));
         assertTrue("the caret status element is missing: " + statusIds, statusIds.contains("caret"));
         assertTrue("the line-separator status element is missing: " + statusIds,

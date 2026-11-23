@@ -16,25 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.status;
+package org.netbeans.api.nbfx.status;
 
-import org.netbeans.api.nbfx.status.StatusAlignment;
 import java.util.Objects;
 
 /**
- * A discovered status bar element: its registration metadata plus the element itself.
+ * A discovered status bar element registration: its metadata and the class to instantiate when the
+ * status bar is built. Discovery never creates the element itself.
  *
  * @param id        the element id (the layer file's base name)
  * @param alignment the slot the element is placed in
  * @param position  the position within the slot
- * @param element   the element
- * @since 1.0
+ * @param type      the element class, with a public no-argument constructor
+ * @since 1.2
  */
-public record StatusElement(String id, StatusAlignment alignment, int position, StatusElementHolder element) {
+public record StatusElementSpec(String id, StatusAlignment alignment, int position,
+        Class<? extends StatusElement> type) {
 
-    public StatusElement {
+    /** Creates a spec. */
+    public StatusElementSpec {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(alignment, "alignment");
-        Objects.requireNonNull(element, "element");
+        Objects.requireNonNull(type, "type");
     }
 }

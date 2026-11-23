@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.platform.progress;
 
 import org.netbeans.api.nbfx.status.StatusAlignment;
 import org.netbeans.api.nbfx.status.StatusRegistration;
-import org.netbeans.modules.nbfx.platform.status.StatusElementHolder;
+import org.netbeans.api.nbfx.status.StatusElement;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -41,7 +41,7 @@ import org.openide.util.NbBundle;
  * {@link FxProgressWorker} singleton, which receives events from the reused progress controller.
  */
 @StatusRegistration(id = "progress", alignment = StatusAlignment.RIGHT, position = 0)
-public final class FxProgressElement implements StatusElementHolder {
+public final class FxProgressElement implements StatusElement {
 
     private final FxProgressWorker worker = FxProgressWorker.getInstance();
     private final ProgressBar bar = new ProgressBar();
