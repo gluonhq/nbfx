@@ -17,7 +17,7 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.java.editor.processor.semantics;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 
 
 import java.util.ArrayList;
@@ -29,8 +29,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.tools.Diagnostic;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
+import org.netbeans.api.nbfx.editor.TokenCategory;
+import org.netbeans.api.nbfx.editor.SourceUtils;
 import org.netbeans.api.java.classpath.ClassPath;
 import org.netbeans.api.java.source.ClasspathInfo;
 import org.netbeans.api.java.source.CompilationController;

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.processor.lex;
+package org.netbeans.spi.nbfx.editor;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.LineDecoration;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.SourceContext;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.LineDecoration;
+import org.netbeans.api.nbfx.editor.SourceContext;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 import jfx.incubator.scene.control.richtext.TextPos;
 
 import java.util.List;

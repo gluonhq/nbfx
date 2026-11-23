@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.editor.codearea;
 
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
+import org.netbeans.spi.nbfx.editor.SyntaxDecoratorFactory;
 import org.openide.filesystems.FileObject;
 
 import java.util.Objects;

@@ -25,6 +25,7 @@ import javafx.util.Duration;
 import jfx.incubator.scene.control.richtext.CodeArea;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 
 /**
  * Installs a tooltip on a {@link CodeArea} that shows the diagnostic message of the squiggly

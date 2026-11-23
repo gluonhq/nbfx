@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.breadcrumbs;
+package org.netbeans.spi.nbfx.editor;
 
+import org.netbeans.api.nbfx.editor.BreadcrumbsElements;
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;

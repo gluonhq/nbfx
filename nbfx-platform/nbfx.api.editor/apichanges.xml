@@ -26,6 +26,32 @@
         <apidef name="netbeansfx_editor">NetBeansFX Editor API</apidef>
     </apidefs>
     <changes>
+        <change id="editor.language.spi">
+            <api name="netbeansfx_editor"/>
+            <summary>The language decoration, lex, breadcrumb and completion SPI.</summary>
+            <version major="1" minor="2"/>
+            <date day="23" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Moves the language decoration/lex SPI out of the editor implementation:
+                decoration values, source contexts, the decorator factory/base, the lex processor
+                base and the breadcrumb/completion helpers. The host-facing control surface and
+                the implementor contract are still being separated; the SPI is devel until W2b.
+            </description>
+            <class package="org.netbeans.api.nbfx.editor" name="BreadcrumbsElements"/>
+            <class package="org.netbeans.api.nbfx.editor" name="LineDecoration"/>
+            <class package="org.netbeans.api.nbfx.editor" name="MarkedDecoration"/>
+            <class package="org.netbeans.api.nbfx.editor" name="SourceContext"/>
+            <class package="org.netbeans.api.nbfx.editor" name="SourceUtils"/>
+            <class package="org.netbeans.api.nbfx.editor" name="TextPosResult"/>
+            <class package="org.netbeans.api.nbfx.editor" name="TokenCategory"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="BaseLexDecorationProcessor"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="BaseSyntaxDecorator"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="CachingBreadcrumbsProvider"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="CompletionImportSupport"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="SyntaxDecoratorFactory"/>
+        </change>
         <change id="file.types.editor">
             <api name="netbeansfx_editor"/>
             <summary>The file type and file icon contracts are part of the editor API.</summary>
@@ -40,8 +66,8 @@
                 is incompatible for consumers of that package; the new package is the supported
                 location.
             </description>
-            <class package="org.netbeans.api.nbfx.editor" name="FileTypes"/>
             <class package="org.netbeans.api.nbfx.editor" name="FileIconProvider"/>
+            <class package="org.netbeans.api.nbfx.editor" name="FileTypes"/>
         </change>
     </changes>
     <htmlcontents>

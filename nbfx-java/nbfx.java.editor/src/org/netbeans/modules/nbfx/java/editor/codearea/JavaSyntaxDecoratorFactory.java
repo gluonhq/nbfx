@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.java.editor.codearea;
 
-import org.netbeans.modules.nbfx.platform.editor.codearea.BaseSyntaxDecorator;
-import org.netbeans.modules.nbfx.platform.editor.codearea.SyntaxDecoratorFactory;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
+import org.netbeans.spi.nbfx.editor.SyntaxDecoratorFactory;
 import org.openide.filesystems.FileObject;
 import org.openide.util.lookup.ServiceProvider;
 

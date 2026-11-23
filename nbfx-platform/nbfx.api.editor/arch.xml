@@ -32,13 +32,20 @@
 
     <answer id="arch-what">
         <p>
-            The <b>NBFX API</b> provides integration between NetBeans and JavaFX tools.
+            The <b>NBFX Editor API</b> defines the editor document/service contract, completion,
+            breadcrumbs and annotation SPIs, the file type/icon contracts, and the language
+            decoration/lex SPI (<code>org.netbeans.spi.nbfx.editor</code>). The language SPI is
+            <b>devel</b> until W2b; the host-facing control surface and the implementor contract are
+            still being separated. The SPI is typed on the JavaFX rich-text and lexer APIs; both are
+            declared module dependencies.
         </p>
     </answer>
     
     <answer id="arch-overall">
         <p>
-            Provides interfaces for project configuration, editor completion, and UI binding.
+            Language modules contribute decorators, lex processors and breadcrumb/completion
+            helpers through the SPI; the concrete code area, search and breadcrumb widgets stay in
+            <code>nbfx.platform.editor</code>.
         </p>
     </answer>
     
@@ -72,7 +79,7 @@
         </question>
 -->
  <answer id="arch-quality">
-        <p>Unit tests run on the nbfx module harness (nbjunit); the check-purity.xml guardrail fails on Swing/AWT imports and denylisted dependencies; per-phase smoke tests (open/edit/build/run) cover the UI.</p>
+        <p>Unit tests run on the nbfx module harness (nbjunit); the check-purity.xml guardrail fails on Swing/AWT imports and denylisted dependencies; per-phase smoke tests (open/edit/build/run) cover the UI. The language SPI is devel until W2b and is exercised by the Java/XML/CSS modules; a host/implementor boundary and a second-language conformance fixture are the freeze gate.</p>
     </answer>
 
 

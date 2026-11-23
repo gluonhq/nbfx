@@ -17,7 +17,7 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.ide.editor.css.breadcrumbs;
-import org.netbeans.modules.nbfx.platform.editor.breadcrumbs.BreadcrumbsElements;
+import org.netbeans.api.nbfx.editor.BreadcrumbsElements;
 
 import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
@@ -25,7 +25,7 @@ import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.SimpleBreadcrumbElement;
 import org.netbeans.api.nbfx.language.ElementModifiers;
 import org.netbeans.api.nbfx.language.SourceElementKind;
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
+import org.netbeans.api.nbfx.editor.SourceUtils;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;

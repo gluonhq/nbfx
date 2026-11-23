@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.breadcrumbs;
+package org.netbeans.api.nbfx.editor;
 
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 
@@ -30,7 +30,7 @@ import java.util.Optional;
 public final class BreadcrumbsElements {
 
     /** Labels longer than this are truncated with an ellipsis. */
-    static final int MAX_LABEL_LENGTH = 40;
+    private static final int MAX_LABEL_LENGTH = 40;
 
     private BreadcrumbsElements() {
     }

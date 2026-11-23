@@ -316,7 +316,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.project` | M | **partial — M1** | `ProjectRegistry`, `ProjectOpener`, `ProjectLifecycle`, `OpenProject`, `SourceRoot`, `@ProjectTypeRegistration`; the project-kind/build SPI still moves from `project.ui.api`, and `OpenProjects` remains the documented IDE-tier bridge |
 | `api.build` | M | **planned — M1** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
 | `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | **partial — contract M0; migration M1 (1.1)** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`, `FileTypes`, `FileIconProvider`; the language decoration/lex SPI still moves out of `platform.editor` |
+| `api.editor` | T2-FX | **partial — language SPI devel; migration M1 (1.2)** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`, `FileTypes`, `FileIconProvider`; the language decoration/lex SPI (`LineDecoration`, `MarkedDecoration`, `TokenCategory`, `SourceContext`, `TextPosResult`, `SourceUtils`, `BreadcrumbsElements`) and `org.netbeans.spi.nbfx.editor` (`BaseSyntaxDecorator`, `SyntaxDecoratorFactory`, `BaseLexDecorationProcessor`, `CachingBreadcrumbsProvider`, `CompletionImportSupport`) |
 | `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
 | `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, metadata-only `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, bundle-aware `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
 | `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
@@ -357,7 +357,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | Module | Purpose | Notes |
 |---|---|---|
 | `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** the `api.shell` contracts/SPI, `DefaultShellChrome`/`ToolBarHost`, `ShellMenuBar`/`ShellToolBars`, `ShellChromeProfile`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `ShellCommandsProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window and detached windows both use it and supply contributions; `ActionBars` has been removed. **M0 extraction landed (#186):** the API/SPI packages are `api.shell` (`org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`); `WindowPaneProvider` returns a `WindowPaneHost` created by `WindowPaneContext.createHost`; `PaneRole` and `WindowManager` are public; `NbfxTabPane` and the implementation root are internal, friend-only for `ide.workbench`, `project.ui` and `java.navigation` during the transition; the stable window facade is `ShellWindow` |
-| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language** | landed; project/Java-vocabulary coupling removed. **M0/M1 extraction:** the language decoration/lex SPI moves to `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; the language/IDE consumers migrate off implementation packages |
+| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language**; **T0**, no public package | landed; project/Java-vocabulary coupling removed. **M0 extraction landed (#189):** the language decoration/lex SPI is `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; consumers compile against the API/SPI only |
 | `platform.workspace` | docking model + FX docking view; **T0**, no public package | replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction landed (#187):** `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` are `api.views`; `WindowSystem`/`WindowSink`/`WindowState`/`AreaState`/`WindowSystemListener` are `api.shell`, with `DefaultWindowSystem` as the service implementation; `ViewStateStore` and the docking internals stay internal, friend-only for `platform.shell` and `ide.workbench` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
@@ -499,7 +499,7 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Favorites | `platform.favorites` | planned — M1 |
 | Templates | `platform.templates` + `api.templates` | planned — M1 |
 | Launcher | `platform.launcher` | landed; `AppProvider` + generic `GuiRunLevel`/`LauncherInstall` |
-| Editor core | `platform.editor` + `api.editor` | landed; **API extraction M0 start, M1 finish** (language SPI off the implementation packages) |
+| Editor core | `platform.editor` + `api.editor` | landed; the language SPI is on `api.editor`/`org.netbeans.spi.nbfx.editor`, `platform.editor` is T0, and consumer migration continues in M1 |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell starts without projects; `OpenProjects` is the documented bridge until M1 review |
 | File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` is dissolved (#188) |
 
@@ -916,9 +916,10 @@ M0 extension point into its API/SPI module and migrate consumers:
   `api.views`; `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` → `api.shell`,
   with `DefaultWindowSystem` as the service implementation; `platform.workspace` becomes a T0 module whose
   docking internals are friend-only for `platform.shell` and `ide.workbench`.
-- `refactor/editor-spi` — move the language decoration/lex SPI to `api.editor`/`org.netbeans.spi.nbfx.editor`;
-  migrate `java.editor`, `ide.editor.xml` and `ide.editor.css`; `CodeEditor`/`SearchSupport`/breadcrumb widgets
-  stay internal. The consumer migration may finish in M1.
+- `refactor/editor-spi` (**landed, #189**) — the language decoration/lex SPI is
+  `api.editor`/`org.netbeans.spi.nbfx.editor`; `java.editor`, `ide.editor.xml` and `ide.editor.css`
+  compile against the API/SPI only; `CodeEditor`/`SearchSupport`/breadcrumb widgets stay internal and
+  `platform.editor` becomes T0. The consumer migration may finish in M1.
 - `refactor/api-file-dissolve` (**landed, #188**) — `FileSelectionContext` → `api.views`;
   `FileTypes`/`FileIconProvider` → `api.editor` (1.1); the `api.file` module is dissolved.
 
@@ -1249,6 +1250,7 @@ add a row when a PR lands and update the affected chapter in the same change.
 | #186 | shell/window contract: new `api.shell` module with the shell API/SPI (`ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, chrome/branding/context/icon, window-environment capabilities, shutdown, `WindowPaneProvider`/`WindowPaneFactory`); `platform.shell` becomes a T0 implementation with friend-only packages; `WindowPaneProvider` returns `WindowPaneHost` and `NbfxTabPane`/`Docking`/`AppState` are internal | §6.1/§6.2, §11 W2a `refactor/shell-window-contract`, `appshell-chrome.md` §12/§15 |
 | #187 | workspace public surface: `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` in `api.views` (1.9); `WindowSystem`/`WindowState`/`AreaState`/`WindowSink`/`WindowSystemListener` in `api.shell` with `DefaultWindowSystem` as the service; `platform.workspace` becomes T0 and friend-only for `platform.shell`/`ide.workbench` | §6.1/§6.2, §11 W2a `refactor/workspace-public-surface`, `appshell-chrome.md` §13/§16 |
 | #188 | api.file dissolution: `FileSelectionContext` → `api.views`; `FileTypes`/`FileIconProvider` → `api.editor` (1.1); all consumers rewired and the `api.file` module removed | §6.1/§6.2, §11 W2a `refactor/api-file-dissolve` |
+| #189 | editor SPI: the decoration/source/lex/breadcrumb/completion SPI moves to `api.editor` 1.2 and `org.netbeans.spi.nbfx.editor`; consumers compile against it; `platform.editor` becomes T0 with the code area/search/breadcrumb widgets internal; the language SPI is devel until W2b | §6.1/§6.2, §11 W2a `refactor/editor-spi` |
 
 **Current status:** W0, W1, W1.5, W1.6, W1.7 and the W3a AppShell chrome/declarative composition are on
 `main`. The shell builds menus, tool bars, status and detached windows from registrations, composes the
@@ -1257,9 +1259,9 @@ supports light/dark/OS mode. `ActionBars` is gone.
 
 The **API split is complete at module level, not at contract level**. `api.dialogs`, `api.search` and
 `api.project` are `partial` until W2a/W2b moves the implementable SPI out of `platform.*`; the options,
-property/nodes, wizard, status, shell/window, workspace and api.file contracts landed with #162, #174, #181, #185, #186, #187 and #188.
-`platform.editor` still exports implementation packages. M0 is **2026-12** (dates unchanged) and now closes
-the M0 plugin contracts, the shell/window/workspace public surface, the API-only downstream fixture and the
-W2b governance for the complete modules; the editor SPI extraction remains. M1 (2027-03) carries AppShell
-services and IDE core. The next W2a slice is the editor SPI.
+property/nodes, wizard, status, shell/window, workspace, api.file and editor contracts landed with #162,
+#174, #181, #185, #186, #187, #188 and #189. All W2a contract slices have landed. M0 is **2026-12** (dates
+unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, the API-only
+downstream fixture and the W2b governance for the complete modules. M1 (2027-03) carries AppShell services
+and IDE core. W2b is next.
 The module and source counts are in [`figures.md`](figures.md), not in this table.

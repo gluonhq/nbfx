@@ -17,7 +17,7 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.java.editor.processor.semantics;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.SourceContext;
+import org.netbeans.api.nbfx.editor.SourceContext;
 
 import java.io.IOException;
 import java.util.Objects;

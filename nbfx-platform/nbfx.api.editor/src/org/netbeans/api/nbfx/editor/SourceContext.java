@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.processor.semantics;
+package org.netbeans.api.nbfx.editor;
 
-import org.netbeans.modules.nbfx.platform.editor.processor.SourceUtils;
 import java.util.Objects;
 import org.netbeans.api.lexer.Language;
 import org.netbeans.api.lexer.TokenHierarchy;

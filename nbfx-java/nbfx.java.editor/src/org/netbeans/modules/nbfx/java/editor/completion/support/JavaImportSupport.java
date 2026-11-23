@@ -18,7 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.editor.completion.support;
 
-import org.netbeans.modules.nbfx.platform.editor.completion.CompletionImportSupport;
+import org.netbeans.spi.nbfx.editor.CompletionImportSupport;
 import java.util.Optional;
 import org.openide.util.lookup.ServiceProvider;
 

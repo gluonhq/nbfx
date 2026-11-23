@@ -98,7 +98,7 @@ public final class JavaModuleInfoCompletionQueries {
     private static final String JAVA_LANG_PACKAGE = "java.lang";
 
     private static final ResourceBundle BUNDLE =
-            ResourceBundle.getBundle("org.netbeans.modules.nbfx.platform.editor.completion.CompletionUI");
+            ResourceBundle.getBundle("org.netbeans.modules.nbfx.java.editor.Bundle");
 
     /** File extension and base name identifying the Java source files that define packages. */
     private static final String JAVA_EXTENSION = "java";

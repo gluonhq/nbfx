@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.netbeans.modules.nbfx.platform.editor.decoration;
+package org.netbeans.api.nbfx.editor;
 
 import jfx.incubator.scene.control.richtext.model.RichParagraph;
 

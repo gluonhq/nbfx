@@ -17,12 +17,12 @@
  * under the License.
  */
 package org.netbeans.modules.nbfx.ide.editor.xml.processor.lex;
-import org.netbeans.modules.nbfx.platform.editor.processor.lex.BaseLexDecorationProcessor;
+import org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor;
 
-import org.netbeans.modules.nbfx.platform.editor.decoration.LineDecoration;
-import org.netbeans.modules.nbfx.platform.editor.decoration.TokenCategory;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.SourceContext;
-import org.netbeans.modules.nbfx.platform.editor.processor.semantics.TextPosResult;
+import org.netbeans.api.nbfx.editor.LineDecoration;
+import org.netbeans.api.nbfx.editor.TokenCategory;
+import org.netbeans.api.nbfx.editor.SourceContext;
+import org.netbeans.api.nbfx.editor.TextPosResult;
 import jfx.incubator.scene.control.richtext.TextPos;
 import org.netbeans.api.lexer.Token;
 import org.netbeans.api.lexer.TokenSequence;

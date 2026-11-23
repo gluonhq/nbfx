@@ -50,6 +50,7 @@ import jfx.incubator.scene.control.richtext.SelectionSegment;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
 import jfx.incubator.scene.control.richtext.model.StyledTextModel;
+import org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 
