@@ -19,7 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.concurrent.atomic.AtomicInteger;
-import org.netbeans.modules.nbfx.platform.shell.api.OnUiReady;
+import org.netbeans.api.nbfx.shell.OnUiReady;
 
 /**
  * Records UI-ready dispatch in the test layer.

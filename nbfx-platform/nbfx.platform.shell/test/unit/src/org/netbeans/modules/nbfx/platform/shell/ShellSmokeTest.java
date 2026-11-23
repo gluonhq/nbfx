@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.LinkedHashMap;
@@ -29,7 +30,6 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.junit.Test;
 

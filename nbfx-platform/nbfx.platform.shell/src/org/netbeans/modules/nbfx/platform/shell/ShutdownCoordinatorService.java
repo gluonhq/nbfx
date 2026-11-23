@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownCoordinator;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownImpact;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownParticipant;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownSelection;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownCoordinator;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownParticipant;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownSelection;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 

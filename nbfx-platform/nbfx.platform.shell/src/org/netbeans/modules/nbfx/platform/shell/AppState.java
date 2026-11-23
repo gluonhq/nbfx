@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
@@ -401,7 +402,7 @@ public final class AppState {
     }
 
     /**
-     * A persisted pane: its {@link org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole role},
+     * A persisted pane: its {@link org.netbeans.api.nbfx.shell.PaneRole role},
      * its bounds (only meaningful, and only valid, for a detached pane), its tabs in order, the
      * index of the selected one ({@code -1} when the pane is empty) and, for a pane minimized to a
      * sliding side of the main window, how it is {@linkplain Minimized minimized} ({@code null} for
@@ -409,7 +410,7 @@ public final class AppState {
      * <p>
      * Tabs of both kinds may appear in any pane, since the user can drag them freely between panes.
      */
-    public record PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
+    public record PaneLayout(PaneRole role, double x, double y, double width, double height,
                       List<TabEntry> tabs, int activeIndex, Minimized minimized, PaneKind kind) {
 
         public PaneLayout {
@@ -417,19 +418,19 @@ public final class AppState {
         }
 
         /** A pane that is showing, or detached: not minimized; of the kind its role implies. */
-        public PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
+        public PaneLayout(PaneRole role, double x, double y, double width, double height,
                           List<TabEntry> tabs, int activeIndex) {
             this(role, x, y, width, height, tabs, activeIndex, null, null);
         }
 
         /** A pane of the kind its role implies. */
-        public PaneLayout(NbfxTabPane.PaneRole role, double x, double y, double width, double height,
+        public PaneLayout(PaneRole role, double x, double y, double width, double height,
                           List<TabEntry> tabs, int activeIndex, Minimized minimized) {
             this(role, x, y, width, height, tabs, activeIndex, minimized, null);
         }
 
         /** The kind a pane of {@code role} is unless the layout says otherwise: the editor pane an editor pane. */
-        static PaneKind defaultKind(NbfxTabPane.PaneRole role) {
+        static PaneKind defaultKind(PaneRole role) {
             return role.defaultKind();
         }
 
@@ -484,7 +485,7 @@ public final class AppState {
             }
         }
 
-        static PaneLayout docked(NbfxTabPane.PaneRole role, List<TabEntry> tabs, int activeIndex) {
+        static PaneLayout docked(PaneRole role, List<TabEntry> tabs, int activeIndex) {
             return new PaneLayout(role, Double.NaN, Double.NaN, Double.NaN, Double.NaN,
                     tabs, activeIndex);
         }
@@ -554,7 +555,7 @@ public final class AppState {
         /** The panes of the dock area (neither detached nor minimized), in the order they were persisted. */
         public List<PaneLayout> dockedPanes() {
             return panes.stream()
-                    .filter(pane -> pane.role() != NbfxTabPane.PaneRole.DETACHED && !pane.isMinimized())
+                    .filter(pane -> pane.role() != PaneRole.DETACHED && !pane.isMinimized())
                     .toList();
         }
 
@@ -567,7 +568,7 @@ public final class AppState {
         public List<PaneLayout> leafPanes(DockTree tree) {
             List<PaneLayout> docked = dockedPanes();
             List<PaneLayout> spare = new ArrayList<>(
-                    docked.stream().filter(pane -> pane.role() == NbfxTabPane.PaneRole.DOCKED).toList());
+                    docked.stream().filter(pane -> pane.role() == PaneRole.DOCKED).toList());
             List<PaneLayout> result = new ArrayList<>();
             for (DockTree.Leaf leaf : tree.leaves()) {
                 PaneLayout pane;
@@ -824,7 +825,7 @@ public final class AppState {
         if (!roleName.matches("\\w+")) {
             return null;
         }
-        NbfxTabPane.PaneRole role = NbfxTabPane.PaneRole.of(roleName);
+        PaneRole role = PaneRole.of(roleName);
         PaneKind kind = roleAndKind.length > 1 ? parseEnum(PaneKind.class, roleAndKind[1]) : null;
         PaneLayout.Minimized minimized = parseMinimized(role, head);
         List<TabEntry> tabs = new ArrayList<>();
@@ -850,8 +851,8 @@ public final class AppState {
      * optional), or {@code null} for a pane that is not minimized - the editor and detached panes
      * never are.
      */
-    private static PaneLayout.Minimized parseMinimized(NbfxTabPane.PaneRole role, String[] head) {
-        if (head.length < 3 || role.isMain() || role == NbfxTabPane.PaneRole.DETACHED) {
+    private static PaneLayout.Minimized parseMinimized(PaneRole role, String[] head) {
+        if (head.length < 3 || role.isMain() || role == PaneRole.DETACHED) {
             return null;
         }
         Side side = parseEnum(Side.class, head[1]);

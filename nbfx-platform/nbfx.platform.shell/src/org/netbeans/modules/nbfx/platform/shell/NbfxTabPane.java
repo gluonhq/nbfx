@@ -42,8 +42,10 @@ import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.file.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellBranding;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.ShellBranding;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
@@ -108,96 +110,9 @@ import org.openide.util.NbBundle;
  * <p>Files dropped on a pane - dragged from a navigator tree or from another application - are
  * opened in an editor tab, wherever in the pane they land.
  */
-public final class NbfxTabPane extends TabPane {
+public final class NbfxTabPane extends TabPane implements WindowPaneHost {
 
     private static final Logger LOG = Logger.getLogger(NbfxTabPane.class.getName());
-
-    /**
-     * The role a pane plays in the window layout. Tabs of either kind (editor or navigator) may be
-     * dragged into any pane, so the role describes the <em>pane</em>, never the tabs it holds. It is
-     * the only stable identity a pane has and is what layout persistence is keyed on.
-     * <p>
-     * The built-in roles are canonical singletons. Product roles are obtained with {@link #of(String)}
-     * and compared by their stable name, so a persisted layout survives a module reload.
-     */
-    public static final class PaneRole {
-
-        /** The docked navigator pane in the main window; exactly one exists. */
-        public static final PaneRole NAVIGATOR = new PaneRole("NAVIGATOR", true);
-        /** The docked editor pane in the main window; exactly one exists. */
-        public static final PaneRole MAIN = new PaneRole("MAIN", true);
-        /** A pane docked in the main window next to the permanent panes; exists only while it holds a tab. */
-        public static final PaneRole DOCKED = new PaneRole("DOCKED", false);
-        /** A pane living in its own detached window; any number may exist. */
-        public static final PaneRole DETACHED = new PaneRole("DETACHED", false);
-        /**
-         * The pane a tab of a minimized pane slides in to (see {@link SlidingArea}); exactly one
-         * exists, holding the slid-in tab on loan from its group, and it is never persisted.
-         */
-        public static final PaneRole SLIDE = new PaneRole("SLIDE", false);
-
-        private final String name;
-        private final boolean permanent;
-
-        private PaneRole(String name, boolean permanent) {
-            this.name = name;
-            this.permanent = permanent;
-        }
-
-        /** The stable name used in persisted layouts and layer roles. */
-        public String name() {
-            return name;
-        }
-
-        /** Whether a pane with this role exists for the whole session, even empty. */
-        public boolean isPermanent() {
-            return permanent;
-        }
-
-        /** Whether this is the main editor pane. */
-        public boolean isMain() {
-            return this == MAIN;
-        }
-
-        /** The kind a new pane with this role has: the main pane edits, every other hosts views. */
-        public PaneKind defaultKind() {
-            return isMain() ? PaneKind.EDITOR : PaneKind.VIEW;
-        }
-
-        /**
-         * Resolves a stable role name; unknown names become product roles.
-         *
-         * @throws IllegalArgumentException if {@code name} is null or not a word
-         */
-        public static PaneRole of(String name) {
-            if (name == null || !name.matches("\\w+")) {
-                throw new IllegalArgumentException("Invalid pane role name: " + name);
-            }
-            return switch (name) {
-                case "MAIN" -> MAIN;
-                case "NAVIGATOR" -> NAVIGATOR;
-                case "DOCKED" -> DOCKED;
-                case "DETACHED" -> DETACHED;
-                case "SLIDE" -> SLIDE;
-                default -> new PaneRole(name, true);
-            };
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            return other instanceof PaneRole role && name.equals(role.name);
-        }
-
-        @Override
-        public int hashCode() {
-            return name.hashCode();
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 
     /** Custom drag board data format used to identify internal tab drags. */
     static final DataFormat TAB_DATA_FORMAT = new DataFormat("application/x-nbfx-tab-id");
@@ -410,6 +325,16 @@ public final class NbfxTabPane extends TabPane {
         updateHeaderButton();
     }
 
+    @Override
+    public PaneRole role() {
+        return role;
+    }
+
+    @Override
+    public TabPane pane() {
+        return this;
+    }
+
     /** The kind of {@code pane}: a view pane unless it is an {@code NbfxTabPane} that says otherwise. */
     public static PaneKind kindOf(TabPane pane) {
         return pane instanceof NbfxTabPane nbfx ? nbfx.kind : PaneKind.VIEW;
@@ -579,13 +504,22 @@ public final class NbfxTabPane extends TabPane {
      * change, so nothing else would move the caret there. A tab of a minimized pane slides in.
      */
     public static void selectTabAndMoveToFront(Tab tab) {
-        Platform.runLater(() -> {
-            if (tab.getTabPane() == null) {
-                return;
-            }
-            selectTabAndMoveToFront(tab.getTabPane(), tab);
-            focusDocument(tab);
-        });
+        if (tab == null) {
+            return;
+        }
+        if (Platform.isFxApplicationThread()) {
+            selectTabAndMoveToFrontNow(tab);
+        } else {
+            Platform.runLater(() -> selectTabAndMoveToFrontNow(tab));
+        }
+    }
+
+    private static void selectTabAndMoveToFrontNow(Tab tab) {
+        if (tab.getTabPane() == null) {
+            return;
+        }
+        selectTabAndMoveToFront(tab.getTabPane(), tab);
+        focusDocument(tab);
     }
 
     /** The title shown in {@code tab}'s header: its label graphic's text, or its plain text. */

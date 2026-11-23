@@ -22,11 +22,11 @@ nbfx-platform/nbfx.api.editor
 nbfx-platform/nbfx.api.layer
 nbfx-platform/nbfx.api.file
 nbfx-platform/nbfx.api.status
+nbfx-platform/nbfx.api.shell
 nbfx-platform/nbfx.api.wizard
 nbfx-platform/nbfx.api.property
 nbfx-platform/nbfx.api.nodes
 nbfx-platform/nbfx.api.options
 nbfx-platform/nbfx.api.output
 nbfx-ide/nbfx.api.project
-nbfx-platform/nbfx.platform.shell
 nbfx-platform/nbfx.platform.theme

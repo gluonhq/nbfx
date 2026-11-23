@@ -64,6 +64,7 @@ nb.cluster.nbfx-platform=\
         nbfx.api.progress,\
         nbfx.api.property,\
         nbfx.api.search,\
+        nbfx.api.shell,\
         nbfx.api.status,\
         nbfx.api.views,\
         nbfx.api.wizard,\

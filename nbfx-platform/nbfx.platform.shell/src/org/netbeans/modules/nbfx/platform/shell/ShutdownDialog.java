@@ -41,8 +41,8 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
 import javafx.util.StringConverter;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownImpact;
-import org.netbeans.modules.nbfx.platform.shell.api.shutdown.ShutdownSelection;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact;
+import org.netbeans.api.nbfx.shell.shutdown.ShutdownSelection;
 
 /** Generic impact-report dialog used by the shutdown coordinator. */
 final class ShutdownDialog {

@@ -342,7 +342,7 @@ Dependency rule: `platform.shell` may use `api.editor` internally for editor sta
 
 API/SPI packages:
 
-- If `ShellChrome`, `ShellChromeProvider`, `ShellContext`, `DynamicMenu`, `@DynamicMenuRegistration` are published, put them in a dedicated exported package (`platform.shell.spi` or `api.shell`), not mixed with `Docking`, `NbfxTabPane`, `AppState`.
+- If `ShellChrome`, `ShellChromeProvider`, `ShellContext`, `DynamicMenu`, `@DynamicMenuRegistration` are published, put them in a dedicated exported package (`api.shell`), not mixed with `Docking`, `NbfxTabPane`, `AppState`.
 - If they are internal, keep them in a non-exported package and do not publish.
 
 ---
@@ -567,7 +567,7 @@ Implemented after the review:
 - dynamic menu sections update only their own range; static item identity is preserved;
 - `DynamicMenu` lives with `@DynamicMenuRegistration`; the processor validates the factory type and
   ids; display-name submenus, empty-section handling and stable factory ids are implemented;
-- the product contract/SPI lives in `platform.shell.api`; `ToolBarHost` replaces concrete
+- the product contract/SPI lives in `api.shell`; `ToolBarHost` replaces concrete
   `DefaultShellChrome` checks;
 - branding selection is priority-based, deterministic and disposable;
 - window-environment contributions are stateless and resolved once per environment;
@@ -591,15 +591,23 @@ Detached chrome is now generic:
   generic session-restorer hook; legacy migration also lives in `ProjectState`;
 - `ShellWindow` is the stable window facade.
 
+Landed in the M0 shell/window extraction (#186):
+
+- the API/SPI packages are `org.netbeans.api.nbfx.shell`, `org.netbeans.api.nbfx.shell.shutdown` and
+  `org.netbeans.spi.nbfx.shell`, in the `api.shell` module;
+- `WindowPaneProvider` returns a `WindowPaneHost` from `WindowPaneContext.createHost` (`WindowPaneFactory`); `PaneRole` and `WindowManager` are public;
+  `NbfxTabPane`, `Docking`, `AppState` and the other implementation services are internal;
+- `platform.shell` has no public package: its implementation package is a named friend of
+  `ide.workbench`, `project.ui` and `java.navigation` during the transition;
+- `NavigatorPaneProvider` uses `WindowPaneHost`/`WindowManager`, and `JavaFXLaunchApp` uses
+  `WindowManager` for the product-facing find/select/attach/view-id operations;
+- `api.shell` has `arch.xml`, `apichanges.xml` and the API snapshot; signature tests remain a W2 item.
+
 Still outstanding:
 
-- the shell API/SPI packages are still under the implementation root (`org.netbeans.modules.nbfx.platform.shell.api`/
-  `.spi`); M0 moves them to `org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`;
-- `WindowPaneProvider` returns `NbfxTabPane`; M0 introduces `WindowPaneHost`/`WindowPaneFactory` so a provider
-  never constructs the concrete tab pane, and `NbfxTabPane` becomes internal;
-- `JavaFXLaunchApp`/`NavigatorPaneProvider` still use `NbfxTabPane` statics; M0 moves those operations to
-  `WindowManager`/`ViewManager`/`ShellWindow`, with friend packages only as the transition;
-- apichanges/signature-test coverage for the new API/SPI remains a W2 item;
+- `JavaFXLaunchApp` still uses `NbfxTabPane`/`Docking` statics for editor-specific and docking-only
+  operations (`documentOf`, `editorDockHome`, `redockAll`, the reveal/project-switch shortcuts) through its
+  friend package; those widen with the workspace public surface;
 - `SELECT_IN_PROJECTS`/`SELECT_IN_FILES` and `RESET_WINDOWS` still depend on workbench-owned
   navigator/dock internals.
 
@@ -629,7 +637,7 @@ Implemented in this increment:
 Still imperative:
 
 - `JavaFXLaunchApp.createPanes()`/`createNavigator()` decide which permanent panes exist;
-- `NbfxTabPane.PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
+- `PaneRole` still fixes the permanent roles to `MAIN` and `NAVIGATOR`;
 - custom permanent panes need a role registry before a product can declare a different window
   shape.
 
@@ -736,7 +744,7 @@ Implemented:
 
 - `WindowPaneProvider` + `ShellApplication.createPane(WindowPane, WindowPaneContext)` hook;
 - `WindowPane`, `WindowPaneProvider` and `WindowPaneContext` live in the exported
-  `org.netbeans.modules.nbfx.platform.shell.spi` package, recorded in `arch.xml` and the shell
+  `org.netbeans.spi.nbfx.shell` package, recorded in `arch.xml` and the shell
   `apichanges.xml`;
 - `WindowPaneContext` carries the shell lookup, the registered panes and the shell window;
 - providers are resolved once per shell and the composition/area are process-wide;
@@ -756,9 +764,8 @@ Implemented:
   longer re-read `WindowPaneRegistry` once the shell has started;
 - the one-shell-per-JVM invariant is documented on `ShellApplication` and `Docking`; restarting a
   shell in the same JVM would reuse the static docking area and pane registry.
-- `WindowComposition` stays internal; `NbfxTabPane`/`PaneRole` remain the pane contract only until the M0
-  shell-window extraction replaces `WindowPaneProvider`'s return type with `WindowPaneHost` and makes the
-  concrete tab pane internal;
+- `WindowComposition` stays internal; `PaneRole`/`WindowPaneHost` are the public pane contract, while the
+  concrete tab pane remains internal (the M0 shell-window extraction landed in #186);
 - providers may release their pane through `disposePane`, which the shell calls on stop;
 - `ShellApplication.start()` builds its panes from `WindowComposition` and passes the composition
   to `Docking.create`;
@@ -783,8 +790,8 @@ Implemented:
 
 Remaining follow-ups:
 
-- a custom pane instance is still a `NbfxTabPane`; the M0 `WindowPaneHost` contract is the boundary, and a
-  fully custom pane node type remains a wider window abstraction;
+- a custom pane instance is still the shell's tab pane wrapped as a `WindowPaneHost`; the host contract is
+  the boundary, and a fully custom pane node type remains a wider window abstraction;
 - on-demand, role-stable panes would need a new registration lifecycle; they are out of scope for the
   permanent-pane model;
 - a non-tab pane abstraction is out of scope.

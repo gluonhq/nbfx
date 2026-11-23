@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.List;
 import org.junit.Test;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;

@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellWindowProvider;
+import org.netbeans.api.nbfx.shell.ShellWindow;
+import org.netbeans.api.nbfx.shell.ShellWindowProvider;
 import org.openide.util.lookup.ServiceProvider;
 
 /**

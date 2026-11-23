@@ -23,9 +23,10 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import org.junit.Test;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellWindow;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellWindowProvider;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellWindow;
+import org.netbeans.api.nbfx.shell.ShellWindowProvider;
+import org.netbeans.api.nbfx.shell.WindowManager;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.Lookups;
 
@@ -56,6 +57,11 @@ public class ShellWindowProviderTest {
 
         @Override
         public Node slidingArea() {
+            return null;
+        }
+
+        @Override
+        public WindowManager windowManager() {
             return null;
         }
     }

@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.workbench;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellContext;
 
 import javafx.collections.FXCollections;
 import javafx.beans.property.SimpleObjectProperty;
@@ -29,11 +29,12 @@ import org.netbeans.modules.nbfx.platform.shell.FileSelectionContextService;
 import org.netbeans.modules.nbfx.platform.shell.AppState;
 import org.netbeans.modules.nbfx.platform.shell.CloseConfirmation;
 import org.netbeans.modules.nbfx.platform.shell.DefaultShellChrome;
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.WindowPaneHost;
 import org.netbeans.modules.nbfx.platform.shell.SessionRestorer;
 import org.netbeans.modules.nbfx.platform.shell.ShellApplication;
 import org.netbeans.modules.nbfx.platform.shell.WindowComposition;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.modules.nbfx.project.context.ProjectEditorScope;
 import org.netbeans.modules.nbfx.platform.shell.Docking;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
@@ -157,7 +158,8 @@ public class JavaFXLaunchApp extends ShellApplication {
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon),
                 new NavigatorPaneProvider(getSessionRestorer(),
-                        providers == null ? List.of() : providers, this::setNavigatorPane)),
+                        providers == null ? List.of() : providers, this::setNavigatorPane,
+                        windowManager())),
                 super.shellLookup());
     }
 
@@ -315,7 +317,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     @Override
     protected Tab viewTabFor(String viewId) {
-        return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
+        return windowManager().findViewTab(viewId).orElseGet(() -> {
             for (NavigatorView provider : providers) {
                 if (provider.getId().equals(viewId)) {
                     return createNavigatorTab(provider);
@@ -396,10 +398,10 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (providerId == null) {
             return;
         }
-        for (TabPane pane : NbfxTabPane.tabPanes()) {
-            for (Tab tab : pane.getTabs()) {
-                if (providerId.equals(NbfxTabPane.viewId(tab))) {
-                    NbfxTabPane.selectTabAndMoveToFront(tab);
+        for (WindowPaneHost pane : windowManager().panes()) {
+            for (Tab tab : pane.pane().getTabs()) {
+                if (providerId.equals(windowManager().viewId(tab))) {
+                    windowManager().select(tab);
                     Node content = tab.getContent();
                     if (focusTree && content != null) {
                         Platform.runLater(content::requestFocus);
@@ -415,7 +417,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     private void reopenNavigatorTab(String providerId) {
         Tab tab = viewTabFor(providerId);
         if (tab != null) {
-            NbfxTabPane.attachTab(navigatorPane, tab);
+            windowManager().attach(navigatorPane, tab);
             navigatorPane.getSelectionModel().select(tab);
         }
     }
@@ -651,7 +653,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     private TabPane homeOfView(Tab tab, ViewCatalog catalog) {
-        String id = NbfxTabPane.viewId(tab);
+        String id = windowManager().viewId(tab);
         if (id == null) {
             return navigatorPane;
         }
@@ -1165,7 +1167,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             return null;
         }
         Tab selected = navigatorPane == null ? null : navigatorPane.getSelectionModel().getSelectedItem();
-        String id = selected == null ? null : NbfxTabPane.viewId(selected);
+        String id = selected == null ? null : windowManager().viewId(selected);
         if (id != null) {
             for (NavigatorView provider : list) {
                 if (id.equals(provider.getId())) {

@@ -18,9 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChromeProfile;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellContext;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellIconProvider;
+import org.netbeans.api.nbfx.shell.ShellChromeProfile;
+import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellIconProvider;
 
 import java.util.ArrayList;
 import java.util.Comparator;

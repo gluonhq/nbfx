@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.util.LinkedHashMap;
@@ -27,8 +28,7 @@ import org.junit.Test;
 import org.netbeans.api.nbfx.views.DockLocation;
 import org.netbeans.api.nbfx.views.ViewArea;
 import org.netbeans.api.nbfx.views.PaneKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
-import org.netbeans.modules.nbfx.platform.shell.spi.WindowPane;
+import org.netbeans.spi.nbfx.shell.WindowPane;
 
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;

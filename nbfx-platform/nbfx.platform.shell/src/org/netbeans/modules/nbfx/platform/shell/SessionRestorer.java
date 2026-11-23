@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 
 
+import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea.Anchor;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
@@ -40,7 +41,6 @@ import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
 import org.netbeans.modules.nbfx.platform.shell.AppState.SplitEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
-import org.netbeans.modules.nbfx.platform.shell.NbfxTabPane.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.ViewRegistry;
 import org.netbeans.modules.nbfx.platform.workspace.ViewSpec;
 import java.io.File;

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<?xml-stylesheet type="text/xsl" href="../../nbbuild/javadoctools/apichanges.xsl"?>
+<!DOCTYPE apichanges PUBLIC "-//NetBeans//DTD API changes list 1.0//EN" "../../nbbuild/javadoctools/apichanges.dtd">
+<apichanges>
+    <apidefs>
+        <apidef name="netbeansfx_shell">NetBeansFX Shell API</apidef>
+    </apidefs>
+    <changes>
+        <change id="shell.extraction">
+            <api name="netbeansfx_shell"/>
+            <summary>The product-facing shell contract, extracted from the shell implementation.</summary>
+            <version major="1" minor="0"/>
+            <date day="22" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds the shell window facade (<code>ShellWindow</code>, <code>WindowManager</code>,
+                <code>PaneRole</code>, <code>WindowPaneHost</code>), the chrome and branding contracts,
+                the UI-ready hook, the window-environment capabilities and the shutdown contract, plus
+                the <code>WindowPaneProvider</code> SPI and the <code>WindowPaneFactory</code> that
+                lets a provider obtain a shell-owned <code>WindowPaneHost</code>. The implementation stays in
+                <code>nbfx.platform.shell</code>, whose packages are friend-only for the built-in
+                product modules.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="DetachedBarsContext"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DetachedBarsProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="NavigatorRevealState"/>
+            <class package="org.netbeans.api.nbfx.shell" name="OnUiReady"/>
+            <class package="org.netbeans.api.nbfx.shell" name="PaneRole"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ProjectSwitcher"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellBranding"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellChrome"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellChromeProfile"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellChromeProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellCommandResolver"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContext"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellIconProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellWindow"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellWindowProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="TabHomeResolver"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowEnvironmentContribution"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowPaneHost"/>
+            <class package="org.netbeans.api.nbfx.shell.shutdown" name="ShutdownCoordinator"/>
+            <class package="org.netbeans.api.nbfx.shell.shutdown" name="ShutdownImpact"/>
+            <class package="org.netbeans.api.nbfx.shell.shutdown" name="ShutdownParticipant"/>
+            <class package="org.netbeans.api.nbfx.shell.shutdown" name="ShutdownSelection"/>
+            <class package="org.netbeans.spi.nbfx.shell" name="WindowPane"/>
+            <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneContext"/>
+            <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneFactory"/>
+            <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneProvider"/>
+        </change>
+    </changes>
+    <htmlcontents>
+        <head>
+            <title>Change History for the NetBeansFX Shell API</title>
+        </head>
+        <body>
+            <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
+            <h1>Introduction</h1>
+            <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Shell API</a>.</p>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.shell"/>
+            <hr/><p>@FOOTER@</p>
+        </body>
+    </htmlcontents>
+</apichanges>

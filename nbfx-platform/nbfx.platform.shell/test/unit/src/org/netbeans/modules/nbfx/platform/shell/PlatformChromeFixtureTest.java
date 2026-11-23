@@ -29,7 +29,7 @@ import javafx.stage.Stage;
 import org.junit.After;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
-import org.netbeans.modules.nbfx.platform.shell.api.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellChrome;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
 import org.openide.util.Lookup;
 

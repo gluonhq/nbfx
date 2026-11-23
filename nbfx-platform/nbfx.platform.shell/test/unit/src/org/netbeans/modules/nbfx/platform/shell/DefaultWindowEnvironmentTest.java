@@ -18,8 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
-import org.netbeans.modules.nbfx.platform.shell.api.DetachedBarsContext;
-import org.netbeans.modules.nbfx.platform.shell.api.WindowEnvironmentContribution;
+import org.netbeans.api.nbfx.shell.DetachedBarsContext;
+import org.netbeans.api.nbfx.shell.WindowEnvironmentContribution;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
