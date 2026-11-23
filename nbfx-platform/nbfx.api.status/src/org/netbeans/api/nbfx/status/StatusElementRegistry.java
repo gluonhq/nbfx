@@ -21,18 +21,20 @@ package org.netbeans.api.nbfx.status;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.netbeans.api.nbfx.layer.LayerEntry;
 import org.netbeans.api.nbfx.layer.LayerInstances;
 import org.netbeans.api.nbfx.layer.LayerPaths;
+import org.netbeans.api.nbfx.layer.LayerRegistration;
 import org.openide.util.Lookup;
 
 /**
  * Discovers the {@link StatusElement}s registered under {@code NbFx/Status} in the module layer.
  * <p>
  * The layer entry is authoritative for the id, alignment and position; the element supplies the
- * node and lifecycle. The registered attributes take precedence over the values reported by the
- * element itself, so placement is declared with {@link StatusRegistration} rather than in code.
+ * node and lifecycle. Discovery ({@link #discover()}) reads metadata only and never creates an
+ * element. {@link #load()} instantiates and initializes the elements for one status bar; a new call
+ * creates fresh elements, so each window can own and dispose its own set.
  *
  * @since 1.2
  */
@@ -44,66 +46,75 @@ public final class StatusElementRegistry {
     }
 
     /**
-     * Discovers and orders all registered status elements. Reads the configuration filesystem, so it
-     * must be called once the platform is initialized; it does not touch the JavaFX toolkit.
+     * Discovers and orders all registered status elements without creating them. Reads the
+     * configuration filesystem, so it must be called once the platform is initialized; it does not
+     * touch the JavaFX toolkit.
      *
-     * @return the elements, ordered by slot, position and id
+     * @return the registrations, ordered by slot, position and id
      */
     public static List<StatusElementSpec> discover() {
-        return discover(List.of(), Lookup.getDefault());
+        return read(LayerInstances.registrations(LayerPaths.STATUS, StatusElement.class));
     }
 
     /**
-     * Discovers the registered status elements with {@code services} passed to each element before
-     * the status bar creates its node.
+     * Instantiates and orders all registered status elements for one shell, initializing each with
+     * the global lookup.
      *
-     * @param services the shell lookup
      * @return the elements, ordered by slot, position and id
      */
-    public static List<StatusElementSpec> discover(Lookup services) {
-        return discover(List.of(), services);
+    public static List<StatusElementEntry> load() {
+        return load(List.of(), Lookup.getDefault());
     }
 
     /**
-     * Discovers the registered status elements and merges {@code additional} (for example elements a
-     * window creates programmatically and keeps a reference to) into the ordered result.
+     * Instantiates and orders all registered status elements for one shell, initializing each with
+     * {@code services}.
      *
-     * @param additional extra elements to include
-     * @return all elements, ordered by slot, position and id
+     * @param services the shell lookup passed to each element
+     * @return the elements, ordered by slot, position and id
      */
-    public static List<StatusElementSpec> discover(List<StatusElement> additional) {
-        return discover(additional, Lookup.getDefault());
+    public static List<StatusElementEntry> load(Lookup services) {
+        return load(List.of(), services);
     }
 
     /**
-     * Discovers the registered status elements and merges {@code additional}, initializing every
-     * element with {@code services}.
+     * Instantiates the registered status elements and merges {@code additional} (elements a window
+     * creates programmatically and keeps a reference to), initializing every element with
+     * {@code services}.
      *
      * @param additional extra elements to include
      * @param services   the shell lookup passed to each element
      * @return all elements, ordered by slot, position and id
      */
-    public static List<StatusElementSpec> discover(List<StatusElement> additional, Lookup services) {
-        return read(LayerInstances.load(LayerPaths.STATUS, StatusElement.class),
-                additional, services);
-    }
-
-    /** Reads the registrations of {@code entries} and merges {@code additional}. */
-    static List<StatusElementSpec> read(Iterable<LayerEntry<StatusElement>> entries,
-            List<StatusElement> additional, Lookup services) {
-        List<StatusElementSpec> elements = new ArrayList<>();
+    public static List<StatusElementEntry> load(List<StatusElement> additional, Lookup services) {
+        List<StatusElementEntry> elements = new ArrayList<>();
         for (StatusElement element : additional) {
             element.init(services);
-            elements.add(new StatusElementSpec(element.getId(), element.alignment(),
+            elements.add(new StatusElementEntry(element.getId(), element.alignment(),
                     element.position(), element));
         }
-        for (LayerEntry<StatusElement> entry : entries) {
-            StatusElement element = entry.instance();
+        for (StatusElementSpec spec : discover()) {
+            StatusElement element = instantiate(spec);
+            if (element == null) {
+                continue;
+            }
             element.init(services);
+            elements.add(new StatusElementEntry(spec.id(), spec.alignment(), spec.position(),
+                    element));
+        }
+        return sortEntries(elements);
+    }
+
+    /** Reads the registrations of {@code registrations} into metadata specs. */
+    static List<StatusElementSpec> read(
+            Iterable<LayerRegistration<StatusElement>> registrations) {
+        List<StatusElementSpec> elements = new ArrayList<>();
+        for (LayerRegistration<StatusElement> registration : registrations) {
             StatusAlignment alignment = parseAlignment(
-                    entry.attribute("alignment"), element.alignment());
-            int position = parsePosition(entry.attribute("position"), element.position());
-            elements.add(new StatusElementSpec(entry.id(), alignment, position, element));
+                    registration.attribute("alignment"), StatusAlignment.LEFT);
+            int position = parsePosition(registration.attribute("position"), 0);
+            elements.add(new StatusElementSpec(registration.id(), alignment, position,
+                    registration.type()));
         }
         return sort(elements);
     }
@@ -116,6 +127,25 @@ public final class StatusElementRegistry {
                 .thenComparingInt(StatusElementSpec::position)
                 .thenComparing(StatusElementSpec::id));
         return List.copyOf(sorted);
+    }
+
+    private static List<StatusElementEntry> sortEntries(List<StatusElementEntry> elements) {
+        List<StatusElementEntry> sorted = new ArrayList<>(elements);
+        sorted.sort(Comparator
+                .comparingInt((StatusElementEntry element) -> element.alignment().ordinal())
+                .thenComparingInt(StatusElementEntry::position)
+                .thenComparing(StatusElementEntry::id));
+        return List.copyOf(sorted);
+    }
+
+    private static StatusElement instantiate(StatusElementSpec spec) {
+        try {
+            return spec.type().getDeclaredConstructor().newInstance();
+        } catch (ReflectiveOperationException | LinkageError | SecurityException ex) {
+            LOG.log(Level.WARNING, "Cannot create status element " + spec.type().getName()
+                    + " for " + spec.id(), ex);
+            return null;
+        }
     }
 
     private static StatusAlignment parseAlignment(Object value, StatusAlignment fallback) {

@@ -20,7 +20,7 @@ package org.netbeans.modules.nbfx.platform.status;
 
 import java.util.List;
 import org.netbeans.api.nbfx.status.StatusElementRegistry;
-import org.netbeans.api.nbfx.status.StatusElementSpec;
+import org.netbeans.api.nbfx.status.StatusElementEntry;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
@@ -41,11 +41,11 @@ import javafx.scene.layout.Region;
  */
 public class StatusBar extends BorderPane {
 
-    private final List<StatusElementSpec> elements;
+    private final List<StatusElementEntry> elements;
 
     /** Builds the status bar from every element registered under {@code NbFx/Status}. */
     public StatusBar() {
-        this(StatusElementRegistry.discover());
+        this(StatusElementRegistry.load());
     }
 
     /**
@@ -53,7 +53,7 @@ public class StatusBar extends BorderPane {
      *
      * @param elements the elements to place, in discovery order
      */
-    public StatusBar(List<StatusElementSpec> elements) {
+    public StatusBar(List<StatusElementEntry> elements) {
         this.elements = List.copyOf(elements);
         getStyleClass().add("status-bar");
 
@@ -61,7 +61,7 @@ public class StatusBar extends BorderPane {
         HBox fill = slot(Pos.CENTER_LEFT, "status-bar-fill", true);
         HBox right = slot(Pos.CENTER_RIGHT, "status-bar-right", false);
 
-        for (StatusElementSpec registered : this.elements) {
+        for (StatusElementEntry registered : this.elements) {
             Node node = registered.element().getNode();
             if (node == null) {
                 continue;
@@ -88,13 +88,13 @@ public class StatusBar extends BorderPane {
     }
 
     /** The elements this bar was built from, in order. */
-    public final List<StatusElementSpec> elements() {
+    public final List<StatusElementEntry> elements() {
         return elements;
     }
 
     /** Disposes every element; called when the window using this status bar is closed. */
     public void dispose() {
-        for (StatusElementSpec registered : elements) {
+        for (StatusElementEntry registered : elements) {
             registered.element().dispose();
         }
     }

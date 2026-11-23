@@ -299,7 +299,7 @@ plugin implements is not yet in its API/SPI packages.
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
 | `api.views` | T2-FX | **landed; M0 adds `ViewSpec`/`ViewRegistry`** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
-| `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
+| `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
 | `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
 | `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
@@ -360,7 +360,7 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | `platform.workspace` | docking model + FX docking view | landed; replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction:** `ViewSpec`/`ViewRegistry` move to `api.views`; `WindowSystem`/`WindowState`/`WindowSink` move to the shell API; the docking internals stay internal friend packages for `platform.shell` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
-| `platform.status` | status bar + element rendering; **T0**, no public package | replaces `nbfx.statusbar`; friend of `platform.shell`, `platform.progress`, `ide.workbench` and `ide.vcs` |
+| `platform.status` | status bar + element rendering; **T0**, no public package | replaces `nbfx.statusbar`; friend of `platform.shell` |
 | `platform.dialogs` | dialog host, notification line, toasts, exception reporting | API partial (`ErrorReporter` only); API contract and implementation M1 |
 | `platform.progress` | progress UI (status line, all-tasks popup, task details) | replaces `nbfx.progress` (landed, PR #2 — §18) |
 | `platform.theme` | theme manager, light/dark palettes, branding, editor syntax palettes | **landed** (themes, token providers, OS light/dark); `org.netbeans.api.nbfx.theme` is T1, the implementation package is internal |
@@ -897,9 +897,9 @@ M0 extension point into its API/SPI module and migrate consumers:
 - `refactor/wizard-contract` (**landed, #181**) — `Wizard`/`WizardPanel` in `api.wizard`;
   `WizardEntry`/`WizardRegistry` are the metadata-only discovery contract; the processor validates `Wizard`
   and writes bundle-aware metadata; `WizardDisplayer` is the seam implemented by the T0 `platform.wizard`.
-- `refactor/status-contract` (**landed, #185**) — merge `StatusElementHolder` into `api.status.StatusElement` (the current
-  `platform.status.StatusElement` record becomes the internal registration spec); migrate the caret,
-  line-separator and project elements; validate the registration type.
+- `refactor/status-contract` (**landed, #185**) — merge `StatusElementHolder` into `api.status.StatusElement`;
+  `StatusElementSpec` is the public metadata registration and `StatusElementEntry` the loaded instance; migrate
+  the caret, line-separator and project elements; validate the registration type.
 - `refactor/nodes-property-contract` — create `api.nodes` with the M0 property slice
   (`PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`,
   `SimplePropertyModel`/`SimplePropertySetModel`), move `PropertyEditor` to `api.property`, add

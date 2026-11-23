@@ -28,19 +28,22 @@
     <changes>
         <change id="status.contract">
             <api name="netbeansfx_status"/>
-            <summary>The JavaFX status element SPI and its metadata-only discovery contract.</summary>
+            <summary>The JavaFX status element SPI, metadata-only discovery and per-shell loading contract.</summary>
             <version major="1" minor="2"/>
             <date day="21" month="11" year="2026"/>
             <author login="svenreimers"/>
             <compatibility addition="yes" semantic="compatible"/>
             <description>
                 Adds <code>StatusElement</code> (moved from the T0 status bar renderer),
-                <code>StatusElementSpec</code> and <code>StatusElementRegistry</code>. The registry
-                reads the class-based layer entries through <code>LayerInstances</code>; the
-                processor validates that the annotated class implements <code>StatusElement</code>.
+                <code>StatusElementSpec</code>, <code>StatusElementEntry</code> and
+                <code>StatusElementRegistry</code>. <code>discover()</code> reads metadata only;
+                <code>load()</code> instantiates a fresh set for one shell. The registry reads the
+                class-based layer entries through <code>LayerInstances</code>; the processor validates
+                that the annotated class implements <code>StatusElement</code>.
             </description>
             <class package="org.netbeans.api.nbfx.status" name="StatusElement"/>
             <class package="org.netbeans.api.nbfx.status" name="StatusElementSpec"/>
+            <class package="org.netbeans.api.nbfx.status" name="StatusElementEntry"/>
             <class package="org.netbeans.api.nbfx.status" name="StatusElementRegistry"/>
         </change>
     </changes>

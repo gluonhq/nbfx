@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javafx.scene.Node;
 import org.junit.Test;
-import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerRegistration;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
@@ -35,7 +35,8 @@ import static org.junit.Assert.assertSame;
 
 /**
  * Verifies the ordering and layer metadata applied to registered status elements: by slot, then
- * position, then id. The elements never build a node, so no JavaFX toolkit is required.
+ * position, then id. Discovery is metadata-only; loading initializes additional elements. The
+ * elements never build a node, so no JavaFX toolkit is required.
  *
  * @since 1.2
  */
@@ -69,24 +70,14 @@ public class StatusElementRegistryTest {
     @Test
     public void initializesAdditionalElementsWithTheShellLookup() {
         AtomicReference<Lookup> received = new AtomicReference<>();
-        StatusElement element = new StatusElement() {
-            @Override
-            public String getId() {
-                return "contextual";
-            }
-
+        StatusElement element = new Element("contextual", StatusAlignment.LEFT, 0) {
             @Override
             public void init(Lookup services) {
                 received.set(services);
             }
-
-            @Override
-            public Node getNode() {
-                return null;
-            }
         };
         Lookup services = Lookups.fixed();
-        StatusElementRegistry.read(List.of(), List.of(element), services);
+        StatusElementRegistry.load(List.of(element), services);
         assertSame(services, received.get());
     }
 
@@ -98,40 +89,54 @@ public class StatusElementRegistryTest {
         file.setAttribute("alignment", "RIGHT");
         file.setAttribute("position", 7);
 
-        StatusElement element = element("implementation-id", StatusAlignment.LEFT, 1);
         List<StatusElementSpec> elements = StatusElementRegistry.read(
-                List.of(new LayerEntry<>(element, file)), List.of(), Lookups.fixed());
+                List.of(new LayerRegistration<>(file, Element.class)));
 
         assertEquals("registered", elements.get(0).id());
         assertEquals(StatusAlignment.RIGHT, elements.get(0).alignment());
         assertEquals(7, elements.get(0).position());
+        assertEquals(Element.class, elements.get(0).type());
     }
 
     private static StatusElementSpec spec(String id, StatusAlignment alignment, int position) {
-        return new StatusElementSpec(id, alignment, position, element(id, alignment, position));
+        return new StatusElementSpec(id, alignment, position, Element.class);
     }
 
-    private static StatusElement element(String id, StatusAlignment alignment, int position) {
-        return new StatusElement() {
-            @Override
-            public String getId() {
-                return id;
-            }
+    /** A public element class for the layer registration metadata tests. */
+    public static class Element implements StatusElement {
 
-            @Override
-            public StatusAlignment alignment() {
-                return alignment;
-            }
+        private final String id;
+        private final StatusAlignment alignment;
+        private final int position;
 
-            @Override
-            public int position() {
-                return position;
-            }
+        public Element() {
+            this("element", StatusAlignment.LEFT, 0);
+        }
 
-            @Override
-            public Node getNode() {
-                return null;
-            }
-        };
+        Element(String id, StatusAlignment alignment, int position) {
+            this.id = id;
+            this.alignment = alignment;
+            this.position = position;
+        }
+
+        @Override
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        public StatusAlignment alignment() {
+            return alignment;
+        }
+
+        @Override
+        public int position() {
+            return position;
+        }
+
+        @Override
+        public Node getNode() {
+            return null;
+        }
     }
 }

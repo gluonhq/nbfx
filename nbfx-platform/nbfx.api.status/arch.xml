@@ -35,7 +35,7 @@
       The <b>nbfx Status API</b> defines the JavaFX status bar element SPI
       (<code>StatusElement</code>), the <code>StatusAlignment</code> enum, the
       <code>StatusMessageService</code> contract for the transient status line, the
-      <code>StatusElementRegistry</code>/<code>StatusElementSpec</code> discovery contract, and the
+      <code>StatusElementRegistry</code>/<code>StatusElementSpec</code>/<code>StatusElementEntry</code> discovery and loading contract, and the
       <code>@StatusRegistration</code> annotation with its processor.
     </p>
   </answer>
