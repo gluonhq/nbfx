@@ -35,6 +35,8 @@
 | [`appendix/G-licences-and-notices.md`](appendix/G-licences-and-notices.md) | JavaFX 27 (GPLv2+CE), native/lib licences, NOTICE rules, `check-licences` |
 | [`appendix/H-upstream-proposals.md`](appendix/H-upstream-proposals.md) | The Swing-free upstream agenda (`java.source`, `api.progress`, `openide.awt`, `openide.nodes`, editor SPI, `nbbuild` checks, friend APIs) and the nbfx prototypes that prove each |
 | [`appendix/I-language-soundness.md`](appendix/I-language-soundness.md) | The second-implementation test: the four language holes, the `api.language` design and core freeze, the Groovy/PHP/web spikes, and the measured reuse ratio across the other clusters |
+| [`cjap-shell-ui-implementation.md`](cjap-shell-ui-implementation.md) | Task-based CJAP shell/UI API and implementation plan aligned with #104 |
+| [`../reference/cjap-shell-ui.md`](../reference/cjap-shell-ui.md) | Target reference for product, shell, layout, docking, content, chrome, windows, theming, nodes, drag/drop and overlays |
 | [`../architecture-rules.md`](../architecture-rules.md) | A one-screen **index** of every rule and its normative source (no rule detail — that lives in the plan/appendices) |
 | [`archive/README.md`](archive/README.md) | Historical research and earlier plan revisions — **evidence only, not maintained** |
 | [`../repo-and-build.md`](../repo-and-build.md) | Build harness, clusters, submodule patches |

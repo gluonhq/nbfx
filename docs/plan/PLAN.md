@@ -884,6 +884,9 @@ the table is maintained in the issue tracker, not here. Until then, no step is "
 **CJAP is the name of the nbfx platform deliverable**, not a separate specification, runtime or product. It
 makes the AppShell usable as the foundation of real JavaFX products without importing platform
 implementation packages, subclassing a product-specific shell, or accepting the platform's default look.
+The task-based implementation plan is
+[`cjap-shell-ui-implementation.md`](cjap-shell-ui-implementation.md); the target API/reference is
+[`../reference/cjap-shell-ui.md`](../reference/cjap-shell-ui.md).
 
 #### 10.5.1 Acceptance
 
@@ -1246,7 +1249,9 @@ fixture** (`LanguageId("text/x-nbfx-conformance")` with decoration, completion, 
 the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md)).
 
 **W2c — CJAP platform delivery (M0).** `refactor/cjap-*` + `feature/cjap-*`: the platform surface described
-in §10.5, delivered after the W2a contracts and in parallel with W2b governance.
+in §10.5, delivered after the W2a contracts and in parallel with W2b governance. The detailed task plan is
+[`cjap-shell-ui-implementation.md`](cjap-shell-ui-implementation.md); the target API reference is
+[`../reference/cjap-shell-ui.md`](../reference/cjap-shell-ui.md).
 
 Branch slices, in dependency order:
 
