@@ -74,6 +74,24 @@ final class NavigatorContextMenuFactory<T> {
         /** Whether {@code item} is the tree's root node (offers "Close" instead of clipboard/delete). */
         boolean isRoot(TreeItem<T> item);
 
+        /**
+         * Whether {@code item} stands for its folder and all below it, as a folder or a project
+         * does, and not only for the files right in it, as a package does. Tells which changed files
+         * the version control badge of the item is for.
+         */
+        default boolean isRecursive(TreeItem<T> item) {
+            return true;
+        }
+
+        /**
+         * What {@code item} is, for the first line of its tooltip: the name of its file, unless the
+         * view has more to say.
+         */
+        default String describe(TreeItem<T> item) {
+            FileObject file = fileOf(item);
+            return file == null ? "" : file.getNameExt();
+        }
+
         /** Whether {@code item} can be cut/copied/deleted. */
         boolean isDeletable(TreeItem<T> item);
 

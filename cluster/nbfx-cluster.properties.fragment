@@ -91,6 +91,7 @@ nb.cluster.nbfx-ide.depends=\
 nb.cluster.nbfx-ide=\
         nbfx.api.project,\
         nbfx.api.usages,\
+        nbfx.api.vcs,\
         nbfx.editor.actions,\
         nbfx.ide.actions,\
         nbfx.ide.build,\

@@ -886,6 +886,7 @@ public class ProjectNavigator extends AbstractNavigatorProvider<ProjectEntry> im
             }
         });
         trackSelectedProject(treeView);
+        VcsStates.track(treeView);
         treeView.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> stopRestoringFocus());
         treeView.addEventFilter(KeyEvent.KEY_PRESSED, e -> stopRestoringFocus());
         // Deletes the selected file(s) or package(s) (mirrors the context menu's Delete accelerator).
