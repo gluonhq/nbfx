@@ -7,7 +7,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | Figure | Value |
 |---|---|
 | nbfx modules | 68 |
-| nbfx source files | 761 |
+| nbfx source files | 776 |
 | modules exporting packages (`<public-packages>`) | 49 |
 | of those, subtree exports (`<subpackages>`) | 16 |
 | modules with `arch.xml` | 22 |
@@ -24,8 +24,8 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 61 |
 | files using `NbBundle` | 169 |
 | `Bundle.properties` files | 70 |
-| test files | 103 |
-| modules with tests | 39 of 68 |
+| test files | 105 |
+| modules with tests | 41 of 68 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
 | upstream modules depending on `org.openide.nodes` | 388 |

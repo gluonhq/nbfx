@@ -31,11 +31,14 @@
   &api-questions;
 
   <answer id="arch-what">
-    <p>The <b>NetBeansFX Resources API</b> is the devel model-tier module for neutral resource references shared by nbfx APIs</p>
+    <p>The <b>NetBeansFX Resources API</b> provides <code>ResourceRef</code>, a module-relative resource
+      identity shared by product, layout, theme and node APIs.</p>
   </answer>
 
   <answer id="arch-overall">
-    <p>This initial slice creates the module and public package only. Contract types and tests follow. No JavaFX or runtime behavior is introduced.</p>
+    <p><code>ResourceRef</code> is immutable and toolkit-free. Resource resolution uses the owning
+      module classloader at the rendering boundary; this API performs no I/O and introduces no runtime
+      behavior.</p>
   </answer>
 
   <answer id="arch-usecases">

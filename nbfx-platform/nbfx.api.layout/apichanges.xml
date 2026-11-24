@@ -33,8 +33,21 @@
             <date day="24" month="11" year="2026"/>
             <author login="svenreimers"/>
             <compatibility addition="yes" semantic="compatible"/>
-            <description>Creates the module and its public package. Contract types follow in the
-            next slice.</description>
+            <description>Creates the module and its public package with stable layout ids,
+            neutral area kinds, presentations, capacities, capabilities and lifecycle values.</description>
+            <class package="org.netbeans.api.nbfx.layout" name="PaneRole"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewAreaKind"/>
+            <class package="org.netbeans.api.nbfx.layout" name="DockGroupId"/>
+            <class package="org.netbeans.api.nbfx.layout" name="SlotId"/>
+            <class package="org.netbeans.api.nbfx.layout" name="PresentationId"/>
+            <class package="org.netbeans.api.nbfx.layout" name="DockLocation"/>
+            <class package="org.netbeans.api.nbfx.layout" name="PaneKind"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ContentCapacity"/>
+            <class package="org.netbeans.api.nbfx.layout" name="GroupLifetime"/>
+            <class package="org.netbeans.api.nbfx.layout" name="SplitOrientation"/>
+            <class package="org.netbeans.api.nbfx.layout" name="DockSide"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewAreaCapability"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewAreaVisibility"/>
         </change>
     </changes>
     <htmlcontents>

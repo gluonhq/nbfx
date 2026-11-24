@@ -33,8 +33,9 @@
             <date day="24" month="11" year="2026"/>
             <author login="svenreimers"/>
             <compatibility addition="yes" semantic="compatible"/>
-            <description>Creates the module and its public package. Contract types follow in the
-            next slice.</description>
+            <description>Creates the module and its public package with the neutral
+            <code>ResourceRef</code> value used by product, layout, theme and node APIs.</description>
+            <class package="org.netbeans.api.nbfx.resources" name="ResourceRef"/>
         </change>
     </changes>
     <htmlcontents>

@@ -313,7 +313,7 @@ public final class PaneRole {
     public static final PaneRole CENTER = ...;
 
     public static PaneRole of(String value);
-    public String name();
+    public String value();
 }
 ```
 
@@ -329,14 +329,16 @@ class names.
 ### 6.2 `ViewAreaKind`
 
 ```java
-public record ViewAreaKind(String id) {
+public final class ViewAreaKind {
     public static final ViewAreaKind MAIN = ...;
     public static final ViewAreaKind SIDE = ...;
     public static final ViewAreaKind BOTTOM = ...;
     public static final ViewAreaKind CANVAS = ...;
     public static final ViewAreaKind TOOL = ...;
     public static final ViewAreaKind CUSTOM = ...;
+
     public static ViewAreaKind of(String value);
+    public String value();
 }
 ```
 

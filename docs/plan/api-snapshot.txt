@@ -69,6 +69,19 @@ org.netbeans.api.nbfx.layer.LayerEntry
 org.netbeans.api.nbfx.layer.LayerInstances
 org.netbeans.api.nbfx.layer.LayerPaths
 org.netbeans.api.nbfx.layer.LayerRegistration
+org.netbeans.api.nbfx.layout.ContentCapacity
+org.netbeans.api.nbfx.layout.DockGroupId
+org.netbeans.api.nbfx.layout.DockLocation
+org.netbeans.api.nbfx.layout.DockSide
+org.netbeans.api.nbfx.layout.GroupLifetime
+org.netbeans.api.nbfx.layout.PaneKind
+org.netbeans.api.nbfx.layout.PaneRole
+org.netbeans.api.nbfx.layout.PresentationId
+org.netbeans.api.nbfx.layout.SlotId
+org.netbeans.api.nbfx.layout.SplitOrientation
+org.netbeans.api.nbfx.layout.ViewAreaCapability
+org.netbeans.api.nbfx.layout.ViewAreaKind
+org.netbeans.api.nbfx.layout.ViewAreaVisibility
 org.netbeans.api.nbfx.nodes.PropertiesProvider
 org.netbeans.api.nbfx.nodes.PropertyListener
 org.netbeans.api.nbfx.nodes.PropertyModel
@@ -98,6 +111,7 @@ org.netbeans.api.nbfx.property.PropertyContextProvider
 org.netbeans.api.nbfx.property.PropertyEditor
 org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
+org.netbeans.api.nbfx.resources.ResourceRef
 org.netbeans.api.nbfx.shell.AreaState
 org.netbeans.api.nbfx.shell.DetachedBarsContext
 org.netbeans.api.nbfx.shell.DetachedBarsProvider

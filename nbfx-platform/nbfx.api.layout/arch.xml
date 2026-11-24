@@ -31,11 +31,13 @@
   &api-questions;
 
   <answer id="arch-what">
-    <p>The <b>NetBeansFX Layout API</b> is the devel model-tier module for the toolkit-free product layout, logical area and physical dock-group model</p>
+    <p>The <b>NetBeansFX Layout API</b> provides stable identities and value types for product-owned
+      logical areas, physical dock groups, presentations, capacities, capabilities and lifecycle.</p>
   </answer>
 
   <answer id="arch-overall">
-    <p>This initial slice creates the module and public package only. Contract types and tests follow. No JavaFX or runtime behavior is introduced.</p>
+    <p>Ids are immutable, namespaced and persistable. Built-in roles/kinds are neutral; products define
+      their own namespaced values. The module contains no JavaFX or runtime behavior.</p>
   </answer>
 
   <answer id="arch-usecases">
