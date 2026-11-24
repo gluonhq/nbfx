@@ -47,6 +47,20 @@ public interface ContentManager {
     void openFile(FileObject file, int start, int end);
 
     /**
+     * Opens {@code document} in a tab of the editor area, or brings its tab to the front when it
+     * is open already. For documents that are not the editor of a file - a diff - which
+     * {@link #openFile(FileObject, Node)} cannot make: such a document has no
+     * {@link EditorDocument#getFileObject() file}, is not found by the file-based methods here, and
+     * is not reopened with the session. The default does nothing.
+     *
+     * @param document the document to show
+     * @param graphic the icon of its tab, or {@code null} for none
+     * @since 1.3
+     */
+    default void openDocument(EditorDocument document, Node graphic) {
+    }
+
+    /**
      * Closes every open editor tab across all windows (main and detached), unregistering their
      * documents.
      */

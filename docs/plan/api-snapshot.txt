@@ -54,6 +54,7 @@ org.netbeans.api.nbfx.editor.FileIconProvider
 org.netbeans.api.nbfx.editor.FileTypes
 org.netbeans.api.nbfx.editor.HyperlinkProvider
 org.netbeans.api.nbfx.editor.InMemorySourceFactory
+org.netbeans.api.nbfx.editor.LineBand
 org.netbeans.api.nbfx.editor.LineDecoration
 org.netbeans.api.nbfx.editor.MarkedDecoration
 org.netbeans.api.nbfx.editor.OpenSources

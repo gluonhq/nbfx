@@ -1,0 +1,62 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.diff-pane > .diff-summary {
+    -fx-padding: 3 8 3 8;
+    -fx-text-fill: -nbfx-text-faint;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-pane .diff-heading {
+    -fx-padding: 3 8 3 8;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-pane > .diff-sides {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+/* The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. */
+.diff-pane .line-band.diff-added {
+    -fx-background-color: rgba(60, 200, 60, 0.28);
+}
+
+.diff-pane .line-band.diff-deleted {
+    -fx-background-color: rgba(230, 70, 70, 0.26);
+}
+
+.diff-pane .line-band.diff-changed {
+    -fx-background-color: rgba(70, 130, 230, 0.26);
+}
+
+/* A rule where this side lacks the lines of the other. */
+.diff-pane .line-band.line-band-rule.diff-added {
+    -fx-background-color: rgb(60, 170, 60);
+}
+
+.diff-pane .line-band.line-band-rule.diff-deleted {
+    -fx-background-color: rgb(210, 70, 70);
+}
+
+/* A diff shows two texts, not where the caret is in one: no breadcrumbs under its editors. */
+.diff-pane .code-editor > .editor-side-bars {
+    visibility: hidden;
+    -fx-managed: false;
+}

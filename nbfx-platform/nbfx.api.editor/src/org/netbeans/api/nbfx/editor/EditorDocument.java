@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.editor;
 
+import javafx.beans.property.SimpleIntegerProperty;
+import java.util.List;
 import java.io.IOException;
 
 import javafx.beans.property.ReadOnlyBooleanProperty;
@@ -350,6 +352,39 @@ public interface EditorDocument extends Lookup.Provider {
      * does nothing.
      */
     default void findSelection() {
+    }
+
+    /**
+     * Marks blocks of whole lines with {@code bands}, replacing those set before; an empty list
+     * removes them. The bands belong to this view of the document, follow its scrolling, and are
+     * styled by their style classes, as descendants of {@link #getNode()} with style class
+     * {@code line-band}. The default does nothing.
+     *
+     * @param bands the bands to show
+     * @since 1.3
+     */
+    default void setLineBands(List<LineBand> bands) {
+    }
+
+    /**
+     * The line at the top of what this view shows, counted from zero and kept up to date while it
+     * scrolls, for views that keep several editors in step. The default is always zero.
+     *
+     * @return the observable top line, never {@code null}
+     * @since 1.3
+     */
+    default ObservableValue<Number> topParagraphProperty() {
+        return new SimpleIntegerProperty(0);
+    }
+
+    /**
+     * Scrolls so that {@code paragraph} is the line at the top, as far as the text allows, without
+     * moving the caret. The default does nothing.
+     *
+     * @param paragraph the line to bring to the top, counted from zero
+     * @since 1.3
+     */
+    default void scrollToParagraph(int paragraph) {
     }
 
     /**

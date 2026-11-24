@@ -396,7 +396,7 @@ final class GitStatusPane extends BorderPane {
         });
     }
 
-    /** Open and Commit, the actions of NetBeans' menu that the view has. */
+    /** Open, Diff and Commit, the actions of NetBeans' menu that the view has. */
     private ContextMenu createContextMenu() {
         MenuItem open = new MenuItem(message("Git.open"));
         open.setOnAction(event -> {
@@ -404,14 +404,23 @@ final class GitStatusPane extends BorderPane {
                 open(selectedFile());
             }
         });
+        MenuItem diff = new MenuItem(message("Git.diff"));
+        diff.setOnAction(event -> {
+            StatusRow.File row = selectedFile();
+            if (row != null) {
+                GitDiff.open(fileObject(row));
+            }
+        });
         MenuItem commitItem = new MenuItem(message("Git.commit.menu"));
         commitItem.setOnAction(event -> onCommit.run());
         commitItem.disableProperty().bind(commit.disableProperty());
-        ContextMenu menu = new ContextMenu(open, new SeparatorMenuItem(), commitItem);
+        ContextMenu menu = new ContextMenu(open, diff, new SeparatorMenuItem(), commitItem);
         menu.setOnShowing(event -> {
             StatusRow.File row = selectedFile();
             FileObject file = row == null ? null : fileObject(row);
             open.setDisable(file == null || !file.isData());
+            // A deleted file has no working tree side to show.
+            diff.setDisable(!GitDiff.canDiff(file));
         });
         return menu;
     }
