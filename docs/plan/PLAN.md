@@ -31,7 +31,9 @@ module disagree, the document wins until it is changed here.
 
 ## 1. What nbfx is
 
-nbfx has **two deliverables**.
+nbfx has **two deliverables** — the IDE and the platform — and the platform deliverable is named
+**CJAP** (Complete JavaFX Application Platform). CJAP is not a product or a separate delivery: it is the
+platform delivery, with a better name and a product-facing surface for downstream products.
 
 **The IDE is the primary deliverable.** It is a pure-JavaFX IDE built on the NetBeans runtime:
 
@@ -55,13 +57,25 @@ menus/toolbars, status, options/settings, wizards, nodes/explorer and property s
 progress, output, execution, terminal, quick search, theme, credentials, favorites, templates and the
 launcher. Its service inventory is §6.6.
 
-Downstream projects can use the AppShell, individual platform services, or both, and may assemble an
-application however they choose — from source clusters or prebuilt binary modules. nbfx does not define a
-product, product tier or application-assembly model; it guarantees the platform's module boundaries,
-published APIs and artifacts.
+**The platform deliverable is called CJAP** (Complete JavaFX Application Platform). CJAP is not a separate
+specification, runtime or product: it is the name of the nbfx platform deliverable when it is ready to host
+real JavaFX products. Its APIs are nbfx APIs, shipped in nbfx modules and releases. A standalone CJAP
+specification may exist later; it is not the target of this plan.
+
+CJAP adds the missing product-facing surface to the AppShell: a product descriptor (identity, icons, version,
+About, packaging), a product-owned layout, a replaceable shell/frame, a layered theme and default design
+system, generic content/documents/sources, window/tab persistence, an NBM module/cluster/kit composition
+model, and a build/distribution path. Downstream products can use the whole AppShell, a custom shell with
+the platform runtime, individual services, or an embedded subset. They may be assembled as NBM products,
+embedded applications, or classpath applications with their own shell. A downstream product adds its own
+cluster; that cluster is not part of the CJAP platform delivery.
+
+**Composition for CJAP is NBM modules, clusters and kit modules.** There is no CJAP-level feature-pack
+manifest or second dependency graph in M0; a future pack layer is explicitly deferred.
 
 The IDE is the AppShell's **primary consumer and completeness proof**. A platform feature the IDE does not
-need is not thereby forbidden, but the IDE's needs decide priority.
+need is not thereby forbidden, but the IDE's needs decide priority. The platform delivery has its own
+acceptance scenarios (§10.5) that exercise non-IDE, product-native usage.
 
 **Non-goals.** Web/JS/JavaEE/PHP/C++ languages, the Swing form editor, WebStart/JNLP execution, Java ME,
 `native-image`, JavaHelp topics, database/server tooling. These are **product** non-goals: the architecture is
@@ -73,10 +87,14 @@ validated against a second language by the soundness spikes of [Appendix I](appe
 **Deliverables are cluster combinations, not modules or assembly tiers:**
 
 ```
-platform deliverable   nbfx-libs + nbfx-platform
+platform deliverable   nbfx-libs + nbfx-platform   (named CJAP)
 IDE deliverable        platform + nbfx-ide + nbfx-java
                        (+ nbfx-javafx when its first module lands)
 ```
+
+A downstream product adds its own cluster, descriptor, layout/theme resources and optional NBM kit modules;
+that product cluster is not part of the CJAP platform delivery. Modules and clusters remain the source of
+truth; there is no parallel composition format.
 
 ```
 clusters (build order, dependencies downward only):
@@ -120,6 +138,14 @@ cluster that owns its domain. `refactor/api-clusters` has dissolved the transiti
 10. **Test edges are not layer edges.** `<test-dependency>` may point upward — the W0 scenario in `nbfx-ide`
     needs the Java project type from `nbfx-java` — but it must never be a run dependency, and the test artefact
     is not shipped. The graph guard distinguishes test edges.
+11. **Downstream product clusters are platform-only.** A product cluster depends on `nbfx-platform`/
+    `nbfx-libs` and its own modules, never on `nbfx-ide`/`nbfx-java`/`nbfx-javafx`. It is not a CJAP
+    deliverable; CJAP is the platform deliverable it consumes.
+12. **NBM is the composition source.** Modules, clusters and kit modules define the application; there is no
+    CJAP feature-pack manifest, pack registry, pack installer or parallel dependency graph in M0.
+13. **nbfx UI does not depend on `DataObject`.** `openide.loaders` may remain in the platform distribution
+    for NBM/core compatibility, but no nbfx API or UI module imports it; a loader-free distribution is a
+    separate project.
 
 ## 3. Naming conventions
 
@@ -285,6 +311,25 @@ update centers, pinned SHA-256 for bundled native artifacts, install-time capabi
 13. **Action context is a platform service.** The global context, active component, focus scope, enablement
     and keymap dispatch live in `platform.actions`/`platform.shell`. Project and editor contexts are IDE
     contributions; no platform service imports project types.
+14. **The product owns the layout.** The CJAP layout model is `LayoutSpec` (regions, groups, slots, splits),
+    authored with a builder, simple annotations and layer XML. The platform ships neutral defaults and region
+    types; the IDE/product supplies its own layout. No framework action assumes `navigator`/`editor`/`output`
+    ids.
+15. **The product owns the visible shell.** `ShellProvider`/`ShellFrame` replace the default shell at the
+    composition root; `ShellContribution` slots extend the default shell. A product may use the platform
+    runtime with a completely custom frame, or services-only with its own layout. The platform never requires
+    a particular visual design.
+16. **Theme, brand and design system are three layers.** A theme (mode + accent) is user-selectable; product
+    brand/style persists across themes; the neutral default design system supplies controls/cards/drawers/
+    dialogs and is replaceable. Typed `ThemeTokens` and scoped `ThemeScope` serve Canvas/3D/HUD and embedded
+    content; `NbfxTheme` is implementation, not public API.
+17. **Content is generic; documents are a capability.** `Content`/`ContentFactory`/`ContentState` own a stable
+    node and lifecycle. `Document`/`EditorProvider` add file/text/editor capabilities. Sources, drops, dynamic
+    views, overlays and background tasks are platform services. Content nodes survive moves, theme changes and
+    float/redock without recreation.
+18. **CJAP is accepted by product scenarios, not by the IDE alone.** The M0 scenario set (§10.5) covers a
+    live-data cockpit, an architecture/knowledge workbench, a document editor and a geospatial/EO workbench.
+    Each is named by its usage, not by a downstream project.
 
 ## 6. Module catalogue
 
@@ -298,25 +343,33 @@ plugin implements is not yet in its API/SPI packages.
 | Module | Tier | State | Contents |
 |---|---|---|---|
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
-| `api.views` | T2-FX | **landed (1.9)** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `FileSelectionContext`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)` |
+| `api.views` | T2-FX | **landed (1.9); CJAP-5 extends** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `FileSelectionContext`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)`; CJAP adds dynamic views, tab/group metadata and per-view state |
 | `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
-| `api.shell` | T2-FX | **landed** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation |
-| `api.dialogs` | T2-FX | **partial — M1** | only `ErrorReporter`; `Dialogs`, `DialogDescriptor`, `DialogOption`, `Notification` are the M1 contract |
+| `api.shell` | T2-FX | **landed; CJAP-2 extends** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation. CJAP adds `ProductProvider`/`Product`, `ShellProvider`/`ShellFrame`, `ShellContribution`, `WindowDecoration` and the narrow `ShellWindow` facade |
+| `api.product` | M/T2 | **planned — CJAP-2** | `Product`, `ProductIdentity`, `ProductIcons`, `ProductStyle`, `ThemePolicy`, `ProductFamily`, `ProductVariant`, `LayoutProvider`, `DesktopAssociation`, `AboutInfo`; exactly one `ProductProvider` per distribution; no feature-pack API |
+| `api.layout` | M | **planned — CJAP-1** | `RegionId`, `RegionTypeId`, `DockGroupId`, `LayoutSpec`, `LayoutNode`, `RegionSpec`, `DockGroupSpec`, `DockPolicy`, layout builder, XML reader/writer, validation, persistence schema |
+| `api.content` | T2-FX | **planned — CJAP-4** | `Content`, `ContentFactory`, `ContentState`, content kinds, routing, `ContentSource`, `SourceHandler`, `DropHandler`; stable node lifecycle |
+| `api.docking` | T2-FX | **planned — CJAP-1/CJAP-5** | `DockHost`, `DockController`, transfer/policy, tab/group/focus contracts, presentations |
+| `api.theme` | M/T2 | **planned — CJAP-3** | `Theme`, `ThemeManager`, `ThemeMode`, `ThemeTokens`, `ThemeScope`, `@ThemeRegistration`, accent schemes; `NbfxTheme` becomes an internal implementation |
+| `api.workspace` | M/T2 | **planned — CJAP-6** | product workspace lifecycle: open/close/recent/reload, roots, trust, dirty guard, watchers, workspace-scoped state and selection |
+| `api.diagnostics` | M/T2 | **planned — CJAP-4** | bounded event/source-health log, severity/source/operation, redaction, diagnostic panel contract |
+| `api.extensions` | M | **planned — CJAP-6** | contribution ownership, invalidation, application plugin/NBM policy and the ServiceLoader bridge; no feature-pack API |
+| `api.dialogs` | T2-FX | **partial — CJAP-6** | `ErrorReporter` landed; CJAP adds notifications/toasts, exception view, About/Diagnostics, file chooser, close/dirty guard and external-change prompts |
 | `api.options` | T2-FX | **landed (#162)** | `OptionsPanelController`, `OptionsDisplayer`, `@OptionsRegistration`/`Container`/`Sub`; the layer entry owns id/display name/position, and `platform.options` is the T0 implementation |
-| `api.settings` | M | **planned — M1** | `Settings`, typed keys, change listeners |
+| `api.settings` | M | **planned — CJAP-6/M0** | `Settings`, typed keys, app/workspace/plugin scopes, defaults, migration, change listeners, export/import |
 | `api.progress` | M | **landed** | `Progress`, `Progress.Handle`, `Cancellation`, task tree, determinate progress |
 | `api.output` | M | **partial — first slices landed (#171, #172)**, complete M1 | landed: `OutputConsole`, `ConsolePanel`, `ConsoleRun` (re-run, and a run that ends by identity), `OutputKind` (text coloured by kind through theme tokens); M1: `OutputWriter`, hyperlinks, folds, ANSI colours, tool-contributed console actions |
 | `api.execution` | M | **planned — M1** | `ExecutionService`, `ExecutionDescriptor`, `ExecutionHandle`, `PtySupport`; process execution first |
 | `api.terminal` | M | **planned — M2** | `TerminalModel`, `PtyProcess`, `TerminalSession`; M1 decides the VT parser/library and scope |
 | `api.language` | M | **landed** | `LanguageId`, `LanguageRegistration`, `Languages`, neutral `ElementRef`/`SourceLocation`/`SourceElementKind`/`SourceTypeKind`/`ElementModifiers` — the one language registry and the neutral element vocabulary ([Appendix I](appendix/I-language-soundness.md)) |
 | `api.elements` | dissolved | **dissolved** | neutral `SourceElementKind`/`SourceTypeKind`/`SourceLocation`/`ElementModifiers` → `api.language` (no `java.lang.reflect.Modifier` bits); Java conversion (`SourceModifiers`, `JavaElementTypes`) → `java.elements`; FX `ElementIcons` → `api.editor` |
-| `api.nodes` | M | **partial — property contract landed; explorer model M1** | `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`, `SimplePropertyModel`/`SimplePropertySetModel`; `NodeModel`, `ChildrenModel`, `ChildFactory`, `ExplorerContext` land with the first explorer view in M1 |
+| `api.nodes` | M | **partial — property contract landed; explorer model CJAP-4/M0** | `PropertyModel`, `PropertySetModel`, `PropertiesProvider`, `PropertyListener`, `PropertySubscription`, `SimplePropertyModel`/`SimplePropertySetModel`; CJAP adds `NodeModel`, `ChildrenModel`, `ChildFactory`, `ExplorerContext` and the public `NodeView` tree/list/tree-table/table contract |
 | `api.property` | T2-FX | **partial — property-editor contract landed** | `PropertyEditor`, `PropertyEditorRegistration`, `PropertyContextProvider`, `ObservablePropertyModel`, `SimpleObservablePropertyModel`; the editor takes the M-tier `PropertyModel`; `PropertyEnv`/`PropertyEditorRef` wait for a custom-editor consumer |
 | `api.usages` | M | **landed** | `UsagesTarget` (opaque `ElementRef` + `LanguageId` + location), `UsagesProvider`, `UsageResult`, `UsageKind` — the generic usages SPI; the Java provider is `java.usages` |
 | `api.project` | M | **partial — M1** | `ProjectRegistry`, `ProjectOpener`, `ProjectLifecycle`, `OpenProject`, `SourceRoot`, `@ProjectTypeRegistration`; the project-kind/build SPI still moves from `project.ui.api`, and `OpenProjects` remains the documented IDE-tier bridge |
 | `api.build` | M | **planned — M1** | `BuildActionProvider`, `BuildExecution`, `BuildOutput`, `BuildProgress`, `BuildCommands`, `RunConfiguration` |
 | `api.project.customizer` | T2-FX | **planned — M1** | `ProjectCustomizerPanel`, `@CustomizerRegistration`, `ProjectCustomizerPanel` rendering |
-| `api.editor` | T2-FX | **partial — language SPI devel; migration M1 (1.2)** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`, `FileTypes`, `FileIconProvider`; the language decoration/lex SPI (`LineDecoration`, `MarkedDecoration`, `TokenCategory`, `SourceContext`, `TextPosResult`, `SourceUtils`, `BreadcrumbsElements`) and `org.netbeans.spi.nbfx.editor` (`BaseSyntaxDecorator`, `SyntaxDecoratorFactory`, `BaseLexDecorationProcessor`, `CachingBreadcrumbsProvider`, `CompletionImportSupport`) |
+| `api.editor` | T2-FX | **partial — language SPI devel; CJAP-4 adds documents (1.2)** | `EditorService`, `EditorDocument`, `EditorContext`, annotations, completion/breadcrumbs SPIs, `ElementIcons`, `FileTypes`, `FileIconProvider`; the language decoration/lex SPI (`LineDecoration`, `MarkedDecoration`, `TokenCategory`, `SourceContext`, `TextPosResult`, `SourceUtils`, `BreadcrumbsElements`) and `org.netbeans.spi.nbfx.editor` (`BaseSyntaxDecorator`, `SyntaxDecoratorFactory`, `BaseLexDecorationProcessor`, `CachingBreadcrumbsProvider`, `CompletionImportSupport`); CJAP adds `Document` capabilities, `DocumentType`/`EditorProvider`, non-file documents and document state, with `EditorDocument` as an adapter |
 | `api.editor.intelligence` | M | **planned — M2** | `GotoProvider`, `NavigationProvider`, `StructureProvider`, `UsagesProvider`, `HierarchyProvider`, `HintProvider`, `RefactoringProvider`, `CodeGenerator` — all scoped by `LanguageId` ([Appendix I.3](appendix/I-language-soundness.md)) |
 | `api.wizard` | T2-FX | **landed** | `Wizard`, `WizardPanel`, metadata-only `WizardEntry`, `WizardRegistry`, `WizardDisplayer`, bundle-aware `@WizardRegistration`; `platform.wizard` is the T0 themed dialog |
 | `api.templates` | M | **planned — M1** | `TemplateRegistry`, `TemplateCreator`, `@TemplateRegistration` |
@@ -344,9 +397,11 @@ the contract (Decision 26).
 The API split created the modules; it did not finish the contracts. A module is only *landed* when the type a
 consumer or plugin implements is in its exported API/SPI packages and a downstream fixture can implement it
 without importing a T0 module. The property/nodes contract now has its toolkit-free property model,
-`api.property` editor SPI and the property sheet on it; `NodeModel`/children/explorer context remain M1. The
-wizard, status, shell/window and workspace contracts have landed; the remaining M0 gap is the editor/SPI
-extraction, while dialogs, search and project complete in M1. Options landed with #162.
+`api.property` editor SPI and the property sheet on it. CJAP moves `NodeModel`/children/explorer context and
+the public `NodeView` into M0 because the platform delivery needs a generic explorer. The wizard, status,
+shell/window and workspace contracts have landed; the editor language SPI is extracted. CJAP adds the
+product/layout/content/theme/workspace/diagnostics/extensions contracts and the `Document` model in M0.
+Dialogs and search still complete in M1, and `api.project` remains IDE-tier. Options landed with #162.
 
 State vocabulary: **planned** = module not created; **partial** = module exists but its contract is incomplete;
 **landed** = contract complete and consumable; **dissolved** = removed by a step. Run `ant api-audit` for the
@@ -357,8 +412,14 @@ generated, per-module report (`build/api-audit.txt`); it is a report, not a gate
 | Module | Purpose | Notes |
 |---|---|---|
 | `platform.shell` | AppShell composition root: main window, docking, session, menu/toolbar/status wiring, active component and focus scope | landed with the generic core (tab panes, docking, sliding areas, toolbar, status helpers, file drag-and-drop, desktop actions, close/document adapters, tab-title SPI, action-context services, progress overlay, session state and restorer) and the default `ShellApplication`/`ShellAppProvider`; `ide.workbench` contributes the IDE assembly and overrides the app provider by priority. **Generic chrome landed:** the `api.shell` contracts/SPI, `DefaultShellChrome`/`ToolBarHost`, `ShellMenuBar`/`ShellToolBars`, `ShellChromeProfile`, `DynamicMenu`, `ShellBranding`, `ShellCommandResolver`, `ShellIconProvider`, `ShellCommandsProvider`, `DefaultWindowEnvironment` and status-bar composition (`platform.status`). The IDE main window and detached windows both use it and supply contributions; `ActionBars` has been removed. **M0 extraction landed (#186):** the API/SPI packages are `api.shell` (`org.netbeans.api.nbfx.shell`/`org.netbeans.spi.nbfx.shell`); `WindowPaneProvider` returns a `WindowPaneHost` created by `WindowPaneContext.createHost`; `PaneRole` and `WindowManager` are public; `NbfxTabPane` and the implementation root are internal, friend-only for `ide.workbench`, `project.ui` and `java.navigation` during the transition; the stable window facade is `ShellWindow` |
-| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language**; **T0**, no public package | landed; project/Java-vocabulary coupling removed. **M0 extraction landed (#189):** the language decoration/lex SPI is `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; consumers compile against the API/SPI only |
-| `platform.workspace` | docking model + FX docking view; **T0**, no public package | replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction landed (#187):** `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` are `api.views`; `WindowSystem`/`WindowSink`/`WindowState`/`AreaState`/`WindowSystemListener` are `api.shell`, with `DefaultWindowSystem` as the service implementation; `ViewStateStore` and the docking internals stay internal, friend-only for `platform.shell` and `ide.workbench` |
+| `platform.design` | neutral default design system (controls, cards, drawers, tables, trees, dialogs, notifications, density, icons, a11y); **T0**, no public package | planned — CJAP-3; used by the default shell and `platform.nodes`; products may use their own UI kit |
+| `platform.product` | product descriptor loading, product family/variant metadata, NBM cluster/kit selection and packaging integration | planned — CJAP-2/CJAP-7 |
+| `platform.docking` | CJAP layout/dock runtime: regions, groups, hosts, transfer, focus and persistence; **T0** | planned — CJAP-1/CJAP-5; this is the rename of the current `platform.workspace` module |
+| `platform.extensions` | contribution ownership/invalidation, app-plugin/NBM policy and the ServiceLoader bridge | planned — CJAP-6; no feature-pack implementation |
+| `platform.diagnostics` | event/source-health log and diagnostic panel implementation | planned — CJAP-4 |
+| `platform.workspaces` | product workspace implementation behind `api.workspace` | planned — CJAP-6; separate from the docking runtime |
+| `platform.editor` | FX code area, buffers, decorations, search/replace, completion popup; **no language**; **T0**, no public package | landed; project/Java-vocabulary coupling removed. **M0 extraction landed (#189):** the language decoration/lex SPI is `api.editor`/`org.netbeans.spi.nbfx.editor`; `CodeEditor`, `SearchSupport` and the breadcrumb widgets stay internal; consumers compile against the API/SPI only. CJAP-4 adds the adapter for the new `Document` model |
+| `platform.workspace` | docking model + FX docking view; **T0**, no public package | replaces `nbfx.docking`/`nbfx.windows`. **M0 extraction landed (#187):** `ViewSpec`/`ViewRegistry`/`ViewAreaRegistry` are `api.views`; `WindowSystem`/`WindowSink`/`WindowState`/`AreaState`/`WindowSystemListener` are `api.shell`, with `DefaultWindowSystem` as the service implementation; `ViewStateStore` and the docking internals stay internal, friend-only for `platform.shell` and `ide.workbench`. **CJAP-1 renames this module to `platform.docking`**; the product workspace is `platform.workspaces` |
 | `platform.actions` | command registry, keymap, action context impl | replaces `nbfx.actions` + `nbfx.context`; the generic context services live in `platform.shell` |
 | `platform.menus` | menu/toolbar registrations and generic menu vocabulary; the JavaFX menu/toolbar builder is in `platform.shell`, IDE entries are contributed by `ide.workbench` | replaces `nbfx.menus` |
 | `platform.status` | status bar + element rendering; **T0**, no public package | replaces `nbfx.statusbar`; friend of `platform.shell` |
@@ -459,16 +520,16 @@ that needs it starts ([Appendix G](appendix/G-licences-and-notices.md) rule 6).
 
 ### 6.6 Deliverables, the AppShell and API placement
 
-The two deliverables are cluster combinations; neither is a module or an assembly tier:
+The deliverables are cluster combinations; none is a module or an assembly tier:
 
 | Deliverable | Clusters | Acceptance |
 |---|---|---|
 | **IDE** (primary) | `nbfx-libs`, `nbfx-platform`, `nbfx-ide`, `nbfx-java` (+ `nbfx-javafx` when it lands) | the W0/M1/M2 scenarios on a real project; the application image |
-| **Platform** (secondary) | `nbfx-libs`, `nbfx-platform` | `ant platform-build` produces the platform-only distribution; the default `ShellApplication` starts without IDE modules; `ant appshell-conformance` passes; platform modules and APIs are published as source and binary modules |
+| **Platform** (secondary; named **CJAP**) | `nbfx-libs`, `nbfx-platform` | `ant platform-build` produces the platform-only distribution; the default `ShellApplication` starts without IDE modules; `ant appshell-conformance` passes; platform modules and APIs are published as source and binary modules; the reference product and four scenario fixtures (§10.5.7) pass |
 
 Each deliverable also includes the upstream clusters its nbfx cluster dependencies require (today the
 platform set uses upstream `platform` and `ide`; the IDE set adds upstream `ide`, `java`, `extide` and
-`apisupport`).
+`apisupport`). A downstream product adds its own cluster; it is not a third nbfx deliverable.
 
 **The AppShell** is the platform deliverable's application framework. `platform.shell` is its composition
 root; the services below are the AppShell. The IDE is its primary consumer; downstream may use the whole
@@ -477,24 +538,24 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 
 | AppShell service | Modules | State |
 |---|---|---|
-| Window system, docking, tabs, detached windows | `platform.workspace` + `platform.shell` + `api.shell` | landed: `api.shell` has `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, the pane-provider SPI and the `WindowSystem`/`WindowSink`/`WindowState` lifecycle; the docking model stays in T0 `platform.workspace`, friend-only for `platform.shell` and `ide.workbench` |
+| Window system, docking, tabs, detached windows | `platform.workspace` (CJAP-1: `platform.docking`) + `platform.shell` + `api.shell` + `api.layout`/`api.docking` | landed legacy: `api.shell` has `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, the pane-provider SPI and the `WindowSystem`/`WindowSink`/`WindowState` lifecycle; CJAP-1 replaces the fixed pane model with product-owned `LayoutSpec`, regions/groups, `DockRuntime` and adapters |
 | Actions, keymap, command registry | `platform.actions` + `api.actions` | landed |
 | Action context, global selection, focus, enablement | `platform.actions` + `platform.shell` | landed; generic services in `platform.shell`, `OpenProject` contexts in `ide.workbench` |
-| Views and view areas | `api.views` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `ViewArea`, `@ViewRegistration`, `@AreaRegistration`) + `platform.workspace` (docking model) + `platform.shell` (view manager) | landed: view metadata, area discovery, permanent panes, pane instances and the first-run dock tree are declared; view placement, area-to-pane resolution and shell start-up consume the registrations; the dock area takes an explicit main role, and keep-when-empty panes stay visible; non-permanent pane lifecycles remain a follow-up |
+| Views and view areas | `api.views` (`ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `ViewArea`, `@ViewRegistration`, `@AreaRegistration`) + `platform.workspace` (CJAP-1: `platform.docking`) + `platform.shell` | landed legacy metadata/area discovery; CJAP-1/5 adds dynamic views, product routing, tab/group/pin metadata and per-view state |
 | Menus, toolbars, context menus | `platform.menus` (registrations and generic menu ids) + `platform.shell` (JavaFX menu/toolbar builder) + `ide.workbench` (IDE entries/contributions) | landed; `ShellMenuBar`/`ShellToolBars` build from the layer and dynamic sections, the IDE main window uses them, and `ViewMenuFactory`/`ConfigureWindowMenuFactory` supply the platform sections; detached windows use `DetachedBars` with a reduced profile |
 | Shell chrome | `platform.shell` (composition, menu/tool bar builder, application menu, branding, default window environment) + `platform.status`/`api.status` (status bar) + `platform.menus` (registrations) + `ide.workbench` contributions | landed for the main window; `ShellChrome` exposes only top/bottom/dispose; the default `ShellApplication` gets the generic chrome, branding, status bar, application menu and window environment without a subclass; detached windows use the generic builders too. The M0 extraction is landed: the API/SPI packages are `api.shell` and `NbfxTabPane` is internal |
 | Status bar | `platform.status` + `api.status` | landed: the element SPI and registry are `api.status`, the renderer is T0 `platform.status` |
 | Options | `platform.options` + `api.options` | **landed (#162)**; `platform.options` is T0, the controller/displayer contract is `api.options` |
-| Settings | `platform.settings` + `api.settings` | planned — M1 |
+| Settings | `platform.settings` + `api.settings` | planned — CJAP-6/M0: app/workspace/plugin scopes, migration, export/import |
 | Wizards | `platform.wizard` + `api.wizard` | **landed**: `Wizard`/`WizardPanel`/`WizardEntry`/`WizardRegistry`/`WizardDisplayer` are `api.wizard`; `platform.wizard` is the T0 themed dialog |
-| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` | property model and sheet landed on `api.nodes`/`api.property`; **explorer model and views M1**; IDE contributors in `ide.workbench` |
-| Dialogs, notifications | `platform.dialogs` + `api.dialogs` | **API partial (`ErrorReporter` only); contract + implementation M1** |
+| Nodes/explorer + property sheet | `platform.nodes` + `api.nodes` + `api.property` + `platform.design` | property model and sheet landed; CJAP-4 adds `NodeModel`/children/explorer context and the public `NodeView` tree/list/tree-table/table with product cells, DnD, rename, multi-select, grouping and a11y |
+| Dialogs, notifications | `platform.dialogs` + `api.dialogs` + `platform.design` | **API partial (`ErrorReporter` only); CJAP-6 adds notifications/toasts, exception view, About/Diagnostics, file chooser, close/dirty guard and external-change prompts** |
 | Progress | `platform.progress` + `api.progress` | landed |
 | Output | `platform.output` + `api.output` | output UI landed (tabs, tool bar, rich-text console, context menu); `platform.output` is T0 and the console contract is `api.output` (#171, partial); **contract completion + window parity M1** |
 | Execution | `platform.execution` + `api.execution` | planned — M1 (process first) |
 | Terminal | `platform.terminal` + `api.terminal` | planned — M2; M1 chooses the VT parser/library |
 | Quick search | `platform.quicksearch` + `api.search` | **API partial; search contract + palette M1** |
-| Theme/branding | `platform.theme` | **landed** (light/dark, token providers, OS mode); impl package internal |
+| Theme/branding/design | `platform.theme` + `api.theme` + `platform.design` | legacy light/dark/token/OS landed; CJAP-3 adds `ThemeManager`, mode+accent, typed `ThemeTokens`, `ThemeScope`/`HostTheme`, product brand layering and the neutral replaceable design system |
 | Credentials | `platform.credentials` | planned — M1 |
 | Favorites | `platform.favorites` | planned — M1 |
 | Templates | `platform.templates` + `api.templates` | planned — M1 |
@@ -502,6 +563,19 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Editor core | `platform.editor` + `api.editor` | landed; the language SPI is on `api.editor`/`org.netbeans.spi.nbfx.editor`, `platform.editor` is T0, and consumer migration continues in M1 |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell starts without projects; `OpenProjects` is the documented bridge until M1 review |
 | File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` is dissolved (#188) |
+| Product identity/build | `api.product` + `platform.product` | planned — CJAP-2/CJAP-7; one descriptor per distribution; NBM cluster/kit composition, no feature packs |
+| Layout/docking | `api.layout` + `api.docking` + `platform.docking` + `api.content` | planned — CJAP-1/5; product-owned layout; old `Docking`/`AppState` adapters remain |
+| Shell composition | `api.shell` (`ShellProvider`/`ShellFrame`/slots) + `platform.shell` | planned — CJAP-2; custom frame is a visual adapter over the platform runtime; default shell is one product |
+| Theme/brand/design | `api.theme` + `platform.theme` + `platform.design` + `api.status`/`api.theme` tokens | planned — CJAP-3; mode + accent, scoped/embedded themes, neutral replaceable design system |
+| Content/documents/sources | `api.content` + `api.editor` (`Document`/`EditorProvider`) + `api.views` + `api.nodes` | planned — CJAP-4; source→content, stable nodes, render/overlay and diagnostic tasks |
+| Workspace/settings/dialogs/extensions | `api.workspace`/`platform.workspaces` + `api.settings`/`api.dialogs` + `api.extensions` | planned — CJAP-6; product workspace, scoped settings, notifications/About, contribution ownership |
+| CJAP conformance | reference product + four usage scenarios (§10.5.7) | planned — CJAP-8; platform-only distribution, no T0 imports, no platform feel |
+
+**CJAP surface rules.** Product identity is exactly one descriptor; no `ShellBranding.priority()` or
+`ShellChromeProvider.priority()` product selection. The product owns layout and may replace the entire
+`ShellFrame`; a custom frame is a visual adapter over `ShellRuntime`/`DockRuntime`. Theme, brand and design
+system are three layers; `NbfxTheme` is internal. NBM modules/clusters/kits are the only composition model;
+feature packs are deferred. No nbfx UI/API imports `DataObject`/`DataNode`/`openide.loaders`.
 
 **Chrome contract rules.** `ShellChrome` is a composition contract, not a second implementation:
 `Node top()`, `Node bottom()` and `void dispose()`. Concrete `MenuBar`/`ToolBarContainer`/`StatusBar`
@@ -520,7 +594,7 @@ and the implementation root is removed from `public-packages`. The detailed cont
 
 | Cluster | API modules |
 |---|---|
-| `nbfx-platform` | `api.actions`, `api.dialogs`, `api.editor`, `api.layer`, `api.options`, `api.progress`, `api.property`, `api.search`, `api.shell`, `api.status`, `api.views`, `api.wizard`, `api.settings`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
+| `nbfx-platform` | `api.actions`, `api.content`, `api.dialogs`, `api.diagnostics`, `api.docking`, `api.editor`, `api.extensions`, `api.layer`, `api.layout`, `api.options`, `api.product`, `api.progress`, `api.property`, `api.search`, `api.shell`, `api.status`, `api.theme`, `api.views`, `api.wizard`, `api.settings`, `api.workspace`, `api.output`, `api.execution`, `api.terminal`, `api.language`, `api.nodes`, `api.templates`, `api.plugins` |
 | `nbfx-ide` | `api.project`, `api.build`, `api.project.customizer`, `api.editor.intelligence`, `api.usages`, `api.debug`, `api.profile`, `api.tests`, `api.vcs`, `api.diff`, `api.tasklist` |
 | `nbfx-java` | `java.elements` (from `api.elements`) |
 
@@ -544,7 +618,7 @@ a declared friend package; the compiler plus the friend guard enforce it.
 | `nbfx.annotations` | dissolved: annotations move into their `api.*` module; path constants are owned by `api.layer.LayerPaths` |
 | `nbfx-api` cluster | **dissolved (W1.7, landed)**: each API module moved to its domain cluster (§6.6); the API tier stays module metadata |
 | `nbfx.actions`, `nbfx.context` | `platform.actions` |
-| `nbfx.docking`, `nbfx.windows` | `platform.workspace` |
+| `nbfx.docking`, `nbfx.windows` | `platform.workspace` → CJAP-1 rename `platform.docking` |
 | `nbfx.menus` | `platform.menus` (registrations and vocabulary) + `platform.shell` (JavaFX builder) + `ide.workbench` (IDE entries) |
 | `nbfx.statusbar` | `platform.status` (+ `api.status`) |
 | `nbfx.options` | `platform.options` (+ `api.options`) |
@@ -578,6 +652,12 @@ a declared friend package; the compiler plus the friend guard enforce it.
 | `nbfx.project.ui.gradle` | `java.projecttype.gradle` |
 | `nbfx.project.ui.ant` | `java.projecttype.ant` |
 | `nbfx.structure.java` | `java.structure` (+ `java.model`) |
+
+**CJAP additions are not renames:** `api.product`, `api.layout`, `api.content`, `api.docking`, `api.theme`,
+`api.workspace`, `api.diagnostics`, `api.extensions`, `platform.product`, `platform.docking` (rename of
+`platform.workspace`), `platform.design`, `platform.diagnostics`, `platform.extensions` and
+`platform.workspaces` are new modules in the platform cluster. Their consumers are the reference product and
+the four M0 scenarios; no IDE module is required.
 
 The table is **total**: every current module and every root-package class has exactly one target. The
 tree's current counts are generated in [`figures.md`](figures.md); do not hand-type them. A reverse index
@@ -675,8 +755,8 @@ pre-emptive date move.
 
 | Milestone | Target | Content | Exit |
 |---|---|---|---|
-| **M0 — Foundation + plugin contracts** | **2026-12** | shell/window/workspace public surface; options, wizard, status, property/nodes contracts; property sheet on `api.nodes`; `api.file` dissolution; progress, theme, options/wizard/property-sheet UI, output UI, launcher, packaging, conformance; W2a contract completion and W2b governance for the complete APIs | the walking-skeleton scenario (open→edit→build→run→output→commit) runs on a **real Ant/J2SE fixture project**; `refactor/api-clusters` + `refactor/appshell-boundary` landed; the platform-only distribution starts without IDE modules; an **API-only downstream fixture** implements the M0 extension points (options, wizard, status, property) using only API/SPI imports and the plugin allowlist; T0 modules publish no packages (named friend packages only); the conformance fixture covers the M0 services; the M0 rows of the retirement matrix are absent; all guards green; budget baseline recorded; **the M0 contract modules are complete and signed; `api.editor`'s exported SPI is complete in M0 and its consumer migration continues in M1** |
-| **M1 — AppShell services + IDE core** | **2027-03** | AppShell services: finish the `platform.editor` consumer migration; dialogs, output API, settings, search+quicksearch, execution (process/PTY), templates, credentials, favorites, indexing; terminal scope/parser decision. IDE core: project model, project kind/build extraction, editor (core + Java), structure, search, usages (generic + Java), file actions, VCS+Git, diff, local history, tests **UI**, libraries, task list/bookmarks, plugins UI | every service is platform-only and covered by the conformance fixture; no product/IDE consumer imports a T0 package outside a declared friend; `api.dialogs`, `api.output`, `api.settings`, `api.search`, `api.execution`, `api.templates` are complete and signed; open/edit/search/find/commit/run-tests in FX on a J2SE project; every explorer panel renders through `api.nodes` (except popups); the M1 rows of the retirement matrix absent; guards green |
+| **M0 — Foundation + plugin contracts + CJAP** | **2026-12** | all W2a contract and W2b governance work; **CJAP-0..CJAP-8** (§10.5): product descriptor/identity, product-owned layout and dock runtime, `ShellProvider`/`ShellFrame` and slots, theme/brand/design system, content/documents/sources, window/tabs/persistence, services/extensions, NBM composition/build/productization, reference product and scenario conformance; options, wizard, status, property/nodes, shell/window/workspace contracts; `api.file` dissolution; progress, theme, output, launcher, packaging | the walking-skeleton scenario runs on a real Ant/J2SE fixture; platform-only distribution starts without IDE modules; **CJAP scenarios** (§10.5.7) build and run on the platform-only distribution with only API/SPI imports: a live-data cockpit, an architecture/knowledge workbench, a document editor and a geospatial/EO workbench; a reference product can define its own layout, replace the shell and design system, switch theme/brand, open sources, move/float content and restore a session; product/scenario tests show no T0 imports, no platform feel, no feature packs, and NBM modules/clusters/kits as the sole composition; all guards green; budget baseline recorded; contract modules complete and signed |
+| **M1 — AppShell services + IDE core + CJAP adoption** | **2027-03** | Finish CJAP adoption in real products and the remaining AppShell services: `platform.editor` consumer migration; dialogs/output/settings/search/quicksearch/execution/templates/credentials/favorites/indexing; terminal scope/parser. IDE core: project model, project kind/build extraction, editor (core + Java), structure, search, usages (generic + Java), file actions, VCS+Git, diff, local history, tests **UI**, libraries, task list/bookmarks, plugins UI; migrate the remaining UI waves onto CJAP `NodeModel`/content/actions | every service is platform-only and covered by the conformance fixture; no product/IDE consumer imports a T0 package outside a declared friend; `api.dialogs`, `api.output`, `api.settings`, `api.search`, `api.execution`, `api.templates` are complete and signed; open/edit/search/find/commit/run-tests in FX on a J2SE project; every explorer panel renders through `api.nodes` (except popups); real product migrations use CJAP with zero T0/patches; the M1 rows of the retirement matrix absent; guards green |
 | **M2 — Java tooling** | **2027-07** | project types (J2SE/Maven/Gradle/Ant), Java Platforms, editor intelligence (goto, usages, hints, refactoring, codegen, Javadoc), debugger, profiler, Java tests engines/coverage, terminal | daily Java work on a Maven **and** an Ant project; the M2 rows of the retirement matrix absent; guards green |
 | **M3 — JavaFX usage** | **2027-09** | JavaFX project, FXML editing, SceneBuilder | a JavaFX project opens, edits FXML, and runs; `javafx.enabled` round-trips |
 | **M4 — Breadth** | **2027-12** | i18n, beans, JShell, remote debug/profiler, export/import, accessibility, multi-window, module graph view, OS bundles/installers (jpackage, Decision 19) | the intended feature scope is present; guards green; a11y pass recorded |
@@ -708,6 +788,24 @@ refactor/shell-window-contract → refactor/workspace-public-surface → feature
 W2a (contract completion) must land before W2b (governance/sigtest); governance for a `partial` module is
 deferred, not faked.
 
+The **CJAP platform path** is M0-critical after the W2a contracts and runs in parallel with W2b governance:
+
+```
+refactor/cjap-0-contracts
+  → refactor/cjap-layout              (#104 phases 0–2)
+  → refactor/cjap-product-shell       (Product, ShellProvider/ShellFrame, slots)
+  → refactor/cjap-theme-design        (theme, brand, ThemeScope, platform.design)
+  → refactor/cjap-content             (Content, Document, sources, nodes, render)
+  → refactor/cjap-window              (groups, tabs, float, persistence)
+  → refactor/cjap-services            (settings, dialogs, workspace, extensions)
+  → feature/cjap-build                (NBM clusters/kits, wrappers, packaging)
+  → feature/cjap-conformance          (reference product + scenario fixtures)
+  → M0
+```
+
+W2b governance signs the M0 API set after CJAP-4 and before CJAP-8. No CJAP API is published stable
+before the reference product and scenario fixtures pass.
+
 Two upstream prototypes run in parallel with the critical path and are **not** allowed to delay it:
 `chore/upstream-module-tools` (H.6, portable `nbbuild` checks → `nbfx-tools/`) with `refactor/guardrails`, and
 `spike/java-source-headless` (H.1) with `refactor/java-plumbing`; `spike/progress-neutral-spi` (H.2) is the M0
@@ -724,8 +822,11 @@ If a date is missed, cut in this order; each cut is a plan change, not a silent 
 6. **Maven/Gradle** project types — J2SE + Ant first, Maven/Gradle later (the M2 exit changes to "Ant and
    J2SE", the original JavaFX-cluster scope).
 7. **M1 breadth** — credentials/favorites, then templates, then quicksearch.
+8. **CJAP scenario breadth** — keep CJAP-0..CJAP-7 and the reference product; move individual workbench
+   fixtures to M1 if necessary. The product surface, NBM composition and reference product are not cuttable.
 Not cuttable: the walking skeleton, the guards, the API split, the **AppShell module boundary**, the
-**M0 plugin contracts**, the editor core, the J2SE project type. The platform **distribution** (source/binary
+**M0 plugin contracts**, the CJAP platform surface/layout/theme/reference product, the editor core, the J2SE
+project type. The platform **distribution** (source/binary
 artifacts) may follow the IDE if dates slip; the module boundary and the plugin contracts may not.
 
 ### 10.3 Test kit and test gate (implemented before W2a)
@@ -742,6 +843,14 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
   `nbfx-qa` cluster exists: `nbfx-tests/nbfx.test.fx` holds the shared `JavaFxTestSupport`, and the cluster is in
   `clusters.config.full.list` for test dependencies but not in the product `clusters.config.nbfx.list`, so it is
   never shipped.
+- **CJAP gates**: the reference product and four scenario fixtures (§10.5.7) run on the platform-only
+  distribution with API/SPI imports only. Separate checks cover: product descriptor/duplicate detection;
+  product-owned layout and zero-content layout; custom `ShellFrame` and default-shell slots; theme mode/accent,
+  `ThemeScope`/`HostTheme`, detached/dialog/popup and contrast; design-system restyle without `!important`;
+  sources/file/URI/drop; content move/float without node recreation; background task cancellation;
+  layout/content migration; NBM cluster/kit closure and plugin-dialog grouping; no feature-pack manifest;
+  no `DataObject`/`DataNode`/T0 imports in product/scenario modules; a11y, keyboard, reduced-motion and
+  performance/leak budgets.
 - **Harness**: NetBeans `nbjunit` (the test-file count is in [`figures.md`](figures.md)) + `nbbuild` `sigtest` targets for the
   governed API modules.
 - **All unit tests are a PR gate.** `ant test` discovers every module under `nbfx-*/*` and runs its
@@ -769,6 +878,208 @@ artifacts) may follow the IDE if dates slip; the module boundary and the plugin 
 
 A plan without owners is a wish. Every step in §11 must have an owner and a size (S/M/L) before M0 starts;
 the table is maintained in the issue tracker, not here. Until then, no step is "in progress".
+
+### 10.5 CJAP — platform delivery readiness (M0)
+
+**CJAP is the name of the nbfx platform deliverable**, not a separate specification, runtime or product. It
+makes the AppShell usable as the foundation of real JavaFX products without importing platform
+implementation packages, subclassing a product-specific shell, or accepting the platform's default look.
+
+#### 10.5.1 Acceptance
+
+A product can:
+
+- build and package on a platform-only distribution;
+- provide a product descriptor (id, name, version, vendor, icons, license, About, associations);
+- own its layout and, if desired, its entire `ShellFrame`;
+- use a product theme, accent scheme and brand that survive theme switching;
+- use or replace the neutral default design system;
+- open files/URIs/drops as content, host arbitrary documents/views/tools, and move/float content without
+  recreation;
+- restore layout, content and per-content state;
+- use NBM modules/clusters/kits as the only composition model;
+- use only API/SPI, never `org.netbeans.modules.nbfx.*` or `DataObject`/`DataNode`;
+- be embedded in another JavaFX host without taking over its scene or theme.
+
+#### 10.5.2 Architecture
+
+```
+product / distribution
+  product descriptor, NBM clusters/kits, packaging, update
+
+product composition
+  ShellProvider / ShellFrame / default shell / slots / brand chrome
+
+services and extensions
+  settings, dialogs, workspace, content, plugin lifecycle, diagnostics
+
+presentation
+  Theme, product style, component tokens, design system
+
+actions, views, nodes, editor
+  action registry/context, view registration, NodeModel, Document
+
+content and routing
+  Content, ContentFactory, ContentState, sources, persistence
+
+docking runtime
+  DockRuntime, Region, DockGroup, DockHost, controller, focus
+
+layout and policy
+  LayoutSpec, RegionSpec, DockGroupSpec, LayoutNode, DockPolicy
+
+declarative metadata
+  annotations, layer XML, registries, validation
+```
+
+Lower layers never depend on higher layers. Product modules import API/SPI only.
+
+#### 10.5.3 Product surface
+
+`api.product` (M/T2) adds:
+
+- `Product`/`ProductProvider` — exactly one per distribution, no priority;
+- `ProductIdentity`, `ProductIcons`, `ProductStyle`, `ThemePolicy`, `ProductFamily`, `ProductVariant`,
+  `LayoutProvider`, `DesktopAssociation`, `AboutInfo`;
+- no feature-pack API. Product composition is NBM modules/clusters/kits.
+
+`api.shell` (T2-FX) adds:
+
+- `ShellProvider`/`ShellFrame` — product-owned visual shell;
+- `ShellContribution`/named slots for the default shell (`BRAND`, `MENU`, `TOOLBAR`, `CONTENT_HEADER`,
+  `STATUS`, `EMPTY_STATE`, `ABOUT`);
+- `WindowDecoration` and narrow `ShellWindow`/`ShellContext` facades;
+- the custom-shell value boundary: a custom frame is a visual adapter over `ShellRuntime`/`DockRuntime`;
+  services-only mode is explicit when the product owns layout too.
+
+Product identity is a singleton. Duplicate providers fail. Product family/variant metadata is build-time;
+NBM clusters/kits select the modules.
+
+#### 10.5.4 Layout and docking (#104)
+
+Adopt the layout model of [gluonhq/nbfx#104](https://github.com/gluonhq/nbfx/issues/104):
+
+- `api.layout` (M): `LayoutSpec`, `LayoutNode`, `RegionSpec`, `DockGroupSpec`, capabilities, `DockPolicy`,
+  builder, layer XML, validation, persistence schema.
+- `api.docking`/`api.content` (T2-FX): `DockHost`, `DockController`, `Content`, `ContentFactory`,
+  `ContentState`, transfer and focus.
+- `platform.docking` (T0; rename of current `platform.workspace`): runtime, groups, hosts, split/float,
+  anchors, persistence.
+
+Rules:
+
+- product layout is the default; platform layout is a neutral fallback;
+- well-known regions are neutral `RegionType` registrations, not framework ontology;
+- no framework action assumes product region ids;
+- zero-content layouts are valid;
+- layout and content persist separately; old sessions migrate once;
+- `PaneRole`/`ViewArea`/`Docking`/`AppState` remain compatibility adapters with a dated removal.
+
+#### 10.5.5 Theme, brand and default design system
+
+`api.theme` (M/T2):
+
+- `Theme` (mode + accent + stylesheets + typed `ThemeTokens`);
+- `ThemeManager` (themes, mode, accent, attach to window/scene, `ThemeScope`);
+- `@ThemeRegistration`, `ThemeScope`, `HostTheme` for embedded/scoped content;
+- `NbfxTheme` becomes internal implementation, no static public API.
+
+Layers and order:
+
+1. component token defaults;
+2. active theme;
+3. product brand/style;
+4. plugin style.
+
+`platform.design` (T0) provides a neutral, replaceable default design system: buttons/fields/controls,
+toolbars/status, cards/drawers, tables/trees/tree-tables/lists, dialogs/notifications, density/typography/
+icons and accessibility. The default shell and `platform.nodes` use it; a product can restyle it or replace
+the shell entirely. No `!important` hacks, no platform control classes in product code.
+
+#### 10.5.6 Content, documents, sources, windows
+
+- `Content`/`ContentFactory`/`ContentState`: stable node, lifecycle, multi-instance, move/float without
+  recreation, separate state store.
+- `Document` capabilities + `DocumentType`/`EditorProvider`: optional file, text/navigable/preview/state
+  capabilities, non-file/untitled/generated documents; `EditorDocument` becomes an adapter.
+- sources: `ContentSource`, `SourceHandler`/`FileOpenHandler`, `DropHandler`; file/URI/stream/text/multi-file,
+  async, cancellation, unknown-source fallback.
+- rendering/overlays: content may own an AnimationTimer/Canvas/SubScene/3D renderer, HUD/overlay nodes,
+  suspend/resume; theme changes deliver tokens, not content rebuild.
+- `api.nodes`: `NodeModel`/children/explorer context + public `NodeView` tree/list/tree-table/table with
+  custom cells, DnD, inline rename, multi-select, grouping/filter/sort and a11y.
+- tabs/groups: recursive groups, pinned/preview, tab/group metadata, per-content state, float/redock,
+  recently closed, layout/content stores and migration.
+- tasks/diagnostics: per-content background tasks, cancellation on close/unload, bounded event/source-health
+  log with redaction and batched UI updates.
+
+#### 10.5.7 Usage scenarios (M0 acceptance)
+
+The M0 scenarios are named by usage, not by downstream project:
+
+1. **Live-data cockpit** — multi-target tabs, live metrics, charts, per-target workspace, dynamic views,
+   status/diagnostics, context-sensitive commands.
+2. **Architecture/knowledge workbench** — workspace open/recent, model tree, inspectors, checks/findings,
+   documents/preview, perspectives/layout presets.
+3. **Document editor/vault** — pinned tabs, recursive split groups, per-note state, palette/quick open,
+   external-change handling, plugin unload, scoped theme.
+4. **Geospatial/EO workbench** — globe/map content, HUD/overlays, drawers, timeline, source import, typed
+   theme tokens, accent schemes, content-owned render loop, gesture routing, frame budget.
+
+Each scenario is a platform-only fixture or an API-only product harness. Full downstream migrations are M1;
+M0 proves the platform surface and the reference product, not every product's feature parity.
+
+#### 10.5.8 NBM composition
+
+Composition is NBM modules, clusters and kit modules — the only source for M0:
+
+- NBM module dependencies define closure;
+- clusters define distribution;
+- kit modules group modules as one plugin-dialog feature (`AutoUpdate-Show-In-Client`);
+- product variants select cluster/kit sets and product metadata;
+- `product.yaml` drives identity/packaging, not the module graph;
+- no feature-pack manifest, registry, installer, `FeaturePackId`/`FeaturePackInfo` or parallel dependency
+  graph;
+- feature packs are deferred; a future pack layer must remain a manifest above NBM.
+
+Classpath/embedded/app-plugin modes remain explicit non-NBM modes for libraries and custom shells; they do
+not get NBM kit/update semantics.
+
+#### 10.5.9 CJAP stages in M0
+
+| Stage | Deliverable | Exit |
+|---|---|---|
+| **CJAP-0** | architecture/contracts, module names, product metadata schema, API/SPI/implementation rules, compatibility policy | decisions recorded; reference product sketched; no T0 imports |
+| **CJAP-1** | #104 phases 0–2: layout model/builder/XML/validation, `DockRuntime`, content/state, legacy adapters, product layout provider | zero-content layout renders; current UI runs through the new model; no hardcoded panes |
+| **CJAP-2** | `Product`/`ShellProvider`/`ShellFrame`, default shell, slots, window/decoration, embedded mode, family/variant, NBM cluster/kit selection | product-native shell; brand bar without T0; four variant configs from one family |
+| **CJAP-3** | `api.theme`, theme manager, mode/accent, typed tokens, `ThemeScope`/`HostTheme`, `platform.design` | live theme on main/detached/dialog; scoped/embedded; default shell usable out of the box |
+| **CJAP-4** | content/documents/sources/dynamic views, render/overlay contract, tasks/diagnostics, `api.nodes` renderer | document, cockpit and globe content models work; stable nodes; sources import |
+| **CJAP-5** | transfer, float/redock, presentations, focus, multi-window, tabs/pins, layout/content stores, migration | recursive groups, pinned, restore, missing-content/monitor recovery |
+| **CJAP-6** | settings/dialogs/output/workspace/diagnostics, extension ownership/invalidation, app-plugin/NBM/ServiceLoader policy | product services work; plugin unload no ghosts; no feature packs |
+| **CJAP-7** | downstream template, NBM wrapper generator, product metadata, packaging, cluster/kit validation, update center, compatibility matrix | product-only distribution builds; no post-processing; kit module groups a feature |
+| **CJAP-8** | UX/a11y/perf audit, reference product, four scenario gates, docs/playbooks | reference product hides platform feel; scenarios pass with zero T0/patches |
+
+#### 10.5.10 M0 exit for CJAP
+
+- CJAP-0..CJAP-8 complete.
+- A platform-only distribution starts with no IDE modules.
+- A reference product and the four scenario fixtures run with API/SPI only.
+- The default shell is usable out of the box; a product can replace the shell, layout, theme, brand and
+  design system without T0 imports.
+- No CJAP feature packs; NBM modules/clusters/kits are the sole composition.
+- No nbfx API/UI imports `DataObject`/`DataNode`/`openide.loaders`; the bridge remains for NBM compatibility.
+- No `org.netbeans.modules.nbfx.*` imports in product/scenario modules.
+- All guards, budget and a11y checks green.
+
+#### 10.5.11 Explicit deferrals
+
+- feature packs and any pack manifest/registry/installer;
+- a standalone CJAP specification;
+- loader-free platform distribution;
+- full product feature parity in M0 (M1 adopts the platform; Java/IDE services continue in M1);
+- language/editor intelligence beyond the M0 `Document`/`EditorProvider` and language SPI (M1/M2).
+
+---
 
 ## 11. Workstreams (the work, sliced)
 
@@ -799,6 +1110,7 @@ workstreams only the stated dependencies do.**
 | W1.7 platform boundary/API clusters | APIs live in their domain clusters and `nbfx-api` is gone; `ant platform-build` produces a platform-only distribution whose default `ShellApplication` starts; `ant appshell-conformance` passes; `check-appshell`, `check-platform-delivery` and `check-api-isolation` are green; the IDE scenario is green |
 | W2a contract completion | every M0 extension point (options, wizard, status, property/nodes) has its implementable type in the API/SPI packages; consumers import only API/SPI; an API-only downstream fixture compiles; `partial` modules are listed with a removal milestone |
 | W2b governance | every **complete** governed module has `arch.xml` + `apichanges` + a `sigtest` target; incomplete modules are `devel` with a named exemption, not signed; spec-version guard green; exemption/friend register has owners and dates; the language conformance fixture passes |
+| W2c CJAP platform delivery | §10.5.10: CJAP-0..CJAP-8 complete; platform-only distribution; reference product + four usage scenarios (§10.5.7) with API/SPI only; custom shell/theme/design, content/sources/windows, NBM clusters/kits, no feature packs, no T0 imports, a11y/perf/leak green |
 | W3a AppShell chrome | shell chrome, declarative views/panes/layouts and theme are platform-only and covered by the conformance fixture; `ActionBars` is gone; no IDE class is needed for standard chrome |
 | W3b AppShell services | each remaining service is platform-only, documents its thread, disposal and lease tests, and is covered by the AppShell conformance fixture; index-on-open has progress and cancellation; every product/IDE consumer imports API/SPI only, except a declared service friend |
 | W4 IDE core | the M1 scenario (open/edit/search/find/commit/run-tests) on a J2SE project; every explorer panel renders through `api.nodes` |
@@ -932,6 +1244,36 @@ audit/guard implementation (`refactor/guardrails`); the exemption/friend registe
 Incomplete modules stay `devel` and are not signed. `feature/language-conformance`: the **fake-language
 fixture** (`LanguageId("text/x-nbfx-conformance")` with decoration, completion, structure, goto and usages) —
 the CI proof of the core freeze ([Appendix I.4](appendix/I-language-soundness.md)).
+
+**W2c — CJAP platform delivery (M0).** `refactor/cjap-*` + `feature/cjap-*`: the platform surface described
+in §10.5, delivered after the W2a contracts and in parallel with W2b governance.
+
+Branch slices, in dependency order:
+
+1. `refactor/cjap-0-contracts` — ADR/decision record; module names; product metadata schema; API/SPI/
+   implementation rules; compatibility/adapters; no behaviour change.
+2. `refactor/cjap-layout` — `api.layout` model/builder/XML/validation; `DockRuntime`, regions/groups,
+   content/state, legacy adapters; `platform.docking` rename; product layout provider; zero-content layout
+   test.
+3. `refactor/cjap-product-shell` — `api.product`; `ProductProvider`/`Product`; `ShellProvider`/`ShellFrame`;
+   default shell; slots; window/decoration; embedded mode; product family/variant; NBM cluster/kit metadata;
+   no feature packs.
+4. `refactor/cjap-theme-design` — `api.theme`; `ThemeManager`; mode/accent; `ThemeTokens`; `ThemeScope`/
+   `HostTheme`; `platform.design` neutral component kit; default shell/nodes use it; product restyle test.
+5. `refactor/cjap-content` — `api.content`/`Document`/`EditorProvider`/sources/drop; dynamic views;
+   `api.nodes` renderer; content-owned render/overlay contract; tasks/diagnostics; `platform.diagnostics`.
+6. `refactor/cjap-window` — transfer/float/redock/presentations/focus; recursive groups, pinned/preview,
+   per-content state; layout/content stores and migration; multi-window.
+7. `refactor/cjap-services` — `api.settings`/`api.dialogs`/`api.output`/`api.workspace`; settings/notifications/
+   exception/About/file chooser/close guard; `api.extensions` ownership/invalidation; app plugin/NBM/
+   ServiceLoader policy; `platform.workspaces`.
+8. `feature/cjap-build` — downstream template; extra clusters/fragments; NBM wrapper generator; product
+   metadata/packaging; cluster/kit validation; update-center layout; compatibility matrix; no pack manifest.
+9. `feature/cjap-conformance` — reference product; four scenario fixtures (§10.5.7); a11y/perf/leak;
+   no-T0/no-platform-feel checks; docs/playbooks.
+
+Acceptance: §10.5.1 and §10.5.10. W2b signs the CJAP API set after `refactor/cjap-theme-design` and before
+`feature/cjap-conformance`; the reference product and scenarios are the gate, not the IDE.
 
 **W3a — AppShell chrome (landed).** The `feature/shell` branches are on `main`:
 
@@ -1104,24 +1446,32 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     with the platform; `<test-dependency>` may cross layers, never run dependencies, never shipped; a
     test-only `nbfx-qa` cluster (`nbfx.test.fx`) is in the full config but not the product config; it holds
     shared test support and is never shipped (§10.3).
-23. **Two deliverables, one AppShell**: the IDE is the primary deliverable; the platform (the AppShell plus
-    platform services) is the secondary deliverable. The AppShell is the platform's whole application
-    framework, not just `platform.shell`. Downstream projects assemble applications however they choose
-    (source clusters or prebuilt binary modules); nbfx does not define a product or assembly model.
+23. **Two deliverables, one AppShell, CJAP as the platform name**: the IDE is the primary deliverable; the
+    platform (the AppShell plus platform services) is the secondary deliverable and is named **CJAP**.
+    CJAP is not a separate specification, runtime or product. The AppShell is the platform's whole
+    application framework, not just `platform.shell`. CJAP adds the product-facing surface: descriptor/
+    identity, product-owned layout, replaceable shell/frame, theme/brand/design system, content/documents/
+    sources, window/tab persistence and packaging. Downstream products assemble as NBM clusters/kits; they
+    may also embed individual services or use a custom shell, but the platform does not define a second
+    composition format or a product deliverable.
 24. **APIs live in their domain cluster**: the `nbfx-api` cluster is dissolved; an API is a module tier, not a
     cluster; API modules may depend only on API modules in the same or a lower cluster (`check-api-isolation`).
 25. **The AppShell boundary is structural**: no platform module may depend on an IDE/Java/JavaFX module; the
     services do not depend on the shell; IDE behaviour lives in `ide.workbench`. `check-appshell` asserts it.
-26. **M0 is the foundation and the plugin contracts; M1 is services plus IDE core.** The milestone dates are
-    unchanged: M0 stays at 2026-12 and M1 at 2027-03. M0 includes the shell/window/workspace public surface and
-    the complete plugin contracts for options, wizard, status and property/nodes (because the M0 property sheet
-    needs `api.nodes`). Dialogs, output API, settings, search, execution, templates, credentials, favorites,
-    indexing and the finished editor extraction are M1, as is IDE core; terminal is M2. One exception, by an
-    explicit plan change: the first slice of the output contract (`api.output`: the console service and the
-    run actions the Output window needs) landed with #171, so that the window did not grow a public API in
-    its implementation module; the module stays `partial` and its completion stays M1. A module whose
-    contract is incomplete is `partial`/`devel`, is not signed, and does not close M0. If the scope does not
-    fit, the cut list or an explicit plan change applies; do not pre-emptively move the dates.
+26. **M0 is the foundation, the plugin contracts and CJAP; M1 is services, IDE core and product adoption.**
+    The milestone dates are unchanged: M0 stays at 2026-12 and M1 at 2027-03. M0 includes the
+    shell/window/workspace public surface, the complete plugin contracts for options, wizard, status and
+    property/nodes, and **CJAP-0..CJAP-8** (§10.5): product descriptor/identity, layout/dock runtime, shell
+    composition, theme/brand/design system, content/documents/sources, window/tab persistence,
+    services/extensions, NBM composition/build and the reference product plus four scenario fixtures.
+    Dialogs, output API, settings, search, execution, templates, credentials, favorites, indexing and the
+    finished editor extraction are M1, as is IDE core and the remaining product/UI adoption waves; terminal
+    is M2. One exception, by an explicit plan change: the first slice of the output contract (`api.output`:
+    the console service and the run actions the Output window needs) landed with #171, so that the window did
+    not grow a public API in its implementation module; the module stays `partial` and its completion stays
+    M1. A module whose contract is incomplete is `partial`/`devel`, is not signed, and does not close M0. If
+    the scope does not fit, the cut list or an explicit plan change applies; do not pre-emptively move the
+    dates.
 27. **T0 publishes nothing; friend packages are named and dated.** A T0 module may export an implementation
     package only through `<friend-packages>` to a named nbfx module, with an owner and a removal milestone.
     Shared packages are promoted to T1/T2-FX/M deliberately. A module is *landed* only when the type a
@@ -1139,6 +1489,27 @@ Order and the per-proposal credibility test are in [H.8](appendix/H-upstream-pro
     file choosers, Maven's platform customizer) remain upstream Swing and are replaced one by one.
     This is the model for upstream UI APIs with a provider SPI: replace the implementation, keep the
     API.
+29. **CJAP is the nbfx platform delivery, not a separate spec or product.** Its APIs are nbfx APIs and its
+    releases are nbfx releases. No standalone CJAP specification/API/distribution/product is in scope.
+30. **The product owns layout and visible shell.** `LayoutSpec`/`DockRuntime` are the layout model;
+    `ShellProvider`/`ShellFrame` replace the default shell; `ShellContribution` slots extend the default
+    shell. A product may use the runtime with a custom frame, or services-only with its own layout. The
+    platform never requires a particular visual design.
+31. **Theme, brand and design system are layered.** Theme = mode + accent + typed tokens; product
+    brand/style persists across themes; `platform.design` is a neutral, replaceable default component kit.
+    `ThemeScope`/`HostTheme` support embedded/scoped content; `NbfxTheme` is internal implementation.
+32. **NBM modules/clusters/kits are the sole composition model for M0.** No CJAP feature-pack manifest,
+    registry, installer or parallel dependency graph. Kit modules provide the plugin-dialog feature
+    grouping. Feature packs are deferred and, if reintroduced, must stay a manifest above NBM.
+33. **No new nbfx UI dependency on `DataObject`/`DataNode`/`openide.loaders`.** The platform keeps the
+    compatibility bridge for NetBeans core/NBM plugins; a loader-free distribution is a separate project.
+34. **Product identity is exactly one descriptor.** Product name/icon/version/About/packaging come from one
+    source; duplicate providers fail. Product family/variant is build-time metadata selecting NBM clusters/
+    kits, not a runtime composition graph.
+35. **CJAP acceptance is scenario-based.** The M0 gate is a reference product plus four usage scenarios
+    (live-data cockpit, architecture/knowledge workbench, document editor/vault, geospatial/EO workbench)
+    on a platform-only distribution, with no T0 imports and no visible platform default feel. Product names
+    are deliberately abstracted in the plan; the scenarios define the contracts.
 
 ## 14. Open questions
 
@@ -1206,6 +1577,13 @@ Every entry has a **trigger**, so it is a decision rule, not a worry. Owners are
 | **R18** published API modules are stubs while consumers use T0 packages | high | high | W2a contract completion (options, wizard, status, property/nodes) before W2b; the API-only downstream fixture is the gate; `partial` modules are not signed | a module is marked landed without an API-only consumer |
 | **R19** friend packages become permanent hidden API | medium | high | every friend has an owner and removal milestone; `check-api` fails on an expired or undeclared friend; T0 publishes no packages | a friend entry survives its milestone |
 | **R20** editor/workspace extraction overruns M0 | high | high | extract the SPI in M0, finish the consumer migration in M1; friend packages are the transition, not the destination; the cut list protects the M0 contracts | the M0 API-only fixture cannot compile without a T0 import |
+| **R21** CJAP layout/dock runtime overruns M0 | high | high | #104 phase 0–2 first; keep the old `Docking`/`AppState` adapters until the new runtime passes the layout/content migration fixtures | CJAP-1 has no zero-content and old-session migration test |
+| **R22** product shell/theme surface turns into a second UI toolkit | high | high | `ShellFrame` is only a visual adapter; `platform.design` is internal; public contract is slots/tokens/style classes, not control classes; custom shell value boundary (§10.5.3) | a product imports platform control internals or `DefaultShellChrome` |
+| **R23** content render loop is broken by shell/theme layout | high | high | stable content node, token-based repaint, content-owned pulse, suspend/resume and frame-budget tests | a globe/map/canvas content loses state or node identity on theme/tab change |
+| **R24** product family/variant becomes a parallel dependency graph | high | high | NBM modules/clusters/kits are the sole composition; product metadata is identity/packaging only; no feature packs | a `pack` manifest or product-side module graph appears in M0 |
+| **R25** kit modules drift from module dependencies | medium | medium | kit modules are normal NBM modules; build validation checks their dependency closure and plugin-dialog visibility | a kit enables a module outside its declared feature |
+| **R26** loader-free ambition forks NetBeans core | medium | high | keep `openide.loaders` as a compatibility bridge; no nbfx UI/API imports; loader-free is a separate project | a CJAP module requires `DataObject`/`DataNode` or a core fork |
+| **R27** CJAP API published before product proof | high | high | W2b signs after CJAP-4; reference product + four scenario fixtures are the gate; no stable API before | an `api.*` CJAP module is signed while a scenario needs a T0 import |
 
 ## 17. Plan budget and freeze
 
@@ -1213,8 +1591,8 @@ The plan is a means, not a deliverable. It now has implementation behind it: W0,
 the AppShell chrome/declarative composition are on `main`. This re-scope records the API-contract gap and
 moves service breadth to M1; it is the last review round before M0.
 
-- **Budget ~1,200 lines.** This round replaces speculation (stub “landed” rows, the old 42-test baseline)
-  with the API-reality summary and the measured baseline.
+- **Budget ~1,700 lines.** This round integrates CJAP into M0, replaces speculation with the API-reality
+  summary and keeps the measured baseline.
 - **No new appendix without merging or removing one.**
 - **No further review round** until the API-only downstream fixture passes or the platform distribution is
   produced; W0 and `feature/ci` have already met the earlier gate.
@@ -1261,7 +1639,8 @@ The **API split is complete at module level, not at contract level**. `api.dialo
 `api.project` are `partial` until W2a/W2b moves the implementable SPI out of `platform.*`; the options,
 property/nodes, wizard, status, shell/window, workspace, api.file and editor contracts landed with #162,
 #174, #181, #185, #186, #187, #188 and #189. All W2a contract slices have landed. M0 is **2026-12** (dates
-unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, the API-only
-downstream fixture and the W2b governance for the complete modules. M1 (2027-03) carries AppShell services
-and IDE core. W2b is next.
+unchanged) and now closes the M0 plugin contracts, the shell/window/workspace public surface, **CJAP-0..
+CJAP-8** (the nbfx platform delivery), the reference product/four scenario fixtures and W2b governance for
+the complete modules. M1 (2027-03) carries AppShell services, IDE core and the remaining product/UI
+adoption. W2b and **W2c CJAP** are next.
 The module and source counts are in [`figures.md`](figures.md), not in this table.
