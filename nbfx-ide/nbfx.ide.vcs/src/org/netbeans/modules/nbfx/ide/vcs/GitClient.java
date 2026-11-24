@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 /**
@@ -72,6 +73,28 @@ final class GitClient {
         } catch (IllegalArgumentException ex) {
             throw new IOException(ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * The content the file at {@code path}, relative to {@code root}, has in the last commit, or
+     * empty when it is not in it - a new file - or cannot be read.
+     */
+    static Optional<String> headContent(Path root, String path) {
+        return content(root, "HEAD:" + path);
+    }
+
+    /**
+     * The content the file at {@code path}, relative to {@code root}, has in the index - what the
+     * next commit takes - or empty when it is not in it or cannot be read.
+     */
+    static Optional<String> indexContent(Path root, String path) {
+        return content(root, ":" + path);
+    }
+
+    private static Optional<String> content(Path root, String object) {
+        // Not textconv, not a pager: the bytes as they are stored.
+        Result result = result(root, "--no-pager", "show", "--no-textconv", object);
+        return result.exitCode() == 0 ? Optional.of(result.output()) : Optional.empty();
     }
 
     /** Creates a repository in {@code dir}, as {@code git init}. */

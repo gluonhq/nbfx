@@ -25,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import org.junit.Assume;
 import org.junit.Before;
@@ -67,6 +68,21 @@ public class GitClientStatusTest {
         }
         git("add", "-A");
         git("commit", "--quiet", "-m", "initial");
+    }
+
+    @Test
+    public void contentOfTheLastCommitAndOfTheIndex() throws Exception {
+        String committed = "first line of modified.txt\nsecond line\nthird line\n";
+        write("modified.txt", committed + "staged\n");
+        git("add", "modified.txt");
+        write("modified.txt", committed + "staged\nnot staged\n");
+        write("new.txt", "new\n");
+
+        assertEquals(Optional.of(committed), GitClient.headContent(root, "modified.txt"));
+        assertEquals(Optional.of(committed + "staged\n"), GitClient.indexContent(root, "modified.txt"));
+        // A file git does not have yet has no content there.
+        assertEquals(Optional.empty(), GitClient.headContent(root, "new.txt"));
+        assertEquals(Optional.empty(), GitClient.indexContent(root, "new.txt"));
     }
 
     @Test
