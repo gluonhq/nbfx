@@ -68,7 +68,7 @@ document editor/vault and geospatial/EO workbench.
 | `DockWindow` | same | main/floating/custom windows |
 | `LayoutStore`/`ContentStateStore` | `WindowStateStore` + `ContentStateStore` | reuse existing window-state name |
 | builder + annotations + XML | same | no DSL |
-| no static `Docking` | per-shell `DockRuntime` | existing static implementation is removed |
+| no static `Docking` | application-scoped `DockRuntime` | existing static implementation is removed |
 | separate layout/content persistence | same | one writer per concern |
 | neutral platform defaults | same | product layout wins |
 
@@ -84,22 +84,24 @@ The shell-region model is additional to #104:
 
 | Module | Tier | Target contents |
 |---|---|---|
-| `api.product` | M | `Product`, `ProductProvider`, identity/icons/style/theme policy/About/associations |
-| `api.shell` | T2-FX | `ShellProvider`, `ShellFrame`, `ShellContext`, `ShellWindow`, `WindowManager`, `WindowSystem`, window/chrome/overlay contracts |
-| `api.layout` | M | `LayoutSpec`, `LayoutNode`, `ViewArea`, `DockGroupSpec`, `PaneRole`, `DockLocation`, `PaneKind`, `PresentationId`, `DockPolicy`, builder/XML |
-| `api.docking` | T2-FX | `DockHost`, `DockWindow`, `WindowKind`, `WindowOptions`, `WindowContent`, transfer contracts |
-| `api.content` | T2-FX | `Content`, `ContentFactory`, `ContentState`, `ContentSource`, `SourceHandler`, `DropHandler` |
-| `api.views` | T2-FX | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewInfo`, `ViewKind`, `NodeView` |
+| `api.resources` | M | `ResourceRef` and neutral resource references |
+| `api.product` | M | `Product`, `ProductProvider`, identity/icons/style/About/associations; policy ids |
+| `api.shell` | T2-FX | `ShellProvider`, `ShellFrame`, `ShellContext`, `ShellWindow`, `WindowManager`, `WindowSystem`, `WindowKind`, `WindowOptions`, `DockWindow`, chrome/profile contracts |
+| `api.layout` | M | `LayoutSpec`, `LayoutNode`, `ViewArea`, `ViewAreaKind`, `DockGroupSpec`, `PaneRole`, `DockLocation`, `PaneKind`, `PresentationId`, `AreaStyle`, builder/XML |
+| `api.docking` | T2-FX | `DockHost`, `DockPolicySpec`, `DockRequest`, `DockDecision`, `DockPolicy`, transfer contracts |
+| `api.content` | T2-FX | `Content`, `ContentId`, `ContentFactory`, `ContentState`, `ContentSource`, `SourceHandler`, `DropHandler`, `OverlayHost`, `DockPlacement`, `TransferMode` |
+| `api.views` | T2-FX | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewInfo`, `ViewKind`, `NodeView`; depends on `api.nodes` |
 | `api.actions` | T2-FX | existing action model, scoped `Lookup`, shell-region references |
 | `api.nodes` | M | `NodeModel`, `ChildrenModel`, `ChildFactory`, `ExplorerContext` |
 | `api.editor` | T2-FX | `EditorDocument`, `EditorService`, editor capabilities over `Content` |
-| `api.theme` | T2-FX | `Theme`, `ThemeManager`, `ThemeTokens`, `ThemeScope`, `HostTheme`, registrations |
+| `api.theme` | T2-FX | `Theme`, `ThemeManager`, `ThemeTokens`, `ThemeScope`, `HostTheme`, `ThemePolicy`, registrations |
 | `api.workspace` | M | product workspace lifecycle |
 | `api.settings` | M | scoped settings |
 | `api.dialogs` | T2-FX | dialogs/notifications/About/diagnostics/file chooser/close guard |
 | `api.diagnostics` | M | event/source-health model |
-| `api.plugins` | T1/M | contribution ownership/invalidation; install/update later |
+| `api.plugins` | T1 | contribution ownership/invalidation; install/update later |
 | `api.layer` | T1 | typed layer reader/registry |
+| `api.status` | T2-FX | existing status element/registry contract, extended with scope |
 
 ### Implementation modules
 
@@ -178,7 +180,8 @@ Acceptance: no unresolved naming or ownership decision blocks Phase 1.
 
 - Create new API/implementation modules in devel state.
 - Add package-level `package-info.java`.
-- Reset API snapshots/signatures for intentionally replaced APIs.
+- Do not reset existing API snapshots/signatures yet; reset them in the domain PR that deletes the
+  old API after the replacement exists.
 - Update cluster fragments and dependency graph.
 
 Acceptance: target modules compile; old APIs may remain temporarily but are no longer the target.
@@ -204,17 +207,23 @@ Acceptance: a minimal product fixture compiles and starts headlessly.
 
 #### T1.1 — Ids and value types
 
-- `PaneRole`, `DockGroupId`, `PresentationId`, `WindowId`, `ShellRegionId`, `ShellRegionKind`.
+- `PaneRole`, `ViewAreaKind`, `DockGroupId`, `SlotId`, `PresentationId`.
+- `PaneRole` is only a logical-area identity; `DOCKED`/`DETACHED`/`SLIDE` are removed from it.
+- Neutral built-ins are `MAIN`, `SIDE`, `BOTTOM`, `CENTER`; consumer areas register their own kinds.
 - Built-in constants plus `of(...)` parsing.
+- One namespaced string form (`namespace:name`) with built-in short forms.
 - Stable equality/hashCode and XML/layer string forms.
 
 Acceptance: id round-trip tests; unknown product ids work.
 
 #### T1.2 — `ViewArea`, `DockGroupSpec`, `LayoutSpec`
 
-- Evolve `ViewArea` to carry id/display name/type defaults/capabilities/policy/style/visibility/order.
-- Add `DockGroupSpec` with area, `PaneKind`, `PresentationId`, capacity and policy.
+- Evolve `ViewArea` to carry `PaneRole`, `ViewAreaKind`, display name, default location/weight,
+  default `PresentationId`, capabilities, policy id, `AreaStyle`, visibility and order.
+- Add `DockGroupSpec` with area, `PaneKind`, `PresentationId`, capacity, policy id and group lifetime.
 - Add `LayoutSpec`/`LayoutNode` (`Split`, `Group`, `Slot`).
+- All public records defensively copy collections; layout contains no executable policy or content.
+- `DockPolicySpec` is implemented in `api.docking`, not `api.layout`.
 
 Acceptance: zero-content layout with multiple groups/areas validates.
 
@@ -230,14 +239,19 @@ Acceptance: builder/XML/annotation paths produce equal `LayoutSpec`.
 #### T1.4 — Validation and normalization
 
 - Duplicate ids, missing refs, bad dividers, cycles, unknown types, group/area mismatch.
+- Divider arity/range/order (N-1 strictly increasing positions), root shape, group reference
+  uniqueness and slot materialization.
+- Empty policy sets are deny-all; wildcard/default policy is explicit allow-all.
 - Normalize empty transient groups, clamp dividers, deterministic fallback.
 
 Acceptance: property/fuzz tests; normalization is idempotent.
 
-#### T1.5 — Persistence model
+#### T1.5 — Persistence model (after T4.1)
 
-- `WindowState`/`AreaState` evolved for layout/groups/windows.
-- `ContentStateStore` for content payloads.
+- `WindowState` is one window: layout/groups/content order/active/geometry/profile.
+- `SessionState` is all windows plus active window.
+- `WindowStateStore` owns `SessionState`; `ContentStateStore` owns only per-content payloads keyed by
+  `ContentId`/instance key.
 - Versioned schema and one-time old-session migration utility.
 
 Acceptance: old fixture migrates; new state round-trips without JavaFX types.
@@ -280,9 +294,10 @@ Acceptance: one command appears in menu, toolbar, ribbon and brand bar; scoped e
 
 #### T2.5 — Shell provider/frame/context
 
-- `ShellProvider`, `ShellFrame`, `ShellContext`, `ShellWindow`.
+- `ShellProvider`, `ShellFrame`, `ShellRegionHost`, `ShellContext`, `ShellWindow`.
+- `ShellFrame` exposes root, dock-root mounting, region host, overlay host and close.
 - `ShellApplication` becomes the default composition root, not a subclassing API.
-- Default shell consumes `ShellRegionRegistry`.
+- Default shell consumes `ShellRegionRegistry`; custom shells use `ShellRegionHost`.
 
 Acceptance: default shell and a custom shell run with the same services.
 
@@ -299,7 +314,7 @@ Acceptance: MAIN/FLOATING/CUSTOM windows select different chrome; restored windo
 
 #### T3.1 — `DockRuntime` and `WindowSystem`
 
-- Per-shell runtime; no static `Docking`.
+- Application-scoped runtime; no static `Docking`.
 - Build runtime from `LayoutSpec`.
 - `WindowSystem` load/save/reset lifecycle.
 
@@ -315,8 +330,9 @@ Acceptance: tabbed and canvas groups coexist; no content recreation.
 
 #### T3.3 — `WindowManager` operations
 
+- Public operations use `ContentId`/`DockGroupId`, not `Tab`/`WindowPaneHost`.
+- `canDock` returns `DockDecision`; `dock` returns `DockResult`.
 - Attach/move/select plus group split/close/float/redock.
-- `DockPolicy` decisions and reasons.
 - Undo unit = one user gesture.
 
 Acceptance: keyboard and pointer split/move/float tests.
@@ -324,9 +340,10 @@ Acceptance: keyboard and pointer split/move/float tests.
 #### T3.4 — Multi-window
 
 - `WindowKind.MAIN/FLOATING/CUSTOM`.
-- `DockWindow`, `WindowContent`, `WindowOptions`.
+- `DockWindow`, `WindowContent`, `WindowOptions`, `WindowClosePolicy`.
 - Geometry, owner, focus, close and persistence.
-- Same content instance moves between windows.
+- Same content instance moves between windows; close policy is REDOCK/CLOSE_CONTENT/HIDE.
+- `FocusController` separates window activation, logical selection and keyboard focus.
 
 Acceptance: float/redock preserves state; custom window hosts arbitrary content.
 
@@ -449,7 +466,9 @@ Acceptance: window and content-local status bars coexist.
 #### T6.4 — Overlay/HUD
 
 - `OverlaySpec`, `OverlayAnchor`, `OverlayInputMode`, `OverlayHost`.
-- Content/area/window overlays.
+- Content/area/window overlays; distinguish shell overlay slot, dockable overlay presentation and
+  anchored HUD layers.
+- Normative input/focus rules and anchor lifecycle across move/float/redock.
 - Scoped theme/focus/input.
 
 Acceptance: HUD does not steal map drag; palette overlay works.
@@ -535,10 +554,10 @@ Acceptance: CJAP API set frozen for release.
 | PR | Scope | Depends on |
 |---|---|---|
 | C0-1 | #104 alignment ADR + target module map | — |
-| C0-2 | module skeleton + API snapshot reset | C0-1 |
+| C0-2 | module skeleton only; no API snapshot reset | C0-1 |
 | C1-1 | ids + `ViewArea`/`DockGroupSpec`/`LayoutSpec` | C0-2 |
 | C1-2 | builder/XML/annotations/validation | C1-1 |
-| C1-3 | persistence model + migration fixture | C1-1 |
+| C1-3 | persistence model + migration fixture | C1-1, C4-1 |
 | C2-1 | `Product` + metadata | C0-2 |
 | C2-2 | shell-region layer/registry/contributions | C1-1, C2-1 |
 | C2-3 | action registration/reference reuse | C2-2 |
@@ -560,6 +579,19 @@ Acceptance: CJAP API set frozen for release.
 | C8-1 | consumer migration + old API deletion | C3–C7 |
 | C8-2 | reference product + scenarios | C8-1 |
 | C8-3 | UX/a11y/perf/freeze | C8-2 |
+
+## 6.1 Review resolutions carried into implementation
+
+- `api.layout` is M-tier and contains no JavaFX, executable policy, theme or content dependency.
+- `DockPolicySpec` is immutable data; executable `DockPolicy` lives in `api.docking`.
+- `WindowStateStore` owns `SessionState`; `ContentStateStore` owns only content payloads.
+- `WindowManager` uses `ContentId`/`DockGroupId`; `ShellWindow` exposes `WindowManager`/
+  `WindowSystem`, not `mainPane` or T0 `DockRuntime`.
+- Custom shells receive `ShellRegionHost` and `OverlayHost`; dockable custom shells must mount `DOCK`.
+- Overlay modes, multiwindow close policy, focus precedence and drop routing are normative before runtime
+  API freeze.
+- Existing `DockArea` interaction behavior is adapted, not rewritten.
+- API snapshot resets happen with domain deletion, not in the skeleton PR.
 
 ## 7. Test matrix
 
@@ -621,6 +653,6 @@ Do not cut:
 ## 10. First tasks
 
 1. C0-1: write the #104 alignment ADR and finalize the target naming map.
-2. C0-2: create module skeleton and reset API snapshots.
+2. C0-2: create module skeleton only; defer API snapshot resets to domain deletion PRs.
 3. C1-1: implement ids, `ViewArea`, `DockGroupSpec`, `LayoutSpec`.
 4. C1-2: implement builder/XML/annotations/validation with headless tests.

@@ -63,12 +63,12 @@ CJAP is the nbfx platform delivery, not a separate specification or runtime.
 | `LayoutStore` | `WindowStateStore` |
 | `ContentStateStore` | same |
 | builder + annotations + XML | same, no DSL |
-| static `Docking` | per-shell `DockRuntime` |
+| static `Docking` | application-scoped `DockRuntime` |
 
 Additional CJAP concepts:
 
 - `ShellRegion` — window chrome slot, separate from content `ViewArea`;
-- `ShellProfile` — per-window chrome configuration;
+- `ShellChromeProfile` — per-window chrome configuration;
 - `OverlayHost` — HUD/palette layers that are not split leaves;
 - `Product` — product metadata, not a runtime plugin;
 - `ThemeScope` — scoped/embedded styling.
@@ -129,22 +129,24 @@ Workspace / Settings / Diagnostics / Contributions
 
 | Module | Tier | Responsibility |
 |---|---|---|
+| `api.resources` | M | `ResourceRef` and neutral resource references |
 | `api.product` | M | product metadata |
-| `api.shell` | T2-FX | shell/frame/context/window/chrome/overlay |
-| `api.layout` | M | layout/area/group/policy/builder/XML |
-| `api.docking` | T2-FX | hosts/windows/transfer |
-| `api.content` | T2-FX | content/factory/state/sources/drop |
+| `api.shell` | T2-FX | shell/frame/context/window/chrome/profiles |
+| `api.layout` | M | layout/area/group/builder/XML/style refs |
+| `api.docking` | T2-FX | hosts/policy/transfer |
+| `api.content` | T2-FX | content/id/factory/state/sources/drop/overlay host/transfer vocabulary |
 | `api.views` | T2-FX | views/registry/manager/NodeView |
 | `api.actions` | T2-FX | commands/registry/references |
 | `api.nodes` | M | explorer model |
 | `api.editor` | T2-FX | editor document/service |
-| `api.theme` | T2-FX | theme manager/tokens/scope |
+| `api.theme` | T2-FX | theme manager/tokens/scope/policy |
 | `api.workspace` | M | product workspace |
 | `api.settings` | M | settings |
 | `api.dialogs` | T2-FX | dialogs/notifications/About |
 | `api.diagnostics` | M | diagnostics/event model |
-| `api.plugins` | T1/M | contribution ownership/lifecycle |
+| `api.plugins` | T1 | contribution ownership/lifecycle |
 | `api.layer` | T1 | typed layer reader/registry |
+| `api.status` | T2-FX | status elements/registry/scopes |
 
 ### Implementation modules
 
@@ -167,6 +169,23 @@ Workspace / Settings / Diagnostics / Contributions
 
 API modules never depend on implementation modules. Product modules depend only on API/SPI.
 
+Dependency direction is acyclic:
+
+```text
+api.resources (M)       → none
+api.product (M)         → api.resources
+api.layout (M)          → api.resources, api.layer
+api.theme (T2-FX)       → api.resources, api.layer
+api.content (T2-FX)     → api.layout, api.theme, api.resources
+api.docking (T2-FX)     → api.layout, api.content
+api.views (T2-FX)       → api.layout, api.content, api.theme
+api.actions (T2-FX)     → api.layer
+api.nodes (M)           → api.resources, api.layer
+api.editor (T2-FX)      → api.content, api.layout, api.theme
+api.shell (T2-FX)       → product/layout/content/views/actions/theme/docking/resources
+api.plugins (T1)        → api.layer, api.resources
+```
+
 ## 5. Product metadata
 
 ### 5.1 Contract
@@ -185,10 +204,10 @@ public record Product(
         ProductIdentity identity,
         ProductIcons icons,
         ProductStyle style,
-        ThemePolicy theme,
+        String themePolicyId,
         String layoutId,
         String shellId,
-        String chromeProfileId,
+        String chromeProfilePolicyId,
         List<DesktopAssociation> associations,
         AboutInfo about) {}
 ```
@@ -225,15 +244,32 @@ public record ProductStyle(
 
 ### 5.4 Theme policy
 
+`ThemePolicy` lives in `api.theme`; `Product` carries its stable id.
+
 ```java
 public record ThemePolicy(
+        String id,
         String defaultTheme,
         ThemeMode mode,
         boolean userSelectable,
         List<String> shippedAccents) {}
 ```
 
-### 5.5 About and associations
+### 5.5 Chrome profile policy
+
+`ChromeProfilePolicy` lives in `api.shell`; `Product` carries its stable id.
+
+```java
+public record ChromeProfilePolicy(
+        String id,
+        Map<WindowKind, String> defaultProfiles,
+        String fallbackProfile) {}
+```
+
+The product defines a default profile per `WindowKind`; explicit `WindowOptions` and content/group
+hints override it.
+
+### 5.6 About and associations
 
 ```java
 public record AboutInfo(
@@ -249,7 +285,7 @@ public record DesktopAssociation(
         String actionId) {}
 ```
 
-### 5.6 Build metadata
+### 5.7 Build metadata
 
 A single product metadata source drives:
 
@@ -272,30 +308,55 @@ Product family/variant selection is build tooling, not runtime API.
 ```java
 public final class PaneRole {
     public static final PaneRole MAIN = ...;
-    public static final PaneRole NAVIGATOR = ...;
-    public static final PaneRole DOCKED = ...;
-    public static final PaneRole DETACHED = ...;
-    public static final PaneRole SLIDE = ...;
+    public static final PaneRole SIDE = ...;
+    public static final PaneRole BOTTOM = ...;
+    public static final PaneRole CENTER = ...;
 
-    public static PaneRole of(String name);
+    public static PaneRole of(String value);
     public String name();
 }
 ```
 
-Product roles use namespaced stable ids. Persisted layouts refer to roles, not class names.
+`EDITOR`, `NAVIGATOR`, `OUTPUT` and `PROPERTIES` are consumer-defined area roles, not platform
+constants.
 
-### 6.2 `ViewArea`
+`PaneRole` is only a logical-area identity. `DOCKED`, `DETACHED` and `SLIDE` are runtime
+group/window states, not area identities, and are removed from this type.
+
+Product roles use namespaced stable ids (`namespace:name`). Persisted layouts refer to roles, not
+class names.
+
+### 6.2 `ViewAreaKind`
+
+```java
+public record ViewAreaKind(String id) {
+    public static final ViewAreaKind MAIN = ...;
+    public static final ViewAreaKind SIDE = ...;
+    public static final ViewAreaKind BOTTOM = ...;
+    public static final ViewAreaKind CANVAS = ...;
+    public static final ViewAreaKind TOOL = ...;
+    public static final ViewAreaKind CUSTOM = ...;
+    public static ViewAreaKind of(String value);
+}
+```
+
+`ViewAreaKind` supplies default area behaviour. It is distinct from `PaneKind` (group semantics),
+`ContentKind` (runtime content) and `ViewKind` (view menu classification).
+
+### 6.3 `ViewArea`
 
 `ViewArea` is the #104 logical region. It contains zero or more `DockGroup`s.
 
 ```java
 public record ViewArea(
         PaneRole id,
+        ViewAreaKind kind,
         String displayName,
         DockLocation defaultLocation,
         double weight,
+        PresentationId defaultPresentation,
         Set<ViewAreaCapability> capabilities,
-        DockPolicy policy,
+        String policyId,
         AreaStyle style,
         ViewAreaVisibility visibility,
         int order) {}
@@ -317,7 +378,11 @@ STARTUP, ON_DEMAND, HIDE_WHEN_EMPTY, ALWAYS
 
 The framework registers neutral defaults. Products register their own areas.
 
-### 6.3 `DockGroupSpec`
+`DockLocation` is a logical routing default (`CENTER`, `START`, `END`, `TOP`, `BOTTOM`). The default
+shell maps `START`/`END` to visual left/right according to orientation/RTL. Explicit layout geometry
+always wins over area routing defaults.
+
+### 6.4 `DockGroupSpec`
 
 ```java
 public record DockGroupSpec(
@@ -326,7 +391,8 @@ public record DockGroupSpec(
         PaneKind kind,
         PresentationId presentation,
         ContentCapacity capacity,
-        DockPolicy policy,
+        String policyId,
+        GroupLifetime lifetime,
         AreaStyle style) {}
 ```
 
@@ -357,7 +423,13 @@ public record PresentationId(String namespace, String name) {
 NONE, ONE, MANY
 ```
 
-### 6.4 `LayoutSpec` and `LayoutNode`
+`GroupLifetime`:
+
+```java
+PERSISTENT, TRANSIENT, PINNED
+```
+
+### 6.5 `LayoutSpec` and `LayoutNode`
 
 ```java
 public record LayoutSpec(
@@ -389,25 +461,38 @@ Rules:
 - `Slot` materializes a group at runtime;
 - validation rejects duplicate ids, missing refs, cycles and invalid dividers.
 
-### 6.5 Authoring
+Validation invariants:
+
+- split children/dividers have matching arity; an N-child split has N-1 strictly increasing divider
+  positions, each a fraction in `[0,1]`;
+- root is a `Split` or `Group`; empty layout uses an empty group/slot, not null;
+- every group reference resolves; unreferenced groups are invalid unless transient;
+- a group belongs to exactly one area; a `Slot` materializes a group in its declared area;
+- area default presentation is inherited unless the group overrides it;
+- empty `DockPolicySpec` sets mean deny-all; allow-all requires an explicit wildcard/default policy.
+
+### 6.6 Authoring
+
+Typed ids use `namespace:name`; built-in constants also accept short forms. Plain layout ids such as
+`product.default` are stable strings, not typed ids.
 
 Canonical builder:
 
 ```java
 LayoutSpec layout = LayoutSpec.builder("product.default", 1)
-    .area("explorer", area -> area
-        .kind(ViewAreaKinds.NAVIGATOR)
+    .area("product:explorer", area -> area
+        .kind(ViewAreaKind.SIDE)
         .presentation(PresentationId.TABBED)
         .visibility(ViewAreaVisibility.STARTUP))
-    .area("editor", area -> area
-        .kind(ViewAreaKinds.EDITOR)
+    .area("product:editor", area -> area
+        .kind(ViewAreaKind.MAIN)
         .presentation(PresentationId.TABBED)
         .visibility(ViewAreaVisibility.STARTUP))
-    .group("editor.main", "editor", ContentCapacity.MANY, PresentationId.TABBED)
-    .group("explorer.main", "explorer", ContentCapacity.MANY, PresentationId.TABBED)
+    .group("product:editor.main", "product:editor", ContentCapacity.MANY, PresentationId.TABBED)
+    .group("product:explorer.main", "product:explorer", ContentCapacity.MANY, PresentationId.TABBED)
     .split(SplitOrientation.HORIZONTAL, 0.25,
-        LayoutNode.group("explorer.main"),
-        LayoutNode.group("editor.main"))
+        LayoutNode.group("product:explorer.main"),
+        LayoutNode.group("product:editor.main"))
     .build();
 ```
 
@@ -416,19 +501,19 @@ Layer XML:
 ```xml
 <layout id="product.default" version="1">
   <areas>
-    <area id="explorer" kind="NAVIGATOR" presentation="tabbed"
+    <area id="product:explorer" kind="SIDE" presentation="tabbed"
           visibility="startup" capabilities="minimizable closable movable detachable"/>
-    <area id="editor" kind="EDITOR" presentation="tabbed"
+    <area id="product:editor" kind="MAIN" presentation="tabbed"
           visibility="startup" capabilities="maximizable splittable detachable reorderable"/>
   </areas>
   <groups>
-    <group id="editor.main" area="editor" capacity="many" presentation="tabbed"/>
-    <group id="explorer.main" area="explorer" capacity="many" presentation="tabbed"/>
+    <group id="product:editor.main" area="product:editor" capacity="many" presentation="tabbed"/>
+    <group id="product:explorer.main" area="product:explorer" capacity="many" presentation="tabbed"/>
   </groups>
   <tree>
     <split orientation="horizontal" dividers="0.25">
-      <group ref="explorer.main"/>
-      <group ref="editor.main"/>
+      <group ref="product:explorer.main"/>
+      <group ref="product:editor.main"/>
     </split>
   </tree>
 </layout>
@@ -438,7 +523,22 @@ No custom layout DSL is introduced.
 
 ## 7. Docking policy and transfer
 
-### 7.1 Policy
+### 7.1 Policy specification and evaluation
+
+`DockPolicySpec` is immutable `api.docking` data; `DockPlacement` and `TransferMode` are neutral
+`api.content` values shared by docking and drop handlers:
+
+```java
+public record DockPolicySpec(
+        Set<ContentKind> acceptedKinds,
+        Set<PaneRole> acceptedAreas,
+        Set<DockPlacement> placements,
+        Set<TransferMode> modes,
+        boolean allowCrossArea,
+        boolean allowFloat) {}
+```
+
+The executable SPI lives in `api.docking`:
 
 ```java
 public record DockRequest(
@@ -478,16 +578,18 @@ FLOAT, NEW_WINDOW
 public interface DockHost {
     Node node();
     ContentCapacity capacity();
-    ObservableList<Content> content();
+    List<Content> content();          // unmodifiable snapshot
     void add(Content content, int index);
-    Content remove(Content content);
+    Content remove(Content content);  // detach only; does not close/dispose
     ObservableValue<Boolean> empty();
-    void dispose();
+    HostState state();                // EMPTY, LOADING, MISSING, ERROR
+    void dispose();                   // detach content; release host resources only
 }
 ```
 
 Hosts do not know other hosts. Transfer is performed by the dock controller behind
-`WindowManager`.
+`WindowManager`. `ContentManager` owns content close/dispose; host disposal never silently destroys
+content.
 
 ### 7.4 `WindowManager`
 
@@ -495,24 +597,25 @@ Hosts do not know other hosts. Transfer is performed by the dock controller behi
 
 ```java
 public interface WindowManager {
-    List<WindowPaneHost> panes();
-    Optional<WindowPaneHost> primary(PaneRole role);
-    Optional<WindowPaneHost> paneOf(Tab tab);
+    List<DockGroupId> groups();
+    Optional<DockGroupId> primary(PaneRole area);
 
-    void attach(WindowPaneHost pane, Tab tab);
-    void move(Tab tab, WindowPaneHost target, int index);
-    void select(Tab tab);
+    DockDecision canDock(DockRequest request);
+    DockResult dock(DockRequest request);
+
+    void attach(ContentId content, DockGroupId group, int index);
+    void move(ContentId content, DockGroupId target, int index);
+    void select(ContentId content);
 
     DockWindow floatContent(ContentId content, WindowOptions options);
     DockWindow floatGroup(DockGroupId group, WindowOptions options);
-    void redock(DockWindow window, DockRequest request);
+    DockResult redock(DockWindow window, DockRequest request);
 
     List<DockWindow> windows();
 }
 ```
 
-The exact tab compatibility surface may be replaced by content/group handles during the API
-reset; the name `WindowManager` remains.
+Public operations use content/group handles. `Tab` and `WindowPaneHost` are not target API types.
 
 ## 8. Windows and chrome profiles
 
@@ -531,6 +634,8 @@ public enum WindowKind {
 - `CUSTOM`: product-defined window content/frame.
 
 ### 8.2 `DockWindow`
+
+`DockWindow`, `WindowKind`, `WindowOptions` and `WindowContent` are `api.shell` contracts.
 
 ```java
 public interface DockWindow {
@@ -619,6 +724,15 @@ public interface ShellProvider {
 public interface ShellFrame extends AutoCloseable {
     Node root();
     void setDockRoot(Node dockRoot);
+    ShellRegionHost regions();
+    OverlayHost overlays();
+}
+
+public interface ShellRegionHost {
+    List<ShellRegionSpec> regions(ShellChromeProfile profile);
+    Node mount(ShellRegionSpec region, ShellRegionContext context);
+    void update(ShellRegionSpec region, Node mounted);
+    void dispose(ShellRegionSpec region, Node mounted);
 }
 ```
 
@@ -649,9 +763,8 @@ All optional services have explicit defaults or `Optional` access; no deprecated
 public interface ShellWindow {
     Window window();
     Parent root();
-    WindowPaneHost mainPane();
-    Node slidingArea();
     WindowManager windowManager();
+    WindowSystem windowSystem();
 }
 ```
 
@@ -777,7 +890,9 @@ Built-ins:
 - brand/contribution renderer;
 - dock renderer, which mounts `DockRuntime.root()`.
 
-The default shell requires exactly one `DOCK` region. A custom shell may ignore or reinterpret it.
+The default shell requires exactly one `DOCK` region. A custom shell presenting dockable content must
+mount `DOCK` or provide an equivalent public `DockHost` adapter; a custom window with arbitrary
+`WindowContent` may omit it.
 
 ## 10. Actions and reusable registration
 
@@ -1079,6 +1194,9 @@ host scene.
 
 ### 14.5 AreaStyle and ContentStyleContext
 
+`AreaStyle` is an M-tier `api.layout` value. `ContentStyleContext` is a T2-FX `api.content` value;
+`api.theme` does not depend on layout/content.
+
 ```java
 public record AreaStyle(
         Set<String> styleClasses,
@@ -1088,7 +1206,6 @@ public record AreaStyle(
 public record ContentStyleContext(
         ViewArea area,
         DockGroupSpec group,
-        WindowKind windowKind,
         ThemeTokens tokens,
         Set<String> styleClasses) {}
 
@@ -1170,13 +1287,27 @@ public interface OverlayHost {
 
 `OverlayContent` is an optional content capability exposing an `OverlayHost`.
 
+Normative mode table:
+
+| Mode | Pointer input | Keyboard focus | Action context | Accessibility |
+|---|---|---|---|---|
+| `PASS_THROUGH` | ignored by overlay; delivered to content below | none | inherits owner | exposed as informational content when useful |
+| `HUD` | overlay may display hover/status but is not interactive | none | inherits owner | informational role/name |
+| `INTERACTIVE` | handled by overlay | participates in traversal | overlay Lookup while active | standard interactive roles |
+
+Validation rejects `focusable=true` unless `inputMode=INTERACTIVE`. Descendants of `PASS_THROUGH`
+and `HUD` cannot be interactive.
+
 Rules:
 
 - overlays are not split leaves;
-- pass-through overlays do not steal input;
-- interactive overlays participate in focus/action context;
+- `ShellRegionKind.OVERLAY` is a window-level overlay slot;
+- `PresentationId.OVERLAY` is a dockable overlay-group presentation;
+- `OverlayHost` is the anchored HUD layer model;
+- overlays follow their anchor across move/float/redock;
+- closing/moving the owner disposes or reattaches the overlay;
 - overlays use `ThemeScope`/typed tokens;
-- overlay state persists with content/workspace/window.
+- overlay state persists with its owning content/area/window.
 
 ## 18. Drag and drop
 
@@ -1191,13 +1322,21 @@ public interface TransferSource {
 
 Kinds: `CONTENT`, `FILES`, `URIS`, `TEXT`, `NODES`, product-defined.
 
-### 18.2 Request and decision
+### 18.2 Targets, request and decision
 
 ```java
+public enum TransferMode {
+    MOVE,
+    COPY,
+    LINK
+}
+
+public record DropTarget(DropTargetKind kind, String id) {}
+
 public record DropRequest(
         TransferSource source,
         DropTarget target,
-        Point2D location,
+        Point2D location,             // local to target root
         TransferMode requestedMode,
         Lookup context) {}
 
@@ -1215,7 +1354,7 @@ public interface DropHandler {
     DropTarget target();
     Set<TransferKind> sourceKinds();
     DropDecision evaluate(DropRequest request);
-    void perform(DropRequest request);
+    void perform(DropRequest request, DropDecision accepted);
 }
 ```
 
@@ -1227,37 +1366,89 @@ Registration:
 
 ### 18.4 Routing
 
-1. content handler;
-2. overlay handler;
-3. group handler;
-4. area handler;
-5. shell docking handler for internal content drags;
-6. global fallback.
+- Internal content/group drag over tab strips, headers, split handles or window edges uses
+  `DockPolicy`/`DockController` before content drop handlers.
+- External/domain drags use the topmost target handler in this order: content, overlay, group, area,
+  global fallback.
+- The accepted `DropDecision` is authoritative; `perform` cannot recompute a different effect.
+- Escape cancels without mutation and restores source/focus.
+- Multi-select preserves source order.
+- Rejection exposes a non-color reason and an accessible announcement.
+- Move/split/float/redock have keyboard/command equivalents with explicit target selection.
 
-Internal tab dragging uses `DockPolicy`. Domain/external dropping uses `DropHandler`.
+### 18.5 Normative interaction semantics
+
+#### Multiwindow lifecycle
+
+- Floating detaches a group/content without changing content ownership.
+- Empty source groups are removed or retained by explicit area/product policy.
+- `WindowClosePolicy.REDOCK` returns content to its default main area.
+- `WindowClosePolicy.CLOSE_CONTENT` requests normal content close and honors dirty vetoes.
+- `WindowClosePolicy.HIDE` hides the window without closing/redocking content.
+- Main-window close applies the chosen policy to owned floating/custom windows and may be vetoed.
+- A `ContentId`/instance key is unique across all windows at runtime.
+
+#### Focus and action context
+
+`FocusController` tracks three independent facts:
+
+1. OS-window activation;
+2. logical selection (active group/content);
+3. keyboard focus.
+
+Context precedence is:
+
+1. interactive transient UI (palette, menu, overlay);
+2. keyboard-focused content/overlay;
+3. selected content in the active group;
+4. active group/window fallback;
+5. application-global context.
+
+Menus use a context snapshot. Float/redock/close/overlay dismissal restores focus deterministically.
+
+#### Empty and recovery states
+
+`HostState` distinguishes `EMPTY`, `LOADING`, `MISSING` and `ERROR`. Empty groups/areas/windows expose
+product-owned `EmptyState` contributions with accessible recovery actions. Last-content-close,
+minimized-area restore and missing-content recovery return focus to a valid owner.
+
+#### Accessibility, motion, RTL and localization
+
+- Tabs/groups/splitters/float controls/chrome/drop feedback expose role/name/state.
+- Selected state and keyboard focus are distinct.
+- Menu/ribbon overflow, mnemonics and accelerator conflicts are keyboard accessible.
+- Canvas/3D content provides an accessible alternative or semantic overlay.
+- Reduced motion disables docking/floating/overlay/drawer animation.
+- High contrast uses non-color state cues and validated product/CSS fallbacks.
+- `DockSide`/placement values are logical start/end/top/bottom/center; the default shell mirrors
+  start/end for RTL.
+- Proper names may be raw strings; user-visible copy uses bundle keys or `#key` references.
 
 ## 19. Persistence
 
 ### 19.1 Stores
 
-- `WindowStateStore`: layout, groups, windows, geometry, active state;
-- `ContentStateStore`: content ids/order/state payloads;
+- `WindowStateStore`: owns `SessionState` (all windows plus active window);
+- `ContentStateStore`: owns only per-content payloads keyed by `ContentId`/instance key;
 - `WorkspaceStateStore`: workspace-scoped preferences/layout;
 - `Settings`: typed settings.
 
-One writer per concern.
+`ContentStateStore` does not own content order or window placement.
 
-### 19.2 WindowState
+### 19.2 WindowState and SessionState
 
-Contains:
+`WindowState` is one window and contains:
 
 - areas/groups/tree/dividers;
-- content ids/order/active;
-- main/floating/custom windows;
+- content ids/order/active content;
 - geometry/profile/decoration;
-- opaque per-content payload references.
+- references to content-state payloads.
 
-No JavaFX types.
+`SessionState` contains all `WindowState`s plus the active window id.
+
+`DockWindow.state()` returns `WindowState`; `WindowSystem.snapshot()` returns `SessionState`.
+
+No JavaFX types are persisted.
 
 ### 19.3 Migration
 
