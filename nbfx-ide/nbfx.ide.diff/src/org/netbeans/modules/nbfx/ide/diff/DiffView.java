@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.ide.diff;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 import javafx.scene.Node;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
@@ -51,6 +52,36 @@ public final class DiffView {
      * @param right the text compared to, shown on the right
      */
     public static void open(Object key, String name, Node icon, DiffSource left, DiffSource right) {
+        Objects.requireNonNull(left, "left");
+        Objects.requireNonNull(right, "right");
+        open(key, name, icon, () -> new DiffDocument(key, title(name), new DiffPane(left, right)));
+    }
+
+    /**
+     * Shows the diff of what {@code provider} has in a tab titled "{@code name} [ Diff ]": the ways
+     * it can compare as toggles, its files in a table when it lists them, and the two texts of the
+     * file selected. A diff open with the same {@code key} is brought to the front and refreshed,
+     * in the way to compare it is in. Must run on the JavaFX Application Thread.
+     *
+     * @param key what the diff is of, by {@code equals}: the file or the folder
+     * @param name the name in the title of the tab
+     * @param icon the icon of the tab, or {@code null}
+     * @param provider what differs, and how it can be compared
+     * @param mode the way to compare the diff opens in - one of the provider's - or {@code null}
+     *        for its first
+     * @since 1.1
+     */
+    public static void open(Object key, String name, Node icon, DiffProvider provider, DiffMode mode) {
+        Objects.requireNonNull(provider, "provider");
+        open(key, name, icon, () -> {
+            DiffBrowser browser = new DiffBrowser(provider, mode);
+            // As the last diff was left: a list or a tree, and the columns.
+            DiffSettings.attach(browser);
+            return new DiffDocument(key, title(name), browser);
+        });
+    }
+
+    private static void open(Object key, String name, Node icon, Supplier<DiffDocument> factory) {
         Objects.requireNonNull(key, "key");
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);
         if (content == null) {
@@ -60,14 +91,16 @@ public final class DiffView {
         if (context != null) {
             for (EditorDocument open : context.getDocuments()) {
                 if (open instanceof DiffDocument diff && diff.key().equals(key)) {
-                    diff.pane().refresh();
+                    diff.content().refresh();
                     content.openDocument(diff, icon);
                     return;
                 }
             }
         }
-        DiffDocument document = new DiffDocument(key, NbBundle.getMessage(DiffView.class, "Diff.title", name),
-                new DiffPane(left, right));
-        content.openDocument(document, icon);
+        content.openDocument(factory.get(), icon);
+    }
+
+    private static String title(String name) {
+        return NbBundle.getMessage(DiffView.class, "Diff.title", name);
     }
 }

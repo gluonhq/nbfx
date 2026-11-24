@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -59,7 +60,7 @@ import org.openide.util.RequestProcessor;
  * The texts are read and compared off the FX thread; until then, and when they are the same, the
  * line above the headings says so.
  */
-final class DiffPane extends BorderPane {
+final class DiffPane extends BorderPane implements DiffContent {
 
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
@@ -90,6 +91,14 @@ final class DiffPane extends BorderPane {
     private long comparison;
 
     DiffPane(DiffSource leftSource, DiffSource rightSource) {
+        this(leftSource, rightSource, true);
+    }
+
+    /**
+     * @param ownBar whether the buttons and the summary are shown above the headings; a
+     *        {@link DiffBrowser} shows them in its own bar instead
+     */
+    DiffPane(DiffSource leftSource, DiffSource rightSource, boolean ownBar) {
         this.leftSource = Objects.requireNonNull(leftSource);
         this.rightSource = Objects.requireNonNull(rightSource);
         getStyleClass().add("diff-pane");
@@ -104,7 +113,9 @@ final class DiffPane extends BorderPane {
         HBox bar = new HBox(previous, next, summary);
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
-        setTop(bar);
+        if (ownBar) {
+            setTop(bar);
+        }
 
         EditorService editors = Lookup.getDefault().lookup(EditorService.class);
         if (editors != null) {
@@ -138,6 +149,10 @@ final class DiffPane extends BorderPane {
         return summary.getText();
     }
 
+    ReadOnlyStringProperty summaryProperty() {
+        return summary.textProperty();
+    }
+
     /** The block the view is at, counted from zero; -1 when the texts are the same. */
     int current() {
         return current;
@@ -161,7 +176,8 @@ final class DiffPane extends BorderPane {
     }
 
     /** Reads the two texts again, compares them and marks the blocks. */
-    void refresh() {
+    @Override
+    public void refresh() {
         long asked = ++comparison;
         summary.setText(message("Diff.loading"));
         RP.post(() -> {
@@ -191,7 +207,8 @@ final class DiffPane extends BorderPane {
     }
 
     /** Releases the two editors. */
-    void dispose() {
+    @Override
+    public void dispose() {
         comparison++;
         scrolling.unsubscribe();
         if (left != null) {

@@ -58,6 +58,7 @@ org.netbeans.api.nbfx.editor.LineBand
 org.netbeans.api.nbfx.editor.LineDecoration
 org.netbeans.api.nbfx.editor.MarkedDecoration
 org.netbeans.api.nbfx.editor.OpenSources
+org.netbeans.api.nbfx.editor.SavedDocument
 org.netbeans.api.nbfx.editor.SourceContext
 org.netbeans.api.nbfx.editor.SourceUtils
 org.netbeans.api.nbfx.editor.TextPosResult
@@ -182,6 +183,7 @@ org.netbeans.spi.nbfx.editor.BaseLexDecorationProcessor
 org.netbeans.spi.nbfx.editor.BaseSyntaxDecorator
 org.netbeans.spi.nbfx.editor.CachingBreadcrumbsProvider
 org.netbeans.spi.nbfx.editor.CompletionImportSupport
+org.netbeans.spi.nbfx.editor.DocumentRestorer
 org.netbeans.spi.nbfx.editor.SyntaxDecoratorFactory
 org.netbeans.spi.nbfx.shell.WindowPane
 org.netbeans.spi.nbfx.shell.WindowPaneContext

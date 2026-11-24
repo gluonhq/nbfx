@@ -142,6 +142,13 @@ final class LineBandsSupport {
                 return;
             }
             double wanted = Math.clamp(position, 0, count - 1);
+            if (lineHeight <= 0) {
+                // Not measured yet - no frame was drawn - and without the height of a line the part
+                // of the top line scrolled off cannot be told: the landing would pass for exact.
+                adjusting = true;
+                update();
+                adjusting = false;
+            }
             double actual = measureTop();
             if (Math.abs(actual - wanted) <= SCROLL_TOLERANCE) {
                 return;

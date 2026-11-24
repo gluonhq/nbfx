@@ -407,8 +407,9 @@ final class GitStatusPane extends BorderPane {
         MenuItem diff = new MenuItem(message("Git.diff"));
         diff.setOnAction(event -> {
             StatusRow.File row = selectedFile();
-            if (row != null) {
-                GitDiff.open(fileObject(row));
+            if (row != null && repository != null) {
+                // In the mode of the table, so that the diff shows the change the row tells of.
+                GitDiff.open(repository, row.path(), row.name(), icon(row), mode.get());
             }
         });
         MenuItem commitItem = new MenuItem(message("Git.commit.menu"));
@@ -419,8 +420,8 @@ final class GitStatusPane extends BorderPane {
             StatusRow.File row = selectedFile();
             FileObject file = row == null ? null : fileObject(row);
             open.setDisable(file == null || !file.isData());
-            // A deleted file has no working tree side to show.
-            diff.setDisable(!GitDiff.canDiff(file));
+            // A deleted file too: its diff shows what is gone.
+            diff.setDisable(row == null || repository == null);
         });
         return menu;
     }

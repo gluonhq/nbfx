@@ -25,12 +25,14 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
+import javafx.scene.layout.Region;
 import org.netbeans.api.nbfx.editor.CaretInfo;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.openide.filesystems.FileObject;
 
 /**
- * The document of a diff tab in the editor area: a {@link DiffPane} that the shell treats as it does
+ * The document of a diff tab in the editor area: a {@link DiffPane} or a {@link DiffBrowser} that the shell treats as it does
  * an editor - a tab with a title, closed and moved like the others - though it is the editor of no
  * file. It has nothing to save, undo or paste, and is told apart from other diffs by its
  * {@link #key()}.
@@ -39,13 +41,15 @@ final class DiffDocument implements EditorDocument {
 
     private final Object key;
     private final String title;
-    private final DiffPane pane;
+    private final Region node;
+    private final DiffContent content;
     private final ReadOnlyBooleanWrapper never = new ReadOnlyBooleanWrapper(this, "never", false);
 
-    DiffDocument(Object key, String title, DiffPane pane) {
+    <T extends Region & DiffContent> DiffDocument(Object key, String title, T content) {
         this.key = Objects.requireNonNull(key);
         this.title = Objects.requireNonNull(title);
-        this.pane = Objects.requireNonNull(pane);
+        this.node = Objects.requireNonNull(content);
+        this.content = content;
     }
 
     /** What this diff is of: opening a diff with the same key shows this one again. */
@@ -53,8 +57,8 @@ final class DiffDocument implements EditorDocument {
         return key;
     }
 
-    DiffPane pane() {
-        return pane;
+    DiffContent content() {
+        return content;
     }
 
     /** No file: a diff is not the editor of either of the two it shows. */
@@ -63,9 +67,15 @@ final class DiffDocument implements EditorDocument {
         return null;
     }
 
+    /** As its content says: a diff of what a provider has can be opened again, one of two texts cannot. */
+    @Override
+    public SavedDocument getSavedState() {
+        return content.savedState();
+    }
+
     @Override
     public Node getNode() {
-        return pane;
+        return node;
     }
 
     @Override
@@ -143,11 +153,11 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public void requestFocus() {
-        pane.requestFocus();
+        node.requestFocus();
     }
 
     @Override
     public void dispose() {
-        pane.dispose();
+        content.dispose();
     }
 }
