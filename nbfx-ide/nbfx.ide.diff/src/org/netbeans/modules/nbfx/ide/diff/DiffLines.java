@@ -73,37 +73,62 @@ final class DiffLines {
     }
 
     /**
-     * The line of the right text beside line {@code left} of the left one: the same line where the
-     * texts agree; within a block, the line as far into the block of the other side, or its last.
+     * The place in the right text beside place {@code left} of the left one, a place being a line
+     * and the fraction of it passed: the same place where the texts agree; within a block, as far
+     * into the block of the other side, in proportion - a block of one line beside one of three is
+     * passed three times as fast - so that both sides leave the block together, and scrolling one
+     * moves the other without a jump.
      */
-    static int toRight(List<Difference> differences, int left) {
+    static double toRight(List<Difference> differences, double left) {
         int shift = 0;
         for (Difference difference : differences) {
             if (left < difference.leftStart()) {
                 break;
             }
             if (left < difference.leftEnd()) {
-                return difference.rightStart() + Math.min(left - difference.leftStart(),
-                        Math.max(0, difference.rightCount() - 1));
+                return difference.rightStart()
+                        + (left - difference.leftStart()) * difference.rightCount() / difference.leftCount();
             }
             shift = difference.rightEnd() - difference.leftEnd();
         }
         return Math.max(0, left + shift);
     }
 
-    /** The line of the left text beside line {@code right} of the right one; see {@link #toRight}. */
-    static int toLeft(List<Difference> differences, int right) {
+    /** The place in the left text beside place {@code right} of the right one; see {@link #toRight}. */
+    static double toLeft(List<Difference> differences, double right) {
         int shift = 0;
         for (Difference difference : differences) {
             if (right < difference.rightStart()) {
                 break;
             }
             if (right < difference.rightEnd()) {
-                return difference.leftStart() + Math.min(right - difference.rightStart(),
-                        Math.max(0, difference.leftCount() - 1));
+                return difference.leftStart()
+                        + (right - difference.rightStart()) * difference.leftCount() / difference.rightCount();
             }
             shift = difference.leftEnd() - difference.rightEnd();
         }
         return Math.max(0, right + shift);
     }
+
+    /** Where in a right text of {@code lineCount} lines the block starts, from 0 at its top to 1. */
+    static double overviewStart(Difference difference, int lineCount) {
+        return Math.clamp((double) difference.rightStart() / Math.max(1, lineCount), 0, 1);
+    }
+
+    /** How much of a right text of {@code lineCount} lines the block takes, from 0 to 1. */
+    static double overviewExtent(Difference difference, int lineCount) {
+        return Math.clamp((double) difference.rightCount() / Math.max(1, lineCount), 0, 1);
+    }
+
+    /**
+     * The block to go to from block {@code current} of {@code count}: the next one, or with
+     * {@code forward} false the one before; the same one at either end, and -1 when there is none.
+     */
+    static int step(int current, int count, boolean forward) {
+        if (count <= 0) {
+            return -1;
+        }
+        return Math.clamp(current + (forward ? 1 : -1), 0, count - 1);
+    }
+
 }

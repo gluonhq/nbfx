@@ -29,6 +29,7 @@ import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -51,6 +52,45 @@ public class DiffPaneTest {
     }
 
     @Test
+    public void goesFromOneBlockToTheNextAndCountsThem() throws Exception {
+        DiffPane pane = pane("a\nb\nc\nd\ne\n", "a\nx\nc\nd\ny\n");
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            // Opens at the first block.
+            assertEquals(0, pane.current());
+            assertEquals("1/2", pane.counter());
+            assertTrue(pane.previousButton().isDisable());
+            assertFalse(pane.nextButton().isDisable());
+
+            pane.nextButton().fire();
+            assertEquals(1, pane.current());
+            assertEquals("2/2", pane.counter());
+            assertFalse(pane.previousButton().isDisable());
+            assertTrue(pane.nextButton().isDisable());
+
+            pane.previousButton().fire();
+            assertEquals("1/2", pane.counter());
+        });
+    }
+
+    @Test
+    public void overviewMarksEveryBlockAndGoesToTheOneClicked() throws Exception {
+        DiffPane pane = pane("a\nb\nc\nd\ne\n", "a\nx\nc\nd\ny\n");
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(2, pane.overview().marks().size());
+            assertTrue(pane.overview().marks().get(0).getStyleClass().contains("diff-current"));
+
+            pane.overview().marks().get(1).getOnMouseClicked().handle(null);
+
+            assertEquals(1, pane.current());
+            assertTrue(pane.overview().marks().get(1).getStyleClass().contains("diff-current"));
+        });
+    }
+
+    @Test
     public void sameFilesHaveNoDifferences() throws Exception {
         DiffPane pane = pane("same\n", "same\n");
 
@@ -58,6 +98,12 @@ public class DiffPaneTest {
 
         assertTrue(JavaFxTestSupport.onFx(pane::differences).isEmpty());
         assertEquals("No differences", JavaFxTestSupport.onFx(pane::summary));
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(-1, pane.current());
+            assertEquals("", pane.counter());
+            assertTrue(pane.previousButton().isDisable());
+            assertTrue(pane.nextButton().isDisable());
+        });
     }
 
     @Test

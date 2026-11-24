@@ -17,10 +17,30 @@
  * under the License.
  */
 
-.diff-pane > .diff-summary {
-    -fx-padding: 3 8 3 8;
-    -fx-text-fill: -nbfx-text-faint;
+.diff-pane > .diff-bar {
+    -fx-padding: 2 6 2 6;
+    -fx-spacing: 2;
     -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-pane > .diff-bar > .diff-summary {
+    -fx-padding: 1 8 1 8;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 3;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button:disabled {
+    -fx-opacity: 0.4;
 }
 
 .diff-pane .diff-heading {
@@ -30,23 +50,105 @@
 
 .diff-pane > .diff-sides {
     -fx-padding: 0;
-    -fx-background-insets: 0;
 }
 
-/* The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. */
+/* The strip of connectors between the editors, under the counter of the blocks. */
+.diff-pane .diff-strip {
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    /* At the sides only: a border above, even an unseen one, would set the counter a pixel lower
+       than the headings beside it. */
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 1 0 1;
+}
+
+.diff-pane .diff-strip > .diff-heading {
+    -fx-padding: 3 0 3 0;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-pane .diff-connector {
+    -fx-stroke-width: 1;
+}
+
+.diff-pane .diff-connector.diff-added {
+    -fx-fill: rgba(60, 200, 60, 0.28);
+    -fx-stroke: rgb(60, 170, 60);
+}
+
+.diff-pane .diff-connector.diff-deleted {
+    -fx-fill: rgba(230, 70, 70, 0.26);
+    -fx-stroke: rgb(210, 70, 70);
+}
+
+.diff-pane .diff-connector.diff-changed {
+    -fx-fill: rgba(70, 130, 230, 0.26);
+    -fx-stroke: rgb(70, 130, 230);
+}
+
+.diff-pane .diff-connector.diff-current {
+    -fx-stroke-width: 2;
+}
+
+/* The marks of all the blocks along the right edge. */
+.diff-pane .diff-edge {
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 0 0 1;
+}
+
+.diff-pane .diff-edge > .diff-heading {
+    -fx-padding: 3 0 3 0;
+}
+
+.diff-pane .diff-mark.diff-added {
+    -fx-background-color: rgb(60, 170, 60);
+}
+
+.diff-pane .diff-mark.diff-deleted {
+    -fx-background-color: rgb(210, 70, 70);
+}
+
+.diff-pane .diff-mark.diff-changed {
+    -fx-background-color: rgb(70, 130, 230);
+}
+
+.diff-pane .diff-mark.diff-current {
+    -fx-border-color: -nbfx-text-strong;
+    -fx-border-width: 1;
+}
+
+/*
+ * The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. Each is
+ * ruled above and below in the colour its connector is drawn with, so that the two read as one shape.
+ */
+.diff-pane .line-band {
+    -fx-border-width: 1 0 1 0;
+}
+
 .diff-pane .line-band.diff-added {
     -fx-background-color: rgba(60, 200, 60, 0.28);
+    -fx-border-color: rgb(60, 170, 60);
 }
 
 .diff-pane .line-band.diff-deleted {
     -fx-background-color: rgba(230, 70, 70, 0.26);
+    -fx-border-color: rgb(210, 70, 70);
 }
 
 .diff-pane .line-band.diff-changed {
     -fx-background-color: rgba(70, 130, 230, 0.26);
+    -fx-border-color: rgb(70, 130, 230);
 }
 
 /* A rule where this side lacks the lines of the other. */
+.diff-pane .line-band.line-band-rule {
+    -fx-border-width: 0;
+}
+
 .diff-pane .line-band.line-band-rule.diff-added {
     -fx-background-color: rgb(60, 170, 60);
 }

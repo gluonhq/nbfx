@@ -358,7 +358,11 @@ public interface EditorDocument extends Lookup.Provider {
      * Marks blocks of whole lines with {@code bands}, replacing those set before; an empty list
      * removes them. The bands belong to this view of the document, follow its scrolling, and are
      * styled by their style classes, as descendants of {@link #getNode()} with style class
-     * {@code line-band}. The default does nothing.
+     * {@code line-band}: one region for each band, in the order given, the children of a node with
+     * style class {@code line-bands}. A region is placed over all the lines of its band, those out
+     * of view too - above or below what is shown, of which only the part over the text area is
+     * drawn - so that a view that draws beside the editor - the connectors of a diff - can follow
+     * the regions to where the lines are. The default does nothing.
      *
      * @param bands the bands to show
      * @since 1.3
@@ -367,10 +371,12 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
-     * The line at the top of what this view shows, counted from zero and kept up to date while it
-     * scrolls, for views that keep several editors in step. The default is always zero.
+     * The place in the text at the top of what this view shows, kept up to date while it scrolls,
+     * for views that keep several editors in step: the line there, counted from zero, plus the
+     * fraction of that line that is scrolled off above - 12.5 when half of the thirteenth line is
+     * out of sight. The default is always zero.
      *
-     * @return the observable top line, never {@code null}
+     * @return the observable top position, never {@code null}
      * @since 1.3
      */
     default ObservableValue<Number> topParagraphProperty() {
@@ -378,13 +384,15 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
-     * Scrolls so that {@code paragraph} is the line at the top, as far as the text allows, without
-     * moving the caret. The default does nothing.
+     * Scrolls so that {@code position} is at the top, as far as the text allows, without moving
+     * the caret: the line of its whole part, counted from zero, with the fraction of it that its
+     * fractional part says scrolled off; see {@link #topParagraphProperty()}. The default does
+     * nothing.
      *
-     * @param paragraph the line to bring to the top, counted from zero
+     * @param position the place in the text to bring to the top
      * @since 1.3
      */
-    default void scrollToParagraph(int paragraph) {
+    default void scrollToParagraph(double position) {
     }
 
     /**

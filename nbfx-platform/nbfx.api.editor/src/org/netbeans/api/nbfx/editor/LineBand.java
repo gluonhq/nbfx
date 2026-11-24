@@ -21,7 +21,7 @@ package org.netbeans.api.nbfx.editor;
 import java.util.Objects;
 
 /**
- * A band laid over whole lines of an editor, from edge to edge of its text area: how a view built
+ * A band laid over whole lines of an editor, across its line numbers and its text: how a view built
  * on editors - a diff - marks blocks of lines without touching their text, caret or selection. A
  * band of no lines is a rule drawn above {@code paragraph}, or below the last line when
  * {@code paragraph} is the number of lines: the place where lines are missing.

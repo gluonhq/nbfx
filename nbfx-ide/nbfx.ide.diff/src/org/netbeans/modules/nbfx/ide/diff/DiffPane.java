@@ -26,12 +26,14 @@ import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.SplitPane;
+import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Subscription;
@@ -40,6 +42,7 @@ import org.netbeans.api.nbfx.diff.DiffResult;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
+import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
@@ -48,22 +51,33 @@ import org.openide.util.RequestProcessor;
  * Two texts side by side, as NetBeans' graphical diff: each in a read-only editor under its
  * heading, the blocks that differ marked - lines added, deleted and changed, and a rule where one
  * side lacks the lines of the other - and the two scrolled in step, so that the same lines stay
- * beside each other.
+ * beside each other. Between the editors a strip joins each block of one side with its block of
+ * the other ({@link DiffConnectors}) under a counter of the blocks; at the right edge another
+ * marks them all along the text ({@link DiffOverview}); two buttons above go from one block to the
+ * next.
  * <p>
  * The texts are read and compared off the FX thread; until then, and when they are the same, the
- * line between the headings says so.
+ * line above the headings says so.
  */
 final class DiffPane extends BorderPane {
 
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
+    /** The lines kept in view above the block gone to. */
+    private static final int CONTEXT_LINES = 3;
 
     private final DiffSource leftSource;
     private final DiffSource rightSource;
     private final Label summary = new Label();
+    private final Label counter = heading("");
+    private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous");
+    private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
+    private final DiffConnectors connectors = new DiffConnectors();
+    private final DiffOverview overview = new DiffOverview();
     private EditorDocument left;
     private EditorDocument right;
     private List<Difference> differences = List.of();
+    private int current = -1;
     private Subscription scrolling = Subscription.EMPTY;
     /**
      * Whether the left editor is the one the user scrolls - the one last under the mouse, pressed
@@ -80,22 +94,37 @@ final class DiffPane extends BorderPane {
         this.rightSource = Objects.requireNonNull(rightSource);
         getStyleClass().add("diff-pane");
         getStylesheets().add(Objects.requireNonNull(DiffPane.class.getResource("diff.css")).toExternalForm());
+
         summary.getStyleClass().add("diff-summary");
         summary.setMaxWidth(Double.MAX_VALUE);
         summary.setAlignment(Pos.CENTER);
-        setTop(summary);
+        HBox.setHgrow(summary, Priority.ALWAYS);
+        previous.setOnAction(event -> go(false));
+        next.setOnAction(event -> go(true));
+        HBox bar = new HBox(previous, next, summary);
+        bar.getStyleClass().add("diff-bar");
+        bar.setAlignment(Pos.CENTER_LEFT);
+        setTop(bar);
 
         EditorService editors = Lookup.getDefault().lookup(EditorService.class);
         if (editors != null) {
             left = editors.createPreviewDocument(leftSource.file());
             right = editors.createPreviewDocument(rightSource.file());
-            SplitPane sides = new SplitPane(side(leftSource.title(), left.getNode(), true),
-                    side(rightSource.title(), right.getNode(), false));
+            VBox.setVgrow(connectors, Priority.ALWAYS);
+            VBox strip = new VBox(counter, connectors);
+            strip.getStyleClass().add("diff-strip");
+            VBox.setVgrow(overview, Priority.ALWAYS);
+            VBox edge = new VBox(heading(""), overview);
+            edge.getStyleClass().add("diff-edge");
+            HBox sides = new HBox(side(leftSource.title(), left.getNode(), true), strip,
+                    side(rightSource.title(), right.getNode(), false), edge);
             sides.getStyleClass().add("diff-sides");
             setCenter(sides);
-            scrolling = left.topParagraphProperty().subscribe(top -> follow(top.intValue(), true))
-                    .and(right.topParagraphProperty().subscribe(top -> follow(top.intValue(), false)));
+            scrolling = left.topParagraphProperty().subscribe(top -> follow(top.doubleValue(), true))
+                    .and(right.topParagraphProperty().subscribe(top -> follow(top.doubleValue(), false)));
         }
+        overview.setOnSelect(this::select);
+        select(-1);
         refresh();
     }
 
@@ -104,9 +133,31 @@ final class DiffPane extends BorderPane {
         return differences;
     }
 
-    /** The text of the line between the headings. */
+    /** The text of the line above the headings. */
     String summary() {
         return summary.getText();
+    }
+
+    /** The block the view is at, counted from zero; -1 when the texts are the same. */
+    int current() {
+        return current;
+    }
+
+    /** What the counter above the connectors reads: "2/5", or nothing without differences. */
+    String counter() {
+        return counter.getText();
+    }
+
+    Button previousButton() {
+        return previous;
+    }
+
+    Button nextButton() {
+        return next;
+    }
+
+    DiffOverview overview() {
+        return overview;
     }
 
     /** Reads the two texts again, compares them and marks the blocks. */
@@ -115,14 +166,16 @@ final class DiffPane extends BorderPane {
         summary.setText(message("Diff.loading"));
         RP.post(() -> {
             DiffResult result;
+            int rightLines;
             try {
-                result = Diff.compute(Diff.lines(leftSource.file().asText("UTF-8")),
-                        Diff.lines(rightSource.file().asText("UTF-8")));
+                List<String> to = Diff.lines(rightSource.file().asText("UTF-8"));
+                rightLines = to.size();
+                result = Diff.compute(Diff.lines(leftSource.file().asText("UTF-8")), to);
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot compare " + leftSource.file() + " and " + rightSource.file(), ex);
                 Platform.runLater(() -> {
                     if (asked == comparison) {
-                        show(List.of(), message("Diff.failed"));
+                        show(List.of(), 1, message("Diff.failed"));
                     }
                 });
                 return;
@@ -130,7 +183,7 @@ final class DiffPane extends BorderPane {
             Platform.runLater(() -> {
                 if (asked == comparison) {
                     List<Difference> found = result.differences();
-                    show(found, found.isEmpty() ? message("Diff.identical")
+                    show(found, rightLines, found.isEmpty() ? message("Diff.identical")
                             : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size()));
                 }
             });
@@ -149,17 +202,48 @@ final class DiffPane extends BorderPane {
         }
     }
 
-    private void show(List<Difference> found, String text) {
+    /**
+     * Makes the block of that index the current one - counted, drawn as such - and, when there are
+     * editors, brings it into view with a few lines above it.
+     */
+    void select(int index) {
+        current = index < 0 || index >= differences.size() ? -1 : index;
+        counter.setText(current < 0 ? "" : (current + 1) + "/" + differences.size());
+        previous.setDisable(current <= 0);
+        next.setDisable(current < 0 || current >= differences.size() - 1);
+        connectors.setCurrent(current);
+        overview.setCurrent(current);
+        if (current >= 0 && left != null && right != null) {
+            // The right side leads: it has the lines of the file as it is now.
+            leftLeads = false;
+            int top = Math.max(0, differences.get(current).rightStart() - CONTEXT_LINES);
+            right.scrollToParagraph(top);
+            left.scrollToParagraph(DiffLines.toLeft(differences, top));
+        }
+    }
+
+    private void go(boolean forward) {
+        int target = DiffLines.step(current, differences.size(), forward);
+        if (target != current) {
+            select(target);
+        }
+    }
+
+    private void show(List<Difference> found, int rightLines, String text) {
         differences = found;
         summary.setText(text);
         if (left != null && right != null) {
             left.setLineBands(DiffLines.leftBands(found));
             right.setLineBands(DiffLines.rightBands(found));
+            connectors.show(left, right, found);
         }
+        overview.show(found, rightLines);
+        // At the first block, as when the diff opens; without moving the view when there is none.
+        select(found.isEmpty() ? -1 : Math.clamp(current, 0, found.size() - 1));
     }
 
-    /** Brings beside the top line of the leading editor the line of the other that stands by it. */
-    private void follow(int top, boolean leftScrolled) {
+    /** Brings beside the top of the leading editor the place of the other that stands by it. */
+    private void follow(double top, boolean leftScrolled) {
         if (leftScrolled != leftLeads || left == null || right == null) {
             return;
         }
@@ -171,16 +255,13 @@ final class DiffPane extends BorderPane {
     }
 
     private VBox side(String title, Node editor, boolean isLeft) {
-        Label heading = new Label(title);
-        heading.getStyleClass().add("diff-heading");
-        heading.setMaxWidth(Double.MAX_VALUE);
-        heading.setAlignment(Pos.CENTER);
-        // File names and revisions are data: an underscore in one must not become a mnemonic.
-        heading.setMnemonicParsing(false);
         VBox.setVgrow(editor, Priority.ALWAYS);
-        VBox side = new VBox(heading, editor);
+        VBox side = new VBox(heading(title), editor);
         side.getStyleClass().add("diff-side");
+        // The two sides share the width equally, whatever their texts would like.
         side.setMinWidth(0);
+        side.setPrefWidth(0);
+        HBox.setHgrow(side, Priority.ALWAYS);
         // Before the editor sees them: whatever scrolls it - the wheel, its scroll bars, the keys -
         // starts here.
         side.addEventFilter(MouseEvent.MOUSE_ENTERED, event -> leftLeads = isLeft);
@@ -188,6 +269,26 @@ final class DiffPane extends BorderPane {
         side.addEventFilter(ScrollEvent.ANY, event -> leftLeads = isLeft);
         side.addEventFilter(KeyEvent.KEY_PRESSED, event -> leftLeads = isLeft);
         return side;
+    }
+
+    private static Label heading(String title) {
+        Label heading = new Label(title);
+        heading.getStyleClass().add("diff-heading");
+        heading.setMaxWidth(Double.MAX_VALUE);
+        heading.setAlignment(Pos.CENTER);
+        // File names and revisions are data: an underscore in one must not become a mnemonic.
+        heading.setMnemonicParsing(false);
+        return heading;
+    }
+
+    private static Button button(String icon, String key) {
+        Button button = new Button();
+        button.setGraphic(ToolIcons.view(icon));
+        button.setTooltip(new Tooltip(message(key)));
+        button.setAccessibleText(message(key));
+        button.getStyleClass().add("diff-tool-button");
+        button.setFocusTraversable(false);
+        return button;
     }
 
     private static String message(String key) {
