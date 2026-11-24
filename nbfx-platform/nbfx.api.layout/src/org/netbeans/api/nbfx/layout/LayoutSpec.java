@@ -18,7 +18,9 @@
  */
 package org.netbeans.api.nbfx.layout;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -44,10 +46,10 @@ public record LayoutSpec(
 
     public LayoutSpec {
         id = Objects.requireNonNull(id, "id");
-        areas = Map.copyOf(Objects.requireNonNull(areas, "areas"));
-        groups = Map.copyOf(Objects.requireNonNull(groups, "groups"));
+        areas = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(areas, "areas")));
+        groups = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(groups, "groups")));
         root = Objects.requireNonNull(root, "root");
-        metadata = Map.copyOf(Objects.requireNonNull(metadata, "metadata"));
+        metadata = Collections.unmodifiableMap(new LinkedHashMap<>(Objects.requireNonNull(metadata, "metadata")));
         if (id.isBlank()) {
             throw new IllegalArgumentException("id must not be blank");
         }
@@ -59,7 +61,7 @@ public record LayoutSpec(
 
     private static void validateReferences(Map<PaneRole, ViewArea> areas,
             Map<DockGroupId, DockGroupSpec> groups, LayoutNode root) {
-        Set<DockGroupId> referenced = new HashSet<>();
+        Set<DockGroupId> referenced = new LinkedHashSet<>();
         collectGroups(root, referenced);
         for (Map.Entry<PaneRole, ViewArea> areaEntry : areas.entrySet()) {
             if (!areaEntry.getKey().equals(areaEntry.getValue().id())) {

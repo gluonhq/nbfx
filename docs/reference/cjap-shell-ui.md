@@ -492,21 +492,21 @@ Typed ids use `namespace:name`; built-in constants also accept short forms. Plai
 Canonical builder:
 
 ```java
-LayoutSpec layout = LayoutSpec.builder("product.default", 1)
-    .area("product:explorer", area -> area
-        .kind(ViewAreaKind.SIDE)
-        .presentation(PresentationId.TABBED)
-        .visibility(ViewAreaVisibility.STARTUP)
-        .emptyPolicy(EmptyAreaPolicy.KEEP))
-    .area("product:editor", area -> area
-        .kind(ViewAreaKind.MAIN)
-        .presentation(PresentationId.TABBED)
-        .visibility(ViewAreaVisibility.STARTUP)
-        .emptyPolicy(EmptyAreaPolicy.KEEP))
-    .group("product:editor.main", "product:editor", ContentCapacity.MANY, PresentationId.TABBED)
-    .group("product:explorer.main", "product:explorer", ContentCapacity.MANY, PresentationId.TABBED)
-    .split(SplitOrientation.HORIZONTAL, 0.25,
-        LayoutNode.group("product:explorer.main"),
+LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
+    .area(new ViewArea(PaneRole.of("product:side"), ViewAreaKind.SIDE, "Side",
+        DockLocation.START, 0.25d, PresentationId.TABBED, Set.of(),
+        "default", AreaStyle.EMPTY, ViewAreaVisibility.STARTUP, EmptyAreaPolicy.KEEP, 0))
+    .area(new ViewArea(PaneRole.of("product:editor"), ViewAreaKind.MAIN, "Editor",
+        DockLocation.CENTER, 1.0d, PresentationId.TABBED, Set.of(),
+        "default", AreaStyle.EMPTY, ViewAreaVisibility.STARTUP, EmptyAreaPolicy.KEEP, 1))
+    .group(new DockGroupSpec(DockGroupId.of("product:side.main"), PaneRole.of("product:side"),
+        PaneKind.VIEW, PresentationId.TABBED, ContentCapacity.MANY, "default",
+        GroupLifetime.PERSISTENT, AreaStyle.EMPTY))
+    .group(new DockGroupSpec(DockGroupId.of("product:editor.main"), PaneRole.of("product:editor"),
+        PaneKind.VIEW, PresentationId.TABBED, ContentCapacity.MANY, "default",
+        GroupLifetime.PERSISTENT, AreaStyle.EMPTY))
+    .split(SplitOrientation.HORIZONTAL, List.of(0.25d),
+        LayoutNode.group("product:side.main"),
         LayoutNode.group("product:editor.main"))
     .build();
 ```

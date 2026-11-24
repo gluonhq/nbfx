@@ -79,6 +79,45 @@ public class LayoutSpecTest {
     }
 
     @Test
+    public void builderCreatesTheSameImmutableLayout() {
+        PaneRole side = PaneRole.of("product:side");
+        PaneRole main = PaneRole.of("product:editor");
+        DockGroupId left = DockGroupId.of("product:side.main");
+        DockGroupId right = DockGroupId.of("product:editor.main");
+        LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
+                .area(area(side))
+                .area(area(main))
+                .group(group(left, side))
+                .group(group(right, main))
+                .metadata("owner", "product")
+                .split(SplitOrientation.HORIZONTAL, List.of(0.25d),
+                        LayoutNode.group(left), LayoutNode.group(right))
+                .build();
+
+        assertEquals("product.default", layout.id());
+        assertEquals("product", layout.metadata().get("owner"));
+        assertEquals(List.of(0.25d), ((LayoutNode.Split) layout.root()).dividers());
+    }
+
+    @Test
+    public void builderRejectsDuplicateAreaAndGroupIds() {
+        ViewArea area = area(PaneRole.MAIN);
+        assertThrows(IllegalArgumentException.class, () -> LayoutBuilder.builder("bad", 1)
+                .area(area).area(area));
+        DockGroupSpec group = group(DockGroupId.of("product:editor.main"), PaneRole.MAIN);
+        assertThrows(IllegalArgumentException.class, () -> LayoutBuilder.builder("bad", 1)
+                .group(group).group(group));
+    }
+
+    @Test
+    public void builderRequiresRootAndValidReferences() {
+        assertThrows(IllegalStateException.class, () -> LayoutBuilder.builder("empty", 1).build());
+        assertThrows(IllegalArgumentException.class, () -> LayoutBuilder.builder("bad", 1)
+                .root(LayoutNode.group("product:missing"))
+                .build());
+    }
+
+    @Test
     public void rejectsMissingGroupReferenceAndMismatchedMapKeys() {
         PaneRole area = PaneRole.of("product:editor");
         DockGroupId missing = DockGroupId.of("product:missing");

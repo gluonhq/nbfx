@@ -52,6 +52,7 @@
             <class package="org.netbeans.api.nbfx.layout" name="ViewArea"/>
             <class package="org.netbeans.api.nbfx.layout" name="DockGroupSpec"/>
             <class package="org.netbeans.api.nbfx.layout" name="LayoutNode"/>
+            <class package="org.netbeans.api.nbfx.layout" name="LayoutBuilder"/>
             <class package="org.netbeans.api.nbfx.layout" name="LayoutSpec"/>
             <class package="org.netbeans.api.nbfx.layout" name="EmptyAreaPolicy"/>
         </change>

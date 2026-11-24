@@ -29,6 +29,21 @@ import java.util.Objects;
  */
 public sealed interface LayoutNode {
 
+    /** Creates a group reference from a namespaced id. */
+    static Group group(String groupId) {
+        return new Group(DockGroupId.of(groupId));
+    }
+
+    /** Creates a group reference. */
+    static Group group(DockGroupId groupId) {
+        return new Group(groupId);
+    }
+
+    /** Creates a runtime slot reference from a namespaced id. */
+    static Slot slot(String id, PaneRole area, DockSide side) {
+        return new Slot(SlotId.of(id), area, side);
+    }
+
     /** A split with N children and N-1 strictly increasing divider positions. */
     record Split(SplitOrientation orientation, List<LayoutNode> children, List<Double> dividers)
             implements LayoutNode {
