@@ -148,6 +148,34 @@ public class LayoutSpecTest {
     }
 
     @Test
+    public void rejectsSlotRootAndDuplicateTreeIdentities() {
+        PaneRole area = PaneRole.of("product:editor");
+        LayoutNode.Slot slot = new LayoutNode.Slot(SlotId.of("product:slot"), area, DockSide.CENTER);
+        assertThrows(IllegalArgumentException.class, () -> new LayoutSpec("bad", 1,
+                Map.of(area, area(area)), Map.of(), slot, Map.of()));
+
+        DockGroupId group = DockGroupId.of("product:editor.main");
+        LayoutNode.Split duplicateGroups = new LayoutNode.Split(SplitOrientation.HORIZONTAL,
+                List.of(new LayoutNode.Group(group), new LayoutNode.Group(group)), List.of(0.5d));
+        assertThrows(IllegalArgumentException.class, () -> new LayoutSpec("bad", 1,
+                Map.of(area, area(area)), Map.of(group, group(group, area)),
+                duplicateGroups, Map.of()));
+        LayoutNode.Split duplicateSlots = new LayoutNode.Split(SplitOrientation.HORIZONTAL,
+                List.of(slot, new LayoutNode.Slot(slot.id(), area, DockSide.END)), List.of(0.5d));
+        assertThrows(IllegalArgumentException.class, () -> new LayoutSpec("bad", 1,
+                Map.of(area, area(area)), Map.of(), duplicateSlots, Map.of()));
+    }
+
+    @Test
+    public void acceptsDividerEndpoints() {
+        LayoutNode.Split split = new LayoutNode.Split(SplitOrientation.HORIZONTAL,
+                List.of(new LayoutNode.Group(group()), new LayoutNode.Group(group()),
+                        new LayoutNode.Group(group())),
+                List.of(0.0d, 1.0d));
+        assertEquals(List.of(0.0d, 1.0d), split.dividers());
+    }
+
+    @Test
     public void validatesDividerArityRangeAndOrder() {
         assertThrows(IllegalArgumentException.class, () -> new LayoutNode.Split(
                 SplitOrientation.HORIZONTAL, List.of(new LayoutNode.Group(group())), List.of()));

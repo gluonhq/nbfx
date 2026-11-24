@@ -243,9 +243,10 @@ reimplement default-shell behavior.
 
 - Split children/dividers have matching arity; an N-child split has N-1 strictly increasing divider
   positions, each a fraction in `[0,1]`.
-- A root is a `Split` or `Group`; an empty layout is represented by an empty group/slot, not a null
-  root.
-- Every group reference resolves; unreferenced groups are invalid unless marked transient.
+- A root is a `Split` or `Group`; a zero-content layout is represented by an empty `Group`, not a
+  null or `Slot` root.
+- Every group reference resolves and occurs once; unreferenced groups are invalid unless marked
+  transient. Slot ids are unique within the tree.
 - A group belongs to exactly one area; a `Slot` materializes a group in its declared area.
 - `ViewArea.defaultPresentation` is inherited by groups unless overridden.
 - Empty `DockPolicySpec` sets mean deny-all; an explicit wildcard/default policy means allow-all.

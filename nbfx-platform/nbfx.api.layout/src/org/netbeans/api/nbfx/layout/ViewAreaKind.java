@@ -42,17 +42,17 @@ public final class ViewAreaKind {
         this.value = value;
     }
 
-    /** Resolves a built-in short form or a namespaced product kind. */
+    /** Resolves a built-in short/canonical form or a namespaced product kind. */
     public static ViewAreaKind of(String value) {
         Objects.requireNonNull(value, "value");
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
-            case "main" -> MAIN;
-            case "side" -> SIDE;
-            case "bottom" -> BOTTOM;
-            case "canvas" -> CANVAS;
-            case "tool" -> TOOL;
-            case "custom" -> CUSTOM;
+            case "main", "nbfx:main" -> MAIN;
+            case "side", "nbfx:side" -> SIDE;
+            case "bottom", "nbfx:bottom" -> BOTTOM;
+            case "canvas", "nbfx:canvas" -> CANVAS;
+            case "tool", "nbfx:tool" -> TOOL;
+            case "custom", "nbfx:custom" -> CUSTOM;
             default -> new ViewAreaKind(Ids.parse(value).value());
         };
     }

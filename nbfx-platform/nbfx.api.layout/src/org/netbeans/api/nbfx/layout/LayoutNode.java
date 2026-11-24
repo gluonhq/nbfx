@@ -58,7 +58,7 @@ public sealed interface LayoutNode {
             if (dividers.size() != children.size() - 1) {
                 throw new IllegalArgumentException("split requires N-1 dividers");
             }
-            double previous = 0.0d;
+            double previous = Double.NEGATIVE_INFINITY;
             for (double divider : dividers) {
                 if (Double.isNaN(divider) || divider < 0.0d || divider > 1.0d
                         || divider <= previous) {

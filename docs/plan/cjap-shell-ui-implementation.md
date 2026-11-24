@@ -241,7 +241,7 @@ Acceptance: builder/XML/annotation paths produce equal `LayoutSpec`.
 
 - Duplicate ids, missing refs, bad dividers, cycles, unknown types, group/area mismatch.
 - Divider arity/range/order (N-1 strictly increasing positions), root shape, group reference
-  uniqueness and slot materialization.
+  uniqueness, slot-id uniqueness and slot materialization.
 - Empty policy sets are deny-all; wildcard/default policy is explicit allow-all.
 - Normalize empty transient groups, clamp dividers, deterministic fallback.
 

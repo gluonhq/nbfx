@@ -80,6 +80,7 @@ org.netbeans.api.nbfx.layout.GroupLifetime
 org.netbeans.api.nbfx.layout.LayoutBuilder
 org.netbeans.api.nbfx.layout.LayoutNode
 org.netbeans.api.nbfx.layout.LayoutSpec
+org.netbeans.api.nbfx.layout.LayoutXml
 org.netbeans.api.nbfx.layout.PaneKind
 org.netbeans.api.nbfx.layout.PaneRole
 org.netbeans.api.nbfx.layout.PresentationId

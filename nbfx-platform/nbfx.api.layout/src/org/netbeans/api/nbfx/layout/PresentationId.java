@@ -21,7 +21,10 @@ package org.netbeans.api.nbfx.layout;
 import java.util.Locale;
 import java.util.Objects;
 
-/** Extensible identity of a dock-group presentation. */
+/**
+ * Extensible identity of a dock-group presentation. Built-in {@code nbfx} names are canonicalized
+ * case-insensitively; product namespaces remain case-sensitive.
+ */
 public record PresentationId(String namespace, String name) {
 
     public static final PresentationId TABBED = new PresentationId("nbfx", "tabbed");
@@ -34,20 +37,35 @@ public record PresentationId(String namespace, String name) {
         Objects.requireNonNull(namespace, "namespace");
         Objects.requireNonNull(name, "name");
         Ids.Parts parts = Ids.parse(namespace + ":" + name);
-        namespace = parts.namespace();
-        name = parts.name();
+        String builtInName = builtInName(parts.namespace(), parts.name());
+        namespace = builtInName == null ? parts.namespace() : "nbfx";
+        name = builtInName == null ? parts.name() : builtInName;
     }
 
-    /** Resolves a built-in short form or a namespaced product presentation. */
+    private static String builtInName(String namespace, String name) {
+        if (!"nbfx".equalsIgnoreCase(namespace)) {
+            return null;
+        }
+        return switch (name.toLowerCase(Locale.ROOT)) {
+            case "tabbed" -> "tabbed";
+            case "single" -> "single";
+            case "canvas" -> "canvas";
+            case "overlay" -> "overlay";
+            case "headerless" -> "headerless";
+            default -> null;
+        };
+    }
+
+    /** Resolves a built-in short/canonical form or a namespaced product presentation. */
     public static PresentationId of(String value) {
         Objects.requireNonNull(value, "value");
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
-            case "tabbed" -> TABBED;
-            case "single" -> SINGLE;
-            case "canvas" -> CANVAS;
-            case "overlay" -> OVERLAY;
-            case "headerless" -> HEADERLESS;
+            case "tabbed", "nbfx:tabbed" -> TABBED;
+            case "single", "nbfx:single" -> SINGLE;
+            case "canvas", "nbfx:canvas" -> CANVAS;
+            case "overlay", "nbfx:overlay" -> OVERLAY;
+            case "headerless", "nbfx:headerless" -> HEADERLESS;
             default -> {
                 Ids.Parts parts = Ids.parse(value);
                 yield new PresentationId(parts.namespace(), parts.name());

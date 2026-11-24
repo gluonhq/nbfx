@@ -32,7 +32,7 @@ import java.util.Set;
  * @param formatVersion persistence schema version
  * @param areas         logical areas by stable role
  * @param groups        physical groups by stable id
- * @param root          layout tree
+ * @param root          split or group layout tree
  * @param metadata      opaque product metadata
  * @since 1.0
  */
@@ -55,6 +55,9 @@ public record LayoutSpec(
         }
         if (formatVersion < 1) {
             throw new IllegalArgumentException("formatVersion must be positive");
+        }
+        if (!(root instanceof LayoutNode.Split || root instanceof LayoutNode.Group)) {
+            throw new IllegalArgumentException("layout root must be a split or group");
         }
         validateReferences(areas, groups, root);
     }
@@ -87,24 +90,32 @@ public record LayoutSpec(
                 throw new IllegalArgumentException("unreferenced persistent group " + group.id());
             }
         }
-        validateSlots(areas, root);
+        validateSlots(areas, root, new LinkedHashSet<>());
     }
 
     private static void collectGroups(LayoutNode node, Set<DockGroupId> referenced) {
         if (node instanceof LayoutNode.Group group) {
-            referenced.add(group.groupId());
+            if (!referenced.add(group.groupId())) {
+                throw new IllegalArgumentException("duplicate group reference " + group.groupId());
+            }
         } else if (node instanceof LayoutNode.Split split) {
             split.children().forEach(child -> collectGroups(child, referenced));
         }
     }
 
-    private static void validateSlots(Map<PaneRole, ViewArea> areas, LayoutNode node) {
-        if (node instanceof LayoutNode.Slot slot && !areas.containsKey(slot.area())) {
-            throw new IllegalArgumentException("slot " + slot.id()
-                    + " refers to missing area " + slot.area());
+    private static void validateSlots(Map<PaneRole, ViewArea> areas, LayoutNode node,
+            Set<SlotId> slotIds) {
+        if (node instanceof LayoutNode.Slot slot) {
+            if (!slotIds.add(slot.id())) {
+                throw new IllegalArgumentException("duplicate slot id " + slot.id());
+            }
+            if (!areas.containsKey(slot.area())) {
+                throw new IllegalArgumentException("slot " + slot.id()
+                        + " refers to missing area " + slot.area());
+            }
         }
         if (node instanceof LayoutNode.Split split) {
-            split.children().forEach(child -> validateSlots(areas, child));
+            split.children().forEach(child -> validateSlots(areas, child, slotIds));
         }
     }
 }

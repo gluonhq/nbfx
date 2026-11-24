@@ -48,7 +48,7 @@ public final class LayoutBuilder {
         return new LayoutBuilder(id, formatVersion);
     }
 
-    /** Adds or replaces a logical area. */
+    /** Adds a logical area; duplicate area ids are rejected. */
     public LayoutBuilder area(ViewArea area) {
         Objects.requireNonNull(area, "area");
         if (areas.putIfAbsent(area.id(), area) != null) {
@@ -57,7 +57,7 @@ public final class LayoutBuilder {
         return this;
     }
 
-    /** Adds or replaces a physical dock group. */
+    /** Adds a physical dock group; duplicate group ids are rejected. */
     public LayoutBuilder group(DockGroupSpec group) {
         Objects.requireNonNull(group, "group");
         if (groups.putIfAbsent(group.id(), group) != null) {
@@ -79,7 +79,7 @@ public final class LayoutBuilder {
         return this;
     }
 
-    /** Sets a single-group root. */
+    /** Sets a split or group root. */
     public LayoutBuilder root(LayoutNode root) {
         this.root = Objects.requireNonNull(root, "root");
         return this;

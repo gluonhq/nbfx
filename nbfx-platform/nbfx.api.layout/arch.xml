@@ -34,21 +34,25 @@
     <p>The <b>NetBeansFX Layout API</b> provides stable identities and immutable values for product-owned
       logical areas (<code>ViewArea</code>), physical dock groups (<code>DockGroupSpec</code>) and
       content-free layout trees (<code>LayoutSpec</code>/<code>LayoutNode</code>) built with
-      <code>LayoutBuilder</code>, including presentations, capacities, capabilities, policy references,
-      styling and lifecycle.</p>
+      <code>LayoutBuilder</code> or read from secure standard XML with <code>LayoutXml</code>, including
+      caller-resolved includes, presentations, capacities, capabilities, policy references, styling
+      and lifecycle.</p>
   </answer>
 
   <answer id="arch-overall">
     <p>Ids are immutable, namespaced and persistable. Built-in roles/kinds are neutral; products define
-      their own namespaced values. The module contains no JavaFX or runtime behavior.</p>
+      their own namespaced values. XML parsing disables DTDs, external entities and external resources.
+      The module contains no JavaFX or runtime behavior.</p>
   </answer>
 
   <answer id="arch-usecases">
-    <p><ul><li>Establish the module and dependency boundary for the toolkit-free product layout, logical area and physical dock-group model.</li><li>Prepare the public package for the first contract slice.</li></ul></p>
+    <p><ul><li>Author a product-owned layout programmatically or as standard XML.</li><li>Validate areas, groups, references and split geometry before rendering.</li><li>Round-trip layout identity, policy references, styling and metadata without JavaFX or content instances.</li></ul></p>
   </answer>
 
   <answer id="arch-quality">
-    <p>The module skeleton builds successfully. Contract unit tests are added with the first public types.</p>
+    <p>Unit tests cover id parsing, immutable model validation, builder behavior, XML equality,
+      deterministic output, inherited defaults, caller-resolved includes, exact path diagnostics and
+      unsafe XML rejection.</p>
   </answer>
 
   <answer id="dep-jrejdk">
@@ -60,27 +64,29 @@
   </answer>
 
   <answer id="lookup-lookup">
-    <p>None in this skeleton.</p>
+    <p>None.</p>
   </answer>
 
   <answer id="lookup-register">
-    <p>None in this skeleton.</p>
+    <p>None.</p>
   </answer>
 
   <answer id="resources-layer">
-    <p>None in this skeleton.</p>
+    <p>None. Layout XML is application data, not a layer registration.</p>
   </answer>
 
   <answer id="resources-read">
-    <p>None in this skeleton.</p>
+    <p>Reads the caller-provided XML stream and streams returned by an explicit include resolver;
+      performs no module resource lookup or implicit filesystem/network access.</p>
   </answer>
 
   <answer id="resources-preferences">
-    <p>None in this skeleton.</p>
+    <p>None.</p>
   </answer>
 
   <answer id="exec-threading">
-    <p>No runtime code or thread affinity is introduced by this skeleton.</p>
+    <p>Readers and writers are stateless. Builders are local mutable operations and are not
+      thread-safe. None of these APIs has thread affinity.</p>
   </answer>
 
   <answer id="perf-startup">

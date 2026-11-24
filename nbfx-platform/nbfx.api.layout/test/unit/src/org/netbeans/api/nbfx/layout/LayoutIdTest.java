@@ -33,6 +33,10 @@ public class LayoutIdTest {
         assertSame(ViewAreaKind.SIDE, ViewAreaKind.of("side"));
         assertSame(PresentationId.TABBED, PresentationId.of("tabbed"));
         assertSame(ViewAreaKind.SIDE, ViewAreaKind.of("SIDE"));
+        assertSame(PaneRole.MAIN, PaneRole.of("NBFX:MAIN"));
+        assertSame(ViewAreaKind.CANVAS, ViewAreaKind.of("NBFX:CANVAS"));
+        assertSame(PresentationId.TABBED, PresentationId.of("NBFX:TABBED"));
+        assertEquals(PresentationId.TABBED, new PresentationId("NBFX", "TABBED"));
     }
 
     @Test

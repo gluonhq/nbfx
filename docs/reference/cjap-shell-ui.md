@@ -478,7 +478,7 @@ Validation invariants:
 
 - split children/dividers have matching arity; an N-child split has N-1 strictly increasing divider
   positions, each a fraction in `[0,1]`;
-- root is a `Split` or `Group`; empty layout uses an empty group/slot, not null;
+- root is a `Split` or `Group`; a zero-content layout uses an empty `Group`, not null or a `Slot` root;
 - every group reference resolves; unreferenced groups are invalid unless transient;
 - a group belongs to exactly one area; a `Slot` materializes a group in its declared area;
 - area default presentation is inherited unless the group overrides it;
@@ -486,17 +486,17 @@ Validation invariants:
 
 ### 6.6 Authoring
 
-Typed ids use `namespace:name`; built-in constants also accept short forms. Plain layout ids such as
-`product.default` are stable strings, not typed ids.
+Typed ids use `namespace:name`; built-in constants also accept case-insensitive short and canonical
+forms. Plain layout ids such as `product.default` are stable strings, not typed ids.
 
 Canonical builder:
 
 ```java
 LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
-    .area(new ViewArea(PaneRole.of("product:side"), ViewAreaKind.SIDE, "Side",
+    .area(new ViewArea(PaneRole.of("product:side"), ViewAreaKind.SIDE, "#side",
         DockLocation.START, 0.25d, PresentationId.TABBED, Set.of(),
         "default", AreaStyle.EMPTY, ViewAreaVisibility.STARTUP, EmptyAreaPolicy.KEEP, 0))
-    .area(new ViewArea(PaneRole.of("product:editor"), ViewAreaKind.MAIN, "Editor",
+    .area(new ViewArea(PaneRole.of("product:editor"), ViewAreaKind.MAIN, "#editor",
         DockLocation.CENTER, 1.0d, PresentationId.TABBED, Set.of(),
         "default", AreaStyle.EMPTY, ViewAreaVisibility.STARTUP, EmptyAreaPolicy.KEEP, 1))
     .group(new DockGroupSpec(DockGroupId.of("product:side.main"), PaneRole.of("product:side"),
@@ -511,14 +511,20 @@ LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
     .build();
 ```
 
-Layer XML:
+Layout XML is standalone application data, not a layer registration:
 
 ```xml
 <layout id="product.default" version="1">
   <areas>
-    <area id="product:explorer" kind="SIDE" presentation="tabbed"
-          visibility="startup" capabilities="minimizable closable movable detachable"/>
-    <area id="product:editor" kind="MAIN" presentation="tabbed"
+    <area id="product:explorer" kind="SIDE" displayName="#explorer" presentation="tabbed"
+          visibility="startup" capabilities="minimizable closable movable detachable">
+      <style>
+        <class name="explorer"/>
+        <stylesheet module="org.example.product" path="styles/explorer.css"/>
+        <themeOverlay module="org.example.theme" path="overlays/dark.css"/>
+      </style>
+    </area>
+    <area id="product:editor" kind="MAIN" displayName="#editor" presentation="tabbed"
           visibility="startup" capabilities="maximizable splittable detachable reorderable"/>
   </areas>
   <groups>
@@ -531,10 +537,48 @@ Layer XML:
       <group ref="product:editor.main"/>
     </split>
   </tree>
+  <metadata>
+    <entry key="owner" value="product"/>
+  </metadata>
 </layout>
 ```
 
-No custom layout DSL is introduced.
+Required attributes and defaults:
+
+| Element | Required | Defaults |
+|---|---|---|
+| `layout` | `id`, `version`, `tree` | `areas`, `groups` and `metadata` may be omitted |
+| `area` | `id`, `displayName` | `kind=MAIN`, `location=CENTER`, `weight=1.0`, `presentation=tabbed`, empty capabilities, `policyId=default`, `visibility=STARTUP`, `emptyPolicy=KEEP`, flattened declaration index for `order` |
+| `group` | `id`, `area` | `kind=VIEW`, `capacity=MANY`, `lifetime=PERSISTENT`; presentation/policy inherit from the area |
+| tree `group` | `ref` | none |
+| tree `slot` | `id`, `area` | `side=CENTER`; slots are allowed only below the root |
+| tree `split` | `dividers`, at least two children | `orientation=HORIZONTAL` |
+| `style` | none | optional `class`, `stylesheet` and `themeOverlay` children |
+| metadata `entry` | `key`, `value` | `value` may be empty |
+| `include` | `path` | allowed only in `areas`/`groups`; maximum nesting 64 |
+
+`LayoutXml.read(InputStream)` and `LayoutXml.write(LayoutSpec, OutputStream)` provide the standard XML
+form. The caller owns and closes the main stream. Only format version `1` is currently supported.
+Capability lists accept commas or whitespace; enum values and built-in short/canonical ids are
+case-insensitive. Product namespaces remain case-sensitive. `displayName` is required so the XML
+never invents a user-visible or accessible name from an internal id.
+
+A group that omits `presentation` or `policyId` inherits the owning area's value. The optional
+`<style>` child preserves class names, stylesheets and theme overlays for both areas and groups.
+`<metadata>` preserves opaque string entries. Output is deterministic: areas are ordered by
+`order`/id, groups by id and metadata by key; tree and resource-list order is preserved.
+
+`<include path="..."/>` is allowed inside `<areas>` and `<groups>`. The included document root must
+be `<areas>` or `<groups>` respectively. `LayoutXml.read(input, resolver)` resolves includes through
+`LayoutXml.IncludeResolver`; the API performs no implicit filesystem, classpath or network access.
+Resolver streams are closed by `LayoutXml`, include cycles are rejected, nesting is limited to 64
+levels, and the no-resolver overload rejects documents containing includes.
+
+Parsing disables DTDs, external entities, XInclude and external XML resources. Unknown attributes or
+elements, duplicate ids, repeated group references, repeated slot ids and invalid values are rejected.
+The root must be a `Split` or `Group`. Layout-value diagnostics use XPath-like locations such as
+`/layout/areas/area[1]/@weight`; malformed XML is reported as an `IOException`. No custom layout DSL
+is introduced.
 
 ## 7. Docking policy and transfer
 

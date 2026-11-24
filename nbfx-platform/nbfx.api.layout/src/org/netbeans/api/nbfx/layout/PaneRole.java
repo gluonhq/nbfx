@@ -40,15 +40,15 @@ public final class PaneRole {
         this.value = value;
     }
 
-    /** Resolves a built-in short form or a namespaced product role. */
+    /** Resolves a built-in short/canonical form or a namespaced product role. */
     public static PaneRole of(String value) {
         Objects.requireNonNull(value, "value");
         String normalized = value.trim().toLowerCase(Locale.ROOT);
         return switch (normalized) {
-            case "main" -> MAIN;
-            case "side" -> SIDE;
-            case "bottom" -> BOTTOM;
-            case "center" -> CENTER;
+            case "main", "nbfx:main" -> MAIN;
+            case "side", "nbfx:side" -> SIDE;
+            case "bottom", "nbfx:bottom" -> BOTTOM;
+            case "center", "nbfx:center" -> CENTER;
             default -> new PaneRole(Ids.parse(value).value());
         };
     }
