@@ -57,11 +57,13 @@ nb.cluster.nbfx-platform=\
         nbfx.api.editor,\
         nbfx.api.language,\
         nbfx.api.layer,\
+        nbfx.api.layout,\
         nbfx.api.nodes,\
         nbfx.api.options,\
         nbfx.api.output,\
         nbfx.api.progress,\
         nbfx.api.property,\
+        nbfx.api.resources,\
         nbfx.api.search,\
         nbfx.api.shell,\
         nbfx.api.status,\

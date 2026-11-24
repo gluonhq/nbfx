@@ -6,12 +6,12 @@ Every number the plan states is derived here from the tree. Regenerate with
 
 | Figure | Value |
 |---|---|
-| nbfx modules | 66 |
-| nbfx source files | 759 |
-| modules exporting packages (`<public-packages>`) | 47 |
+| nbfx modules | 68 |
+| nbfx source files | 761 |
+| modules exporting packages (`<public-packages>`) | 49 |
 | of those, subtree exports (`<subpackages>`) | 16 |
-| modules with `arch.xml` | 20 |
-| modules with `apichanges.xml` | 14 |
+| modules with `arch.xml` | 22 |
+| modules with `apichanges.xml` | 16 |
 | distinct `OpenIDE-Module-Specification-Version` values | 5: 1.0, 1.1, 1.2, 1.5, 1.9 |
 | public `Fx*` types (total) | 4 |
 | public `Fx*` types in exporting modules | 0 |
@@ -23,9 +23,9 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files importing `org.netbeans.api.java.source` | 46 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 61 |
 | files using `NbBundle` | 169 |
-| `Bundle.properties` files | 68 |
+| `Bundle.properties` files | 70 |
 | test files | 103 |
-| modules with tests | 39 of 66 |
+| modules with tests | 39 of 68 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
 | upstream modules depending on `org.openide.nodes` | 388 |
