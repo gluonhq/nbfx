@@ -1,0 +1,138 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* Versioning view */
+
+.tool-bar.git-toolbar {
+    -fx-padding: 2 4 2 2;
+    -fx-spacing: 1;
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.tool-bar.git-toolbar > .container > .separator:vertical {
+    -fx-padding: 0 3 0 3;
+}
+
+/* 16px icons in 20px buttons, as the NetBeans tool bars. */
+.tool-bar.git-toolbar > .container > .git-tool-button,
+.tool-bar.git-toolbar > .tool-bar-overflow-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 3;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+    -fx-padding: 2;
+    -fx-content-display: graphic-only;
+    -fx-min-width: 20;
+    -fx-min-height: 20;
+    -fx-pref-width: 20;
+    -fx-pref-height: 20;
+}
+
+.tool-bar.git-toolbar > .container > .git-tool-button:hover,
+.tool-bar.git-toolbar > .tool-bar-overflow-button:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.tool-bar.git-toolbar > .container > .git-tool-button:armed,
+.tool-bar.git-toolbar > .container > .git-tool-button:selected {
+    -fx-background-color: -nbfx-pressed;
+}
+
+.tool-bar.git-toolbar > .container > .git-tool-button:selected:hover {
+    -fx-background-color: -nbfx-editor-button-selected-hover;
+}
+
+.tool-bar.git-toolbar > .container > .git-tool-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.tool-bar.git-toolbar > .container > .git-branch {
+    -fx-text-fill: derive(-fx-text-base-color, 30%);
+    -fx-padding: 0 4 0 8;
+}
+
+/* The status table. */
+.git-status-table {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.git-status-table .tree-table-cell {
+    -fx-padding: 1 4 1 2;
+}
+
+.git-status-empty {
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-padding: 12;
+}
+
+/* File names by change, as NetBeans colours them. */
+.git-status-table .git-file-cell:vcs-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.git-status-table .git-file-cell:vcs-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.git-status-table .git-file-cell:vcs-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.git-status-table .git-file-cell:vcs-conflicted {
+    -fx-text-fill: -nbfx-editor-text-error;
+}
+
+.git-status-table:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .git-file-cell {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+/* Commit dialog */
+.git-commit > .content,
+.git-init > .content {
+    -fx-padding: 12;
+}
+
+.git-commit .text-area {
+    -fx-background-color: -nbfx-border, -nbfx-surface;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0;
+    -fx-padding: 1;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-prompt-text-fill: -nbfx-text-faint;
+}
+
+.git-commit .text-area:focused {
+    -fx-background-color: -nbfx-accent, -nbfx-surface;
+}
+
+.git-commit .text-area > .scroll-pane,
+.git-commit .text-area > .scroll-pane > .viewport,
+.git-commit .text-area > .scroll-pane > .viewport .content {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-border-width: 0;
+}
+
+.git-commit .text-area .content {
+    -fx-padding: 4 6 4 6;
+}

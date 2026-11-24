@@ -132,6 +132,32 @@ public class GitClientStatusTest {
         assertTrue(GitClient.status(root).isClean());
     }
 
+    @Test
+    public void statusAndCommitOfAFolderLeaveTheRestOfTheRepositoryAlone() throws Exception {
+        write("project/src/App.java", "class App {}\n");
+        write("other/Readme.txt", "first\n");
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "two projects");
+        write("project/src/App.java", "class App { int changed; }\n");
+        write("project/new.txt", "new\n");
+        write("other/Readme.txt", "changed\n");
+        Path project = root.resolve("project");
+
+        // The folder's changes only, with paths from the repository root.
+        assertEquals(Map.of("project/new.txt", VcsChangeKind.UNTRACKED, "project/src/App.java", VcsChangeKind.MODIFIED),
+                changes(GitClient.status(project), VcsCompareMode.HEAD_VS_WORKING_TREE));
+
+        assertEquals(0, GitClient.addAll(project).exitCode());
+        // Staged by hand in the other project: a commit of this one must not take it.
+        git("add", "other/Readme.txt");
+        GitClient.Result commit = GitClient.commit(project, "project only");
+        assertEquals(commit.output(), 0, commit.exitCode());
+
+        assertTrue(GitClient.status(project).isClean());
+        assertEquals(Map.of("other/Readme.txt", VcsChangeKind.MODIFIED),
+                changes(GitClient.status(root), VcsCompareMode.HEAD_VS_INDEX));
+    }
+
     private static Map<String, VcsChangeKind> changes(VcsStatus status, VcsCompareMode mode) {
         Map<String, VcsChangeKind> changes = new TreeMap<>();
         for (VcsFileStatus file : status.files(mode)) {

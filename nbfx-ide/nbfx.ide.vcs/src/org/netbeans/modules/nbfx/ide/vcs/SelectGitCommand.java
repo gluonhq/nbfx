@@ -18,13 +18,15 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import org.netbeans.modules.nbfx.project.context.ProjectContext;
+import javafx.scene.Node;
 import org.netbeans.modules.nbfx.ide.actions.IdeActionIds;
 
 import org.netbeans.api.nbfx.actions.AbstractCommand;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.openide.util.NbBundle;
 
-/** Window ▸ Versioning: opens or fronts the Versioning view. Always enabled. */
+/** Show Changes: opens or fronts the Git status window for the selected project. */
 final class SelectGitCommand extends AbstractCommand {
 
     SelectGitCommand() {
@@ -33,10 +35,15 @@ final class SelectGitCommand extends AbstractCommand {
     }
 
     @Override
+    public Node getIcon() {
+        return GitIcons.menuView(GitIcons.SHOW_CHANGES);
+    }
+
+    @Override
     public void run() {
         GitStatusViewProvider view = GitStatusViewProvider.instance();
         if (view != null) {
-            view.show();
+            view.show(ProjectContext.selectedProject());
         }
     }
 }

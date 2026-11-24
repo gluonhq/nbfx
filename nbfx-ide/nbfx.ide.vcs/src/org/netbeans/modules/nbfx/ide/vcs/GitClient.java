@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import java.nio.file.Files;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -56,12 +57,13 @@ final class GitClient {
     }
 
     /**
-     * The changed files of the repository, with the index and the working tree told apart, so that one
-     * read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Untracked files
-     * are listed one by one, not by folder.
+     * The changed files in {@code dir} and under it, with the index and the working tree told apart, so
+     * that one read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Their
+     * paths are relative to the repository root, whatever {@code dir} is. Untracked files are listed
+     * one by one, not by folder.
      */
-    static VcsStatus status(Path root) throws IOException {
-        Result result = result(root, "status", "--porcelain=v2", "-z", "--untracked-files=all");
+    static VcsStatus status(Path dir) throws IOException {
+        Result result = result(dir, "status", "--porcelain=v2", "-z", "--untracked-files=all", "--", ".");
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }
@@ -72,12 +74,32 @@ final class GitClient {
         }
     }
 
-    static Result addAll(Path root) {
-        return result(root, "add", "-A");
+    /** Creates a repository in {@code dir}, as {@code git init}. */
+    static Result init(Path dir) {
+        return result(dir, "init");
     }
 
-    static Result commit(Path root, String message) {
-        return result(root, "commit", "-m", message);
+    /** Stages every change in {@code dir} and under it. */
+    static Result addAll(Path dir) {
+        return result(dir, "add", "-A", "--", ".");
+    }
+
+    /**
+     * Commits what is staged. In a folder below the repository root only the changes in that folder
+     * are committed, as NetBeans commits a project that shares its repository with others; at the
+     * root it is a plain commit, which is also the only one git accepts while merging.
+     */
+    static Result commit(Path dir, String message) {
+        return isRoot(dir) ? result(dir, "commit", "-m", message)
+                : result(dir, "commit", "-m", message, "--", ".");
+    }
+
+    private static boolean isRoot(Path dir) {
+        try {
+            return Files.isSameFile(dir, rootOf(dir));
+        } catch (IOException ex) {
+            return false;
+        }
     }
 
     private static Result result(Path dir, String... args) {
