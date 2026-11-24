@@ -361,6 +361,7 @@ public record ViewArea(
         String policyId,
         AreaStyle style,
         ViewAreaVisibility visibility,
+        EmptyAreaPolicy emptyPolicy,
         int order) {}
 ```
 
@@ -375,7 +376,17 @@ ACCEPTS_DROPS, ACCEPTS_FILES, SCROLLABLE
 Visibility:
 
 ```java
-STARTUP, ON_DEMAND, HIDE_WHEN_EMPTY, ALWAYS
+STARTUP, ON_DEMAND, ALWAYS
+```
+
+Empty-state behavior is separate:
+
+```java
+public enum EmptyAreaPolicy {
+    KEEP,
+    HIDE,
+    COLLAPSE
+}
 ```
 
 The framework registers neutral defaults. Products register their own areas.
@@ -485,11 +496,13 @@ LayoutSpec layout = LayoutSpec.builder("product.default", 1)
     .area("product:explorer", area -> area
         .kind(ViewAreaKind.SIDE)
         .presentation(PresentationId.TABBED)
-        .visibility(ViewAreaVisibility.STARTUP))
+        .visibility(ViewAreaVisibility.STARTUP)
+        .emptyPolicy(EmptyAreaPolicy.KEEP))
     .area("product:editor", area -> area
         .kind(ViewAreaKind.MAIN)
         .presentation(PresentationId.TABBED)
-        .visibility(ViewAreaVisibility.STARTUP))
+        .visibility(ViewAreaVisibility.STARTUP)
+        .emptyPolicy(EmptyAreaPolicy.KEEP))
     .group("product:editor.main", "product:editor", ContentCapacity.MANY, PresentationId.TABBED)
     .group("product:explorer.main", "product:explorer", ContentCapacity.MANY, PresentationId.TABBED)
     .split(SplitOrientation.HORIZONTAL, 0.25,
@@ -1203,7 +1216,7 @@ host scene.
 public record AreaStyle(
         Set<String> styleClasses,
         List<ResourceRef> stylesheets,
-        ResourceRef themeOverlay) {}
+        List<ResourceRef> themeOverlays) {}
 
 public record ContentStyleContext(
         ViewArea area,

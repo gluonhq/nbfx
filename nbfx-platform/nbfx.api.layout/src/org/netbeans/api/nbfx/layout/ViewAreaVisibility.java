@@ -18,10 +18,9 @@
  */
 package org.netbeans.api.nbfx.layout;
 
-/** Initial and empty-state visibility policy of a logical layout area. */
+/** Initial visibility policy of a logical layout area. */
 public enum ViewAreaVisibility {
     STARTUP,
     ON_DEMAND,
-    HIDE_WHEN_EMPTY,
     ALWAYS
 }

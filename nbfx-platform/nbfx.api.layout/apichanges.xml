@@ -48,6 +48,12 @@
             <class package="org.netbeans.api.nbfx.layout" name="DockSide"/>
             <class package="org.netbeans.api.nbfx.layout" name="ViewAreaCapability"/>
             <class package="org.netbeans.api.nbfx.layout" name="ViewAreaVisibility"/>
+            <class package="org.netbeans.api.nbfx.layout" name="AreaStyle"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewArea"/>
+            <class package="org.netbeans.api.nbfx.layout" name="DockGroupSpec"/>
+            <class package="org.netbeans.api.nbfx.layout" name="LayoutNode"/>
+            <class package="org.netbeans.api.nbfx.layout" name="LayoutSpec"/>
+            <class package="org.netbeans.api.nbfx.layout" name="EmptyAreaPolicy"/>
         </change>
     </changes>
     <htmlcontents>

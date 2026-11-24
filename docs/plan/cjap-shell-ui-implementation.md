@@ -219,7 +219,8 @@ Acceptance: id round-trip tests; unknown product ids work.
 #### T1.2 — `ViewArea`, `DockGroupSpec`, `LayoutSpec`
 
 - Evolve `ViewArea` to carry `PaneRole`, `ViewAreaKind`, display name, default location/weight,
-  default `PresentationId`, capabilities, policy id, `AreaStyle`, visibility and order.
+  default `PresentationId`, capabilities, policy id, `AreaStyle`, visibility, empty-state policy
+  and order.
 - Add `DockGroupSpec` with area, `PaneKind`, `PresentationId`, capacity, policy id and group lifetime.
 - Add `LayoutSpec`/`LayoutNode` (`Split`, `Group`, `Slot`).
 - All public records defensively copy collections; layout contains no executable policy or content.

@@ -31,8 +31,10 @@
   &api-questions;
 
   <answer id="arch-what">
-    <p>The <b>NetBeansFX Layout API</b> provides stable identities and value types for product-owned
-      logical areas, physical dock groups, presentations, capacities, capabilities and lifecycle.</p>
+    <p>The <b>NetBeansFX Layout API</b> provides stable identities and immutable values for product-owned
+      logical areas (<code>ViewArea</code>), physical dock groups (<code>DockGroupSpec</code>) and
+      content-free layout trees (<code>LayoutSpec</code>/<code>LayoutNode</code>), including
+      presentations, capacities, capabilities, policy references, styling and lifecycle.</p>
   </answer>
 
   <answer id="arch-overall">
