@@ -48,6 +48,7 @@ org.netbeans.api.nbfx.content.ContentCreationException
 org.netbeans.api.nbfx.content.ContentFactory
 org.netbeans.api.nbfx.content.ContentId
 org.netbeans.api.nbfx.content.ContentKind
+org.netbeans.api.nbfx.content.ContentManager
 org.netbeans.api.nbfx.content.ContentRequirements
 org.netbeans.api.nbfx.content.ContentState
 org.netbeans.api.nbfx.css.CssTokens

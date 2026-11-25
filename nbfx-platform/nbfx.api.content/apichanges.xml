@@ -62,6 +62,20 @@
             <class package="org.netbeans.api.nbfx.content" name="ContentFactory"/>
             <class package="org.netbeans.api.nbfx.content" name="ContentRequirements"/>
         </change>
+        <change id="cjap.content.manager">
+            <api name="netbeansfx_content"/>
+            <summary>Content lifecycle and routing seam.</summary>
+            <version major="1" minor="2"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ContentManager</code>: open, close, find, the open snapshot and the
+                observable active content. The manager owns close/dispose; opening from a content
+                source is added with the sources slice. The platform implementation follows.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="ContentManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
