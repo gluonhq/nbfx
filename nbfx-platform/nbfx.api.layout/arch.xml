@@ -56,8 +56,8 @@
     <p>Unit tests cover id parsing, immutable model validation, builder behavior, XML equality,
       deterministic output, inherited defaults, caller-resolved includes, exact path diagnostics,
       unsafe XML rejection, annotation-generated layer resources, bundle-key validation, duplicate-id
-      diagnostics, UTF-8 canonicalization, area/group metadata reconstruction, inheritance and
-      registry discovery.</p>
+      diagnostics, UTF-8 canonicalization, area/group metadata reconstruction, inheritance,
+      generated-layout normalization properties and registry discovery.</p>
   </answer>
 
   <answer id="dep-jrejdk">

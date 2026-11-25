@@ -18,9 +18,12 @@
  */
 package org.netbeans.api.nbfx.layout;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -60,6 +63,55 @@ public record LayoutSpec(
             throw new IllegalArgumentException("layout root must be a split or group");
         }
         validateReferences(areas, groups, root);
+    }
+
+    /**
+     * Returns a canonical copy of this layout. Unreferenced transient groups are removed, areas are
+     * ordered by {@code order}/id, groups by id and metadata by key, and signed-zero dividers are
+     * normalized to positive zero. Geometry is already validated by construction; invalid geometry
+     * is rejected rather than clamped. The operation is idempotent.
+     *
+     * @return the normalized layout
+     */
+    public LayoutSpec normalized() {
+        Set<DockGroupId> referenced = new LinkedHashSet<>();
+        collectGroups(root, referenced);
+
+        Map<PaneRole, ViewArea> orderedAreas = new LinkedHashMap<>();
+        areas.values().stream()
+                .sorted(Comparator.comparingInt(ViewArea::order)
+                        .thenComparing(area -> area.id().value()))
+                .forEach(area -> orderedAreas.put(area.id(), area));
+
+        Map<DockGroupId, DockGroupSpec> orderedGroups = new LinkedHashMap<>();
+        List<DockGroupSpec> groupList = new ArrayList<>(groups.values());
+        groupList.sort(Comparator.comparing(group -> group.id().value()));
+        for (DockGroupSpec group : groupList) {
+            if (referenced.contains(group.id()) || group.lifetime() != GroupLifetime.TRANSIENT) {
+                orderedGroups.put(group.id(), group);
+            }
+        }
+
+        Map<String, String> orderedMetadata = new LinkedHashMap<>();
+        metadata.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> orderedMetadata.put(entry.getKey(), entry.getValue()));
+
+        return new LayoutSpec(id, formatVersion, orderedAreas, orderedGroups,
+                normalizeNode(root), orderedMetadata);
+    }
+
+    private static LayoutNode normalizeNode(LayoutNode node) {
+        if (node instanceof LayoutNode.Split split) {
+            List<LayoutNode> children = split.children().stream()
+                    .map(LayoutSpec::normalizeNode)
+                    .toList();
+            List<Double> dividers = split.dividers().stream()
+                    .map(divider -> divider == 0.0d ? 0.0d : divider)
+                    .toList();
+            return new LayoutNode.Split(split.orientation(), children, dividers);
+        }
+        return node;
     }
 
     private static void validateReferences(Map<PaneRole, ViewArea> areas,

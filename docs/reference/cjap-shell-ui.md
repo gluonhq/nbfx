@@ -484,6 +484,10 @@ Validation invariants:
 - area default presentation is inherited unless the group overrides it;
 - empty `DockPolicySpec` sets mean deny-all; allow-all requires an explicit wildcard/default policy.
 
+`LayoutSpec.normalized()` returns an idempotent canonical copy: unreferenced transient groups are
+removed, areas are ordered by `order`/id, groups by id, metadata by key, and signed-zero dividers are
+canonicalized. Invalid geometry cannot be constructed and is rejected rather than silently clamped.
+
 ### 6.6 Authoring
 
 Typed ids use `namespace:name`; built-in constants also accept case-insensitive short and canonical
@@ -1541,7 +1545,8 @@ No JavaFX types are persisted.
 - old sessions read once;
 - backup retained;
 - new format written immediately;
-- missing content/window/monitor/corruption produces diagnostics and deterministic fallback;
+- missing content/window/monitor/corruption produces diagnostics and deterministic fallback to the
+  normalized product default layout;
 - public compatibility APIs are not retained.
 
 ## 20. Extensions and ownership

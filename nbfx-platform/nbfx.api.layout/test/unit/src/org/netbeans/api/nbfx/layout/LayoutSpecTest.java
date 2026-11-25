@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import java.util.TreeSet;
 import org.junit.Test;
 import org.netbeans.api.nbfx.resources.ResourceRef;
 
@@ -183,6 +185,89 @@ public class LayoutSpecTest {
                 SplitOrientation.HORIZONTAL,
                 List.of(new LayoutNode.Group(group()), new LayoutNode.Group(group()), new LayoutNode.Group(group())),
                 List.of(0.8d, 0.2d)));
+    }
+
+    @Test
+    public void normalizationRemovesTransientGroupsAndOrdersDeclarations() {
+        PaneRole side = PaneRole.of("product:side");
+        PaneRole main = PaneRole.of("product:editor");
+        DockGroupId persistent = DockGroupId.of("product:editor.main");
+        DockGroupId transientId = DockGroupId.of("product:transient");
+        DockGroupSpec transientGroup = new DockGroupSpec(transientId, main, PaneKind.VIEW,
+                PresentationId.TABBED, ContentCapacity.MANY, "default",
+                GroupLifetime.TRANSIENT, AreaStyle.EMPTY);
+        LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
+                .area(area(side))
+                .area(area(main))
+                .group(group(persistent, main))
+                .group(transientGroup)
+                .metadata("b", "two")
+                .metadata("a", "one")
+                .root(LayoutNode.group(persistent))
+                .build();
+
+        LayoutSpec normalized = layout.normalized();
+        assertEquals(Set.of(persistent), normalized.groups().keySet());
+        assertEquals(List.of(main, side), new ArrayList<>(normalized.areas().keySet()));
+        assertEquals(List.of("a", "b"), new ArrayList<>(normalized.metadata().keySet()));
+        assertEquals(normalized, normalized.normalized());
+    }
+
+    @Test
+    public void normalizationRetainsReferencedTransientGroupsAndCanonicalizesZero() {
+        PaneRole area = PaneRole.of("product:editor");
+        DockGroupId first = DockGroupId.of("product:first");
+        DockGroupId second = DockGroupId.of("product:second");
+        DockGroupSpec transientGroup = new DockGroupSpec(first, area, PaneKind.VIEW,
+                PresentationId.TABBED, ContentCapacity.MANY, "default",
+                GroupLifetime.TRANSIENT, AreaStyle.EMPTY);
+        LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
+                .area(area(area))
+                .group(transientGroup)
+                .group(group(second, area))
+                .split(SplitOrientation.HORIZONTAL, List.of(-0.0d, 0.5d),
+                        LayoutNode.group(first), LayoutNode.group(second),
+                        LayoutNode.slot("product:slot", area, DockSide.CENTER))
+                .build();
+
+        LayoutSpec normalized = layout.normalized();
+        assertEquals(Set.of(first, second), normalized.groups().keySet());
+        LayoutNode.Split root = (LayoutNode.Split) normalized.root();
+        assertEquals(Double.doubleToRawLongBits(0.0d),
+                Double.doubleToRawLongBits(root.dividers().get(0)));
+        assertEquals(normalized, normalized.normalized());
+    }
+
+    @Test
+    public void normalizationIsIdempotentForGeneratedLayouts() {
+        Random random = new Random(0x4e424658L);
+        for (int iteration = 0; iteration < 200; iteration++) {
+            int count = 2 + random.nextInt(5);
+            TreeSet<Integer> positions = new TreeSet<>();
+            while (positions.size() < count - 1) {
+                positions.add(random.nextInt(101));
+            }
+            List<Double> dividers = positions.stream().map(position -> position / 100.0d).toList();
+            PaneRole area = PaneRole.of("product:editor");
+            LayoutBuilder builder = LayoutBuilder.builder("product.default", 1).area(area(area));
+            List<LayoutNode> children = new ArrayList<>();
+            for (int i = 0; i < count; i++) {
+                DockGroupId id = DockGroupId.of("product:group" + i);
+                builder.group(group(id, area));
+                children.add(LayoutNode.group(id));
+            }
+            if (random.nextBoolean()) {
+                DockGroupId transientId = DockGroupId.of("product:transient");
+                builder.group(new DockGroupSpec(transientId, area, PaneKind.VIEW,
+                        PresentationId.TABBED, ContentCapacity.MANY, "default",
+                        GroupLifetime.TRANSIENT, AreaStyle.EMPTY));
+            }
+            LayoutSpec normalized = builder.split(SplitOrientation.HORIZONTAL, dividers,
+                    children.toArray(LayoutNode[]::new)).build().normalized();
+            assertEquals(count, normalized.groups().size());
+            assertEquals(dividers, ((LayoutNode.Split) normalized.root()).dividers());
+            assertEquals(normalized, normalized.normalized());
+        }
     }
 
     private static DockGroupId group() {

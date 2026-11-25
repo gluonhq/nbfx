@@ -244,7 +244,9 @@ Acceptance: builder/XML/annotation paths produce equal `LayoutSpec`.
 - Divider arity/range/order (N-1 strictly increasing positions), root shape, group reference
   uniqueness, slot-id uniqueness and slot materialization.
 - Empty policy sets are deny-all; wildcard/default policy is explicit allow-all.
-- Normalize empty transient groups, clamp dividers, deterministic fallback.
+- Normalize away unreferenced transient groups, canonicalize signed-zero dividers and impose
+  deterministic declaration order. Invalid geometry remains rejected rather than silently clamped;
+  deterministic fallback for corrupt persisted state belongs to T1.5.
 
 Acceptance: property/fuzz tests; normalization is idempotent.
 
@@ -255,8 +257,11 @@ Acceptance: property/fuzz tests; normalization is idempotent.
 - `WindowStateStore` owns `SessionState`; `ContentStateStore` owns only per-content payloads keyed by
   `ContentId`/instance key.
 - Versioned schema and one-time old-session migration utility.
+- Missing/corrupt persisted state produces diagnostics and falls back deterministically to the
+  normalized product default layout.
 
-Acceptance: old fixture migrates; new state round-trips without JavaFX types.
+Acceptance: old fixture migrates; new state round-trips without JavaFX types; corruption fallback is
+repeatable.
 
 ### Phase 2 — Product, shell regions and chrome
 
