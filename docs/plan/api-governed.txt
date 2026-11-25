@@ -24,6 +24,7 @@ nbfx-platform/nbfx.api.layout
 nbfx-platform/nbfx.api.nodes
 nbfx-platform/nbfx.api.options
 nbfx-platform/nbfx.api.output
+nbfx-platform/nbfx.api.product
 nbfx-platform/nbfx.api.property
 nbfx-platform/nbfx.api.resources
 nbfx-platform/nbfx.api.shell

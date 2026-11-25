@@ -61,6 +61,7 @@ nb.cluster.nbfx-platform=\
         nbfx.api.nodes,\
         nbfx.api.options,\
         nbfx.api.output,\
+        nbfx.api.product,\
         nbfx.api.progress,\
         nbfx.api.property,\
         nbfx.api.resources,\

@@ -267,11 +267,12 @@ repeatable.
 
 #### T2.1 — Product descriptor
 
-- `ProductProvider`/`Product` exactly one per distribution.
-- Product metadata source and validation.
-- Product namespace.
+- `ProductProvider`/`Product` exactly one per distribution, resolved through `Lookup.lookupAll`.
+- Immutable product metadata source and validation.
+- Product namespace through `ProductIdentity.id`.
 
-Acceptance: duplicate provider fails; name/icon/version/About come from one source.
+Acceptance: missing/duplicate/null provider fails; name/icon/version/About come from one immutable
+source.
 
 #### T2.2 — Declarative shell regions
 

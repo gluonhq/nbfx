@@ -196,8 +196,10 @@ public interface ProductProvider {
 }
 ```
 
-Exactly one `ProductProvider` is allowed per distribution. Duplicate providers are a startup
-error. There is no `priority()`.
+Exactly one `ProductProvider` is allowed per distribution. `ProductProvider.resolve()` uses the
+global lookup, and `ProductProvider.resolve(Lookup)` supports explicit composition/test lookups.
+Zero providers, multiple providers and a null product are errors. There is no `priority()`,
+superseding or class-name selection.
 
 ```java
 public record Product(
@@ -213,7 +215,16 @@ public record Product(
 ```
 
 `Product` is immutable metadata. It does not contain live `ShellProvider` or `LayoutProvider`
-objects.
+objects. Product modules register their public no-argument provider with
+`@ServiceProvider(service = ProductProvider.class)`; the composition root resolves it before shell
+creation.
+
+Identity id/name/version and all four default policy/layout/shell/profile ids are required and
+nonblank. `ProductIdentity.name` is localized display text supplied by the provider; it is not a
+bundle-key reference. Optional blank text is treated as absent. Website/support URIs must be absolute. All
+collection fields are required, defensively copied and preserve order. `ResourceRef` values are not
+resolved by this API. A desktop association requires an action id and at least one extension, MIME
+type or URI scheme.
 
 ### 5.2 Product identity
 

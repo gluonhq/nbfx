@@ -39,6 +39,11 @@
     <p><code>ResourceRef</code> is immutable and toolkit-free. Resource resolution uses the owning
       module classloader at the rendering boundary; this API performs no I/O and introduces no runtime
       behavior.</p>
+    <api name="org.netbeans.api.nbfx.resources" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/api/nbfx/resources/package-summary.html">
+      Neutral module-relative resource references. This API remains devel until the CJAP reference
+      product and scenarios pass.
+    </api>
   </answer>
 
   <answer id="arch-usecases">

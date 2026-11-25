@@ -6,6 +6,7 @@
 # nbfx-platform/nbfx.api.nodes
 # nbfx-platform/nbfx.api.options
 # nbfx-platform/nbfx.api.output
+# nbfx-platform/nbfx.api.product
 # nbfx-platform/nbfx.api.property
 # nbfx-platform/nbfx.api.resources
 # nbfx-platform/nbfx.api.shell
@@ -113,6 +114,13 @@ org.netbeans.api.nbfx.output.ConsolePanel
 org.netbeans.api.nbfx.output.ConsoleRun
 org.netbeans.api.nbfx.output.OutputConsole
 org.netbeans.api.nbfx.output.OutputKind
+org.netbeans.api.nbfx.product.AboutInfo
+org.netbeans.api.nbfx.product.DesktopAssociation
+org.netbeans.api.nbfx.product.Product
+org.netbeans.api.nbfx.product.ProductIcons
+org.netbeans.api.nbfx.product.ProductIdentity
+org.netbeans.api.nbfx.product.ProductProvider
+org.netbeans.api.nbfx.product.ProductStyle
 org.netbeans.api.nbfx.project.OpenProject
 org.netbeans.api.nbfx.project.ProjectIconProvider
 org.netbeans.api.nbfx.project.ProjectLifecycle

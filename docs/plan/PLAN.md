@@ -345,9 +345,9 @@ plugin implements is not yet in its API/SPI packages.
 | `api.actions` | T2-FX | **landed** | `Command`, `CommandsProvider`, `ActionRegistry`, `KeyMap`, `ActionContext`, `@ActionRegistration`, `@ActionReference(s)`, generic `ActionIds` (IDE ids live in `ide.workbench.IdeActionIds`) |
 | `api.views` | T2-FX | **landed (1.9); CJAP-5 extends** | `ViewProvider`, `ViewManager`, `ViewSpec`, `ViewRegistry`, `ViewAreaRegistry`, `FileSelectionContext`, `ViewArea`, `DockLocation`, `ViewKind`, `PaneKind`, `@ViewRegistration`, `@AreaRegistration`, `@MenuRegistration(s)`, `@ToolbarRegistration(s)`; CJAP adds dynamic views, tab/group metadata and per-view state |
 | `api.status` | T2-FX | **landed** | `StatusElement`, `StatusElementSpec`, `StatusElementEntry`, `StatusElementRegistry`, `StatusAlignment`, `StatusMessageService`, `@StatusRegistration`; `platform.status` is the T0 renderer |
-| `api.shell` | T2-FX | **landed; CJAP-2 extends** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation. CJAP adds `ProductProvider`/`Product`, `ShellProvider`/`ShellFrame`, `ShellContribution`, `WindowDecoration` and the narrow `ShellWindow` facade |
-| `api.product` | M/T2 | **planned — CJAP-2** | `Product`, `ProductIdentity`, `ProductIcons`, `ProductStyle`, `ThemePolicy`, `ProductFamily`, `ProductVariant`, `LayoutProvider`, `DesktopAssociation`, `AboutInfo`; exactly one `ProductProvider` per distribution; no feature-pack API |
-| `api.layout` | M | **planned — CJAP-1** | `RegionId`, `RegionTypeId`, `DockGroupId`, `LayoutSpec`, `LayoutNode`, `RegionSpec`, `DockGroupSpec`, `DockPolicy`, layout builder, XML reader/writer, validation, persistence schema |
+| `api.shell` | T2-FX | **landed; CJAP-2 extends** | `ShellWindow`, `WindowManager`, `PaneRole`, `WindowPaneHost`, `ShellChrome`/`ShellChromeProvider`, `ShellBranding`, `ShellContext`, `ShellCommandResolver`, `ShellIconProvider`, `ShellWindowProvider`, `@OnUiReady`, the window-environment capabilities and the shutdown contract; `org.netbeans.spi.nbfx.shell` has `WindowPane`/`WindowPaneContext`/`WindowPaneProvider`/`WindowPaneFactory`; the window-system contract (`WindowSystem`, `WindowSink`, `WindowState`, `AreaState`, `WindowSystemListener`); `platform.shell` is the T0 implementation. CJAP adds `ShellProvider`/`ShellFrame`, `ShellContribution`, `WindowDecoration` and the narrow `ShellWindow` facade |
+| `api.product` | M | **landed — CJAP-2** | `Product`, `ProductProvider`, `ProductIdentity`, `ProductIcons`, `ProductStyle`, `DesktopAssociation`, `AboutInfo`; immutable metadata, string policy ids and exactly-one provider discovery; no feature-pack API |
+| `api.layout` | M | **landed — CJAP-1/CJAP-2** | `PaneRole`, `ViewAreaKind`, `ViewArea`, `DockGroupId`, `SlotId`, `PresentationId`, `DockGroupSpec`, `LayoutSpec`, `LayoutNode`, builder, XML reader/writer, registration/discovery, validation and normalization; persistence follows CJAP-3 |
 | `api.content` | T2-FX | **planned — CJAP-4** | `Content`, `ContentFactory`, `ContentState`, content kinds, routing, `ContentSource`, `SourceHandler`, `DropHandler`; stable node lifecycle |
 | `api.docking` | T2-FX | **planned — CJAP-1/CJAP-5** | `DockHost`, `DockController`, transfer/policy, tab/group/focus contracts, presentations |
 | `api.theme` | M/T2 | **planned — CJAP-3** | `Theme`, `ThemeManager`, `ThemeMode`, `ThemeTokens`, `ThemeScope`, `@ThemeRegistration`, accent schemes; `NbfxTheme` becomes an internal implementation |
@@ -563,8 +563,8 @@ works), `partial` (the API/SPI is not yet the contract a plugin can implement), 
 | Editor core | `platform.editor` + `api.editor` | landed; the language SPI is on `api.editor`/`org.netbeans.spi.nbfx.editor`, `platform.editor` is T0, and consumer migration continues in M1 |
 | Projects | `api.project` + `ide.project` | **IDE-tier**; the AppShell starts without projects; `OpenProjects` is the documented bridge until M1 review |
 | File actions | platform file service + `ide.file` | drag-and-drop and desktop integration landed in `platform.shell`; IDE-specific file actions stay in `ide.file`; `api.file` is dissolved (#188) |
-| Product identity/build | `api.product` + `platform.product` | planned — CJAP-2/CJAP-7; one descriptor per distribution; NBM cluster/kit composition, no feature packs |
-| Layout/docking | `api.layout` + `api.docking` + `platform.docking` + `api.content` | planned — CJAP-1/5; product-owned layout; old `Docking`/`AppState` adapters remain |
+| Product identity/build | `api.product` + `platform.product` | `api.product` landed — CJAP-2; product provider/packaging source follows CJAP-7; one descriptor per distribution; NBM cluster/kit composition, no feature packs |
+| Layout/docking | `api.layout` + `api.docking` + `platform.docking` + `api.content` | `api.layout` landed — CJAP-1/CJAP-2; docking/content runtime follows CJAP-3/4/5; old `Docking`/`AppState` adapters remain |
 | Shell composition | `api.shell` (`ShellProvider`/`ShellFrame`/slots) + `platform.shell` | planned — CJAP-2; custom frame is a visual adapter over the platform runtime; default shell is one product |
 | Theme/brand/design | `api.theme` + `platform.theme` + `platform.design` + `api.status`/`api.theme` tokens | planned — CJAP-3; mode + accent, scoped/embedded themes, neutral replaceable design system |
 | Content/documents/sources | `api.content` + `api.editor` (`Document`/`EditorProvider`) + `api.views` + `api.nodes` | planned — CJAP-4; source→content, stable nodes, render/overlay and diagnostic tasks |
@@ -939,11 +939,11 @@ Lower layers never depend on higher layers. Product modules import API/SPI only.
 
 #### 10.5.3 Product surface
 
-`api.product` (M/T2) adds:
+`api.product` (M) provides:
 
 - `Product`/`ProductProvider` — exactly one per distribution, no priority;
-- `ProductIdentity`, `ProductIcons`, `ProductStyle`, `ThemePolicy`, `ProductFamily`, `ProductVariant`,
-  `LayoutProvider`, `DesktopAssociation`, `AboutInfo`;
+- `ProductIdentity`, `ProductIcons`, `ProductStyle`, `DesktopAssociation`, `AboutInfo`;
+- immutable metadata and stable string ids for theme/layout/shell/chrome policies;
 - no feature-pack API. Product composition is NBM modules/clusters/kits.
 
 `api.shell` (T2-FX) adds:
@@ -962,8 +962,9 @@ NBM clusters/kits select the modules.
 
 Adopt the layout model of [gluonhq/nbfx#104](https://github.com/gluonhq/nbfx/issues/104):
 
-- `api.layout` (M): `LayoutSpec`, `LayoutNode`, `RegionSpec`, `DockGroupSpec`, capabilities, `DockPolicy`,
-  builder, layer XML, validation, persistence schema.
+- `api.layout` (M): `PaneRole`, `ViewArea`, `ViewAreaKind`, `DockGroupId`, `SlotId`, `PresentationId`,
+  `LayoutSpec`, `LayoutNode`, `DockGroupSpec`, builder, XML, registration/discovery, validation and
+  normalization; executable `DockPolicy` lives in `api.docking`.
 - `api.docking`/`api.content` (T2-FX): `DockHost`, `DockController`, `Content`, `ContentFactory`,
   `ContentState`, transfer and focus.
 - `platform.docking` (T0; rename of current `platform.workspace`): runtime, groups, hosts, split/float,

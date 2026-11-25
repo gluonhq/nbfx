@@ -46,6 +46,11 @@
       their own namespaced values. XML parsing disables DTDs, external entities and external resources.
       The module contains no JavaFX or shell-rendering behavior. Runtime code is limited to stateless
       XML parsing, layout discovery and logical-area/physical-group metadata discovery.</p>
+    <api name="org.netbeans.api.nbfx.layout" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/api/nbfx/layout/package-summary.html">
+      Toolkit-free product layout, area/group metadata, XML authoring and registration. This API
+      remains devel until the CJAP reference product and scenarios pass.
+    </api>
   </answer>
 
   <answer id="arch-usecases">

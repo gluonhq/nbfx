@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE api-answers PUBLIC "-//NetBeans//DTD Arch Answers//EN" "../../nbbuild/antsrc/org/netbeans/nbbuild/Arch.dtd" [
+  <!ENTITY api-questions SYSTEM "../../nbbuild/antsrc/org/netbeans/nbbuild/Arch-api-questions.xml">
+]>
+
+<api-answers
+  question-version="1.29"
+  author="svenreimers"
+>
+
+  &api-questions;
+
+  <answer id="arch-what">
+    <p>The <b>NetBeansFX Product API</b> defines immutable product identity, icons, style, About,
+      desktop-association and default-policy metadata, plus exactly-one provider discovery.</p>
+  </answer>
+
+  <answer id="arch-overall">
+    <p>The module is model-tier and toolkit-free. <code>Product</code> contains no live shell, layout,
+      theme or content object. Policy references are stable strings. Resource references are metadata
+      only; this module performs no resource I/O.</p>
+    <api name="org.netbeans.api.nbfx.product" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/api/nbfx/product/package-summary.html">
+      Immutable product metadata and exactly-one provider discovery. This API remains devel until the
+      CJAP reference product and scenarios pass.
+    </api>
+  </answer>
+
+  <answer id="arch-usecases">
+    <p><ul><li>Drive runtime title/icon/About, packaging and desktop metadata from one immutable product source.</li><li>Select the product default theme/layout/shell/chrome policy without implementation dependencies.</li><li>Reject missing or duplicate product providers before shell composition.</li></ul></p>
+  </answer>
+
+  <answer id="arch-quality">
+    <p>Unit tests cover immutable defensive copies, null/blank and URI validation, association rules,
+      one-provider resolution, missing/duplicate provider failures and null provider results.</p>
+  </answer>
+
+  <answer id="dep-jrejdk">
+    <p>A JDK is required to compile and run the module.</p>
+  </answer>
+
+  <answer id="deploy-packages">
+    <p>Only <code>org.netbeans.api.nbfx.product</code> is public.</p>
+  </answer>
+
+  <answer id="lookup-lookup">
+    <p><code>ProductProvider.resolve(Lookup)</code> uses <code>lookupAll</code> and requires exactly
+      one provider. It does not cache, sort for selection, deduplicate or apply priorities.</p>
+  </answer>
+
+  <answer id="lookup-register">
+    <p>Product-owned NBM modules register their public no-argument provider implementation with
+      <code>@ServiceProvider(service = ProductProvider.class)</code>. Priority and superseding are not
+      supported because they could conceal duplicate distribution providers.</p>
+  </answer>
+
+  <answer id="resources-layer">
+    <p>None. Product selection is service-based, not layer-shadowing based.</p>
+  </answer>
+
+  <answer id="resources-read">
+    <p>None. <code>ResourceRef</code> values are resolved by the rendering or packaging boundary.</p>
+  </answer>
+
+  <answer id="resources-preferences">
+    <p>None.</p>
+  </answer>
+
+  <answer id="exec-threading">
+    <p>Product values are immutable and the resolver is stateless. There is no thread affinity.</p>
+  </answer>
+
+  <answer id="perf-startup">
+    <p>No code runs until a composition root explicitly calls <code>ProductProvider.resolve</code>.</p>
+  </answer>
+
+  <answer id="perf-exit">
+    <p>No code runs on exit.</p>
+  </answer>
+
+  <answer id="default">
+    <p>A distribution must provide exactly one <code>ProductProvider</code> before shell startup.</p>
+  </answer>
+
+</api-answers>
