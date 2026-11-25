@@ -395,7 +395,7 @@ public interface EditorDocument extends Lookup.Provider {
      * {@code line-band}. The default does nothing.
      *
      * @param bands the bands to show
-     * @since 1.3
+     * @since 1.4
      */
     default void setLineBands(List<LineBand> bands) {
     }
@@ -405,7 +405,7 @@ public interface EditorDocument extends Lookup.Provider {
      * scrolls, for views that keep several editors in step. The default is always zero.
      *
      * @return the observable top line, never {@code null}
-     * @since 1.3
+     * @since 1.4
      */
     default ObservableValue<Number> topParagraphProperty() {
         return new SimpleIntegerProperty(0);
@@ -416,7 +416,7 @@ public interface EditorDocument extends Lookup.Provider {
      * moving the caret. The default does nothing.
      *
      * @param paragraph the line to bring to the top, counted from zero
-     * @since 1.3
+     * @since 1.4
      */
     default void scrollToParagraph(int paragraph) {
     }
