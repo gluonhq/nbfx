@@ -23,11 +23,14 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
 import org.netbeans.api.nbfx.shell.ShellContext;
 import org.netbeans.api.nbfx.shell.ShellCommandResolver;
+import org.netbeans.api.nbfx.shell.ShellProfileSpec;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.views.DynamicMenu;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Set;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Menu;
@@ -247,6 +250,33 @@ public class ShellMenuBarTest {
                 try {
                     Menu menu = menu(bar, "ProfileMenu");
                     assertEquals(List.of("Dynamic"), texts(menu));
+                } finally {
+                    bar.dispose();
+                }
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void actionReferenceProfilesFilterMenuEntries() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            FileObject folder = createFolder(configRoot(), "NbFx/Menus/ActionProfileMenu");
+            try {
+                createRef(folder, "any.ref", "test.static", 10);
+                createRef(folder, "main.ref", "test.static", 20);
+                FileObject other = createData(folder, "other.ref");
+                set(other, "actionId", "test.static");
+                set(other, "position", 30);
+                set(other, "profiles", "presentation");
+                ShellProfileSpec profile = new ShellProfileSpec("main", WindowKind.MAIN,
+                        Set.of(), null, true);
+                ShellMenuBar bar = new ShellMenuBar(new ShellContext(
+                        Lookups.fixed(resolver(), profile)));
+                try {
+                    assertEquals(2, menu(bar, "ActionProfileMenu").getItems().size());
                 } finally {
                     bar.dispose();
                 }
