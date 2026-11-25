@@ -351,12 +351,14 @@ public final class DefaultWindowSystem implements WindowSystem {
         }
         double width = persisted.width() > 0 ? persisted.width() : defaults.width();
         double height = persisted.height() > 0 ? persisted.height() : defaults.height();
+        String profileId = persisted.profileId() != null ? persisted.profileId() : defaults.profileId();
         return new WindowState(mergedAreas,
                 persisted.x() == persisted.x() ? persisted.x() : defaults.x(),
                 persisted.y() == persisted.y() ? persisted.y() : defaults.y(),
                 width, height,
                 persisted.maximized(),
-                mergedPayloads);
+                mergedPayloads,
+                profileId);
     }
 
     private List<String> pruneViews(List<String> viewIds) {

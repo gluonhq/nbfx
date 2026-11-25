@@ -130,6 +130,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor, this::viewStateStore);
 
     private NbfxTabPane mainPane;
+    /** The chrome profile id the main window selected, or {@code null} on the legacy path. */
+    private String profileId;
     /** The application-scoped docking runtime this shell owns. */
     private DockRuntime dockRuntime;
     private DockArea<TabPane> dockArea;
@@ -190,6 +192,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             Node frameRoot = null;
             try {
                 ShellProfileSelection selection = selectMainProfile(shellLookup);
+                profileId = selection.profile().id();
                 applyWindowDecoration(stage, selection.decoration());
                 InstanceContent frameServices = new InstanceContent();
                 frameServices.set(List.of(selection.profile()), null);
@@ -910,7 +913,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         double y = maximized ? restoreY : stage.getY();
         double width = maximized ? restoreWidth : stage.getWidth();
         double height = maximized ? restoreHeight : stage.getHeight();
-        return new WindowState(List.of(), x, y, width, height, maximized, Map.of());
+        return new WindowState(List.of(), x, y, width, height, maximized, Map.of(), profileId);
     }
 
     @Override

@@ -63,6 +63,7 @@ public final class ViewStateStore {
     private static final String KEY_WIDTH = "width"; // NOI18N
     private static final String KEY_HEIGHT = "height"; // NOI18N
     private static final String KEY_MAXIMIZED = "maximized"; // NOI18N
+    private static final String KEY_PROFILE = "profile"; // NOI18N
 
     private static final String KEY_ORDER = "order"; // NOI18N
     private static final String KEY_ACTIVE = "active"; // NOI18N
@@ -137,7 +138,13 @@ public final class ViewStateStore {
         double width = prefs.getDouble(KEY_WIDTH, Double.NaN);
         double height = prefs.getDouble(KEY_HEIGHT, Double.NaN);
         boolean maximized = prefs.getBoolean(KEY_MAXIMIZED, false);
-        return Optional.of(new WindowState(areas, x, y, width, height, maximized, viewState));
+        // A missing or blank profile key is the pre-profile format; the restore then uses the
+        // default profile selection rather than a recorded id.
+        String profileId = prefs.get(KEY_PROFILE, null);
+        if (profileId != null && profileId.isBlank()) {
+            profileId = null;
+        }
+        return Optional.of(new WindowState(areas, x, y, width, height, maximized, viewState, profileId));
     }
 
     /** Overwrites the persisted snapshot with the given one. */
@@ -148,6 +155,11 @@ public final class ViewStateStore {
         prefs.putDouble(KEY_WIDTH, state.width());
         prefs.putDouble(KEY_HEIGHT, state.height());
         prefs.putBoolean(KEY_MAXIMIZED, state.maximized());
+        if (state.profileId() != null) {
+            prefs.put(KEY_PROFILE, state.profileId());
+        } else {
+            prefs.remove(KEY_PROFILE);
+        }
         Preferences areasNode = prefs.node(NODE_AREAS);
         Preferences viewsNode = prefs.node(NODE_VIEWS);
         try {
@@ -191,6 +203,7 @@ public final class ViewStateStore {
             prefs.remove(KEY_WIDTH);
             prefs.remove(KEY_HEIGHT);
             prefs.remove(KEY_MAXIMIZED);
+            prefs.remove(KEY_PROFILE);
             prefs.remove(KEY_SCHEMA);
         } catch (BackingStoreException ex) {
             // Best effort.

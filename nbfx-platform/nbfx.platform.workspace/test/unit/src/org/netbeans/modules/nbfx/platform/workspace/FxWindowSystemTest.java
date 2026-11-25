@@ -222,6 +222,41 @@ public class FxWindowSystemTest {
     }
 
     @Test
+    public void profileIdPersistsAndReloadRestores() {
+        ViewStateStore store = newStore("profile-id");
+        RecordingSink sink = new RecordingSink();
+        Supplier<List<ViewSpec>> regs = () -> List.of(
+                reg("alpha", 10, true, true, ViewArea.EXPLORER));
+        WindowSystem first = new DefaultWindowSystem(regs, store, sink);
+        first.init();
+        first.load();
+        sink.snapshotState = new WindowState(
+                List.of(AreaState.docked("explorer", List.of("alpha"), "alpha")),
+                10, 20, 1024, 768, false, Map.of(), "floating-editor");
+        first.save();
+
+        RecordingSink secondSink = new RecordingSink();
+        initAndLoad(new DefaultWindowSystem(regs, store, secondSink));
+
+        assertEquals("floating-editor", secondSink.applied.get(0).profileId());
+    }
+
+    @Test
+    public void missingProfileKeyLoadsAsNoProfile() {
+        ViewStateStore store = newStore("profile-absent");
+        // The pre-profile constructor writes no profile key.
+        store.save(new WindowState(List.of(AreaState.docked("explorer", List.of("alpha"), "alpha")),
+                Double.NaN, Double.NaN, 0, 0, false, Map.of()));
+        RecordingSink sink = new RecordingSink();
+        Supplier<List<ViewSpec>> regs = () -> List.of(
+                reg("alpha", 10, true, true, ViewArea.EXPLORER));
+
+        initAndLoad(new DefaultWindowSystem(regs, store, sink));
+
+        assertNull(sink.applied.get(0).profileId());
+    }
+
+    @Test
     public void corruptPartialStateFallsBackToDefaults() {
         ViewStateStore store = newStore("corrupt");
         store.save(new WindowState(List.of(), 0, 0, 0, 0, false, Map.of()));

@@ -37,6 +37,10 @@ import java.util.Objects;
  *       module disappeared.</li>
  * </ul>
  *
+ * <p>The optional {@link #profileId() profile id} records which chrome profile the window last used.
+ * It is persisted so a later restore can select the same profile before the frame is created; the
+ * restore-time selection itself is owned by the multi-window slice, not by this state carrier.
+ *
  * @param areas      the dock areas, in the {@link org.netbeans.api.nbfx.views.ViewArea#defaults()
  *                   default area order}
  * @param x          the main-window x
@@ -46,18 +50,40 @@ import java.util.Objects;
  * @param maximized  whether the main window is maximized
  * @param viewState  the per-view payloads keyed by view id - the opaque session state each view
  *                   persists (tree expansion, selection...)
+ * @param profileId  the chrome profile id last used, or {@code null} when not recorded
  * @since 1.0
  */
 public record WindowState(List<AreaState> areas, double x, double y, double width, double height,
-        boolean maximized, Map<String, String> viewState) {
+        boolean maximized, Map<String, String> viewState, String profileId) {
 
     public WindowState {
         areas = List.copyOf(areas);
         viewState = Map.copyOf(viewState);
+        if (profileId != null) {
+            profileId = ShellTokens.require(profileId, "profileId");
+        }
     }
 
-    /** An empty window state: no areas, no geometry and no view payloads. */
+    /**
+     * A snapshot without a recorded chrome profile. Source-compatible with the pre-profile state
+     * contract; {@link #profileId()} is {@code null}.
+     *
+     * @param areas     the dock areas
+     * @param x         the main-window x
+     * @param y         the main-window y
+     * @param width     the main-window width
+     * @param height    the main-window height
+     * @param maximized whether the main window is maximized
+     * @param viewState the per-view payloads
+     */
+    public WindowState(List<AreaState> areas, double x, double y, double width, double height,
+            boolean maximized, Map<String, String> viewState) {
+        this(areas, x, y, width, height, maximized, viewState, null);
+    }
+
+    /** An empty window state: no areas, no geometry, no view payloads and no recorded profile. */
     public static WindowState empty() {
-        return new WindowState(List.of(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, false, Map.of());
+        return new WindowState(List.of(), Double.NaN, Double.NaN, Double.NaN, Double.NaN, false,
+                Map.of(), null);
     }
 }

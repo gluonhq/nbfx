@@ -191,6 +191,22 @@
             <class package="org.netbeans.api.nbfx.shell" name="ShellProfileHint"/>
             <class package="org.netbeans.api.nbfx.shell" name="WindowOptions"/>
         </change>
+        <change id="cjap.shell.profile.persistence">
+            <api name="netbeansfx_shell"/>
+            <summary>Optional chrome profile id in the persisted window state.</summary>
+            <version major="1" minor="6"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds the optional <code>profileId</code> component to <code>WindowState</code> and keeps
+                the previous constructor source-compatible by delegating with a {@code null} profile.
+                The window state store writes the profile only when one is recorded and treats a
+                missing or blank key as the pre-profile format. Restore-time profile selection before
+                frame creation remains the multi-window slice's work.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowState"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
