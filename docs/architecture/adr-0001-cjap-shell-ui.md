@@ -236,12 +236,14 @@ api.plugins (T1)        → api.layer, api.resources
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler
   whose target/source kind matches and whose evaluation is accepted. NbfxTabPane external-drag
-  handlers now consult DropRouter for FILES/URIS/TEXT sources and CONTENT/GROUP/AREA targets
-  (CONTENT resolved conservatively from the tab header under the cursor) before the legacy
-  file-open fallback, preserving existing behavior when no handler accepts.
+  handlers now consult DropRouter for FILES/URIS/TEXT/NODES sources and CONTENT/GROUP/AREA
+  targets (CONTENT resolved conservatively from the tab header under the cursor) before the
+  legacy file-open fallback. NODES adaptation is conservative (intra-app Node gesture source,
+  not a tab drag) and only tried after FILES/URIS/TEXT. Existing behavior is preserved when
+  no handler accepts.
   `@DropRegistration`/`@DropRegistrations` write handler instances with target/source metadata
-  to `NbFx/DropHandlers`; richer node/internal source adaptation, accessible rejection
-  announcements, and Escape-cancel semantics remain follow-up slices.
+  to `NbFx/DropHandlers`; richer node payload adaptation, accessible rejection announcements,
+  and Escape-cancel semantics remain follow-up slices.
 
 ### 15. Review resolution: custom-shell composition contract
 

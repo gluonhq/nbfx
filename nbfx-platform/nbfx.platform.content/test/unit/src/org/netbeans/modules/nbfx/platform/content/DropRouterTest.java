@@ -93,6 +93,21 @@ public class DropRouterTest {
     }
 
     @Test
+    public void resolvesNodeSource() {
+        DropTarget target = new DropTarget(DropTargetKind.CONTENT, "nbfx:view.test");
+        RecordingHandler handler = new RecordingHandler(target, Set.of(TransferKind.NODES),
+                DropDecision.allow(TransferMode.MOVE, null));
+        TransferSource source = new TransferSource() {
+            @Override public TransferKind kind() { return TransferKind.NODES; }
+            @Override public Lookup data() { return Lookups.fixed("node"); }
+        };
+        Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(source, List.of(target),
+                Point2D.ZERO, TransferMode.COPY, Lookup.EMPTY, List.of(handler));
+        assertTrue(resolved.isPresent());
+        assertEquals(TransferMode.MOVE, resolved.get().decision().effect());
+    }
+
+    @Test
     public void ignoresHandlersWithWrongTargetOrSourceKind() {
         TransferKind files = TransferKind.FILES;
         TransferKind uris = TransferKind.URIS;

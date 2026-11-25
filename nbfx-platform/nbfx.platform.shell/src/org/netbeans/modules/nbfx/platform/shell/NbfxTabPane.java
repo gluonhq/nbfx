@@ -1217,7 +1217,8 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             // highlights it again, so moving across the pane does not flicker.
             Dragboard db = e.getDragboard();
             if (!draggedTab(db).isPresent()
-                    && (FileDragAndDrop.hasFiles(db) || db.hasUrl() || db.hasString())) {
+                    && (FileDragAndDrop.hasFiles(db) || db.hasUrl() || db.hasString()
+                        || e.getGestureSource() instanceof Node)) {
                 TabDropIndicator.hide(tabPane);
             }
         });
@@ -1294,6 +1295,15 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
                 if (resolved.isPresent()) {
                     return resolved;
                 }
+            }
+        }
+        Object gestureSource = event.getGestureSource();
+        if (gestureSource instanceof Node sourceNode && !draggedTab(db).isPresent()) {
+            Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                    transferSource(TransferKind.NODES, Lookups.fixed(sourceNode)),
+                    targets, location, requested, Lookup.EMPTY, handlers);
+            if (resolved.isPresent()) {
+                return resolved;
             }
         }
         return Optional.empty();
