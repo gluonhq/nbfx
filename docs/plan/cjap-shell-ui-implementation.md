@@ -304,8 +304,9 @@ Acceptance: one command appears in menu, toolbar, ribbon and brand bar; scoped e
 
 #### T2.5 — Shell provider/frame/context
 
-- `ShellProvider`, `ShellFrame`, `ShellRegionHost`, `ShellContext`, `ShellWindow`.
-- `ShellFrame` exposes root, dock-root mounting, region host, overlay host and close.
+- `ShellProvider`, `ShellFrame`, `ShellRegionHost`, `ShellRegionContext`, `ShellRegionRenderer`.
+- `ShellFrame` exposes root, dock-root mounting, region host and close. `overlays()` is deferred to
+  C6-2 with `OverlayHost` in `api.content`.
 - `ShellApplication` becomes the default composition root, not a subclassing API.
 - Default shell consumes `ShellRegionRegistry`; custom shells use `ShellRegionHost`.
 
@@ -475,7 +476,7 @@ Acceptance: window and content-local status bars coexist.
 
 #### T6.4 — Overlay/HUD
 
-- `OverlaySpec`, `OverlayAnchor`, `OverlayInputMode`, `OverlayHost`.
+- `OverlaySpec`, `OverlayAnchor`, `OverlayInputMode`, `OverlayHost`; add `ShellFrame.overlays()`.
 - Content/area/window overlays; distinguish shell overlay slot, dockable overlay presentation and
   anchored HUD layers.
 - Normative input/focus rules and anchor lifecycle across move/float/redock.

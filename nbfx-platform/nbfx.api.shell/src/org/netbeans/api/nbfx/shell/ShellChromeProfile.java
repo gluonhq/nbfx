@@ -68,6 +68,16 @@ public interface ShellChromeProfile {
         return true;
     }
 
+    /**
+     * The stable profile id used by declarative region and action filtering. Legacy predicate profiles
+     * default to {@code main}; custom profiles should override this with their stable id.
+     *
+     * @return the stable profile id
+     */
+    default String id() {
+        return "main";
+    }
+
     /** The all-inclusive profile. */
     static ShellChromeProfile all() {
         return ALL;

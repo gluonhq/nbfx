@@ -155,12 +155,17 @@ org.netbeans.api.nbfx.shell.ShellContributionRegistration
 org.netbeans.api.nbfx.shell.ShellContributionRegistrations
 org.netbeans.api.nbfx.shell.ShellContributionRegistry
 org.netbeans.api.nbfx.shell.ShellContributionSpec
+org.netbeans.api.nbfx.shell.ShellFrame
 org.netbeans.api.nbfx.shell.ShellIconProvider
+org.netbeans.api.nbfx.shell.ShellProvider
+org.netbeans.api.nbfx.shell.ShellRegionContext
+org.netbeans.api.nbfx.shell.ShellRegionHost
 org.netbeans.api.nbfx.shell.ShellRegionId
 org.netbeans.api.nbfx.shell.ShellRegionKind
 org.netbeans.api.nbfx.shell.ShellRegionRegistration
 org.netbeans.api.nbfx.shell.ShellRegionRegistrations
 org.netbeans.api.nbfx.shell.ShellRegionRegistry
+org.netbeans.api.nbfx.shell.ShellRegionRenderer
 org.netbeans.api.nbfx.shell.ShellRegionSpec
 org.netbeans.api.nbfx.shell.ShellWindow
 org.netbeans.api.nbfx.shell.ShellWindowProvider

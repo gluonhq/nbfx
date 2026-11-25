@@ -826,7 +826,6 @@ public interface ShellFrame extends AutoCloseable {
     Node root();
     void setDockRoot(Node dockRoot);
     ShellRegionHost regions();
-    OverlayHost overlays();
 }
 
 public interface ShellRegionHost {
@@ -838,7 +837,9 @@ public interface ShellRegionHost {
 ```
 
 `ShellApplication` is the default composition root. Products do not subclass it; they provide a
-`ShellProvider` or use the default.
+`ShellProvider` or use the default. C2-5 lands this frame contract without `overlays()`;
+`ShellFrame.overlays()` is added in C6-2 together with `OverlayHost` in `api.content`, so no
+placeholder is exposed in the wrong module.
 
 ### 9.2 `ShellContext`
 

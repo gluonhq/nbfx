@@ -205,13 +205,15 @@ A custom shell is not just an arbitrary root. `ShellFrame` exposes:
 - `root()`;
 - `setDockRoot(Node)`;
 - `ShellRegionHost regions()`;
-- `OverlayHost overlays()`;
 - `close()`.
+
+`OverlayHost overlays()` is added in C6-2 when `api.content` exists; C2-5 does not expose a placeholder
+in the wrong module.
 
 `ShellRegionHost` lets a custom frame discover, render, update and dispose declarative regions.
 A shell presenting dockable content must mount the `DOCK` region or provide an equivalent public
-`DockHost` adapter. `ShellRuntime` supplies region/overlay/focus lifecycle so custom shells do not
-reimplement default-shell behavior.
+`DockHost` adapter. `ShellRuntime` supplies region/focus lifecycle now and overlay lifecycle when
+C6-2 lands, so custom shells do not reimplement default-shell behavior.
 
 ### 16. Review resolution: multiwindow and focus state machines
 

@@ -36,7 +36,8 @@
       shell: the window facade and pane/tab manager, pane roles and hosts, the chrome and branding
       contracts, the UI-ready hook, the window-environment capabilities, the shutdown contract and
       the pane-provider SPI, the window-system lifecycle and its <code>WindowSink</code>/<code>WindowState</code>
-      model, plus CJAP declarative shell-region metadata and discovery. The shell implementation is
+      model, plus CJAP declarative shell-region metadata, provider/frame contracts and region-host
+      lifecycle. The shell implementation is
       <code>nbfx.platform.shell</code>.
     </p>
   </answer>
@@ -80,6 +81,8 @@
           immutable metadata through <code>ShellRegionRegistry</code>.</li>
       <li>A product contributes fresh per-shell Nodes with <code>@ShellContributionRegistration</code>;
           metadata discovery never constructs classes or Nodes.</li>
+      <li>A product supplies a <code>ShellProvider</code>/<code>ShellFrame</code> while the runtime owns
+          region mounting, update and disposal through <code>ShellRegionHost</code>.</li>
     </ul>
   </answer>
 
@@ -92,6 +95,7 @@
       specs, direct-folder discovery, profile filtering, malformed/duplicate isolation and generated
       layer equality. Contribution tests cover loader-free metadata discovery, strict attributes,
       profile filtering before construction, fresh per-shell instances and <code>DOCK</code> exclusion.
+      Frame API tests cover profile ids, context validation and optional renderer disposal.
     </p>
   </answer>
 
@@ -145,8 +149,9 @@
       Window and scene-graph operations run on the JavaFX Application Thread. The shutdown
       confirmation runs on that thread, while the selected cleanup runs off it. CJAP region ids,
       specs, annotation processing and metadata discovery are Node-free and stateless. Contribution
-      construction creates fresh per-shell instances; <code>create</code>/<code>dispose</code> run on the
-      JavaFX Application Thread under the future mount owner's lifecycle.
+      construction creates fresh per-shell instances. Provider/frame creation and region
+      mount/update/dispose run on the JavaFX Application Thread under the runtime mount owner's
+      lifecycle.
     </p>
   </answer>
 

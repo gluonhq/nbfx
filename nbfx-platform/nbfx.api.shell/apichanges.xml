@@ -115,6 +115,27 @@
             <class package="org.netbeans.api.nbfx.shell" name="ShellContributionRegistration"/>
             <class package="org.netbeans.api.nbfx.shell" name="ShellContributionRegistrations"/>
         </change>
+        <change id="cjap.shell.frame">
+            <api name="netbeansfx_shell"/>
+            <summary>Shell provider, frame and region-host contracts.</summary>
+            <version major="1" minor="3"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ShellProvider</code>, <code>ShellFrame</code>,
+                <code>ShellRegionHost</code>, <code>ShellRegionContext</code> and
+                <code>ShellRegionRenderer</code>, plus <code>ShellChromeProfile.id()</code> for
+                declarative filtering. <code>ShellFrame.overlays()</code> is intentionally deferred to
+                CJAP-6 with <code>OverlayHost</code> in <code>api.content</code>.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellFrame"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionHost"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionContext"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRenderer"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellChromeProfile"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
