@@ -156,6 +156,9 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** Providers that created a pane, so their resources are released with the shell. */
     private final Map<WindowPaneHost, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
     private final WindowManager windowManager = new DefaultWindowManager();
+    /** The per-shell content lifecycle and routing owner. */
+    private final org.netbeans.api.nbfx.content.ContentManager contentManager =
+            new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
 
     @Override
     public final void start(Stage stage) {
@@ -557,7 +560,17 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      * @return the lookup, never {@code null}
      */
     protected Lookup shellLookup() {
-        return new ProxyLookup(Lookups.fixed(this, windowManager), Lookup.getDefault());
+        return new ProxyLookup(Lookups.fixed(this, windowManager, contentManager), Lookup.getDefault());
+    }
+
+    /**
+     * The per-shell content lifecycle and routing owner; it is also published in the shell lookup so
+     * views, editors and products resolve the same instance.
+     *
+     * @return the content manager, never {@code null}
+     */
+    protected final org.netbeans.api.nbfx.content.ContentManager getContentManager() {
+        return contentManager;
     }
 
     /**
