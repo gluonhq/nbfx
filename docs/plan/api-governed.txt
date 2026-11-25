@@ -18,6 +18,7 @@
 # Modules whose exported packages and public top-level types are part of the API gate.
 nbfx-ide/nbfx.api.project
 nbfx-platform/nbfx.api.actions
+nbfx-platform/nbfx.api.content
 nbfx-platform/nbfx.api.editor
 nbfx-platform/nbfx.api.layer
 nbfx-platform/nbfx.api.layout

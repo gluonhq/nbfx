@@ -53,6 +53,7 @@ nb.cluster.nbfx-platform.depends=\
         nb.cluster.ide
 nb.cluster.nbfx-platform=\
         nbfx.api.actions,\
+        nbfx.api.content,\
         nbfx.api.dialogs,\
         nbfx.api.editor,\
         nbfx.api.language,\

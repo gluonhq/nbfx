@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<?xml-stylesheet type="text/xsl" href="../../nbbuild/javadoctools/apichanges.xsl"?>
+<!DOCTYPE apichanges PUBLIC "-//NetBeans//DTD API changes list 1.0//EN" "../../nbbuild/javadoctools/apichanges.dtd">
+<apichanges>
+    <apidefs>
+        <apidef name="netbeansfx_content">NetBeansFX Content API</apidef>
+    </apidefs>
+    <changes>
+        <change id="cjap.content.vocabulary">
+            <api name="netbeansfx_content"/>
+            <summary>Neutral content identity, kind and persisted-state vocabulary.</summary>
+            <version major="1" minor="0"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ContentId</code>, extensible <code>ContentKind</code> and
+                <code>ContentState</code>. The content factory, requirements, manager and sources
+                land in the following content slices; this change is the shared vocabulary they,
+                docking and drop handlers use.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="ContentId"/>
+            <class package="org.netbeans.api.nbfx.content" name="ContentKind"/>
+            <class package="org.netbeans.api.nbfx.content" name="ContentState"/>
+        </change>
+    </changes>
+    <htmlcontents>
+        <head>
+            <title>Change History for the NetBeansFX Content API</title>
+        </head>
+        <body>
+            <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
+            <h1>Introduction</h1>
+            <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Content API</a>.</p>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.content"/>
+            <hr/><p>@FOOTER@</p>
+        </body>
+    </htmlcontents>
+</apichanges>

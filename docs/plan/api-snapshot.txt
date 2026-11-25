@@ -1,5 +1,6 @@
 # nbfx-ide/nbfx.api.project
 # nbfx-platform/nbfx.api.actions
+# nbfx-platform/nbfx.api.content
 # nbfx-platform/nbfx.api.editor
 # nbfx-platform/nbfx.api.layer
 # nbfx-platform/nbfx.api.layout
@@ -42,6 +43,9 @@ org.netbeans.api.nbfx.completion.CompletionContext
 org.netbeans.api.nbfx.completion.CompletionItem
 org.netbeans.api.nbfx.completion.CompletionProvider
 org.netbeans.api.nbfx.completion.SimpleCompletionItem
+org.netbeans.api.nbfx.content.ContentId
+org.netbeans.api.nbfx.content.ContentKind
+org.netbeans.api.nbfx.content.ContentState
 org.netbeans.api.nbfx.css.CssTokens
 org.netbeans.api.nbfx.editor.BreadcrumbsElements
 org.netbeans.api.nbfx.editor.CaretInfo
