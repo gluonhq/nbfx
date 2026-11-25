@@ -399,7 +399,7 @@ public interface EditorDocument extends Lookup.Provider {
      * the regions to where the lines are. The default does nothing.
      *
      * @param bands the bands to show
-     * @since 1.3
+     * @since 1.4
      */
     default void setLineBands(List<LineBand> bands) {
     }
@@ -411,7 +411,7 @@ public interface EditorDocument extends Lookup.Provider {
      * out of sight. The default is always zero.
      *
      * @return the observable top position, never {@code null}
-     * @since 1.3
+     * @since 1.4
      */
     default ObservableValue<Number> topParagraphProperty() {
         return new SimpleIntegerProperty(0);
@@ -424,7 +424,7 @@ public interface EditorDocument extends Lookup.Provider {
      * nothing.
      *
      * @param position the place in the text to bring to the top
-     * @since 1.3
+     * @since 1.4
      */
     default void scrollToParagraph(double position) {
     }
