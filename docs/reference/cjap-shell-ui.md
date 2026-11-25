@@ -278,7 +278,11 @@ public record ChromeProfilePolicy(
 ```
 
 The product defines a default profile per `WindowKind`; explicit `WindowOptions` and content/group
-hints override it.
+hints override it. A product module registers a public no-argument `ChromeProfilePolicyProvider`
+with `@ServiceProvider(service = ChromeProfilePolicyProvider.class)`. The composition root resolves
+exactly one provider whose policy id matches `Product.chromeProfilePolicyId()`. A missing product
+uses neutral defaults; a product with no matching policy provider, duplicate product providers,
+duplicate matching policies and null provider results fail deterministically.
 
 ### 5.6 About and associations
 
@@ -830,19 +834,30 @@ Default profiles:
 `ShellProfileHint(profileId)` is the neutral lookup capability for content/group defaults.
 `ChromeProfilePolicy` carries immutable product defaults by `WindowKind` plus a fallback profile id;
 `Product.chromeProfilePolicyId()` names that policy without embedding live shell objects in product
-metadata.
+metadata. `ChromeProfilePolicyProvider` exposes immutable policies through NBM service lookup.
 
-Target selection precedence:
+`ShellProfileResolver` is pure and returns `ShellProfileSelection(profile, decoration)`. Selection
+precedence is:
 
-1. explicit `WindowOptions.profile`;
+1. explicit `WindowOptions.profile` (an authoritative profile object, including legacy predicates);
 2. content/group `ShellProfileHint`;
 3. product default for `WindowKind`;
-4. platform neutral fallback.
+4. policy fallback;
+5. platform neutral fallback (`main`, `floating-editor` or `presentation`).
 
-C2-6 lands the profile contracts, registry, neutral declarations and region allow-list filtering
-first. Selection/publication, profile-aware menu and toolbar reading, and optional `WindowState.profileId`
-round-trip are subsequent slices. Restored-profile frame selection before window creation belongs to
-C3-3; state round-trip must not be presented as complete multi-window restore.
+Unknown hint/policy ids fall through to the next source. Duplicate declared profile ids and a missing
+neutral fallback fail. `WindowOptions.decoration()` overrides the selected `ShellProfileSpec`
+decoration; otherwise a legacy profile uses `NATIVE`.
+
+C2-6b publishes the selected main-window profile in `ShellContext.lookup()` before provider/frame
+creation and applies `NATIVE`/`UNDECORATED` before the stage is shown. At most one explicit profile
+and one hint may be present in the startup lookup; ambiguous lookup composition fails. The legacy
+subclass chrome path is unchanged. Menu/toolbar builders use `ActionLayerReader.readForProfile`; shell-region action reads
+merge the selected profile into `ActionContextMetadata`. Null/blank profile queries mean all profiles,
+while missing MIME/language/context values still exclude references restricted on those dimensions.
+
+C2-6c adds optional `WindowState.profileId` round-trip. Restored-profile frame selection before window
+creation belongs to C3-3; state round-trip must not be presented as complete multi-window restore.
 
 ## 9. Shell frame and declarative chrome
 
@@ -1119,9 +1134,11 @@ List<ActionRef> refs = ActionLayerReader.readForContext("ShellRegions/nbfx:menub
 ```
 
 Different filter dimensions are ANDed; profile ids are ORed. A missing context/MIME/language value
-excludes restricted references, while a null/blank profile means all profiles. Wrong-typed layer
-attributes or invalid filter tokens make a reference malformed and it is logged/skipped rather than
-broadened. Presentation hints use atomic `key=value` entries. `ContextSensitiveCommand.forContext`
+excludes restricted references, while a null/blank profile means all profiles. `readForProfile`
+filters only profile applicability for menu/toolbar consumers and rejects malformed nonblank query
+tokens. Wrong-typed layer attributes or invalid filter tokens make a reference malformed and it is
+logged/skipped rather than broadened. Presentation hints use atomic `key=value` entries.
+`ContextSensitiveCommand.forContext`
 provides a scoped view that follows the supplied lookup. Context-aware menu construction uses
 `LayerMenuBuilder.buildOwned(...)`; closing that result disposes scoped command views, while legacy
 `build(...)` keeps canonical/global-context behavior.
@@ -1827,7 +1844,6 @@ regions; the dock runtime owns content layout; overlays sit above the appropriat
 1. Exact `ViewArea` type/template model: single spec vs separate type registry.
 2. Whether `PaneKind` remains closed `EDITOR`/`VIEW` or becomes a typed id.
 3. Whether `WindowStateStore` keeps its current name or becomes `LayoutStore`.
-4. Whether shell profiles are layer-only, product-metadata-only, or both with layer override.
 5. Whether custom `ShellRegionRenderer`s are layer-registered or service-registered.
 6. Whether `NodeView` lives in `api.views` or a new `api.nodes.fx`.
 7. Whether `ContentManager` or `WindowManager` owns cross-window content routing.

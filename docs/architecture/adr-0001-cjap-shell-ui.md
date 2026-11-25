@@ -272,14 +272,23 @@ split/minimize/maximize/drop behavior and tests are preserved.
 - `ShellProfileSpec` carries a stable id, optional `WindowKind`/decoration, a region allow-list and
   the system-menu-bar flag. `ShellProfileHint` is the neutral content/group lookup capability.
 - `ChromeProfilePolicy` supplies product defaults by window kind and a fallback id. `Product` carries
-  only the policy id, not executable shell state.
+  only the policy id, not executable shell state. `ChromeProfilePolicyProvider` exposes policies via
+  NBM service lookup; exactly one provider must match a present product's id, while no product uses
+  neutral defaults.
+- `ShellProfileResolver` is pure and returns the selected profile plus effective decoration. Its
+  precedence is explicit profile object, content/group hint, product default, policy fallback and
+  neutral fallback. Unknown hint/policy ids fall through; duplicate declared ids and a missing
+  neutral profile fail. Explicit legacy predicate profiles remain authoritative.
 - Region metadata and profile allow-lists are intersected. Neutral region slots have no profile
   restriction so product-defined profiles can reuse them, including the runtime-owned `DOCK`.
 - Existing `ShellChromeProfile` predicates remain valid. Their default id is `main`, and the new
   region predicate defaults to inclusive, so C2-6a is source-compatible.
-- Profile selection, action/menu/toolbar consumption and `WindowState.profileId` persistence are
-  separate C2-6 slices. Persisted state round-trip does not imply restored-frame selection; that
-  sequencing is completed with C3-3.
+- C2-6b publishes the selected main profile before provider/frame creation, applies the effective
+  native/undecorated style before showing, and makes menu/toolbar/shell-region action reads
+  profile-aware. Ambiguous multiple explicit profiles/hints fail. Null/blank profile
+  queries mean all profiles; absent MIME/language/context dimensions still exclude restricted refs.
+- `WindowState.profileId` persistence remains C2-6c. Persisted state round-trip does not imply
+  restored-frame selection; that sequencing is completed with C3-3.
 
 ## Consequences
 

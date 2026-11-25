@@ -59,6 +59,8 @@
             <li>Resolve commands and references against an explicit surface context snapshot.</li>
             <li>Filter references by context type, MIME type, language and profile while retaining
                 display/icon overrides and presentation hints.</li>
+            <li>Read profile-only references for shell menus/toolbars without inventing missing MIME,
+                language or surface-context restrictions.</li>
         </ul>
     </answer>
 
@@ -86,7 +88,9 @@
         <p>Unit tests run on the nbfx module harness (nbjunit); processor tests reject non-Command,
             duplicate and method registrations, and registry tests prove layer loading, provider
             override/fallback, id validation, observable scoped precedence, context metadata filtering
-            four-surface resolution and owned scoped-menu disposal. The check-purity.xml guardrail
+            four-surface resolution and owned scoped-menu disposal. Profile-reader tests cover exact,
+             null and blank ids plus the distinction between profile-only and full-context queries.
+             The check-purity.xml guardrail
             fails on Swing/AWT imports and denylisted dependencies.</p>
     </answer>
 

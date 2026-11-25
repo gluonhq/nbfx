@@ -163,6 +163,34 @@
             <class package="org.netbeans.api.nbfx.shell" name="WindowDecoration"/>
             <class package="org.netbeans.api.nbfx.shell" name="WindowOptions"/>
         </change>
+        <change id="cjap.shell.profile.selection">
+            <api name="netbeansfx_shell"/>
+            <summary>Deterministic chrome-profile selection and product policy services.</summary>
+            <version major="1" minor="5"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ShellProfileResolver</code>, <code>ShellProfileSelection</code> and
+                <code>ChromeProfilePolicyProvider</code>. Selection precedence is explicit profile,
+                content/group hint, product default, policy fallback and neutral fallback. Explicit
+                profile objects remain authoritative; unknown hint/policy ids fall through and
+                duplicate declared ids fail. The provider SPI resolves at most one policy matching
+                the id named by <code>Product</code>; a present product with no matching provider
+                fails rather than silently discarding its declared policy.
+                <code>nbfx.platform.shell</code> publishes the
+                selected main-window profile before frame creation and applies the effective
+                native/undecorated style; ambiguous profile/hint lookups fail and legacy subclass
+                chrome keeps its existing path. Persisted profile restore remains
+                C2-6c/C3-3 work.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileResolver"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileSelection"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ChromeProfilePolicyProvider"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ChromeProfilePolicy"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileHint"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowOptions"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

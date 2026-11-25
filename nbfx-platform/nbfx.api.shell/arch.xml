@@ -85,6 +85,9 @@
           region mounting, update and disposal through <code>ShellRegionHost</code>.</li>
       <li>A product declares per-window chrome with <code>@ShellProfileRegistration</code> and reads
           immutable metadata through <code>ShellProfileRegistry</code>.</li>
+      <li>A product registers a <code>ChromeProfilePolicyProvider</code>; pure
+          <code>ShellProfileResolver</code> selection combines explicit options, hints, policy and
+          neutral defaults without global lookup or JavaFX window access.</li>
     </ul>
   </answer>
 
@@ -101,7 +104,10 @@
        Profile tests cover immutable allow-lists/policies/options, strict direct-folder discovery,
        malformed-entry isolation, generated layer equality and service discovery. Runtime tests cover
        neutral profile declarations and the intersection of region applicability with profile
-       allow-lists, including reuse of neutral slots by product-defined profiles.
+       allow-lists, including reuse of neutral slots by product-defined profiles. Resolver tests cover
+       explicit/hint/policy/neutral precedence, decoration overrides, unknown-id fallback, duplicate
+       ids and missing neutral profiles. Policy-provider tests cover named selection, absent providers,
+       duplicate matches and null results.
     </p>
   </answer>
 
@@ -120,7 +126,9 @@
   <answer id="lookup-lookup">
     <p>
       <code>ShellWindowProvider</code>, the chrome/branding providers, the window-environment
-      capabilities and <code>WindowPaneProvider</code> are resolved from the shell lookup;
+      capabilities, <code>ShellProfileHint</code> and <code>WindowPaneProvider</code> are resolved from
+      the shell/content lookup. <code>ChromeProfilePolicyProvider</code> is an NBM service resolved by
+      <code>nbfx.platform.shell</code> against the optional product's policy id;
       <code>@OnUiReady</code> is a named service under <code>NbFx/UIReady</code>.
     </p>
   </answer>
@@ -156,8 +164,9 @@
     <p>
       Window and scene-graph operations run on the JavaFX Application Thread. The shutdown
       confirmation runs on that thread, while the selected cleanup runs off it. CJAP region ids,
-      specs, profile/policy metadata, annotation processing and discovery are Node-free and stateless.
-      Contribution construction creates fresh per-shell instances. Provider/frame creation and region
+      specs, profile/policy metadata, annotation processing, discovery and resolver selection are
+      Node-free and stateless. Contribution construction creates fresh per-shell instances.
+      Provider/frame creation and region
       mount/update/dispose run on the JavaFX Application Thread under the runtime mount owner's
       lifecycle.
     </p>

@@ -58,6 +58,22 @@
             <class package="org.netbeans.api.nbfx.actions" name="Command"/>
             <class package="org.netbeans.api.nbfx.actions" name="ActionRegistry"/>
         </change>
+        <change id="action.profile.reader">
+            <api name="netbeansfx_actions"/>
+            <summary>Profile-only action-reference reads and all-profile query semantics.</summary>
+            <version major="2" minor="1"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ActionLayerReader.readForProfile</code> for menu/toolbar consumers that
+                need profile filtering without imposing MIME, language or surface-context metadata.
+                Corrects <code>readForContext</code> so a missing/null/blank profile includes
+                restricted references, matching the documented all-profile query semantics; other
+                missing context dimensions still exclude restricted references.
+            </description>
+            <class package="org.netbeans.api.nbfx.actions" name="ActionLayerReader"/>
+        </change>
     </changes>
     <htmlcontents>
         <head><title>Change History for the NetBeansFX Actions API</title></head>

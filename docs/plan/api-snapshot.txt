@@ -138,6 +138,7 @@ org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
 org.netbeans.api.nbfx.resources.ResourceRef
 org.netbeans.api.nbfx.shell.AreaState
 org.netbeans.api.nbfx.shell.ChromeProfilePolicy
+org.netbeans.api.nbfx.shell.ChromeProfilePolicyProvider
 org.netbeans.api.nbfx.shell.DetachedBarsContext
 org.netbeans.api.nbfx.shell.DetachedBarsProvider
 org.netbeans.api.nbfx.shell.NavigatorRevealState
@@ -162,6 +163,8 @@ org.netbeans.api.nbfx.shell.ShellProfileHint
 org.netbeans.api.nbfx.shell.ShellProfileRegistration
 org.netbeans.api.nbfx.shell.ShellProfileRegistrations
 org.netbeans.api.nbfx.shell.ShellProfileRegistry
+org.netbeans.api.nbfx.shell.ShellProfileResolver
+org.netbeans.api.nbfx.shell.ShellProfileSelection
 org.netbeans.api.nbfx.shell.ShellProfileSpec
 org.netbeans.api.nbfx.shell.ShellProvider
 org.netbeans.api.nbfx.shell.ShellRegionContext

@@ -322,15 +322,24 @@ and View-menu controls; duplicate providers, missing DOCK mounts and invalid roo
   `ShellProfileHint`, `ChromeProfilePolicy`, `WindowKind`, `WindowDecoration` and `WindowOptions`.
 - `NbFx/ShellProfiles` declarations and neutral `main`, `floating-editor`, `floating-tool` and
   `presentation` profiles; profile allow-lists intersect region applicability in `ShellRegionHost`.
-- C2-6b: explicit/hint/product-policy/neutral selection, selected-profile publication in
-  `ShellContext`, and profile-aware menu/toolbar/action-reference consumption.
+- C2-6b: `ShellProfileResolver`/`ShellProfileSelection` and `ChromeProfilePolicyProvider` implement
+  explicit/hint/product-default/policy-fallback/neutral precedence. `ShellApplication` publishes the
+  selected main profile before frame creation and applies its decoration; menu/toolbar builders and
+  shell-region action reads consume profile-filtered references.
 - C2-6c: optional `WindowState.profileId` persistence with backward-compatible state loading.
   Restored-profile selection before frame creation is completed with C3-3 multi-window restore.
 
 Acceptance for C2-6a: profile metadata round-trips through annotations/layer discovery, malformed
 entries are isolated, neutral profiles expose exactly one reusable `DOCK`, and allow-lists narrow
-neutral/product regions without breaking legacy predicate profiles. Full task acceptance remains:
-MAIN/FLOATING/CUSTOM windows select different chrome and restored windows retain their profile.
+neutral/product regions without breaking legacy predicate profiles.
+
+Acceptance for C2-6b: resolver tests prove every precedence/fallback branch and decoration override;
+runtime tests prove neutral operation without a product, mandatory named policy discovery,
+missing/duplicate-policy failure, hint/explicit precedence, selected-profile publication before
+provider creation and native/undecorated startup. Action
+reader/menu/toolbar tests prove profile filtering and null/blank all-profile semantics without
+broadening other context dimensions. Full task acceptance remains: MAIN/FLOATING/CUSTOM windows
+select different chrome and restored windows retain their profile.
 
 ### Phase 3 — Docking runtime and windows
 
