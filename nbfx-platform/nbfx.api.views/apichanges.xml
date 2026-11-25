@@ -130,6 +130,22 @@
             <class package="org.netbeans.api.nbfx.views" name="ViewRegistry"/>
             <class package="org.netbeans.api.nbfx.views" name="ViewAreaRegistry"/>
         </change>
+        <change id="view.content.adapter">
+            <api name="netbeansfx_views"/>
+            <summary>A view provider adapts to the generic content lifecycle.</summary>
+            <version major="1" minor="10"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ViewContent</code>, which wraps a <code>ViewProvider</code> as
+                <code>org.netbeans.api.nbfx.content.Content</code>. The view stays the owner of its
+                node, title and lookup; the adapter supplies the neutral identity, instance key,
+                close and empty state so a view can share the content manager with editors. The
+                module now depends on <code>nbfx.api.content</code>.
+            </description>
+            <class package="org.netbeans.api.nbfx.views" name="ViewContent"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

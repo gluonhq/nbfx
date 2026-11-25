@@ -240,6 +240,7 @@ org.netbeans.api.nbfx.views.ToolbarRegistration
 org.netbeans.api.nbfx.views.ToolbarRegistrations
 org.netbeans.api.nbfx.views.ViewArea
 org.netbeans.api.nbfx.views.ViewAreaRegistry
+org.netbeans.api.nbfx.views.ViewContent
 org.netbeans.api.nbfx.views.ViewKind
 org.netbeans.api.nbfx.views.ViewRegistration
 org.netbeans.api.nbfx.views.ViewRegistry
