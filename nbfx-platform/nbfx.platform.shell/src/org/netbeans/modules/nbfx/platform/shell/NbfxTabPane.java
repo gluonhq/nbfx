@@ -1215,7 +1215,9 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             // this fires whenever the gesture leaves one of them - including when it ends. The next
             // DRAG_OVER, delivered in the same pulse while the gesture is still over the pane,
             // highlights it again, so moving across the pane does not flicker.
-            if (FileDragAndDrop.hasFiles(e.getDragboard())) {
+            Dragboard db = e.getDragboard();
+            if (!draggedTab(db).isPresent()
+                    && (FileDragAndDrop.hasFiles(db) || db.hasUrl() || db.hasString())) {
                 TabDropIndicator.hide(tabPane);
             }
         });
