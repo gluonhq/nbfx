@@ -594,6 +594,13 @@ layer merge precedence applies, so products should use globally unique ids.
 configured layer, skips malformed or id-mismatched resources with a log warning, and preserves the
 same immutable `LayoutSpec` equality as the builder and XML paths.
 
+Standalone neutral area metadata uses `@ViewAreaRegistration` and `@ViewAreaRegistrations`. The
+annotation mirrors the scalar `ViewArea` contract, canonicalizes `PaneRole`/`ViewAreaKind`/
+`PresentationId` values, validates `#key` names and writes `NbFx/LayoutAreas/<canonical-role>`.
+`LayoutRegistry.areas()` and `findArea(id)` reconstruct immutable areas with `AreaStyle.EMPTY`; styled
+areas and complete trees use `@LayoutRegistration`. Area and layout catalogs are independent and are
+not implicitly merged.
+
 ## 7. Docking policy and transfer
 
 ### 7.1 Policy specification and evaluation
@@ -1621,6 +1628,8 @@ NbFx/
       source-health.instance
     overlay/
       palette.dynamic
+  LayoutAreas/
+    product:side/
   Layouts/
     product.default.xml
   Views/

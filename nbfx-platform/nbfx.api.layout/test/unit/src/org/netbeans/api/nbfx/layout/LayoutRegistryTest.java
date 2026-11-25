@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import org.junit.Test;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
@@ -51,6 +52,30 @@ public class LayoutRegistryTest {
                 () -> layouts.add(LayoutProcessorTestSupport.sampleLayout("another")));
         assertTrue(LayoutRegistry.read(null).isEmpty());
         assertTrue(LayoutRegistry.readFile(folder.getFileObject("product.mismatch.xml")).isEmpty());
+    }
+
+    @Test
+    public void readsAreasAndSkipsMalformedMetadata() throws Exception {
+        FileSystem fileSystem = FileUtil.createMemoryFileSystem();
+        FileObject folder = fileSystem.getRoot().createFolder("LayoutAreas");
+        FileObject good = folder.createFolder("product:side");
+        good.setAttribute("displayName", "Side");
+        good.setAttribute("kind", "nbfx:side");
+        good.setAttribute("location", "START");
+        good.setAttribute("weight", 0.25d);
+        good.setAttribute("presentation", "nbfx:tabbed");
+        good.setAttribute("capabilities", "MOVABLE MINIMIZABLE");
+        good.setAttribute("order", 1);
+        FileObject bad = folder.createFolder("product:bad");
+        bad.setAttribute("displayName", "Bad");
+        bad.setAttribute("weight", 2.0d);
+
+        List<ViewArea> areas = LayoutRegistry.readAreas(folder);
+        assertEquals(1, areas.size());
+        assertEquals(PaneRole.of("product:side"), areas.get(0).id());
+        assertEquals(Set.of(ViewAreaCapability.MOVABLE, ViewAreaCapability.MINIMIZABLE),
+                areas.get(0).capabilities());
+        assertThrows(UnsupportedOperationException.class, () -> areas.add(areas.get(0)));
     }
 
     private static void write(FileObject folder, String name, String contents) throws IOException {

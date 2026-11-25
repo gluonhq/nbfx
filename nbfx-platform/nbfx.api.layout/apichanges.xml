@@ -35,8 +35,8 @@
             <compatibility addition="yes" semantic="compatible"/>
             <description>Creates the module and its public package with stable layout ids,
             neutral area kinds, immutable area/group/tree values, a validated builder, secure,
-            diagnostic XML authoring with caller-resolved includes, and declarative layout registration
-            and discovery.</description>
+            diagnostic XML authoring with caller-resolved includes, declarative layout registration
+            and discovery, and standalone logical-area metadata registration.</description>
             <class package="org.netbeans.api.nbfx.layout" name="PaneRole"/>
             <class package="org.netbeans.api.nbfx.layout" name="ViewAreaKind"/>
             <class package="org.netbeans.api.nbfx.layout" name="DockGroupId"/>
@@ -59,6 +59,8 @@
             <class package="org.netbeans.api.nbfx.layout" name="LayoutRegistration"/>
             <class package="org.netbeans.api.nbfx.layout" name="LayoutRegistrations"/>
             <class package="org.netbeans.api.nbfx.layout" name="LayoutRegistry"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewAreaRegistration"/>
+            <class package="org.netbeans.api.nbfx.layout" name="ViewAreaRegistrations"/>
             <class package="org.netbeans.api.nbfx.layout" name="LayoutSpec"/>
             <class package="org.netbeans.api.nbfx.layout" name="EmptyAreaPolicy"/>
         </change>

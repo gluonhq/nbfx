@@ -50,6 +50,9 @@ public final class LayerPaths {
     /** Registered CJAP product layouts, by id. */
     public static final String LAYOUTS = "NbFx/Layouts";
 
+    /** Registered CJAP logical layout areas, by canonical role id. */
+    public static final String LAYOUT_AREAS = "NbFx/LayoutAreas";
+
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 

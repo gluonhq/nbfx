@@ -106,6 +106,18 @@
             </description>
             <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
         </change>
+        <change id="cjap.layout.areas.path">
+            <api name="netbeansfx_layer"/>
+            <summary>Layer path for CJAP logical layout areas.</summary>
+            <version major="1" minor="7"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerPaths.LAYOUT_AREAS</code> for declarative CJAP area metadata.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

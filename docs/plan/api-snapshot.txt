@@ -92,6 +92,8 @@ org.netbeans.api.nbfx.layout.SplitOrientation
 org.netbeans.api.nbfx.layout.ViewArea
 org.netbeans.api.nbfx.layout.ViewAreaCapability
 org.netbeans.api.nbfx.layout.ViewAreaKind
+org.netbeans.api.nbfx.layout.ViewAreaRegistration
+org.netbeans.api.nbfx.layout.ViewAreaRegistrations
 org.netbeans.api.nbfx.layout.ViewAreaVisibility
 org.netbeans.api.nbfx.nodes.PropertiesProvider
 org.netbeans.api.nbfx.nodes.PropertyListener

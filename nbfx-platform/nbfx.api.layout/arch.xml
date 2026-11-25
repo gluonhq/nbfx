@@ -35,27 +35,27 @@
       logical areas (<code>ViewArea</code>), physical dock groups (<code>DockGroupSpec</code>) and
       content-free layout trees (<code>LayoutSpec</code>/<code>LayoutNode</code>) built with
       <code>LayoutBuilder</code>, read from secure standard XML with <code>LayoutXml</code>, or declared
-      with <code>LayoutRegistration</code> and discovered through <code>LayoutRegistry</code>, including
-      caller-resolved includes, presentations, capacities, capabilities, policy references, styling
-      and lifecycle.</p>
+      with <code>LayoutRegistration</code> or <code>ViewAreaRegistration</code> and discovered through
+      <code>LayoutRegistry</code>, including caller-resolved includes, presentations, capacities,
+      capabilities, policy references, styling and lifecycle.</p>
   </answer>
 
   <answer id="arch-overall">
     <p>Ids are immutable, namespaced and persistable. Built-in roles/kinds are neutral; products define
       their own namespaced values. XML parsing disables DTDs, external entities and external resources.
       The module contains no JavaFX or shell-rendering behavior. Runtime code is limited to stateless
-      XML parsing and layout discovery.</p>
+      XML parsing, layout discovery and logical-area metadata discovery.</p>
   </answer>
 
   <answer id="arch-usecases">
-    <p><ul><li>Author a product-owned layout programmatically, as standard XML or as a source annotation.</li><li>Generate self-contained <code>NbFx/Layouts</code> resources and discover them without instantiating declaration classes.</li><li>Validate areas, groups, references and split geometry before rendering.</li><li>Round-trip layout identity, policy references, styling and metadata without JavaFX or content instances.</li></ul></p>
+    <p><ul><li>Author a product-owned layout programmatically, as standard XML or as a source annotation.</li><li>Generate self-contained <code>NbFx/Layouts</code> resources and neutral <code>NbFx/LayoutAreas</code> metadata, and discover both without instantiating declaration classes.</li><li>Validate areas, groups, references and split geometry before rendering.</li><li>Round-trip layout identity, policy references, styling and metadata without JavaFX or content instances.</li></ul></p>
   </answer>
 
   <answer id="arch-quality">
     <p>Unit tests cover id parsing, immutable model validation, builder behavior, XML equality,
       deterministic output, inherited defaults, caller-resolved includes, exact path diagnostics,
       unsafe XML rejection, annotation-generated layer resources, bundle-key validation, duplicate-id
-      diagnostics, UTF-8 canonicalization and registry discovery.</p>
+      diagnostics, UTF-8 canonicalization, area metadata reconstruction and registry discovery.</p>
   </answer>
 
   <answer id="dep-jrejdk">
@@ -67,25 +67,27 @@
   </answer>
 
   <answer id="lookup-lookup">
-    <p>The Java annotation processor is discovered at compile time through
-      <code>META-INF/services/javax.annotation.processing.Processor</code>. Runtime layout discovery
-      reads the configuration layer directly and does not use <code>Lookup</code>.</p>
+    <p>The Java annotation processors are discovered at compile time through
+      <code>META-INF/services/javax.annotation.processing.Processor</code>. Runtime layout and area
+      discovery read the configuration layer directly and do not use <code>Lookup</code>.</p>
   </answer>
 
   <answer id="lookup-register">
     <p><code>@ServiceProvider(service = Processor.class)</code> registers
-      <code>LayoutRegistrationProcessor</code> at compile time.</p>
+      <code>LayoutRegistrationProcessor</code> and <code>ViewAreaRegistrationProcessor</code> at compile
+      time.</p>
   </answer>
 
   <answer id="resources-layer">
     <p><code>LayoutRegistration</code> writes self-contained <code>NbFx/Layouts/&lt;id&gt;.xml</code>
-      resources through the standard nbfx annotation processor.</p>
+      resources. <code>ViewAreaRegistration</code> writes neutral
+      <code>NbFx/LayoutAreas/&lt;role&gt;</code> metadata folders.</p>
   </answer>
 
   <answer id="resources-read">
     <p><code>LayoutXml</code> reads caller-provided XML and explicit include-resolver streams.
-      <code>LayoutRegistry</code> reads generated layer XML resources; neither performs implicit
-      filesystem or network access.</p>
+      <code>LayoutRegistry</code> reads generated layer XML resources and area metadata; neither
+      performs implicit filesystem or network access.</p>
   </answer>
 
   <answer id="resources-preferences">
