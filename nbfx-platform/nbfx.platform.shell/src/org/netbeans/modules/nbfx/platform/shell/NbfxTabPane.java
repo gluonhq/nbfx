@@ -1196,7 +1196,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      */
     private static void addFileDropHandlers(TabPane tabPane) {
         tabPane.addEventFilter(DragEvent.DRAG_OVER, e -> {
-            Optional<DropRouter.ResolvedDrop> routed = tryRouteFileDrop(tabPane, e);
+            Optional<DropRouter.ResolvedDrop> routed = tryRouteExternalDrop(tabPane, e);
             if (routed.isPresent()) {
                 e.acceptTransferModes(toFxTransferMode(routed.get().decision().effect()));
                 TabDropIndicator.showHighlight(tabPane);
@@ -1220,7 +1220,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         });
         tabPane.addEventFilter(DragEvent.DRAG_DROPPED, e -> {
-            Optional<DropRouter.ResolvedDrop> routed = tryRouteFileDrop(tabPane, e);
+            Optional<DropRouter.ResolvedDrop> routed = tryRouteExternalDrop(tabPane, e);
             if (routed.isPresent()) {
                 DropRouter.ResolvedDrop drop = routed.get();
                 drop.handler().perform(drop.request(), drop.decision());
@@ -1243,37 +1243,72 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         });
     }
 
-    private static Optional<DropRouter.ResolvedDrop> tryRouteFileDrop(TabPane tabPane, DragEvent event) {
-        if (!FileDragAndDrop.hasFiles(event.getDragboard())
-                || FileDragAndDrop.isWithinDropTarget(event.getTarget())) {
-            return Optional.empty();
-        }
-        List<java.io.File> files = event.getDragboard().getFiles();
-        if (files == null || files.isEmpty()) {
+    private static Optional<DropRouter.ResolvedDrop> tryRouteExternalDrop(TabPane tabPane, DragEvent event) {
+        if (FileDragAndDrop.isWithinDropTarget(event.getTarget())) {
             return Optional.empty();
         }
         List<org.netbeans.api.nbfx.content.DropTarget> targets = dropTargetsFor(tabPane);
         if (targets.isEmpty()) {
             return Optional.empty();
         }
-        TransferSource source = new TransferSource() {
-            @Override
-            public TransferKind kind() {
-                return TransferKind.FILES;
-            }
-
-            @Override
-            public Lookup data() {
-                return Lookups.fixed(files.toArray(new Object[0]));
-            }
-        };
         javafx.geometry.Point2D location = tabPane.sceneToLocal(event.getSceneX(), event.getSceneY());
         if (location == null) {
             location = new javafx.geometry.Point2D(event.getX(), event.getY());
         }
         org.netbeans.api.nbfx.content.TransferMode requested = org.netbeans.api.nbfx.content.TransferMode.COPY;
-        return DropRouter.resolve(source, targets, location, requested, Lookup.EMPTY,
-                DropRouter.discover());
+        List<DropHandler> handlers = DropRouter.discover();
+        if (handlers.isEmpty()) {
+            return Optional.empty();
+        }
+        Dragboard db = event.getDragboard();
+        if (FileDragAndDrop.hasFiles(db)) {
+            List<java.io.File> files = db.getFiles();
+            if (files != null && !files.isEmpty()) {
+                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                        transferSource(TransferKind.FILES, Lookups.fixed(files.toArray(new Object[0]))),
+                        targets, location, requested, Lookup.EMPTY, handlers);
+                if (resolved.isPresent()) {
+                    return resolved;
+                }
+            }
+        }
+        if (db.hasUrl()) {
+            String url = db.getUrl();
+            if (url != null && !url.isBlank()) {
+                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                        transferSource(TransferKind.URIS, Lookups.fixed(url)),
+                        targets, location, requested, Lookup.EMPTY, handlers);
+                if (resolved.isPresent()) {
+                    return resolved;
+                }
+            }
+        }
+        if (db.hasString()) {
+            String text = db.getString();
+            if (text != null && !text.isEmpty()) {
+                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                        transferSource(TransferKind.TEXT, Lookups.fixed(text)),
+                        targets, location, requested, Lookup.EMPTY, handlers);
+                if (resolved.isPresent()) {
+                    return resolved;
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static TransferSource transferSource(TransferKind kind, Lookup data) {
+        return new TransferSource() {
+            @Override
+            public TransferKind kind() {
+                return kind;
+            }
+
+            @Override
+            public Lookup data() {
+                return data;
+            }
+        };
     }
 
     private static List<org.netbeans.api.nbfx.content.DropTarget> dropTargetsFor(TabPane tabPane) {

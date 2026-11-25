@@ -72,6 +72,27 @@ public class DropRouterTest {
     }
 
     @Test
+    public void resolvesUriAndTextSources() {
+        DropTarget target = new DropTarget(DropTargetKind.GROUP, "nbfx:main");
+        RecordingHandler uriHandler = new RecordingHandler(target, Set.of(TransferKind.URIS),
+                DropDecision.allow(TransferMode.COPY, null));
+        RecordingHandler textHandler = new RecordingHandler(target, Set.of(TransferKind.TEXT),
+                DropDecision.allow(TransferMode.COPY, null));
+        TransferSource uriSource = new TransferSource() {
+            @Override public TransferKind kind() { return TransferKind.URIS; }
+            @Override public Lookup data() { return Lookups.fixed("https://example.test"); }
+        };
+        TransferSource textSource = new TransferSource() {
+            @Override public TransferKind kind() { return TransferKind.TEXT; }
+            @Override public Lookup data() { return Lookups.fixed("hello"); }
+        };
+        assertTrue(DropRouter.resolve(uriSource, List.of(target), Point2D.ZERO, TransferMode.COPY,
+                Lookup.EMPTY, List.of(uriHandler, textHandler)).isPresent());
+        assertTrue(DropRouter.resolve(textSource, List.of(target), Point2D.ZERO, TransferMode.COPY,
+                Lookup.EMPTY, List.of(uriHandler, textHandler)).isPresent());
+    }
+
+    @Test
     public void ignoresHandlersWithWrongTargetOrSourceKind() {
         TransferKind files = TransferKind.FILES;
         TransferKind uris = TransferKind.URIS;
