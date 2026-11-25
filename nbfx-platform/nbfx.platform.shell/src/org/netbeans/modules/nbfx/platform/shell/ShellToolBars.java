@@ -86,7 +86,7 @@ public final class ShellToolBars {
         String displayName = stringAttribute(folder, "displayName", folder.getName());
         bar.setAccessibleText(displayName);
         List<Button> buttons = new ArrayList<>();
-        for (ActionRef ref : ActionLayerReader.read(folder)) {
+        for (ActionRef ref : ActionLayerReader.readForProfile(folder, profile.id())) {
             if (!profile.includeToolBarItem(folder.getName(), ref.actionId())) {
                 continue;
             }

@@ -30,6 +30,15 @@ import org.netbeans.api.nbfx.shell.shutdown.ShutdownCoordinator;
 import org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact;
 import org.netbeans.api.nbfx.shell.shutdown.ShutdownSelection;
 import org.netbeans.api.nbfx.shell.ShellBranding;
+import org.netbeans.api.nbfx.shell.ShellChromeProfile;
+import org.netbeans.api.nbfx.shell.ShellProfileHint;
+import org.netbeans.api.nbfx.shell.ShellProfileRegistry;
+import org.netbeans.api.nbfx.shell.ShellProfileResolver;
+import org.netbeans.api.nbfx.shell.ShellProfileSelection;
+import org.netbeans.api.nbfx.shell.ChromeProfilePolicy;
+import org.netbeans.api.nbfx.shell.ChromeProfilePolicyProvider;
+import org.netbeans.api.nbfx.shell.WindowDecoration;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.shell.WindowPaneHost;
 
@@ -55,6 +64,7 @@ import javafx.scene.control.TabPane;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.util.Subscription;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
@@ -69,6 +79,7 @@ import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
+import org.netbeans.api.nbfx.product.ProductProvider;
 import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.spi.nbfx.shell.WindowPaneContext;
 import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
@@ -175,13 +186,16 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             ShellFrame frame = null;
             Node frameRoot = null;
             try {
+                ShellProfileSelection selection = selectMainProfile(shellLookup);
+                applyWindowDecoration(stage, selection.decoration());
                 InstanceContent frameServices = new InstanceContent();
+                frameServices.set(List.of(selection.profile()), null);
                 context = new ShellContext(new ProxyLookup(new AbstractLookup(frameServices), shellLookup));
                 shellContext = context;
                 ShellToolBars toolBars = new ShellToolBars(context);
                 regionHost = new ShellRegionHostImpl(context, slidingArea,
                         DefaultShellFrame.renderers(context, toolBars));
-                frameServices.set(List.of(regionHost, toolBars.container()), null);
+                frameServices.set(List.of(selection.profile(), regionHost, toolBars.container()), null);
                 if (!frameProviders.isEmpty()) {
                     frame = frameProviders.get(0).create(context, context.profile());
                     if (frame == null) {
@@ -377,6 +391,46 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             closeShellResolver();
             shellFrame = null;
         }
+    }
+
+    /** Applies the selected decoration before the stage is shown. */
+    static void applyWindowDecoration(Stage stage, WindowDecoration decoration) {
+        Objects.requireNonNull(stage, "stage");
+        Objects.requireNonNull(decoration, "decoration");
+        StageStyle target = decoration == WindowDecoration.UNDECORATED
+                ? StageStyle.UNDECORATED : StageStyle.DECORATED;
+        if (stage.getStyle() != target) {
+            stage.initStyle(target);
+        }
+    }
+
+    /** Resolves the main-window profile without requiring product metadata. */
+    static ShellProfileSelection selectMainProfile(Lookup lookup) {
+        List<ProductProvider> productProviders = List.copyOf(lookup.lookupAll(ProductProvider.class));
+        if (productProviders.size() > 1) {
+            throw new IllegalStateException("Exactly one ProductProvider is allowed; found "
+                    + productProviders.size());
+        }
+        ChromeProfilePolicy policy = null;
+        if (!productProviders.isEmpty()) {
+            String policyId = ProductProvider.resolve(lookup).chromeProfilePolicyId();
+            policy = ChromeProfilePolicyProvider.resolve(policyId, lookup).orElseThrow(
+                    () -> new IllegalStateException("No ChromeProfilePolicyProvider for product policy "
+                            + policyId));
+        }
+        return ShellProfileResolver.resolve(WindowKind.MAIN,
+                single(lookup, ShellChromeProfile.class, "ShellChromeProfile"),
+                single(lookup, ShellProfileHint.class, "ShellProfileHint"),
+                policy, ShellProfileRegistry.discover());
+    }
+
+    private static <T> T single(Lookup lookup, Class<T> type, String description) {
+        List<T> values = List.copyOf(lookup.lookupAll(type));
+        if (values.size() > 1) {
+            throw new IllegalStateException("At most one " + description + " is allowed; found "
+                    + values.size());
+        }
+        return values.isEmpty() ? null : values.get(0);
     }
 
     private void closeShellResolver() {

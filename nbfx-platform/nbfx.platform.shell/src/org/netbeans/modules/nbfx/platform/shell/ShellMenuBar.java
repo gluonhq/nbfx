@@ -180,7 +180,7 @@ public final class ShellMenuBar {
 
     private MenuModel model(FileObject folder, Menu owner) {
         List<Entry> entries = new ArrayList<>();
-        for (ActionRef ref : ActionLayerReader.read(folder)) {
+        for (ActionRef ref : ActionLayerReader.readForProfile(folder, profile.id())) {
             if (!profile.includeMenuItem(folder.getName(), ref.actionId())) {
                 continue;
             }

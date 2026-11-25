@@ -22,6 +22,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Set;
 import javafx.scene.control.Button;
 import javafx.scene.control.ToolBar;
 import org.junit.Test;
@@ -30,6 +31,8 @@ import org.netbeans.api.nbfx.actions.RunnableCommand;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
 import org.netbeans.api.nbfx.shell.ShellContext;
 import org.netbeans.api.nbfx.shell.ShellCommandResolver;
+import org.netbeans.api.nbfx.shell.ShellProfileSpec;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
@@ -138,6 +141,30 @@ public class ShellToolBarsTest {
                         Lookups.fixed(resolver(), profile)));
                 assertTrue("a bar whose items are all filtered out must be skipped",
                         bars.container().getToolBars().isEmpty());
+            } finally {
+                deleteTree(folder);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void actionReferenceProfilesFilterToolBarItems() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            FileObject folder = createFolder(FileUtil.getConfigRoot(), "NbFx/Toolbars/actionprofilebar");
+            try {
+                createRef(folder, "any.ref", "test.action");
+                createRef(folder, "main.ref", "test.action");
+                FileObject other = createData(folder, "other.ref");
+                set(other, "actionId", "test.action");
+                set(other, "position", 20);
+                set(other, "profiles", "presentation");
+                ShellProfileSpec profile = new ShellProfileSpec("main", WindowKind.MAIN,
+                        Set.of(), null, true);
+                ShellToolBars bars = new ShellToolBars(new ShellContext(
+                        Lookups.fixed(resolver(), profile)));
+                assertEquals(1, bars.container().getToolBars().size());
+                assertEquals(3, bars.container().getToolBars().get(0).getItems().size());
             } finally {
                 deleteTree(folder);
             }

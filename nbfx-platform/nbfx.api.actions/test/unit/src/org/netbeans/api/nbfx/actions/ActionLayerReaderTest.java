@@ -156,6 +156,26 @@ public class ActionLayerReaderTest {
     }
 
     @Test
+    public void nullAndBlankProfilesIncludeRestrictedReferences() throws IOException {
+        FileObject menu = menuFolder();
+        addRef(menu, "any", "any", 10, false);
+        addRef(menu, "main", "main", 20, false);
+        menu.getFileObject("main", "ref").setAttribute("profiles", "main");
+        assertEquals(List.of("any", "main"), ActionLayerReader.readForProfile(menu, null).stream()
+                .map(ActionRef::actionId).toList());
+        assertEquals(List.of("any", "main"), ActionLayerReader.readForProfile(menu, " ").stream()
+                .map(ActionRef::actionId).toList());
+        assertEquals(List.of("any", "main"), ActionLayerReader.readForContext(menu, Lookup.EMPTY).stream()
+                .map(ActionRef::actionId).toList());
+        assertEquals(List.of("any", "main"), ActionLayerReader.readForProfile(menu, "main").stream()
+                .map(ActionRef::actionId).toList());
+        assertTrue(ActionLayerReader.readForProfile(menu, "MAIN").stream()
+                .allMatch(ref -> "any".equals(ref.actionId())));
+        assertThrows(IllegalArgumentException.class,
+                () -> ActionLayerReader.readForProfile(menu, "bad profile"));
+    }
+
+    @Test
     public void wrongTypedAttributesAreMalformedRatherThanPermissive() throws IOException {
         FileObject menu = menuFolder();
         FileObject bad = menu.createData("bad", "ref");

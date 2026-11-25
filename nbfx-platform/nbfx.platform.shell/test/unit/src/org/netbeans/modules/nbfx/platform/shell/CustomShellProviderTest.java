@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
 import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellProfileSpec;
 import org.netbeans.api.nbfx.shell.ShellFrame;
 import org.netbeans.api.nbfx.shell.ShellProvider;
 import org.netbeans.api.nbfx.shell.ShellCommandResolver;
@@ -78,6 +79,10 @@ public class CustomShellProviderTest {
             assertSame(frame.regions(), receivedContext.get().lookup().lookup(ShellRegionHost.class));
             assertNotNull(receivedContext.get().lookup().lookup(ActionRegistry.class));
             assertNotNull(receivedContext.get().lookup().lookup(ToolBarContainer.class));
+            assertTrue(receivedContext.get().profile() instanceof ShellProfileSpec);
+            assertEquals("main", receivedContext.get().profile().id());
+            assertSame(receivedContext.get().profile(),
+                    receivedContext.get().lookup().lookup(ShellChromeProfile.class));
             assertTrue(frame.root() instanceof StackPane);
             frame.close();
             assertEquals(1, closed.get());

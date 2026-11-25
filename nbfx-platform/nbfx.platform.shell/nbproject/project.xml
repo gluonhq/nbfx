@@ -67,7 +67,7 @@
                     <code-name-base>org.netbeans.modules.nbfx.api.actions</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
-                    <run-dependency><specification-version>2.0</specification-version></run-dependency>
+                    <run-dependency><specification-version>2.1</specification-version></run-dependency>
                 </dependency>
                 <dependency>
                     <code-name-base>org.netbeans.modules.nbfx.api.layout</code-name-base>
@@ -77,6 +77,12 @@
                 </dependency>
                 <dependency>
                     <code-name-base>org.netbeans.modules.nbfx.api.resources</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>1.0</specification-version></run-dependency>
+                </dependency>
+                <dependency>
+                    <code-name-base>org.netbeans.modules.nbfx.api.product</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency><specification-version>1.0</specification-version></run-dependency>
@@ -97,7 +103,7 @@
                     <code-name-base>org.netbeans.modules.nbfx.api.shell</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
-                    <run-dependency><specification-version>1.4</specification-version></run-dependency>
+                    <run-dependency><specification-version>1.5</specification-version></run-dependency>
                 </dependency>
                 <dependency>
                     <code-name-base>org.netbeans.modules.nbfx.platform.workspace</code-name-base>

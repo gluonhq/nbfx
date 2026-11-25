@@ -68,6 +68,27 @@ public final class ActionLayerReader {
     }
 
     /**
+     * Reads direct references applicable to a shell profile. A null/blank profile and references
+     * with an empty profile set mean all profiles; declared ids match exact case-sensitive tokens.
+     *
+     * @param folder the surface folder
+     * @param profileId the selected shell profile id
+     * @return the matching references in deterministic order
+     * @since 2.1
+     */
+    public static List<ActionRef> readForProfile(FileObject folder, String profileId) {
+        if (profileId != null && !profileId.isBlank() && !ActionTokens.isToken(profileId)) {
+            throw new IllegalArgumentException("profileId must be an atomic token");
+        }
+        return read(folder, ref -> matchesProfiles(ref.profiles(), profileId));
+    }
+
+    /** Reads profile-filtered references from a layer path. */
+    public static List<ActionRef> readForProfile(String layerPath, String profileId) {
+        return readForProfile(layerPath == null ? null : FileUtil.getConfigFile(layerPath), profileId);
+    }
+
+    /**
      * Reads direct references matching {@link ActionContextMetadata} in {@code context}. Different
      * filter dimensions are ANDed; profile ids are ORed. A null/blank profile means all profiles.
      */
@@ -168,7 +189,7 @@ public final class ActionLayerReader {
     }
 
     private static boolean matchesProfiles(Set<String> declared, String query) {
-        return declared.isEmpty() || (query != null && !query.isBlank() && declared.contains(query));
+        return declared.isEmpty() || query == null || query.isBlank() || declared.contains(query);
     }
 
     private static String stringAttribute(FileObject file, String name, String fallback) {
