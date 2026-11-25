@@ -207,6 +207,23 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="WindowState"/>
         </change>
+        <change id="cjap.shell.window-manager.content-ids">
+            <api name="netbeansfx_shell"/>
+            <summary>WindowManager operates on content and dock-group identities.</summary>
+            <version major="1" minor="7"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" deletion="yes" modification="yes" binary="incompatible" source="incompatible" semantic="incompatible"/>
+            <description>
+                Evolves <code>WindowManager</code> from tab/pane operations to stable
+                <code>ContentId</code>/<code>DockGroupId</code> operations: groups, primary group,
+                groupOf, select, move and attach. Tab- and <code>WindowPaneHost</code>-based methods
+                are removed from the public operation surface, matching the CJAP target that public
+                docking operations use content/group handles. Dock request/decision/result, float,
+                redock and window enumeration follow in later C3 slices.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

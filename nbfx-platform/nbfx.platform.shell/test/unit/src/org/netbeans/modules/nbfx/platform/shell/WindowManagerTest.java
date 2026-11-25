@@ -20,50 +20,64 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
+import javafx.scene.Node;
 import javafx.scene.control.Tab;
+import javafx.scene.layout.Pane;
 import org.junit.Test;
+import org.netbeans.api.nbfx.content.ContentId;
+import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
+import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.api.nbfx.views.ViewContent;
+import org.netbeans.modules.nbfx.platform.content.DefaultContentManager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
- * The public {@link WindowManager} exposes the pane/tab operations a product uses, without the
- * concrete tab pane type.
+ * The public {@link WindowManager} exposes dock group and content operations by stable identity.
  */
 public class WindowManagerTest {
 
     @Test
-    public void exposesPaneAndTabOperations() throws InterruptedException {
+    public void exposesGroupAndContentOperations() throws InterruptedException {
         JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
             NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
             NbfxTabPane custom = new NbfxTabPane(PaneRole.of("TEST_PRIMARY"));
+            DefaultContentManager contentManager = new DefaultContentManager();
             try {
-                WindowManager manager = new ShellApplication().windowManager();
-                Tab view = new Tab("view");
-                NbfxTabPane.setViewId(view, "demo.view");
+                WindowManager manager = new DefaultWindowManager(contentManager);
+                ViewProvider view = new FakeView("demo.view", "Demo");
+                ViewContent content = new ViewContent(view);
+                ContentId contentId = content.id();
+                contentManager.open(content);
 
-                manager.attach(main, view);
-                assertTrue(manager.panes().contains(main));
-                assertSame(main, manager.paneOf(view).orElseThrow());
-                assertEquals("demo.view", manager.viewId(view));
-                assertSame(view, manager.findViewTab("demo.view").orElseThrow());
+                Tab viewTab = new Tab(view.getTitle());
+                NbfxTabPane.setViewId(viewTab, view.getId());
+                NbfxTabPane.attachTab(main, viewTab);
 
-                assertSame(custom, manager.primary(custom.role()).orElseThrow());
+                assertTrue(manager.groups().contains(main.groupId()));
+                assertSame(main.groupId(), manager.groupOf(contentId).orElseThrow());
+                assertSame(main.groupId(), manager.primary(PaneRole.MAIN).orElseThrow());
+                assertSame(custom.groupId(), manager.primary(custom.role()).orElseThrow());
 
-                manager.move(view, other, 0);
-                assertSame(other, manager.paneOf(view).orElseThrow());
-                assertEquals(0, other.getTabs().indexOf(view));
-                assertSame(view, manager.findViewTab("demo.view").orElseThrow());
+                DockGroupId otherGroup = other.groupId();
+                manager.move(contentId, otherGroup, 0);
+                assertSame(otherGroup, manager.groupOf(contentId).orElseThrow());
+                assertEquals(0, other.getTabs().indexOf(viewTab));
 
                 Tab second = new Tab("second");
-                manager.attach(other, second);
+                NbfxTabPane.setViewId(second, "other.view");
+                NbfxTabPane.attachTab(other, second);
                 assertSame(second, other.getSelectionModel().getSelectedItem());
-                manager.select(view);
-                assertSame(view, other.getSelectionModel().getSelectedItem());
+                manager.select(contentId);
+                assertSame(viewTab, other.getSelectionModel().getSelectedItem());
+
+                manager.attach(contentId, main.groupId(), -1);
+                assertSame(main.groupId(), manager.groupOf(contentId).orElseThrow());
             } finally {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
@@ -71,5 +85,31 @@ public class WindowManagerTest {
             }
             return null;
         });
+    }
+
+    private static final class FakeView implements ViewProvider {
+
+        private final String id;
+        private final String title;
+
+        FakeView(String id, String title) {
+            this.id = id;
+            this.title = title;
+        }
+
+        @Override
+        public String getId() {
+            return id;
+        }
+
+        @Override
+        public String getTitle() {
+            return title;
+        }
+
+        @Override
+        public Node getView() {
+            return new Pane();
+        }
     }
 }

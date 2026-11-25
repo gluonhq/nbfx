@@ -72,8 +72,8 @@
       <li>A product replaces the application name, title, icons and stylesheets with
           <code>ShellBranding</code>.</li>
       <li>A product supplies top/bottom chrome with <code>ShellChromeProvider</code>.</li>
-      <li>A product registers a permanent pane with <code>WindowPaneProvider</code> and moves tabs
-          through <code>WindowManager</code>.</li>
+      <li>A product registers a permanent pane with <code>WindowPaneProvider</code> and moves content
+          through <code>WindowManager</code> using stable content and group ids.</li>
       <li>A product adds a shutdown participant with <code>ShutdownParticipant</code>.</li>
       <li>An <code>@OnUiReady</code> task reaches the window through
           <code>ShellWindowProvider</code>.</li>

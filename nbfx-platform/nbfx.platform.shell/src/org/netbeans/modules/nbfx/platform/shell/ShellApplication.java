@@ -158,10 +158,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private List<WindowPaneProvider> paneProviderList = List.of();
     /** Providers that created a pane, so their resources are released with the shell. */
     private final Map<WindowPaneHost, WindowPaneProvider> paneProviders = new LinkedHashMap<>();
-    private final WindowManager windowManager = new DefaultWindowManager();
     /** The per-shell content lifecycle and routing owner. */
     private final org.netbeans.api.nbfx.content.ContentManager contentManager =
             new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
+    private final WindowManager windowManager = new DefaultWindowManager(contentManager);
     /** Binds view tab open/close to this shell's content manager. */
     private NbfxTabPane.ViewLifecycle viewLifecycle;
     /** Binds editor tab open/close to this shell's content manager. */

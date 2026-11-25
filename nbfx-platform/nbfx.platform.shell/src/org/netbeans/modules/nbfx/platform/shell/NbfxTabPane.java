@@ -43,6 +43,7 @@ import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.editor.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
+import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.ShellBranding;
 import org.netbeans.api.nbfx.shell.WindowPaneHost;
@@ -235,7 +236,10 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         TabDragOverlays.setDropHandler(NbfxTabPane::detachTabToNewWindow);
     }
 
+    private static final java.util.concurrent.atomic.AtomicInteger GROUP_SEQ = new java.util.concurrent.atomic.AtomicInteger();
+
     private final PaneRole role;
+    private final DockGroupId groupId;
     private PaneKind kind;
     /**
      * The control button at the right end of the header: Minimize Window Group on a view pane in the
@@ -270,6 +274,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     /** Creates a new pane with cross-pane drag and drop features and focus/active-document wiring. */
     public NbfxTabPane(PaneRole role, PaneKind kind) {
         this.role = Objects.requireNonNull(role);
+        this.groupId = groupIdFor(role);
         this.kind = Objects.requireNonNull(kind);
         setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
         getStyleClass().add(TAB_PANE_CLASS);
@@ -359,9 +364,25 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         return role;
     }
 
+    /** The stable dock group identity of this pane. */
+    public DockGroupId groupId() {
+        return groupId;
+    }
+
     @Override
     public TabPane pane() {
         return this;
+    }
+
+    private static DockGroupId groupIdFor(PaneRole role) {
+        String id = role.name().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9._-]", "-");
+        if (id.isBlank()) {
+            id = "group";
+        }
+        if (PaneRole.DETACHED.equals(role)) {
+            return DockGroupId.of("nbfx:detached." + GROUP_SEQ.incrementAndGet());
+        }
+        return DockGroupId.of("nbfx:" + id);
     }
 
     /** The kind of {@code pane}: a view pane unless it is an {@code NbfxTabPane} that says otherwise. */

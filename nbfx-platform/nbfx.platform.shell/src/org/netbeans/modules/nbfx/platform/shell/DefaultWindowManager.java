@@ -19,67 +19,114 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import org.netbeans.api.nbfx.content.Content;
+import org.netbeans.api.nbfx.content.ContentId;
+import org.netbeans.api.nbfx.content.ContentManager;
+import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
-import org.netbeans.api.nbfx.shell.WindowPaneHost;
+import org.netbeans.api.nbfx.views.ViewContent;
 
 /**
- * The {@link WindowManager} over the shell's pane registry: the stable API for the tab operations
- * that used to be static methods on {@link NbfxTabPane}.
+ * The {@link WindowManager} over the shell's dock groups and the content manager. It translates
+ * stable content and group identities into the tab-pane operations the runtime already supports.
  */
 final class DefaultWindowManager implements WindowManager {
 
-    @Override
-    public List<WindowPaneHost> panes() {
-        return NbfxTabPane.panesByRole().stream().map(DefaultWindowManager::host).toList();
+    private final ContentManager contentManager;
+
+    DefaultWindowManager(ContentManager contentManager) {
+        this.contentManager = Objects.requireNonNull(contentManager, "contentManager");
     }
 
     @Override
-    public Optional<WindowPaneHost> primary(PaneRole role) {
-        return Optional.ofNullable(NbfxTabPane.paneWithRole(role)).map(DefaultWindowManager::host);
+    public List<DockGroupId> groups() {
+        return NbfxTabPane.panesByRole().stream()
+                .filter(NbfxTabPane.class::isInstance)
+                .map(pane -> ((NbfxTabPane) pane).groupId())
+                .toList();
     }
 
     @Override
-    public Optional<WindowPaneHost> paneOf(Tab tab) {
-        return tab == null
-                ? Optional.empty()
-                : Optional.ofNullable(tab.getTabPane()).map(DefaultWindowManager::host);
+    public Optional<DockGroupId> primary(PaneRole role) {
+        if (role == null) {
+            return Optional.empty();
+        }
+        TabPane pane = NbfxTabPane.paneWithRole(role);
+        return pane instanceof NbfxTabPane nbfx ? Optional.of(nbfx.groupId()) : Optional.empty();
     }
 
     @Override
-    public Optional<Tab> findViewTab(String viewId) {
-        return NbfxTabPane.findViewTab(viewId);
+    public Optional<DockGroupId> groupOf(ContentId content) {
+        return findTab(content)
+                .map(Tab::getTabPane)
+                .filter(NbfxTabPane.class::isInstance)
+                .map(pane -> ((NbfxTabPane) pane).groupId());
     }
 
     @Override
-    public String viewId(Tab tab) {
-        return NbfxTabPane.viewId(tab);
+    public void select(ContentId content) {
+        findTab(content).ifPresent(NbfxTabPane::selectTabAndMoveToFront);
     }
 
     @Override
-    public void select(Tab tab) {
-        NbfxTabPane.selectTabAndMoveToFront(tab);
+    public void move(ContentId content, DockGroupId target, int index) {
+        Tab tab = findTab(content).orElse(null);
+        TabPane pane = paneForGroup(target);
+        if (tab == null || pane == null) {
+            return;
+        }
+        NbfxTabPane.moveTab(pane, tab, index);
     }
 
     @Override
-    public void attach(WindowPaneHost pane, Tab tab) {
-        NbfxTabPane.attachTab(pane.pane(), tab);
+    public void attach(ContentId content, DockGroupId group, int index) {
+        Tab tab = findTab(content).orElse(null);
+        TabPane pane = paneForGroup(group);
+        if (tab == null || pane == null) {
+            return;
+        }
+        if (index < 0 || index >= pane.getTabs().size()) {
+            NbfxTabPane.attachTab(pane, tab);
+        } else {
+            NbfxTabPane.moveTab(pane, tab, index);
+            NbfxTabPane.selectTabAndMoveToFront(tab);
+        }
     }
 
-    @Override
-    public void move(Tab tab, WindowPaneHost target, int index) {
-        NbfxTabPane.moveTab(target.pane(), tab, index);
+    private Optional<Tab> findTab(ContentId contentId) {
+        if (contentId == null) {
+            return Optional.empty();
+        }
+        Content content = contentManager.find(contentId).orElse(null);
+        if (content instanceof ViewContent viewContent) {
+            return NbfxTabPane.findViewTab(viewContent.view().getId());
+        }
+        if (content instanceof EditorContent editorContent) {
+            return NbfxTabPane.findTab(editorContent.document());
+        }
+        // Fallback: scan tabs by view id derived from content id convention.
+        String value = contentId.value();
+        if (value.startsWith("nbfx:view.")) {
+            String viewId = value.substring("nbfx:view.".length());
+            return NbfxTabPane.findViewTab(viewId);
+        }
+        return Optional.empty();
     }
 
-    private static WindowPaneHost host(TabPane pane) {
-        return pane instanceof WindowPaneHost host
-                ? host
-                : new SimpleHost(NbfxTabPane.roleOf(pane), pane);
-    }
-
-    private record SimpleHost(PaneRole role, TabPane pane) implements WindowPaneHost {
+    private static TabPane paneForGroup(DockGroupId groupId) {
+        if (groupId == null) {
+            return null;
+        }
+        for (TabPane pane : NbfxTabPane.panesByRole()) {
+            if (pane instanceof NbfxTabPane nbfx && groupId.equals(nbfx.groupId())) {
+                return pane;
+            }
+        }
+        return null;
     }
 }

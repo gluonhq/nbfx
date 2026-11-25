@@ -20,15 +20,14 @@ package org.netbeans.api.nbfx.shell;
 
 import java.util.List;
 import java.util.Optional;
-import javafx.scene.control.Tab;
-import org.netbeans.api.nbfx.view.ViewManager;
+import org.netbeans.api.nbfx.content.ContentId;
+import org.netbeans.api.nbfx.layout.DockGroupId;
 
 /**
- * The panes and tabs of the running shell window. This replaces the static operations a product
- * used to call on the shell's concrete tab pane; use {@link ViewManager} to show and hide views and
- * {@link ShellWindow} to reach the window itself.
+ * Public docking and window operations over stable content and group identities. Products use this
+ * instead of touching tab panes directly; {@link org.netbeans.api.nbfx.view.ViewManager} shows and
+ * hides views and {@link ShellWindow} reaches the window itself.
  * <p>
- * The manager is published in the shell lookup and through {@link ShellWindow#windowManager()}.
  * Methods that change the scene graph must be called on the JavaFX Application Thread.
  *
  * @since 1.0
@@ -36,73 +35,53 @@ import org.netbeans.api.nbfx.view.ViewManager;
 public interface WindowManager {
 
     /**
-     * Every live pane: docked panes in layout order, then detached windows. The list includes
-     * permanent, hidden, minimized and transient panes (for example the sliding pane); use
-     * {@link #primary(PaneRole)} when only a registered permanent pane is wanted.
+     * Every live dock group, in layout order, then detached windows.
      *
-     * @return the panes, never {@code null}
+     * @return the group ids, never {@code null}
      */
-    List<WindowPaneHost> panes();
+    List<DockGroupId> groups();
 
     /**
-     * The first pane playing {@code role}, or empty when it does not exist (yet). A transient role
-     * such as {@link PaneRole#DETACHED} or {@link PaneRole#SLIDE} can also be resolved.
+     * The first group playing {@code role}, or empty when it does not exist (yet).
      *
      * @param role the pane role
-     * @return the pane, or empty
+     * @return the group id, or empty
      */
-    Optional<WindowPaneHost> primary(PaneRole role);
+    Optional<DockGroupId> primary(PaneRole role);
 
     /**
-     * The pane that currently holds {@code tab}, including a detached window's pane, or empty when
-     * the tab is not attached to any pane.
+     * The group that currently holds {@code content}, or empty when the content is not docked.
      *
-     * @param tab the tab
-     * @return the pane, or empty
+     * @param content the content id
+     * @return the group id, or empty
      */
-    Optional<WindowPaneHost> paneOf(Tab tab);
+    Optional<DockGroupId> groupOf(ContentId content);
 
     /**
-     * The open view tab whose provider id is {@code viewId}, searching every pane.
+     * Selects {@code content} and brings its window to the front. A content id that is not docked
+     * is ignored.
      *
-     * @param viewId the stable view id
-     * @return the tab, or empty
+     * @param content the content to select
      */
-    Optional<Tab> findViewTab(String viewId);
+    void select(ContentId content);
 
     /**
-     * The stable view id stored on {@code tab}, or {@code null} when the tab is not a view tab.
+     * Moves {@code content} to position {@code index} of {@code target}, removing it from whichever
+     * group currently holds it. This neither selects the content nor fronts its window.
      *
-     * @param tab the tab
-     * @return the view id, or {@code null}
+     * @param content the content to move
+     * @param target  the destination group
+     * @param index   the position among the target's content
      */
-    String viewId(Tab tab);
+    void move(ContentId content, DockGroupId target, int index);
 
     /**
-     * Selects {@code tab} and brings its window to the front. Called on the JavaFX Application
-     * Thread it takes effect immediately; called from another thread it is scheduled on that
-     * thread. A {@code null} tab is ignored; a tab that has no pane is ignored.
+     * Attaches {@code content} to {@code group} at {@code index}, selects it and fronts its window.
+     * A content id that is not open or a group that does not exist is ignored.
      *
-     * @param tab the tab to select
+     * @param content the content to attach
+     * @param group   the destination group
+     * @param index   the position among the target's content, or {@code -1} to append
      */
-    void select(Tab tab);
-
-    /**
-     * Moves {@code tab} to position {@code index} of {@code target}, removing it from whichever pane
-     * currently holds it. Unlike {@link #attach(WindowPaneHost, Tab)} this neither selects the tab
-     * nor fronts its window, so a layout can be rebuilt without stealing focus.
-     *
-     * @param tab    the tab to move
-     * @param target the destination pane
-     * @param index  the position among the target's tabs
-     */
-    void move(Tab tab, WindowPaneHost target, int index);
-
-    /**
-     * Appends {@code tab} to {@code pane}, selects it and fronts its window.
-     *
-     * @param pane the destination pane
-     * @param tab  the tab to attach
-     */
-    void attach(WindowPaneHost pane, Tab tab);
+    void attach(ContentId content, DockGroupId group, int index);
 }
