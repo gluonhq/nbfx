@@ -93,6 +93,27 @@
             <class package="org.netbeans.api.nbfx.content" name="TransferMode"/>
             <class package="org.netbeans.api.nbfx.content" name="DockPlacement"/>
         </change>
+        <change id="cjap.content.transfer.contract">
+            <api name="netbeansfx_content"/>
+            <summary>Transfer source, drop target, request, decision and handler.</summary>
+            <version major="1" minor="4"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>TransferSource</code>, extensible <code>DropTargetKind</code>,
+                <code>DropTarget</code>, <code>DropRequest</code>, <code>DropDecision</code> and
+                <code>DropHandler</code>. A rejection always carries a reason key and may name the
+                placement it refused; an accepted decision's effect and placement are authoritative.
+                Routing and UI integration follow separately.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="TransferSource"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropTargetKind"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropTarget"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropRequest"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropDecision"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropHandler"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
