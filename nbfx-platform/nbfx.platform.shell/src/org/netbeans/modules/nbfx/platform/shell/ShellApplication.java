@@ -77,6 +77,8 @@ import org.netbeans.api.nbfx.view.ActiveComponentContext;
 import org.netbeans.api.nbfx.view.ApplicationMenu;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
+import org.netbeans.api.nbfx.views.ViewContent;
+import org.netbeans.api.nbfx.content.Content;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.api.nbfx.product.ProductProvider;
@@ -159,11 +161,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** The per-shell content lifecycle and routing owner. */
     private final org.netbeans.api.nbfx.content.ContentManager contentManager =
             new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
+    /** Binds view tab open/close to this shell's content manager. */
+    private NbfxTabPane.ViewLifecycle viewLifecycle;
 
     @Override
     public final void start(Stage stage) {
         Budget.mark("fxStart");
         this.stage = stage;
+        bindViewContentLifecycle();
         NbfxTheme.install();
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
@@ -334,6 +339,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     @Override
     public void stop() {
+        if (viewLifecycle != null) {
+            NbfxTabPane.removeViewLifecycle(viewLifecycle);
+            viewLifecycle = null;
+        }
         if (!stateCaptured) {
             captureSession();
         }
@@ -571,6 +580,32 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
      */
     protected final org.netbeans.api.nbfx.content.ContentManager getContentManager() {
         return contentManager;
+    }
+
+    /**
+     * Binds view tab open/close to this shell's content manager, so a view and an editor share one
+     * lifecycle. A close without a matching open content falls back to the view's own
+     * {@link ViewProvider#viewClosed()}.
+     */
+    private void bindViewContentLifecycle() {
+        viewLifecycle = new NbfxTabPane.ViewLifecycle() {
+            @Override
+            public void viewOpened(ViewProvider view) {
+                contentManager.open(new ViewContent(view));
+            }
+
+            @Override
+            public void viewClosed(ViewProvider view) {
+                Content content = new ViewContent(view);
+                Content open = contentManager.find(content.id()).orElse(null);
+                if (open != null) {
+                    contentManager.close(open);
+                } else {
+                    view.viewClosed();
+                }
+            }
+        };
+        NbfxTabPane.addViewLifecycle(viewLifecycle);
     }
 
     /**

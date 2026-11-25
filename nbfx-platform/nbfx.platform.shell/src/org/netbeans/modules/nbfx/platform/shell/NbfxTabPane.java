@@ -29,6 +29,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Consumer;
@@ -132,6 +133,8 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     private static final String VIEW_ID_KEY = "nbfx.viewId";
     /** Key under which a view tab stores the provider that created it, for dynamic-view cleanup. */
     static final String VIEW_PROVIDER_KEY = "nbfx.viewProvider";
+    /** Key marking a view tab whose close has already been published once. */
+    private static final String VIEW_CLOSED_KEY = "nbfx.viewClosed";
 
     private static final String STYLESHEET = Objects.requireNonNull(
             NbfxTabPane.class.getResource("/org/netbeans/modules/nbfx/platform/shell/styles.css")).toExternalForm();
@@ -178,6 +181,19 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
 
     /** Listeners notified when a view tab is attached, moved or closed. */
     private static final List<Runnable> VIEW_TABS_LISTENERS = new ArrayList<>();
+
+    /** Receives view tab open/close so a shell can drive its content lifecycle. */
+    interface ViewLifecycle {
+
+        /** A tab for {@code view} was created. */
+        void viewOpened(ViewProvider view);
+
+        /** The tab for {@code view} was closed for good. */
+        void viewClosed(ViewProvider view);
+    }
+
+    /** The registered view lifecycles; empty until a shell binds its content manager. */
+    private static final List<ViewLifecycle> VIEW_LIFECYCLES = new CopyOnWriteArrayList<>();
 
     /** True while a tab-header drag gesture is in progress (between drag-detected and drag-done). */
     private static boolean tabDragInProgress;
@@ -880,6 +896,41 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         }
     }
 
+    /** Registers a view open/close lifecycle; the shell binds its content manager here. */
+    static void addViewLifecycle(ViewLifecycle lifecycle) {
+        if (lifecycle != null) {
+            VIEW_LIFECYCLES.add(lifecycle);
+        }
+    }
+
+    /** Removes a lifecycle added with {@link #addViewLifecycle(ViewLifecycle)}. */
+    static void removeViewLifecycle(ViewLifecycle lifecycle) {
+        VIEW_LIFECYCLES.remove(lifecycle);
+    }
+
+    /** Publishes that a tab for {@code view} was created. */
+    static void notifyViewOpened(ViewProvider view) {
+        for (ViewLifecycle lifecycle : VIEW_LIFECYCLES) {
+            lifecycle.viewOpened(view);
+        }
+    }
+
+    /**
+     * Publishes that the tab for {@code view} was closed for good.
+     *
+     * @return whether a lifecycle handled the close, so the caller can fall back to
+     *         {@link ViewProvider#viewClosed()} when none did
+     */
+    private static boolean notifyViewClosed(ViewProvider view) {
+        if (VIEW_LIFECYCLES.isEmpty()) {
+            return false;
+        }
+        for (ViewLifecycle lifecycle : VIEW_LIFECYCLES) {
+            lifecycle.viewClosed(view);
+        }
+        return true;
+    }
+
     /** Notifies the view-tab listeners; called after a tab is attached, moved or closed. */
     private static void notifyViewTabsChanged() {
         for (Runnable listener : List.copyOf(VIEW_TABS_LISTENERS)) {
@@ -929,27 +980,35 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     }
 
     private static void unregisterIfClosed(Tab tab) {
-        if (isTabAttached(tab)) {
+        if (isTabAttached(tab) || Boolean.TRUE.equals(tab.getProperties().get(VIEW_CLOSED_KEY))) {
             return;
         }
+        tab.getProperties().put(VIEW_CLOSED_KEY, Boolean.TRUE);
         String viewId = viewId(tab);
         boolean notified = false;
         if (viewId != null) {
             for (ViewProvider view : Lookup.getDefault().lookupAll(ViewProvider.class)) {
                 if (viewId.equals(view.getId())) {
-                    view.viewClosed();
+                    closed(view);
                     notified = true;
                 }
             }
         }
         if (!notified && tab.getProperties().get(VIEW_PROVIDER_KEY) instanceof ViewProvider dynamic) {
-            dynamic.viewClosed();
+            closed(dynamic);
         }
         EditorSplit.dispose(tab);
         EditorDocument document = documentOf(tab);
         EditorContext context = editorContext();
         if (document != null && context != null) {
             context.unregister(document);
+        }
+    }
+
+    /** Publishes a view close through the bound lifecycle, or closes the view directly if none. */
+    private static void closed(ViewProvider view) {
+        if (!notifyViewClosed(view)) {
+            view.viewClosed();
         }
     }
 

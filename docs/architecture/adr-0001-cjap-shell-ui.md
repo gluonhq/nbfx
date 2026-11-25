@@ -208,9 +208,10 @@ api.plugins (T1)        → api.layer, api.resources
   `Docking` facade delegates to the most recent runtime until the T8.2 migration removes it, so
   existing readers keep working while runtimes become instance-scoped and testable in isolation.
 - C4-2b has `ShellApplication` own one `DefaultContentManager` and publish it in the shell lookup,
-  so views, editors and products resolve the same per-shell lifecycle. Reacting to view/editor tab
-  open and close through it, and extracting the manager into a `ShellRuntime`, follow in later
-  slices.
+  so views, editors and products resolve the same per-shell lifecycle. C4-2c binds view tab
+  open/close to it through `ViewContent`; a close without an open content falls back to the view's
+  own `viewClosed()`. Editor tab integration and extracting the manager into a `ShellRuntime` follow
+  in later slices.
 
 ### 15. Review resolution: custom-shell composition contract
 

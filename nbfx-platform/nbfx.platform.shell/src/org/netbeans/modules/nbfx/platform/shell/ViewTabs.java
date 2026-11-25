@@ -66,6 +66,7 @@ public final class ViewTabs {
         NbfxTabPane.installCloseButtonTooltip(tab,
                 NbBundle.getMessage(ViewTabs.class, "Tab.view.close.tooltip"));
         TabContextMenu.installForView(tab);
+        NbfxTabPane.notifyViewOpened(view);
         return tab;
     }
 
