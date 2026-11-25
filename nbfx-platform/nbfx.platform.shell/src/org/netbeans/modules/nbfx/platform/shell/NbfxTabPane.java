@@ -1299,8 +1299,22 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         }
         Object gestureSource = event.getGestureSource();
         if (gestureSource instanceof Node sourceNode && !draggedTab(db).isPresent()) {
+            java.util.List<Object> payload = new java.util.ArrayList<>();
+            payload.add(sourceNode);
+            if (db.hasUrl()) {
+                String url = db.getUrl();
+                if (url != null && !url.isBlank()) {
+                    payload.add(url);
+                }
+            }
+            if (db.hasString()) {
+                String text = db.getString();
+                if (text != null && !text.isEmpty()) {
+                    payload.add(text);
+                }
+            }
             Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
-                    transferSource(TransferKind.NODES, Lookups.fixed(sourceNode)),
+                    transferSource(TransferKind.NODES, Lookups.fixed(payload.toArray(new Object[0]))),
                     targets, location, requested, Lookup.EMPTY, handlers);
             if (resolved.isPresent()) {
                 return resolved;
