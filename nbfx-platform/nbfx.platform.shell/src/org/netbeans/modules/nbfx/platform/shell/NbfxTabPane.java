@@ -1354,55 +1354,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
 
     private static Optional<Tab> tabAt(NbfxTabPane tabPane, DragEvent event) {
         Node picked = event.getPickResult() == null ? null : event.getPickResult().getIntersectedNode();
-        if (picked == null) {
-            return Optional.empty();
-        }
-        Node tabNode = picked;
-        while (tabNode != null) {
-            if (isTabHeaderNode(tabNode) && belongsToTabPane(tabNode, tabPane)) {
-                break;
-            }
-            tabNode = tabNode.getParent();
-        }
-        if (tabNode == null || !isTabHeaderNode(tabNode) || !belongsToTabPane(tabNode, tabPane)) {
-            return Optional.empty();
-        }
-        List<Node> tabNodes = tabPane.lookupAll(".tab").stream()
-                .filter(NbfxTabPane::isTabHeaderNode)
-                .filter(n -> belongsToTabPane(n, tabPane))
-                .sorted(java.util.Comparator.comparingDouble(n -> n.localToScene(n.getBoundsInLocal()).getMinX()))
-                .toList();
-        int index = tabNodes.indexOf(tabNode);
-        if (index < 0 || index >= tabPane.getTabs().size()) {
-            return Optional.empty();
-        }
-        Tab tab = tabPane.getTabs().get(index);
-        return tab.getStyleClass().contains(TabDropIndicator.PLACEHOLDER_TAB_CLASS)
-                ? Optional.empty() : Optional.of(tab);
-    }
-
-    private static boolean isTabHeaderNode(Node node) {
-        if (node == null || !node.getStyleClass().contains("tab")) {
-            return false;
-        }
-        Node parent = node.getParent();
-        if (parent == null) {
-            return false;
-        }
-        return parent.getStyleClass().contains("tab-container")
-                || parent.getStyleClass().contains("headers-region");
-    }
-
-    private static boolean belongsToTabPane(Node node, TabPane tabPane) {
-        for (Node n = node; n != null; n = n.getParent()) {
-            if (n == tabPane) {
-                return true;
-            }
-            if (n instanceof TabPane) {
-                return false;
-            }
-        }
-        return false;
+        return TabDropIndicator.tabAt(tabPane, picked);
     }
 
     private static Optional<org.netbeans.api.nbfx.content.ContentId> contentIdForTab(Tab tab) {

@@ -35,6 +35,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.transform.Transform;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Drop-target highlight + placeholder-tab management for {@link NbfxTabPane}.
@@ -132,6 +133,29 @@ public final class TabDropIndicator {
         }
     }
 
+    static Optional<Tab> tabAt(TabPane tabPane, Node picked) {
+        if (tabPane == null || picked == null) {
+            return Optional.empty();
+        }
+        Node tabNode = picked;
+        while (tabNode != null) {
+            if (isTabHeaderNode(tabNode) && belongsToTabPane(tabNode, tabPane)) {
+                break;
+            }
+            tabNode = tabNode.getParent();
+        }
+        if (tabNode == null || !isTabHeaderNode(tabNode) || !belongsToTabPane(tabNode, tabPane)) {
+            return Optional.empty();
+        }
+        java.util.List<Node> tabNodes = headerNodes(tabPane);
+        int index = tabNodes.indexOf(tabNode);
+        if (index < 0 || index >= tabPane.getTabs().size()) {
+            return Optional.empty();
+        }
+        Tab tab = tabPane.getTabs().get(index);
+        return tab.getStyleClass().contains(PLACEHOLDER_TAB_CLASS) ? Optional.empty() : Optional.of(tab);
+    }
+
     private static Node headerNodeFor(TabPane tabPane, Tab tab) {
         if (tabPane == null || tab == null) {
             return null;
@@ -140,14 +164,25 @@ public final class TabDropIndicator {
         if (index < 0) {
             return null;
         }
-        java.util.List<Node> tabNodes = tabPane.lookupAll(".tab").stream()
-                .filter(n -> n.getStyleClass().contains("tab") && n.getParent() != null
-                        && (n.getParent().getStyleClass().contains("tab-container")
-                            || n.getParent().getStyleClass().contains("headers-region")))
+        java.util.List<Node> tabNodes = headerNodes(tabPane);
+        return index < tabNodes.size() ? tabNodes.get(index) : null;
+    }
+
+    private static java.util.List<Node> headerNodes(TabPane tabPane) {
+        return tabPane.lookupAll(".tab").stream()
+                .filter(TabDropIndicator::isTabHeaderNode)
                 .filter(n -> belongsToTabPane(n, tabPane))
                 .sorted(java.util.Comparator.comparingDouble(n -> n.localToScene(n.getBoundsInLocal()).getMinX()))
                 .toList();
-        return index < tabNodes.size() ? tabNodes.get(index) : null;
+    }
+
+    private static boolean isTabHeaderNode(Node node) {
+        if (node == null || !node.getStyleClass().contains("tab")) {
+            return false;
+        }
+        Node parent = node.getParent();
+        return parent != null && (parent.getStyleClass().contains("tab-container")
+                || parent.getStyleClass().contains("headers-region"));
     }
 
     private static boolean belongsToTabPane(Node node, TabPane tabPane) {
