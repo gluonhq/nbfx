@@ -18,9 +18,11 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import org.netbeans.api.nbfx.content.Content;
@@ -29,11 +31,13 @@ import org.netbeans.api.nbfx.content.ContentManager;
 import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.shell.DockDecision;
+import org.netbeans.api.nbfx.shell.DockPolicy;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.views.ViewContent;
+import org.openide.util.Lookup;
 
 /**
  * The {@link WindowManager} over the shell's dock groups and the content manager. It translates
@@ -42,9 +46,15 @@ import org.netbeans.api.nbfx.views.ViewContent;
 final class DefaultWindowManager implements WindowManager {
 
     private final ContentManager contentManager;
+    private final Supplier<Collection<? extends DockPolicy>> policies;
 
     DefaultWindowManager(ContentManager contentManager) {
+        this(contentManager, () -> Lookup.getDefault().lookupAll(DockPolicy.class));
+    }
+
+    DefaultWindowManager(ContentManager contentManager, Supplier<Collection<? extends DockPolicy>> policies) {
         this.contentManager = Objects.requireNonNull(contentManager, "contentManager");
+        this.policies = Objects.requireNonNull(policies, "policies");
     }
 
     @Override
@@ -115,10 +125,24 @@ final class DefaultWindowManager implements WindowManager {
             return DockDecision.reject("dock.target.missing");
         }
         DockPlacement placement = request.placement();
-        if (placement == DockPlacement.INTO_GROUP || placement == DockPlacement.TAB_STRIP) {
-            return DockDecision.allow(placement);
+        if (placement != DockPlacement.INTO_GROUP && placement != DockPlacement.TAB_STRIP) {
+            return DockDecision.reject("dock.placement.unsupported");
         }
-        return DockDecision.reject("dock.placement.unsupported");
+        DockDecision decision = DockDecision.allow(placement);
+        for (DockPolicy policy : policies.get()) {
+            if (policy == null) {
+                continue;
+            }
+            DockDecision policyDecision = policy.evaluate(request);
+            if (policyDecision == null) {
+                continue;
+            }
+            if (!policyDecision.allowed()) {
+                return policyDecision;
+            }
+            decision = policyDecision;
+        }
+        return decision;
     }
 
     @Override

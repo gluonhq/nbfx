@@ -24,6 +24,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.Pane;
 import org.junit.Test;
+import java.util.List;
 import java.util.Set;
 import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.DockPlacement;
@@ -88,6 +89,37 @@ public class WindowManagerTest {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
                 NbfxTabPane.unregister(custom);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void dockPolicyCanReject() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                WindowManager manager = new DefaultWindowManager(contentManager,
+                        () -> List.of(request -> DockDecision.reject("dock.policy.denied")));
+                ViewContent content = new ViewContent(new FakeView("policy.view", "Policy"));
+                contentManager.open(content);
+                Tab tab = new Tab("Policy");
+                NbfxTabPane.setViewId(tab, "policy.view");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockRequest request = new DockRequest(content.id(), main.groupId(), null,
+                        other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
+                DockDecision decision = manager.canDock(request);
+                assertTrue(!decision.allowed());
+                assertEquals("dock.policy.denied", decision.reasonKey());
+                DockResult result = manager.dock(request);
+                assertTrue(!result.decision().allowed());
+                assertSame(main.groupId(), manager.groupOf(content.id()).orElseThrow());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
             }
             return null;
         });

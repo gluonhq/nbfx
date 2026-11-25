@@ -227,6 +227,11 @@ api.plugins (T1)        → api.layer, api.resources
   split, float, redock, group close/undo and window enumeration remain for later C3 slices. The
   types live in `api.shell` for now to avoid a PaneRole dependency cycle; the target module map
   still places docking contracts in `api.docking`.
+- C3-2c adds `DockPolicy` in `api.shell`; `DefaultWindowManager.canDock` consults registered
+  policies after structural validation. The first rejection wins; an allowing policy may refine
+  the effective decision. Policy discovery currently uses `Lookup.getDefault()` through the
+  manager's default constructor; richer composition/predicates and `api.docking` placement remain
+  follow-ups.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and `resolve(...)` tries caller-supplied
   targets in priority order, returning the first handler whose target/source kind matches and

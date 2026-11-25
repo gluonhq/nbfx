@@ -244,6 +244,21 @@
             <class package="org.netbeans.api.nbfx.shell" name="DockResult"/>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.dock-policy">
+            <api name="netbeansfx_shell"/>
+            <summary>DockPolicy SPI consulted by WindowManager docking decisions.</summary>
+            <version major="1" minor="9"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DockPolicy</code>. <code>WindowManager.canDock</code> consults registered
+                policies after basic structural validation; the first rejection wins and an allowing
+                policy may refine the effective decision.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="DockPolicy"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

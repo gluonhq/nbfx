@@ -161,6 +161,7 @@ org.netbeans.api.nbfx.shell.DetachedBarsContext
 org.netbeans.api.nbfx.shell.DetachedBarsProvider
 org.netbeans.api.nbfx.shell.DockDecision
 org.netbeans.api.nbfx.shell.DockModifier
+org.netbeans.api.nbfx.shell.DockPolicy
 org.netbeans.api.nbfx.shell.DockRequest
 org.netbeans.api.nbfx.shell.DockResult
 org.netbeans.api.nbfx.shell.NavigatorRevealState
