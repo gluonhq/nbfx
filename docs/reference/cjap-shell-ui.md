@@ -1070,7 +1070,12 @@ Optional<Command> command = actionRegistry.resolve("save", contentLookup);
 ```
 
 `ActionLayerReader.readForContext(path, Lookup)` reads and filters references for a surface.
-`ActionRegistry` loads registered commands through `api.layer`.
+`ActionRegistry` loads registered commands through `api.layer`; provider commands remain a
+transitional fallback and valid layer registrations override the same provider id. `resolve` binds
+through `Command.forContext(Lookup)`: context-free commands keep their canonical instance, while
+context-aware commands may return a per-surface view. The legacy window-scoped path also honors
+layer ownership before consulting provider scoped variants and follows the observable active
+document, remaining disabled while no document is available.
 
 ### 10.4 Surfaces
 

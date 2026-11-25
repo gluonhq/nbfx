@@ -26,16 +26,16 @@ import java.lang.annotation.Target;
 /**
  * Registers a JavaFX action implemented by the annotated class.
  * <p>
- * The annotated class must be public, must have a public no-argument constructor and should be an
- * action body that the JavaFX frontend can run (for example a {@link java.lang.Runnable}). It is
- * published in the generated layer under {@code NbFx/Actions/<id>.instance} together with its
+ * The annotated class must be public, concrete, must have a public no-argument constructor and must
+ * implement {@link Command}. It is published in the generated layer under
+ * {@code NbFx/Actions/<id>.instance} together with its
  * display metadata, and can then be referenced from menus, tool bars and context menus with
  * {@link ActionReference}.
  *
  * @since 1.0
  */
 @Retention(RetentionPolicy.SOURCE)
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target(ElementType.TYPE)
 public @interface ActionRegistration {
 
     /** The stable identifier of the action, unique across the application. */

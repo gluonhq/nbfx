@@ -22,24 +22,31 @@ import org.netbeans.api.nbfx.actions.ActionRegistry;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.actions.CommandsProvider;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.layer.LayerEntry;
+import org.netbeans.api.nbfx.layer.LayerInstances;
+import org.netbeans.api.nbfx.layer.LayerPaths;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Logger;
 
 import javafx.beans.value.ObservableValue;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Default {@link ActionRegistry}. On creation, it discovers every {@link CommandsProvider} in the
- * global Lookup and registers the commands each one contributes, so all action modules publish
- * their commands the same way. Scoped variants are created by asking the providers.
+ * Default {@link ActionRegistry}. On creation, it registers transitional {@link CommandsProvider}
+ * commands and then loads canonical {@link Command} instances from {@code NbFx/Actions} through
+ * {@link LayerInstances}. Layer registrations override provider commands with the same id.
  */
 @ServiceProvider(service = ActionRegistry.class)
 public class ActionRegistryImpl implements ActionRegistry {
@@ -47,15 +54,35 @@ public class ActionRegistryImpl implements ActionRegistry {
     private static final Logger LOG = Logger.getLogger(ActionRegistryImpl.class.getName());
 
     private final Map<String, Command> commands = new LinkedHashMap<>();
+    private final Set<String> layerCommandIds = new HashSet<>();
     private final List<CommandsProvider> providers;
 
     public ActionRegistryImpl() {
-        providers = List.copyOf(Lookup.getDefault().lookupAll(CommandsProvider.class));
-        if (providers.isEmpty()) {
-            LOG.warning("No CommandsProvider found; no built-in actions will be registered");
-        }
+        this(Lookup.getDefault(), FileUtil.getConfigFile(LayerPaths.ACTIONS));
+    }
+
+    ActionRegistryImpl(Lookup lookup, FileObject actionFolder) {
+        providers = List.copyOf(lookup.lookupAll(CommandsProvider.class));
         for (CommandsProvider provider : providers) {
             provider.createCommands().forEach(this::register);
+        }
+        for (LayerEntry<Command> entry : LayerInstances.load(actionFolder, Command.class)) {
+            Command command = entry.instance();
+            if (!entry.id().equals(command.getId())) {
+                LOG.warning("Action layer id " + entry.id() + " does not match command id "
+                        + command.getId() + "; ignoring " + entry.file().getPath());
+                try {
+                    command.dispose();
+                } catch (RuntimeException ex) {
+                    LOG.warning("Cannot dispose mismatched action " + entry.id() + ": " + ex.getMessage());
+                }
+                continue;
+            }
+            register(command);
+            layerCommandIds.add(entry.id());
+        }
+        if (providers.isEmpty() && commands.isEmpty()) {
+            LOG.warning("No CommandsProvider or NbFx/Actions registrations found");
         }
     }
 
@@ -79,6 +106,9 @@ public class ActionRegistryImpl implements ActionRegistry {
     public Optional<Command> createScoped(String id, ObservableValue<EditorDocument> activeDocument) {
         if (activeDocument == null) {
             return Optional.empty();
+        }
+        if (layerCommandIds.contains(id)) {
+            return find(id).map(command -> new ScopedLayerCommand(command, activeDocument));
         }
         for (CommandsProvider provider : providers) {
             Optional<Command> scoped = provider.createScoped(id, activeDocument);

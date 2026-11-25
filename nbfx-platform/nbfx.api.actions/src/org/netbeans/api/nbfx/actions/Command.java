@@ -21,6 +21,7 @@ package org.netbeans.api.nbfx.actions;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.scene.Node;
 import javafx.scene.input.KeyCombination;
+import org.openide.util.Lookup;
 
 /**
  * A single, context-aware application action (for example {@code Save} or {@code Save All}).
@@ -89,6 +90,18 @@ public interface Command {
      * the user. Invoked on the JavaFX Application Thread.
      */
     void run();
+
+    /**
+     * Binds this command to a context snapshot. Context-free commands return themselves; context-aware
+     * commands may return a fresh view whose enablement and execution use {@code context}.
+     *
+     * @param context the surface context snapshot
+     * @return the command view for {@code context}
+     * @since 2.0
+     */
+    default Command forContext(Lookup context) {
+        return this;
+    }
 
     /**
      * Releases any listeners this command installed.

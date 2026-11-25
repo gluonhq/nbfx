@@ -19,6 +19,7 @@
 package org.netbeans.api.nbfx.actions;
 
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.openide.util.Lookup;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -49,6 +50,18 @@ public interface ActionRegistry {
      * @return the command, or an empty optional if none is registered under {@code id}
      */
     Optional<Command> find(String id);
+
+    /**
+     * Resolves a command for a surface context snapshot.
+     *
+     * @param id the command id
+     * @param context the surface context
+     * @return the context-bound command, or empty if no command is registered
+     * @since 2.0
+     */
+    default Optional<Command> resolve(String id, Lookup context) {
+        return find(id).map(command -> command.forContext(context));
+    }
 
     /**
      * Returns all registered commands.
