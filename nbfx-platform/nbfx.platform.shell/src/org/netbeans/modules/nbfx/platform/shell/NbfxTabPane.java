@@ -1247,7 +1247,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         if (FileDragAndDrop.isWithinDropTarget(event.getTarget())) {
             return Optional.empty();
         }
-        List<org.netbeans.api.nbfx.content.DropTarget> targets = dropTargetsFor(tabPane);
+        List<org.netbeans.api.nbfx.content.DropTarget> targets = dropTargetsFor(tabPane, event);
         if (targets.isEmpty()) {
             return Optional.empty();
         }
@@ -1311,13 +1311,89 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         };
     }
 
-    private static List<org.netbeans.api.nbfx.content.DropTarget> dropTargetsFor(TabPane tabPane) {
+    private static List<org.netbeans.api.nbfx.content.DropTarget> dropTargetsFor(TabPane tabPane, DragEvent event) {
         if (!(tabPane instanceof NbfxTabPane nbfx)) {
             return List.of();
         }
-        return List.of(
-                new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.GROUP, nbfx.groupId().value()),
-                new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.AREA, nbfx.role().name()));
+        List<org.netbeans.api.nbfx.content.DropTarget> targets = new ArrayList<>();
+        tabAt(nbfx, event).flatMap(NbfxTabPane::contentIdForTab).ifPresent(id ->
+                targets.add(new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.CONTENT, id.value())));
+        targets.add(new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.GROUP, nbfx.groupId().value()));
+        targets.add(new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.AREA, nbfx.role().name()));
+        return List.copyOf(targets);
+    }
+
+    private static Optional<Tab> tabAt(NbfxTabPane tabPane, DragEvent event) {
+        Node picked = event.getPickResult() == null ? null : event.getPickResult().getIntersectedNode();
+        if (picked == null) {
+            return Optional.empty();
+        }
+        Node tabNode = picked;
+        while (tabNode != null) {
+            if (isTabHeaderNode(tabNode) && belongsToTabPane(tabNode, tabPane)) {
+                break;
+            }
+            tabNode = tabNode.getParent();
+        }
+        if (tabNode == null || !isTabHeaderNode(tabNode) || !belongsToTabPane(tabNode, tabPane)) {
+            return Optional.empty();
+        }
+        List<Node> tabNodes = tabPane.lookupAll(".tab").stream()
+                .filter(NbfxTabPane::isTabHeaderNode)
+                .filter(n -> belongsToTabPane(n, tabPane))
+                .sorted(java.util.Comparator.comparingDouble(n -> n.localToScene(n.getBoundsInLocal()).getMinX()))
+                .toList();
+        int index = tabNodes.indexOf(tabNode);
+        if (index < 0 || index >= tabPane.getTabs().size()) {
+            return Optional.empty();
+        }
+        Tab tab = tabPane.getTabs().get(index);
+        return tab.getStyleClass().contains(TabDropIndicator.PLACEHOLDER_TAB_CLASS)
+                ? Optional.empty() : Optional.of(tab);
+    }
+
+    private static boolean isTabHeaderNode(Node node) {
+        if (node == null || !node.getStyleClass().contains("tab")) {
+            return false;
+        }
+        Node parent = node.getParent();
+        if (parent == null) {
+            return false;
+        }
+        return parent.getStyleClass().contains("tab-container")
+                || parent.getStyleClass().contains("headers-region");
+    }
+
+    private static boolean belongsToTabPane(Node node, TabPane tabPane) {
+        for (Node n = node; n != null; n = n.getParent()) {
+            if (n == tabPane) {
+                return true;
+            }
+            if (n instanceof TabPane) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private static Optional<org.netbeans.api.nbfx.content.ContentId> contentIdForTab(Tab tab) {
+        String viewId = viewId(tab);
+        if (viewId != null && !viewId.isBlank()) {
+            return Optional.of(org.netbeans.api.nbfx.content.ContentId.of("nbfx:view." + viewId));
+        }
+        EditorDocument doc = documentOf(tab);
+        if (doc != null) {
+            org.netbeans.api.nbfx.content.ContentManager cm =
+                    Lookup.getDefault().lookup(org.netbeans.api.nbfx.content.ContentManager.class);
+            if (cm != null) {
+                for (org.netbeans.api.nbfx.content.Content content : cm.openContent()) {
+                    if (content instanceof EditorContent ec && doc.equals(ec.document())) {
+                        return Optional.of(content.id());
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private static TransferMode[] toFxTransferMode(org.netbeans.api.nbfx.content.TransferMode mode) {

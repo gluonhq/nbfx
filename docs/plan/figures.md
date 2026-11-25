@@ -24,7 +24,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 61 |
 | files using `NbBundle` | 169 |
 | `Bundle.properties` files | 73 |
-| test files | 146 |
+| test files | 147 |
 | modules with tests | 45 of 71 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
