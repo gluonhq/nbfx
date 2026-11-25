@@ -136,6 +136,33 @@
             <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRenderer"/>
             <class package="org.netbeans.api.nbfx.shell" name="ShellChromeProfile"/>
         </change>
+        <change id="cjap.shell.profiles">
+            <api name="netbeansfx_shell"/>
+            <summary>Declarative per-window chrome profile contracts and discovery.</summary>
+            <version major="1" minor="4"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ShellProfileSpec</code>, <code>ShellProfileRegistry</code>,
+                <code>@ShellProfileRegistration</code>, <code>ShellProfileHint</code>,
+                <code>ChromeProfilePolicy</code>, <code>WindowKind</code>, <code>WindowDecoration</code>
+                and <code>WindowOptions</code>. <code>ShellChromeProfile.includeRegion</code> lets a
+                profile narrow the regions declared for its id. Neutral profiles and region
+                allow-lists land in <code>nbfx.platform.shell</code>; selection and persisted restore
+                follow in subsequent C2-6 slices.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="ChromeProfilePolicy"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileHint"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileSpec"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileRegistry"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileRegistration"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellProfileRegistrations"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellChromeProfile"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowKind"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowDecoration"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowOptions"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

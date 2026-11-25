@@ -59,6 +59,9 @@ public final class LayerPaths {
     /** Declarative shell chrome regions and their contribution/action children. */
     public static final String SHELL_REGIONS = "NbFx/ShellRegions";
 
+    /** Declarative per-window shell chrome profiles. */
+    public static final String SHELL_PROFILES = "NbFx/ShellProfiles";
+
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 

@@ -266,6 +266,21 @@ domain PR that deletes the old API, not before the replacement exists.
 The existing `DockArea` interaction implementation is adapted as the first runtime host; its
 split/minimize/maximize/drop behavior and tests are preserved.
 
+### 19. Review resolution: chrome-profile composition
+
+- `NbFx/ShellProfiles` contains immutable metadata only; it does not instantiate profile classes.
+- `ShellProfileSpec` carries a stable id, optional `WindowKind`/decoration, a region allow-list and
+  the system-menu-bar flag. `ShellProfileHint` is the neutral content/group lookup capability.
+- `ChromeProfilePolicy` supplies product defaults by window kind and a fallback id. `Product` carries
+  only the policy id, not executable shell state.
+- Region metadata and profile allow-lists are intersected. Neutral region slots have no profile
+  restriction so product-defined profiles can reuse them, including the runtime-owned `DOCK`.
+- Existing `ShellChromeProfile` predicates remain valid. Their default id is `main`, and the new
+  region predicate defaults to inclusive, so C2-6a is source-compatible.
+- Profile selection, action/menu/toolbar consumption and `WindowState.profileId` persistence are
+  separate C2-6 slices. Persisted state round-trip does not imply restored-frame selection; that
+  sequencing is completed with C3-3.
+
 ## Consequences
 
 - Public API breaks are accepted and coordinated by domain.
@@ -290,7 +305,6 @@ split/minimize/maximize/drop behavior and tests are preserved.
 - exact `ViewArea` type/template model;
 - whether `PaneKind` remains a closed enum;
 - final `WindowStateStore` naming;
-- layer-only vs product-metadata shell profiles;
 - `NodeView` module placement;
 - cross-window content routing ownership.
 

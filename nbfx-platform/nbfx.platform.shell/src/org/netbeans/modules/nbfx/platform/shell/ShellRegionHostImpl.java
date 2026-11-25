@@ -110,7 +110,9 @@ public final class ShellRegionHostImpl implements ShellRegionHost, AutoCloseable
     @Override
     public List<ShellRegionSpec> regions(ShellChromeProfile profile) {
         Objects.requireNonNull(profile, "profile");
-        return List.copyOf(regionSupplier.apply(profile.id()));
+        return regionSupplier.apply(profile.id()).stream()
+                .filter(region -> profile.includeRegion(region.id()))
+                .toList();
     }
 
     @Override

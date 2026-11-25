@@ -318,12 +318,19 @@ and View-menu controls; duplicate providers, missing DOCK mounts and invalid roo
 
 #### T2.6 — Window chrome profiles
 
-- `ShellChromeProfile`/`ShellProfileSpec`.
-- `NbFx/ShellProfiles` declarations.
-- `WindowOptions.profile`.
-- Profile hints and fallback.
+- C2-6a: `ShellProfileSpec`, `ShellProfileRegistry`, repeatable `@ShellProfileRegistration`,
+  `ShellProfileHint`, `ChromeProfilePolicy`, `WindowKind`, `WindowDecoration` and `WindowOptions`.
+- `NbFx/ShellProfiles` declarations and neutral `main`, `floating-editor`, `floating-tool` and
+  `presentation` profiles; profile allow-lists intersect region applicability in `ShellRegionHost`.
+- C2-6b: explicit/hint/product-policy/neutral selection, selected-profile publication in
+  `ShellContext`, and profile-aware menu/toolbar/action-reference consumption.
+- C2-6c: optional `WindowState.profileId` persistence with backward-compatible state loading.
+  Restored-profile selection before frame creation is completed with C3-3 multi-window restore.
 
-Acceptance: MAIN/FLOATING/CUSTOM windows select different chrome; restored windows retain profile.
+Acceptance for C2-6a: profile metadata round-trips through annotations/layer discovery, malformed
+entries are isolated, neutral profiles expose exactly one reusable `DOCK`, and allow-lists narrow
+neutral/product regions without breaking legacy predicate profiles. Full task acceptance remains:
+MAIN/FLOATING/CUSTOM windows select different chrome and restored windows retain their profile.
 
 ### Phase 3 — Docking runtime and windows
 

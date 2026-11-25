@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.shell;
 
+import java.util.Objects;
+
 /** Shared validation for atomic shell metadata tokens. */
 final class ShellTokens {
 
@@ -28,5 +30,13 @@ final class ShellTokens {
         return value != null && !value.isBlank()
                 && value.chars().noneMatch(character -> Character.isWhitespace(character)
                         || Character.isISOControl(character) || character == ',');
+    }
+
+    static String require(String value, String field) {
+        Objects.requireNonNull(value, field);
+        if (!isToken(value)) {
+            throw new IllegalArgumentException(field + " must be an atomic token");
+        }
+        return value;
     }
 }

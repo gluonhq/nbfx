@@ -143,6 +143,18 @@
             </description>
             <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
         </change>
+        <change id="cjap.shell.profiles.path">
+            <api name="netbeansfx_layer"/>
+            <summary>Layer path for declarative shell chrome profiles.</summary>
+            <version major="1" minor="10"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerPaths.SHELL_PROFILES</code> for per-window chrome profile metadata.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

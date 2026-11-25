@@ -36,8 +36,8 @@
       shell: the window facade and pane/tab manager, pane roles and hosts, the chrome and branding
       contracts, the UI-ready hook, the window-environment capabilities, the shutdown contract and
       the pane-provider SPI, the window-system lifecycle and its <code>WindowSink</code>/<code>WindowState</code>
-      model, plus CJAP declarative shell-region metadata, provider/frame contracts and region-host
-      lifecycle. The shell implementation is
+      model, plus CJAP declarative shell-region/profile metadata, provider/frame contracts and
+      region-host lifecycle. The shell implementation is
       <code>nbfx.platform.shell</code>.
     </p>
   </answer>
@@ -52,8 +52,8 @@
     </p>
     <api name="org.netbeans.api.nbfx.shell" group="java" type="export" category="devel"
          url="@TOP@/org/netbeans/api/nbfx/shell/package-summary.html">
-      Product-facing shell contracts, including Node-free CJAP region metadata. This API remains devel
-      until the CJAP reference product and scenarios pass.
+      Product-facing shell contracts, including Node-free CJAP region/profile metadata and window
+      options. This API remains devel until the CJAP reference product and scenarios pass.
     </api>
     <api name="org.netbeans.api.nbfx.shell.shutdown" group="java" type="export" category="devel"
          url="@TOP@/org/netbeans/api/nbfx/shell/shutdown/package-summary.html">
@@ -83,6 +83,8 @@
           metadata discovery never constructs classes or Nodes.</li>
       <li>A product supplies a <code>ShellProvider</code>/<code>ShellFrame</code> while the runtime owns
           region mounting, update and disposal through <code>ShellRegionHost</code>.</li>
+      <li>A product declares per-window chrome with <code>@ShellProfileRegistration</code> and reads
+          immutable metadata through <code>ShellProfileRegistry</code>.</li>
     </ul>
   </answer>
 
@@ -96,6 +98,10 @@
       layer equality. Contribution tests cover loader-free metadata discovery, strict attributes,
       profile filtering before construction, fresh per-shell instances and <code>DOCK</code> exclusion.
       Frame API tests cover profile ids, context validation and optional renderer disposal.
+       Profile tests cover immutable allow-lists/policies/options, strict direct-folder discovery,
+       malformed-entry isolation, generated layer equality and service discovery. Runtime tests cover
+       neutral profile declarations and the intersection of region applicability with profile
+       allow-lists, including reuse of neutral slots by product-defined profiles.
     </p>
   </answer>
 
@@ -122,19 +128,21 @@
   <answer id="lookup-register">
     <p>The host module registers its implementations; this module only defines the contracts.
       <code>@ServiceProvider(service = Processor.class)</code> registers
-      <code>ShellRegionRegistrationProcessor</code> and <code>ShellContributionRegistrationProcessor</code>
-      at compile time.</p>
+      <code>ShellRegionRegistrationProcessor</code>, <code>ShellContributionRegistrationProcessor</code>
+      and <code>ShellProfileRegistrationProcessor</code> at compile time.</p>
   </answer>
 
   <answer id="resources-layer">
     <p><code>@ShellRegionRegistration</code> writes direct region metadata folders under
-      <code>NbFx/ShellRegions</code>. Direct <code>.instance</code> children may declare
-      <code>ShellContribution</code> implementations; nested menu/action folders are not region or
-      contribution metadata.</p>
+      <code>NbFx/ShellRegions</code>; <code>@ShellProfileRegistration</code> writes direct profile
+      metadata folders under <code>NbFx/ShellProfiles</code>. Direct <code>.instance</code> children of
+      a region may declare <code>ShellContribution</code> implementations; nested menu/action folders
+      are not region, profile or contribution metadata.</p>
   </answer>
 
   <answer id="resources-read">
-    <p><code>ShellRegionRegistry</code> reads direct region folders. <code>ShellContributionRegistry</code>
+    <p><code>ShellRegionRegistry</code> and <code>ShellProfileRegistry</code> read direct metadata
+      folders and return immutable snapshots. <code>ShellContributionRegistry</code>
       reads direct class-based <code>.instance</code> children through <code>LayerInstances</code> and
       never uses <code>DataObject</code>, <code>DataNode</code> or <code>InstanceCookie</code>. It performs
       no implicit filesystem or network access.</p>
@@ -148,8 +156,8 @@
     <p>
       Window and scene-graph operations run on the JavaFX Application Thread. The shutdown
       confirmation runs on that thread, while the selected cleanup runs off it. CJAP region ids,
-      specs, annotation processing and metadata discovery are Node-free and stateless. Contribution
-      construction creates fresh per-shell instances. Provider/frame creation and region
+      specs, profile/policy metadata, annotation processing and discovery are Node-free and stateless.
+      Contribution construction creates fresh per-shell instances. Provider/frame creation and region
       mount/update/dispose run on the JavaFX Application Thread under the runtime mount owner's
       lifecycle.
     </p>

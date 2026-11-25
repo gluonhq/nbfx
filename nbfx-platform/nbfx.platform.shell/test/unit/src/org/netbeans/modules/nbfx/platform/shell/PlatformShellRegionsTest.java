@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 import java.util.List;
 import java.util.Set;
 import org.junit.Test;
+import org.netbeans.api.nbfx.shell.ShellProfileRegistry;
 import org.netbeans.api.nbfx.shell.ShellRegionId;
 import org.netbeans.api.nbfx.shell.ShellRegionKind;
 import org.netbeans.api.nbfx.shell.ShellRegionRegistry;
@@ -45,6 +46,13 @@ public class PlatformShellRegionsTest {
                 .findFirst().orElseThrow();
         assertEquals(ShellRegionKind.DOCK, dock.kind());
         assertTrue(regions.stream().allMatch(ShellRegionSpec::visibleByDefault));
-        assertTrue(regions.stream().allMatch(region -> region.profiles().equals(Set.of("main"))));
+        Set<String> profiles = Set.of("main", "floating-editor", "floating-tool", "presentation");
+        assertTrue(regions.stream().allMatch(region -> region.profiles().isEmpty()));
+        assertEquals(profiles, ShellProfileRegistry.discover().stream()
+                .map(profile -> profile.id()).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(profiles.stream().allMatch(profile -> ShellRegionRegistry.forProfile(profile).stream()
+                .filter(region -> region.kind().equals(ShellRegionKind.DOCK)).count() == 1));
+        assertEquals(1, ShellRegionRegistry.forProfile("product:custom").stream()
+                .filter(region -> region.kind().equals(ShellRegionKind.DOCK)).count());
     }
 }

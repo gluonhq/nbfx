@@ -137,6 +137,7 @@ org.netbeans.api.nbfx.property.PropertyEditorRegistration
 org.netbeans.api.nbfx.property.SimpleObservablePropertyModel
 org.netbeans.api.nbfx.resources.ResourceRef
 org.netbeans.api.nbfx.shell.AreaState
+org.netbeans.api.nbfx.shell.ChromeProfilePolicy
 org.netbeans.api.nbfx.shell.DetachedBarsContext
 org.netbeans.api.nbfx.shell.DetachedBarsProvider
 org.netbeans.api.nbfx.shell.NavigatorRevealState
@@ -157,6 +158,11 @@ org.netbeans.api.nbfx.shell.ShellContributionRegistry
 org.netbeans.api.nbfx.shell.ShellContributionSpec
 org.netbeans.api.nbfx.shell.ShellFrame
 org.netbeans.api.nbfx.shell.ShellIconProvider
+org.netbeans.api.nbfx.shell.ShellProfileHint
+org.netbeans.api.nbfx.shell.ShellProfileRegistration
+org.netbeans.api.nbfx.shell.ShellProfileRegistrations
+org.netbeans.api.nbfx.shell.ShellProfileRegistry
+org.netbeans.api.nbfx.shell.ShellProfileSpec
 org.netbeans.api.nbfx.shell.ShellProvider
 org.netbeans.api.nbfx.shell.ShellRegionContext
 org.netbeans.api.nbfx.shell.ShellRegionHost
@@ -170,8 +176,11 @@ org.netbeans.api.nbfx.shell.ShellRegionSpec
 org.netbeans.api.nbfx.shell.ShellWindow
 org.netbeans.api.nbfx.shell.ShellWindowProvider
 org.netbeans.api.nbfx.shell.TabHomeResolver
+org.netbeans.api.nbfx.shell.WindowDecoration
 org.netbeans.api.nbfx.shell.WindowEnvironmentContribution
+org.netbeans.api.nbfx.shell.WindowKind
 org.netbeans.api.nbfx.shell.WindowManager
+org.netbeans.api.nbfx.shell.WindowOptions
 org.netbeans.api.nbfx.shell.WindowPaneHost
 org.netbeans.api.nbfx.shell.WindowSink
 org.netbeans.api.nbfx.shell.WindowState

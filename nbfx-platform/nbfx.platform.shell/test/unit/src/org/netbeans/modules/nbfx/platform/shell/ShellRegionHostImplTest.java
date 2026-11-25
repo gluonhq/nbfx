@@ -49,6 +49,8 @@ import org.netbeans.api.nbfx.shell.ShellRegionContext;
 import org.netbeans.api.nbfx.shell.ShellRegionId;
 import org.netbeans.api.nbfx.shell.ShellRegionKind;
 import org.netbeans.api.nbfx.shell.ShellRegionSpec;
+import org.netbeans.api.nbfx.shell.ShellProfileSpec;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
@@ -169,6 +171,19 @@ public class ShellRegionHostImplTest {
             assertTrue(parent.getChildren().isEmpty());
             return null;
         });
+    }
+
+    @Test
+    public void profileAllowListIntersectsDeclaredRegions() {
+        ShellRegionSpec brand = spec(ShellRegionId.BRAND, ShellRegionKind.BRAND,
+                Set.of(), true);
+        ShellRegionSpec dock = spec(ShellRegionId.DOCK, ShellRegionKind.DOCK,
+                Set.of(), true);
+        ShellRegionHostImpl host = new ShellRegionHostImpl(CONTEXT, null, List.of(),
+                profile -> List.of(brand, dock), (id, profile) -> List.of(), id -> null);
+        ShellProfileSpec profile = new ShellProfileSpec("brand-only", WindowKind.CUSTOM,
+                Set.of(ShellRegionId.BRAND), null, true);
+        assertEquals(List.of(brand), host.regions(profile));
     }
 
     @Test

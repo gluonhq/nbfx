@@ -24,17 +24,17 @@ import org.netbeans.api.nbfx.shell.ShellRegionRegistrations;
 /** Neutral default shell-region declarations. */
 @ShellRegionRegistrations({
     @ShellRegionRegistration(id = "BRAND", kind = "BRAND", position = 10,
-            profiles = {"main"}, styleClass = "nbfx-shell-brand"),
+            styleClass = "nbfx-shell-brand"),
     @ShellRegionRegistration(id = "MENUBAR", kind = "MENUBAR", position = 20,
-            profiles = {"main"}, styleClass = "nbfx-shell-menubar"),
+            styleClass = "nbfx-shell-menubar"),
     @ShellRegionRegistration(id = "TOOLBAR", kind = "TOOLBAR", position = 30,
-            profiles = {"main"}, styleClass = "nbfx-shell-toolbar"),
+            styleClass = "nbfx-shell-toolbar"),
     @ShellRegionRegistration(id = "DOCK", kind = "DOCK", position = 40,
-            profiles = {"main"}, styleClass = "nbfx-shell-dock"),
+            styleClass = "nbfx-shell-dock"),
     @ShellRegionRegistration(id = "STATUS", kind = "STATUS", position = 50,
-            profiles = {"main"}, styleClass = "nbfx-shell-status"),
+            styleClass = "nbfx-shell-status"),
     @ShellRegionRegistration(id = "OVERLAY", kind = "OVERLAY", position = 60,
-            profiles = {"main"}, styleClass = "nbfx-shell-overlay")
+            styleClass = "nbfx-shell-overlay")
 })
 final class PlatformShellRegions {
 

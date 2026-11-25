@@ -78,6 +78,17 @@ public interface ShellChromeProfile {
         return "main";
     }
 
+    /**
+     * Whether a declarative shell region is included by this profile.
+     *
+     * @param regionId the declared region id
+     * @return whether the region is included
+     * @since 1.4
+     */
+    default boolean includeRegion(ShellRegionId regionId) {
+        return true;
+    }
+
     /** The all-inclusive profile. */
     static ShellChromeProfile all() {
         return ALL;

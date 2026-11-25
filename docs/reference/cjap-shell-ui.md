@@ -783,35 +783,66 @@ public record WindowOptions(
 
 ### 8.5 Chrome profiles
 
-`ShellChromeProfile` selects shell regions and entries per window.
+`ShellChromeProfile` selects shell regions and entries per window. Existing predicate-based profiles
+remain valid: `id()` defaults to `main` and `includeRegion(...)` defaults to `true`.
 
 Declarative profile:
+
+```java
+public record ShellProfileSpec(
+        String id,
+        WindowKind windowKind,
+        Set<ShellRegionId> regions,
+        WindowDecoration decoration,
+        boolean systemMenuBar) implements ShellChromeProfile {}
+```
 
 ```xml
 <folder name="floating-editor">
     <attr name="windowKind" stringvalue="FLOATING"/>
-    <attr name="regions" stringvalue="dock,toolbar,status,overlay"/>
+    <attr name="regions" stringvalue="nbfx:toolbar,nbfx:dock,nbfx:status,nbfx:overlay"/>
     <attr name="decoration" stringvalue="NATIVE"/>
     <attr name="systemMenuBar" boolvalue="false"/>
 </folder>
 ```
 
+Profiles live under `NbFx/ShellProfiles`. `@ShellProfileRegistration` is repeatable and generates the
+same folder schema; its region values accept built-in short forms and canonicalize them. Profile ids
+are case-sensitive atomic tokens. A profile folder id must additionally be file-safe. `windowKind`
+and `decoration` are optional enum values; `systemMenuBar` defaults to `true`. A missing/empty `regions`
+attribute adds no profile-level restriction. Present-but-wrong-typed or invalid attributes make only
+that profile malformed; discovery logs and skips it without affecting other profiles.
+
+Region applicability is intersected in two steps: `ShellRegionRegistry.forProfile(id)` applies the
+region's own `profiles` metadata, then `ShellRegionHost.regions(profile)` applies
+`ShellProfileSpec.includeRegion(...)`. An empty allow-list does not hide regions. Neutral built-in
+slots therefore have empty region profile sets and can be reused by product-defined profiles; each
+neutral profile narrows those slots with its own allow-list. `DOCK` remains runtime-owned.
+
 Default profiles:
 
-- `main`: brand/menu/ribbon-or-toolbar/dock/status/overlay;
-- `floating-editor`: compact toolbar/dock/status/overlay;
-- `floating-tool`: optional toolbar/dock-or-single/status/overlay;
-- `presentation`: dock/overlay only;
+- `main`: brand/menu/toolbar/dock/status/overlay;
+- `floating-editor`: toolbar/dock/status/overlay;
+- `floating-tool`: toolbar/dock/status/overlay;
+- `presentation`: dock/overlay only, undecorated;
 - product-defined profiles.
 
-Profile selection precedence:
+`ShellProfileHint(profileId)` is the neutral lookup capability for content/group defaults.
+`ChromeProfilePolicy` carries immutable product defaults by `WindowKind` plus a fallback profile id;
+`Product.chromeProfilePolicyId()` names that policy without embedding live shell objects in product
+metadata.
+
+Target selection precedence:
 
 1. explicit `WindowOptions.profile`;
-2. content/group profile hint;
+2. content/group `ShellProfileHint`;
 3. product default for `WindowKind`;
 4. platform neutral fallback.
 
-`WindowState` persists the profile id.
+C2-6 lands the profile contracts, registry, neutral declarations and region allow-list filtering
+first. Selection/publication, profile-aware menu and toolbar reading, and optional `WindowState.profileId`
+round-trip are subsequent slices. Restored-profile frame selection before window creation belongs to
+C3-3; state round-trip must not be presented as complete multi-window restore.
 
 ## 9. Shell frame and declarative chrome
 
@@ -910,9 +941,10 @@ nbfx:dock, nbfx:status, nbfx:overlay
 ```
 
 Short forms such as `BRAND`/`brand` are accepted case-insensitively. Product-defined ids/kinds are
-allowed and require `namespace:name`. The neutral default shell declares `BRAND`, `MENUBAR`,
-`TOOLBAR`, `DOCK`, `STATUS` and `OVERLAY` for the `main` profile; `RIBBON` is supported but product
-opt-in. `ShellRegionRegistry.discover()`, `find(id)` and
+allowed and require `namespace:name`. The neutral default shell declares reusable `BRAND`, `MENUBAR`,
+`TOOLBAR`, `DOCK`, `STATUS` and `OVERLAY` slots with no region-level profile restriction; neutral and
+product profiles select them through their allow-lists. `RIBBON` is supported but product opt-in.
+`ShellRegionRegistry.discover()`, `find(id)` and
 `forProfile(profileId)` return immutable metadata snapshots. Empty profile sets mean all profiles;
 non-empty sets match exact case-sensitive atomic ids (no commas or whitespace). `visibleByDefault` is
 independent of discovery. Present-but-wrong-typed layer attributes make the region malformed; they do
