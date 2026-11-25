@@ -569,18 +569,20 @@ Acceptance: CJAP API set frozen for release.
 | C1-2 | builder/XML/annotations/validation | C1-1 |
 | C1-3 | persistence model + migration fixture | C1-1, C4-1 |
 | C2-1 | `Product` + metadata | C0-2 |
-| C2-2 | shell-region layer/registry/contributions | C1-1, C2-1 |
-| C2-3 | action registration/reference reuse | C2-2 |
-| C2-4 | `ShellProvider`/`ShellFrame`/profiles | C2-2, C2-3 |
+| C2-2 | shell-region layer/registry/defaults | C1-1, C2-1 |
+| C2-3 | shell contributions/lifecycle | C2-2 |
+| C2-4 | action registration/reference reuse | C2-3 |
+| C2-5 | `ShellProvider`/`ShellFrame`/region host | C2-2, C2-4 |
+| C2-6 | window chrome profiles | C2-5 |
 | C3-1 | `DockRuntime` + tabbed/single hosts | C1-2 |
 | C3-2 | `WindowManager` transfer/split/float | C3-1 |
-| C3-3 | multi-window + profiles + persistence | C2-4, C3-2 |
+| C3-3 | multi-window + profiles + persistence | C2-6, C3-2 |
 | C3-4 | focus/minimize/maximize/slide | C3-2 |
 | C4-1 | `Content`/`ContentManager` | C3-1 |
 | C4-2 | views/dynamic views/editor integration | C4-1 |
 | C4-3 | sources/drop/transfer | C4-1 |
 | C5-1 | node model + NodeView | C4-1 |
-| C5-2 | scoped actions/context menus | C5-1, C2-3 |
+| C5-2 | scoped actions/context menus | C5-1, C2-4 |
 | C6-1 | theme API/scopes/tokens | C2-4 |
 | C6-2 | design system/status/overlay | C6-1, C5-1 |
 | C7-1 | workspace/settings/diagnostics | C4-1 |

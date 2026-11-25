@@ -938,7 +938,8 @@ Node contribution:
 ```xml
 <file name="product.instance"
       instanceClass="org.example.ProductBrandBar"
-      position="10"/>
+      position="10"
+      profiles="main"/>
 ```
 
 Action reference:
@@ -974,16 +975,23 @@ public final class BrandRegionDeclaration {}
 ```
 
 ```java
-@ShellContributionRegistration(region = "brand", position = 10)
+@ShellContributionRegistration(region = "brand", position = 10, profiles = {"main"})
 public final class ProductBrandBar implements ShellContribution {
     @Override public Node create(ShellContext context) { ... }
+    @Override public void dispose() { ... }
 }
 ```
 
 The layer owns region/position/profile metadata. The annotation accepts strings so product-defined
 kinds do not require a platform constants class. `styleClass` is one CSS class token and maps to the
 region's `AreaStyle` class set; richer style resources are authored in layer XML. The contribution does not hardcode placement.
-Contribution/renderer registration is owned by the subsequent shell-contribution and frame slices.
+
+`ShellContributionRegistry.discover()` reads metadata without constructing classes or Nodes.
+`discover(region, profileId)` filters by exact atomic profile ids before construction, and
+`load(region, profileId)` creates fresh per-shell instances. Returned entries are never cached or shared;
+the mount owner must call `ShellContribution.dispose()` when releasing them. `create` returns a fresh,
+unparented Node on the JavaFX Application Thread. `DOCK` is runtime-owned and rejects ordinary
+contributions. Node mounting, detachment and idempotent host disposal belong to the shell-frame slice.
 
 ### 9.7 Region renderers
 

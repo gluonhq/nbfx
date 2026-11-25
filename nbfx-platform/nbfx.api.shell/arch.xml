@@ -78,6 +78,8 @@
           <code>ShellWindowProvider</code>.</li>
       <li>A product declares shell chrome slots with <code>@ShellRegionRegistration</code> and reads
           immutable metadata through <code>ShellRegionRegistry</code>.</li>
+      <li>A product contributes fresh per-shell Nodes with <code>@ShellContributionRegistration</code>;
+          metadata discovery never constructs classes or Nodes.</li>
     </ul>
   </answer>
 
@@ -88,7 +90,8 @@
       API is under development until the MVP freeze, after which signature tests
       (<code>sigtest</code>) are enabled. CJAP region tests cover id/kind canonicalization, immutable
       specs, direct-folder discovery, profile filtering, malformed/duplicate isolation and generated
-      layer equality.
+      layer equality. Contribution tests cover loader-free metadata discovery, strict attributes,
+      profile filtering before construction, fresh per-shell instances and <code>DOCK</code> exclusion.
     </p>
   </answer>
 
@@ -115,17 +118,22 @@
   <answer id="lookup-register">
     <p>The host module registers its implementations; this module only defines the contracts.
       <code>@ServiceProvider(service = Processor.class)</code> registers
-      <code>ShellRegionRegistrationProcessor</code> at compile time.</p>
+      <code>ShellRegionRegistrationProcessor</code> and <code>ShellContributionRegistrationProcessor</code>
+      at compile time.</p>
   </answer>
 
   <answer id="resources-layer">
     <p><code>@ShellRegionRegistration</code> writes direct region metadata folders under
-      <code>NbFx/ShellRegions</code>. Nested contribution/menu/action children are not region metadata.</p>
+      <code>NbFx/ShellRegions</code>. Direct <code>.instance</code> children may declare
+      <code>ShellContribution</code> implementations; nested menu/action folders are not region or
+      contribution metadata.</p>
   </answer>
 
   <answer id="resources-read">
-    <p><code>ShellRegionRegistry</code> reads direct region folders from the configuration layer and
-      ignores nested folders as regions. It performs no implicit filesystem or network access.</p>
+    <p><code>ShellRegionRegistry</code> reads direct region folders. <code>ShellContributionRegistry</code>
+      reads direct class-based <code>.instance</code> children through <code>LayerInstances</code> and
+      never uses <code>DataObject</code>, <code>DataNode</code> or <code>InstanceCookie</code>. It performs
+      no implicit filesystem or network access.</p>
   </answer>
 
   <answer id="resources-preferences">
@@ -136,7 +144,9 @@
     <p>
       Window and scene-graph operations run on the JavaFX Application Thread. The shutdown
       confirmation runs on that thread, while the selected cleanup runs off it. CJAP region ids,
-      specs, annotation processing and metadata discovery are Node-free and stateless.
+      specs, annotation processing and metadata discovery are Node-free and stateless. Contribution
+      construction creates fresh per-shell instances; <code>create</code>/<code>dispose</code> run on the
+      JavaFX Application Thread under the future mount owner's lifecycle.
     </p>
   </answer>
 

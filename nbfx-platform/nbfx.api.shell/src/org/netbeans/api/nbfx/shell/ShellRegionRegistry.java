@@ -114,14 +114,14 @@ public final class ShellRegionRegistry {
             String profileText = stringAttribute(folder, "profiles", "").trim();
             if (!profileText.isEmpty()) {
                 for (String item : profileText.split("[,\\s]+", -1)) {
-                    if (!isToken(item)) {
+                    if (!ShellTokens.isToken(item)) {
                         throw new IllegalArgumentException("profiles must be atomic tokens");
                     }
                     profiles.add(item);
                 }
             }
             String styleClass = stringAttribute(folder, "styleClass", "");
-            if (!styleClass.isEmpty() && !isToken(styleClass)) {
+            if (!styleClass.isEmpty() && !ShellTokens.isToken(styleClass)) {
                 throw new IllegalArgumentException("styleClass must be one CSS class token");
             }
             AreaStyle style = styleClass.isEmpty()
@@ -158,11 +158,5 @@ public final class ShellRegionRegistry {
             throw new IllegalArgumentException(name + " must be an integer");
         }
         return number;
-    }
-
-    private static boolean isToken(String value) {
-        return value != null && !value.isBlank()
-                && value.chars().noneMatch(character -> Character.isWhitespace(character)
-                        || Character.isISOControl(character) || character == ',');
     }
 }

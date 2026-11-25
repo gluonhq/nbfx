@@ -148,6 +148,12 @@ org.netbeans.api.nbfx.shell.ShellChromeProfile
 org.netbeans.api.nbfx.shell.ShellChromeProvider
 org.netbeans.api.nbfx.shell.ShellCommandResolver
 org.netbeans.api.nbfx.shell.ShellContext
+org.netbeans.api.nbfx.shell.ShellContribution
+org.netbeans.api.nbfx.shell.ShellContributionEntry
+org.netbeans.api.nbfx.shell.ShellContributionRegistration
+org.netbeans.api.nbfx.shell.ShellContributionRegistrations
+org.netbeans.api.nbfx.shell.ShellContributionRegistry
+org.netbeans.api.nbfx.shell.ShellContributionSpec
 org.netbeans.api.nbfx.shell.ShellIconProvider
 org.netbeans.api.nbfx.shell.ShellRegionId
 org.netbeans.api.nbfx.shell.ShellRegionKind

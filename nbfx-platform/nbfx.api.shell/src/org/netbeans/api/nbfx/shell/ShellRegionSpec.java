@@ -46,16 +46,10 @@ public record ShellRegionSpec(
         kind = Objects.requireNonNull(kind, "kind");
         profiles = Set.copyOf(Objects.requireNonNull(profiles, "profiles"));
         for (String profile : profiles) {
-            if (!isToken(profile)) {
+            if (!ShellTokens.isToken(profile)) {
                 throw new IllegalArgumentException("profile ids must be nonblank atomic tokens");
             }
         }
         style = Objects.requireNonNull(style, "style");
-    }
-
-    private static boolean isToken(String value) {
-        return value != null && !value.isBlank()
-                && value.chars().noneMatch(character -> Character.isWhitespace(character)
-                        || Character.isISOControl(character) || character == ',');
     }
 }

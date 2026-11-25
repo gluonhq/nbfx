@@ -95,6 +95,26 @@
             <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRegistration"/>
             <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRegistrations"/>
         </change>
+        <change id="cjap.shell.contributions">
+            <api name="netbeansfx_shell"/>
+            <summary>Per-shell Node contribution registration, discovery and instantiation.</summary>
+            <version major="1" minor="2"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>ShellContribution</code>, immutable metadata/entry records, a loader-free
+                registry with profile filtering and fresh per-shell instantiation, and
+                <code>@ShellContributionRegistration</code>. <code>DOCK</code> remains runtime-owned;
+                Node mounting and host lifecycle belong to the shell-frame slice.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContribution"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContributionSpec"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContributionEntry"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContributionRegistry"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContributionRegistration"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellContributionRegistrations"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
