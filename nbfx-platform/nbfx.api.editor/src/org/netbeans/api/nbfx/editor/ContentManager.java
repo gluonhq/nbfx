@@ -55,7 +55,7 @@ public interface ContentManager {
      *
      * @param document the document to show
      * @param graphic the icon of its tab, or {@code null} for none
-     * @since 1.3
+     * @since 1.4
      */
     default void openDocument(EditorDocument document, Node graphic) {
     }

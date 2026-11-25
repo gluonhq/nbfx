@@ -23,7 +23,7 @@ package org.netbeans.spi.nbfx.editor;
  * restores the tabs of the last session. Registered in the default lookup; a document names its
  * restorer in {@link org.netbeans.api.nbfx.editor.EditorDocument#getSavedState()}.
  *
- * @since 1.4
+ * @since 1.5
  */
 public interface DocumentRestorer {
 
