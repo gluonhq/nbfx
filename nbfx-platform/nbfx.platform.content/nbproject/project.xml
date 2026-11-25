@@ -38,6 +38,12 @@
                     <run-dependency><specification-version>8.68</specification-version></run-dependency>
                 </dependency>
                 <dependency>
+                    <code-name-base>org.openide.util</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency><specification-version>9.42</specification-version></run-dependency>
+                </dependency>
+                <dependency>
                     <code-name-base>org.netbeans.modules.nbfx.api.content</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>

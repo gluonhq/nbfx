@@ -188,8 +188,10 @@ api.plugins (T1)        → api.layer, api.resources
 - Persistence implementation follows the neutral content-id/state contract; C1-3 is resequenced.
 - C4-1 lands the content vocabulary and lifecycle in `api.content` (`ContentId`, `ContentKind`,
   `ContentState`, `Content`, `ContentFactory`, `ContentRequirements`, `ContentManager`) and the
-  per-application `DefaultContentManager` in `platform.content`. Content sources, drop handling and
-  overlays remain C4-3/C6-2; the manager accepts ready-made content until then.
+  per-application `DefaultContentManager` in `platform.content`. The per-content persistence owner
+  `ContentStateStore` stores only opaque payloads keyed by `ContentId` and instance key; ordering and
+  placement stay with the window state. Content sources, drop handling and overlays remain
+  C4-3/C6-2; the manager accepts ready-made content until then.
 
 ### 14. Review resolution: runtime ownership and public handles
 
