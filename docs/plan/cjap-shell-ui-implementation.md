@@ -280,8 +280,10 @@ source.
 - `NbFx/ShellRegions` layer schema.
 - `@ShellRegionRegistration`.
 - Built-in ids/kinds including `DOCK`.
+- Neutral default declarations for brand/menubar/toolbar/dock/status/overlay; ribbon remains opt-in.
 
-Acceptance: default shell declares brand/menu/toolbar/dock/status/overlay in the layer.
+Acceptance: default shell declares brand/menubar/toolbar/dock/status/overlay in the generated layer,
+with exactly one canonical `DOCK` region.
 
 #### T2.3 — Shell contributions
 

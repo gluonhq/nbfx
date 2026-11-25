@@ -896,7 +896,9 @@ nbfx:dock, nbfx:status, nbfx:overlay
 ```
 
 Short forms such as `BRAND`/`brand` are accepted case-insensitively. Product-defined ids/kinds are
-allowed and require `namespace:name`. `ShellRegionRegistry.discover()`, `find(id)` and
+allowed and require `namespace:name`. The neutral default shell declares `BRAND`, `MENUBAR`,
+`TOOLBAR`, `DOCK`, `STATUS` and `OVERLAY` for the `main` profile; `RIBBON` is supported but product
+opt-in. `ShellRegionRegistry.discover()`, `find(id)` and
 `forProfile(profileId)` return immutable metadata snapshots. Empty profile sets mean all profiles;
 non-empty sets match exact case-sensitive atomic ids (no commas or whitespace). `visibleByDefault` is
 independent of discovery. Present-but-wrong-typed layer attributes make the region malformed; they do
