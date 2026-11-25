@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import javafx.geometry.Side;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import org.netbeans.api.nbfx.content.Content;
@@ -37,6 +38,8 @@ import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.views.ViewContent;
+import org.netbeans.modules.nbfx.platform.workspace.DockArea;
+import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
 import org.openide.util.Lookup;
 
 /**
@@ -120,12 +123,27 @@ final class DefaultWindowManager implements WindowManager {
         if (contentManager.find(request.content()).isEmpty()) {
             return DockDecision.reject("dock.content.missing");
         }
-        DockGroupId target = resolveTargetGroup(request);
-        if (target == null || paneForGroup(target) == null) {
-            return DockDecision.reject("dock.target.missing");
-        }
         DockPlacement placement = request.placement();
-        if (placement != DockPlacement.INTO_GROUP && placement != DockPlacement.TAB_STRIP) {
+        if (isGroupPlacement(placement)) {
+            DockGroupId target = resolveTargetGroup(request);
+            if (target == null || paneForGroup(target) == null) {
+                return DockDecision.reject("dock.target.missing");
+            }
+        } else if (isSplitPlacement(placement)) {
+            DockArea<TabPane> area = Docking.area();
+            if (area == null) {
+                return DockDecision.reject("dock.target.missing");
+            }
+            DockGroupId target = resolveTargetGroup(request);
+            TabPane pane = paneForGroup(target);
+            if (!(pane instanceof NbfxTabPane) || !area.contains(pane)) {
+                return DockDecision.reject("dock.target.missing");
+            }
+        } else if (isEdgePlacement(placement)) {
+            if (Docking.area() == null) {
+                return DockDecision.reject("dock.target.missing");
+            }
+        } else {
             return DockDecision.reject("dock.placement.unsupported");
         }
         DockDecision decision = DockDecision.allow(placement);
@@ -142,6 +160,19 @@ final class DefaultWindowManager implements WindowManager {
             }
             decision = policyDecision;
         }
+        DockPlacement resolvedPlacement = decision.placement();
+        if (!isGroupPlacement(resolvedPlacement) && !isSplitPlacement(resolvedPlacement)
+                && !isEdgePlacement(resolvedPlacement)) {
+            return DockDecision.reject("dock.placement.unsupported");
+        }
+        if (isSplitPlacement(resolvedPlacement)) {
+            DockArea<TabPane> area = Docking.area();
+            DockGroupId target = resolveTargetGroup(request);
+            TabPane pane = paneForGroup(target);
+            if (area == null || !(pane instanceof NbfxTabPane) || !area.contains(pane)) {
+                return DockDecision.reject("dock.target.missing");
+            }
+        }
         return decision;
     }
 
@@ -151,14 +182,51 @@ final class DefaultWindowManager implements WindowManager {
         if (!decision.allowed()) {
             return DockResult.rejected(decision);
         }
-        DockGroupId target = resolveTargetGroup(request);
         Tab tab = findTab(request.content()).orElse(null);
-        TabPane pane = paneForGroup(target);
-        if (tab == null || pane == null) {
-            return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+        if (tab == null) {
+            return DockResult.rejected(DockDecision.reject("dock.content.missing"));
         }
-        NbfxTabPane.attachTab(pane, tab);
-        return DockResult.accepted(decision, target);
+        DockPlacement placement = decision.placement();
+        if (isGroupPlacement(placement)) {
+            DockGroupId target = resolveTargetGroup(request);
+            TabPane pane = paneForGroup(target);
+            if (pane == null) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            NbfxTabPane.attachTab(pane, tab);
+            return DockResult.accepted(decision, ((NbfxTabPane) pane).groupId());
+        }
+        if (isSplitPlacement(placement) || isEdgePlacement(placement)) {
+            DockArea<TabPane> area = Docking.area();
+            if (area == null) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            TabPane targetPane = isSplitPlacement(placement)
+                    ? paneForGroup(resolveTargetGroup(request)) : null;
+            if (isSplitPlacement(placement) && (targetPane == null || !area.contains(targetPane))) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            TabPane source = tab.getTabPane();
+            if (source != null && area.contains(source) && source.getTabs().size() == 1
+                    && (isEdgePlacement(placement) || source != targetPane)) {
+                DropTarget<TabPane> target = dropTargetFor(placement, targetPane);
+                area.relocate(source, target);
+                DockGroupId group = source instanceof NbfxTabPane nbfx ? nbfx.groupId() : null;
+                return group == null
+                        ? DockResult.rejected(DockDecision.reject("dock.target.missing"))
+                        : DockResult.accepted(decision, group);
+            }
+            if (source != null) {
+                source.getTabs().remove(tab);
+            }
+            TabPane created = area.split(dropTargetFor(placement, targetPane));
+            NbfxTabPane.moveTab(created, tab, 0);
+            DockGroupId group = created instanceof NbfxTabPane nbfx ? nbfx.groupId() : null;
+            return group == null
+                    ? DockResult.rejected(DockDecision.reject("dock.target.missing"))
+                    : DockResult.accepted(decision, group);
+        }
+        return DockResult.rejected(DockDecision.reject("dock.placement.unsupported"));
     }
 
     private DockGroupId resolveTargetGroup(DockRequest request) {
@@ -172,6 +240,31 @@ final class DefaultWindowManager implements WindowManager {
             }
         }
         return null;
+    }
+
+    private static boolean isGroupPlacement(DockPlacement placement) {
+        return placement == DockPlacement.INTO_GROUP || placement == DockPlacement.TAB_STRIP;
+    }
+
+    private static boolean isSplitPlacement(DockPlacement placement) {
+        return placement == DockPlacement.SPLIT_LEFT || placement == DockPlacement.SPLIT_RIGHT
+                || placement == DockPlacement.SPLIT_TOP || placement == DockPlacement.SPLIT_BOTTOM;
+    }
+
+    private static boolean isEdgePlacement(DockPlacement placement) {
+        return placement == DockPlacement.EDGE_LEFT || placement == DockPlacement.EDGE_RIGHT
+                || placement == DockPlacement.EDGE_TOP || placement == DockPlacement.EDGE_BOTTOM;
+    }
+
+    private static DropTarget<TabPane> dropTargetFor(DockPlacement placement, TabPane targetPane) {
+        Side side = switch (placement) {
+            case SPLIT_LEFT, EDGE_LEFT -> Side.LEFT;
+            case SPLIT_RIGHT, EDGE_RIGHT -> Side.RIGHT;
+            case SPLIT_TOP, EDGE_TOP -> Side.TOP;
+            case SPLIT_BOTTOM, EDGE_BOTTOM -> Side.BOTTOM;
+            default -> throw new IllegalArgumentException("Not a split/edge placement: " + placement);
+        };
+        return isEdgePlacement(placement) ? new DropTarget<>(null, side) : new DropTarget<>(targetPane, side);
     }
 
     private Optional<Tab> findTab(ContentId contentId) {

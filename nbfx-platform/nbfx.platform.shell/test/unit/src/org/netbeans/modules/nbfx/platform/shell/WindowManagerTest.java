@@ -147,13 +147,65 @@ public class WindowManagerTest {
                 DockResult result = manager.dock(request);
                 assertTrue(result.decision().allowed());
                 assertEquals(other.groupId(), result.group());
-                assertSame(other.groupId(), manager.groupOf(content.id()).orElseThrow());
+                assertEquals(other.groupId(), manager.groupOf(content.id()).orElseThrow());
 
                 DockRequest missing = new DockRequest(ContentId.of("nbfx:view.missing"), null, null,
                         other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
                 assertTrue(!manager.canDock(missing).allowed());
                 assertTrue(!manager.dock(missing).decision().allowed());
             } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void docksWithSplitAndEdgePlacements() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+
+                WindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("split.view", "Split"));
+                contentManager.open(content);
+                Tab tab = new Tab("Split");
+                NbfxTabPane.setViewId(tab, "split.view");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockRequest split = new DockRequest(content.id(), main.groupId(), null,
+                        main.groupId(), DockPlacement.SPLIT_RIGHT, TransferMode.MOVE, Set.of());
+                DockDecision decision = manager.canDock(split);
+                assertTrue(decision.allowed());
+                DockResult result = manager.dock(split);
+                assertTrue(result.decision().allowed());
+                DockGroupId createdGroup = result.group();
+                assertTrue(createdGroup != null && !createdGroup.equals(main.groupId()));
+                assertEquals(createdGroup, manager.groupOf(content.id()).orElseThrow());
+
+                DockRequest edge = new DockRequest(content.id(), createdGroup, PaneRole.MAIN,
+                        null, DockPlacement.EDGE_BOTTOM, TransferMode.MOVE, Set.of());
+                assertTrue(manager.canDock(edge).allowed());
+                DockResult edgeResult = manager.dock(edge);
+                assertTrue(edgeResult.decision().allowed());
+                assertEquals(edgeResult.group(), manager.groupOf(content.id()).orElseThrow());
+
+                DockRequest unsupported = new DockRequest(content.id(), null, null,
+                        main.groupId(), DockPlacement.FLOAT, TransferMode.MOVE, Set.of());
+                assertTrue(!manager.canDock(unsupported).allowed());
+            } finally {
+                for (javafx.scene.control.TabPane pane : new java.util.ArrayList<>(NbfxTabPane.panesByRole())) {
+                    if (pane instanceof NbfxTabPane nbfx && nbfx.role() == PaneRole.DOCKED) {
+                        NbfxTabPane.unregister(pane);
+                    }
+                }
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
             }
