@@ -115,6 +115,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private boolean sized;
     private DiffMode mode;
     private DiffPane pane;
+    /** The location of the file to show when the provider first answers; {@code null} once it has. */
+    private String preferred;
     /** Whether the diff shown last was on its Textual tab. */
     private boolean textual;
     /** Set while the table is filled: the selection is acted on once, when it is. */
@@ -125,7 +127,16 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private int busy;
 
     DiffBrowser(DiffProvider provider, DiffMode initial) {
+        this(provider, initial, null);
+    }
+
+    /**
+     * @param location the location of the file whose diff is shown at first, when the provider
+     *        has it; {@code null} for its first file
+     */
+    DiffBrowser(DiffProvider provider, DiffMode initial, String location) {
         this.provider = Objects.requireNonNull(provider);
+        this.preferred = location;
         List<DiffMode> modes = provider.modes();
         mode = initial != null && modes.contains(initial) ? initial : modes.isEmpty() ? null : modes.getFirst();
         getStyleClass().add("diff-browser");
@@ -244,6 +255,19 @@ final class DiffBrowser extends BorderPane implements DiffContent {
 
         ColumnState {
             Objects.requireNonNull(id);
+        }
+    }
+
+    /** Whether the diffs are shown as a unified diff, not side by side. */
+    boolean isTextual() {
+        return pane != null ? pane.isTextual() : textual;
+    }
+
+    /** Shows the diffs as a unified diff, or side by side. */
+    void setTextual(boolean shown) {
+        textual = shown;
+        if (pane != null) {
+            pane.setTextual(shown);
         }
     }
 
@@ -375,6 +399,15 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     /** Asks the provider again, and shows again the file that was selected if it is still there. */
     @Override
     public void refresh() {
+        refresh(false);
+    }
+
+    /**
+     * @param keep whether the diff shown stays as it is when its file is still listed - its texts
+     *        are not read again - as after its edits were saved, which changes what the table
+     *        says of the file, not what the diff shows
+     */
+    private void refresh(boolean keep) {
         long asked = ++listing;
         DiffMode compared = mode;
         busy++;
@@ -393,7 +426,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             Platform.runLater(() -> {
                 busy--;
                 if (asked == listing) {
-                    list(entries, why);
+                    list(entries, why, keep);
                 }
             });
         });
@@ -401,7 +434,12 @@ final class DiffBrowser extends BorderPane implements DiffContent {
 
     @Override
     public SavedDocument savedState() {
-        return provider.savedState(mode);
+        return provider.savedState(mode, selected());
+    }
+
+    @Override
+    public boolean keepsEditsOf(EditorDocument other) {
+        return unsaved.stream().anyMatch(kept -> kept.sharesContentWith(other));
     }
 
     @Override
@@ -458,7 +496,12 @@ final class DiffBrowser extends BorderPane implements DiffContent {
 
     private void updateModified() {
         EditorDocument shown = editor.get();
+        boolean was = modified.get();
         modified.set(shown != null && shown.isModified() || unsaved.stream().anyMatch(EditorDocument::isModified));
+        if (was && !modified.get() && pane != null) {
+            // Saved, here or in an editor of the file: it may be listed otherwise now, or no longer.
+            refresh(true);
+        }
     }
 
     /** Keeps the editor of a file left with edits, unless one of that file is kept already. */
@@ -471,13 +514,17 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         }
     }
 
-    private void list(List<DiffEntry> found, String failure) {
+    private void list(List<DiffEntry> found, String failure, boolean keep) {
         DiffEntry was = selected();
         entries = found;
+        // The file shown, if it is still there; when the diff opens, the one it was asked to show.
+        String location = was != null ? was.location() : preferred;
+        preferred = null;
         DiffEntry now = found.stream()
-                .filter(entry -> was != null && entry.name().equals(was.name())
-                        && entry.location().equals(was.location()))
+                .filter(entry -> entry.location().equals(location) && (was == null || entry.name().equals(was.name())))
                 .findFirst().orElse(found.isEmpty() ? null : found.getFirst());
+        boolean same = was != null && now != null && pane != null && now.location().equals(was.location())
+                && now.name().equals(was.name());
         arrange(now);
         if (split != null && !sized && !found.isEmpty()) {
             sized = true;
@@ -492,7 +539,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         if (now == null) {
             loading++;
             show((DiffPane) null, failure != null ? failure : message("Diff.noChanges"));
-        } else if (was == null || now != was) {
+        } else if (!(keep && same)) {
             load(now);
         }
     }
@@ -601,6 +648,11 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             summary.textProperty().bind(pane.summaryProperty());
             revertAll.disableProperty().bind(pane.revertAllButton().disableProperty());
             pane.setTextual(textual);
+            DiffPane current = pane;
+            pane.setOnTabChanged(() -> {
+                textual = current.isTextual();
+                layoutChanged();
+            });
             holder.getChildren().setAll(pane);
         }
     }

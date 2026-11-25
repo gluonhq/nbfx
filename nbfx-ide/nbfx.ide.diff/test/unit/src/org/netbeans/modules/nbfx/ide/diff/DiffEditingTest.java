@@ -24,6 +24,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BooleanSupplier;
 import javafx.scene.layout.Region;
 import org.junit.Rule;
@@ -129,6 +130,7 @@ public class DiffEditingTest {
     public void theEditsOfAFileLeftAreKeptUntilSaved() throws Exception {
         File first = onDisk("First.txt", "a\n");
         File second = onDisk("Second.txt", "b\n");
+        AtomicInteger asked = new AtomicInteger();
         DiffProvider provider = new DiffProvider() {
             @Override
             public List<DiffMode> modes() {
@@ -137,6 +139,7 @@ public class DiffEditingTest {
 
             @Override
             public List<DiffEntry> entries(DiffMode mode) {
+                asked.incrementAndGet();
                 return List.of(entry(first, "old a\n"), entry(second, "old b\n"));
             }
         };
@@ -168,6 +171,14 @@ public class DiffEditingTest {
             assertEquals("b\n", read(second));
             assertFalse(document.isModified());
             assertTrue(browser.unsaved().isEmpty());
+        });
+        // Saved: the files are listed again - they may be changed otherwise now - and the diff
+        // shown stays, as its texts are the same.
+        DiffPane shown = JavaFxTestSupport.onFx(browser::pane);
+        until(() -> asked.get() == 2 && !browser.isBusy());
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(shown == browser.pane());
+            assertEquals("Second.txt", browser.selected().name());
             browser.dispose();
         });
     }

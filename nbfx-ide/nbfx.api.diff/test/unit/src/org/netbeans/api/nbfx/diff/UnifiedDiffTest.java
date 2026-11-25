@@ -126,6 +126,41 @@ public class UnifiedDiffTest {
     }
 
     @Test
+    public void aLineEndingAddedOrTakenFromTheLastLineChangesIt() {
+        assertEquals("""
+                --- old
+                +++ new
+                @@ -1,2 +1,2 @@
+                 a
+                -b
+                \\ No newline at end of file
+                +b
+                """, unified("a\nb", "a\nb\n", 3).text());
+        assertEquals("""
+                --- old
+                +++ new
+                @@ -1,2 +1,2 @@
+                 a
+                -b
+                +b
+                \\ No newline at end of file
+                """, unified("a\nb\n", "a\nb", 3).text());
+        // With lines after it: the line is ended, and they follow.
+        UnifiedDiff more = unified("a\nb", "a\nb\nc\n", 3);
+        assertEquals("""
+                --- old
+                +++ new
+                @@ -1,2 +1,3 @@
+                 a
+                -b
+                \\ No newline at end of file
+                +b
+                +c
+                """, more.text());
+        assertEquals(List.of(4), more.differenceLines());
+    }
+
+    @Test
     public void sameTextsHaveNoDiff() {
         UnifiedDiff diff = unified("a\nb\n", "a\nb\n", 3);
 

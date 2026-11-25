@@ -29,7 +29,9 @@ import org.openide.filesystems.FileObject;
  * @param file the file whose text is shown; its name tells the editor how to colour it
  * @param path where the file is in what is compared, with {@code /} between its folders - in a
  *        repository, from its root - for the unified diff to name it by, as {@code a/path} and
- *        {@code b/path}; null to have it named by the title
+ *        {@code b/path}; one that starts with {@code /} is written as it is, without either -
+ *        {@code /dev/null}, for a file that this side does not have; null to have it named by
+ *        the title
  * @since 1.0
  */
 public record DiffSource(String title, FileObject file, String path) {
@@ -54,6 +56,6 @@ public record DiffSource(String title, FileObject file, String path) {
      * What the unified diff calls this side: its path after {@code prefix}, or its title.
      */
     String unifiedName(String prefix) {
-        return path == null ? title : prefix + path;
+        return path == null ? title : path.startsWith("/") ? path : prefix + path;
     }
 }

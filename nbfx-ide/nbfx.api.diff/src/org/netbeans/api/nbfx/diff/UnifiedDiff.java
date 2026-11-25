@@ -53,7 +53,9 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
      * The lines are those of {@link Diff#lines}: a text that ends with a line ending has an empty
      * last line, which is not written - it is the end of the line before it - and after the last
      * line of a text that does not end with one comes the line {@code \ No newline at end of
-     * file}, as {@code diff} writes it.
+     * file}, as {@code diff} writes it. When only one of the texts ends with a line ending, its last
+     * line is written as changed - taken out and put in again - though its characters are the same,
+     * as {@code diff} does: the line ending is part of the line.
      *
      * @param leftName what the left text is called in the first line
      * @param rightName what the right text is called in the second line
@@ -74,18 +76,19 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
         if (differences.isEmpty()) {
             return new UnifiedDiff("", List.of());
         }
+        List<Difference> blocks = withLastLine(left, right, differences);
         Writer writer = new Writer(left, right);
         writer.lines.add("--- " + leftName);
         writer.lines.add("+++ " + rightName);
         int from = 0;
-        while (from < differences.size()) {
+        while (from < blocks.size()) {
             int to = from + 1;
             // As long as the shared lines after one block reach those before the next.
-            while (to < differences.size()
-                    && differences.get(to).leftStart() - differences.get(to - 1).leftEnd() <= 2 * context) {
+            while (to < blocks.size()
+                    && blocks.get(to).leftStart() - blocks.get(to - 1).leftEnd() <= 2 * context) {
                 to++;
             }
-            writer.hunk(differences.subList(from, to), context);
+            writer.hunk(blocks.subList(from, to), context);
             from = to;
         }
         StringBuilder text = new StringBuilder();
@@ -93,6 +96,27 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
             text.append(line).append('\n');
         }
         return new UnifiedDiff(text.toString(), writer.differenceLines);
+    }
+
+    /**
+     * The blocks as they are written: when the last block starts right after the last line of the
+     * text that does not end with a line ending - the other text has that line too, and more after
+     * it, if only its ending - that line is taken into the block, on both sides. It is the same but
+     * for its ending, which the lines compared do not have.
+     */
+    private static List<Difference> withLastLine(List<String> left, List<String> right, List<Difference> differences) {
+        Difference last = differences.getLast();
+        boolean afterLeft = last.leftStart() == left.size() && last.leftCount() == 0;
+        boolean afterRight = last.rightStart() == right.size() && last.rightCount() == 0;
+        if (!afterLeft && !afterRight || last.leftStart() == 0 || last.rightStart() == 0
+                || left.get(last.leftStart() - 1).isEmpty() && afterLeft
+                || right.get(last.rightStart() - 1).isEmpty() && afterRight) {
+            return differences;
+        }
+        List<Difference> blocks = new ArrayList<>(differences);
+        blocks.set(blocks.size() - 1, new Difference(Difference.Kind.CHANGE, last.leftStart() - 1,
+                last.leftCount() + 1, last.rightStart() - 1, last.rightCount() + 1));
+        return blocks;
     }
 
     /** Writes the hunks, counting the lines of each side as they are written. */

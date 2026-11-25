@@ -58,7 +58,11 @@ public final class DiffView {
     public static void open(Object key, String name, Node icon, DiffSource left, DiffSource right) {
         Objects.requireNonNull(left, "left");
         Objects.requireNonNull(right, "right");
-        open(key, name, icon, () -> new DiffDocument(key, title(name), new DiffPane(left, right)));
+        open(key, name, icon, () -> {
+            DiffPane pane = new DiffPane(left, right);
+            DiffSettings.attach(pane);
+            return new DiffDocument(key, title(name), pane);
+        });
     }
 
     /**
@@ -76,9 +80,28 @@ public final class DiffView {
      * @since 1.1
      */
     public static void open(Object key, String name, Node icon, DiffProvider provider, DiffMode mode) {
+        open(key, name, icon, provider, mode, null);
+    }
+
+    /**
+     * As {@link #open(Object, String, Node, DiffProvider, DiffMode)}, showing at first the diff of
+     * the file at {@code location} when the provider has it - as a diff restored from the last
+     * session does - not that of its first file. A diff already open stays at the file it shows.
+     *
+     * @param key what the diff is of, by {@code equals}
+     * @param name the name in the title of the tab
+     * @param icon the icon of the tab, or {@code null}
+     * @param provider what differs, and how it can be compared
+     * @param mode the way to compare the diff opens in, or {@code null} for the provider's first
+     * @param location the {@link DiffEntry#location() location} of the file to show at first, or
+     *        {@code null} for the first
+     * @since 1.3
+     */
+    public static void open(Object key, String name, Node icon, DiffProvider provider, DiffMode mode,
+            String location) {
         Objects.requireNonNull(provider, "provider");
         open(key, name, icon, () -> {
-            DiffBrowser browser = new DiffBrowser(provider, mode);
+            DiffBrowser browser = new DiffBrowser(provider, mode, location);
             // As the last diff was left: a list or a tree, and the columns.
             DiffSettings.attach(browser);
             return new DiffDocument(key, title(name), browser);

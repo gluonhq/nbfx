@@ -62,4 +62,19 @@ public interface DiffProvider {
     default boolean listed() {
         return true;
     }
+
+    /**
+     * As {@link #savedState(DiffMode)}, with the file whose diff is shown, for the diff to open
+     * again at it: its {@link DiffEntry#location() location} is what
+     * {@link DiffView#open(Object, String, javafx.scene.Node, DiffProvider, DiffMode, String)} takes.
+     * The default leaves the file out.
+     *
+     * @param mode the way to compare the diff is in
+     * @param selected the file whose diff is shown, or {@code null}
+     * @return who can open it again and what of, or {@code null}
+     * @since 1.3
+     */
+    default SavedDocument savedState(DiffMode mode, DiffEntry selected) {
+        return savedState(mode);
+    }
 }

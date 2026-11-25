@@ -84,6 +84,70 @@ public class DiffBrowserTest {
     }
 
     @Test
+    public void opensAtTheFileAskedForAndSavesTheOneShown() throws Exception {
+        Files files = new Files();
+        List<String> saved = new CopyOnWriteArrayList<>();
+        DiffProvider provider = new DiffProvider() {
+            @Override
+            public List<DiffMode> modes() {
+                return files.modes();
+            }
+
+            @Override
+            public List<DiffEntry> entries(DiffMode mode) {
+                return files.entries(mode);
+            }
+
+            @Override
+            public SavedDocument savedState(DiffMode mode, DiffEntry selected) {
+                saved.add(selected == null ? "none" : selected.location());
+                return new SavedDocument("test-diff", mode.id());
+            }
+        };
+        DiffBrowser browser = JavaFxTestSupport.onFx(() -> new DiffBrowser(provider, ALL, "src/B.txt"));
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("B.txt", browser.selected().name());
+            assertEquals("2 differences", browser.summary());
+            browser.savedState();
+            assertEquals(List.of("src/B.txt"), saved);
+            browser.dispose();
+        });
+
+        // One it does not have: its first, as without.
+        DiffBrowser other = JavaFxTestSupport.onFx(() -> new DiffBrowser(files, ALL, "src/Gone.txt"));
+        await(other);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("A.txt", other.selected().name());
+            other.dispose();
+        });
+    }
+
+    @Test
+    public void theTabChosenIsToldAndKeptForTheDiffsToCome() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        int[] told = new int[1];
+        JavaFxTestSupport.onFx(() -> {
+            browser.setTextual(true);
+            browser.setOnLayoutChanged(() -> told[0]++);
+        });
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(browser.isTextual());
+            assertTrue(browser.pane().isTextual());
+            browser.pane().graphicalTab().fire();
+            assertFalse(browser.isTextual());
+        });
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(1, told[0]);
+            browser.dispose();
+        });
+    }
+
+    @Test
     public void listsTheFilesAndShowsTheDiffOfTheFirst() throws Exception {
         Files files = new Files();
         DiffBrowser browser = browser(files, null);

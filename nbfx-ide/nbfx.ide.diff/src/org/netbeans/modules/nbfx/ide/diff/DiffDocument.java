@@ -120,7 +120,7 @@ final class DiffDocument implements EditorDocument {
     @Override
     public boolean sharesContentWith(EditorDocument other) {
         EditorDocument edited = editor.getValue();
-        return this == other || edited != null && edited.sharesContentWith(other);
+        return this == other || edited != null && edited.sharesContentWith(other) || content.keepsEditsOf(other);
     }
 
     @Override

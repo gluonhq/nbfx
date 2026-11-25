@@ -103,6 +103,18 @@ public class DiffPaneTest {
     }
 
     @Test
+    public void aSideWithoutTheFileIsNamedAsItIs() throws Exception {
+        FileObject from = inMemory("");
+        FileObject to = inMemory("a\n");
+        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", from, "/dev/null"),
+                new DiffSource("Working Tree", to, "src/App.java")));
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> assertEquals("--- /dev/null\n+++ b/src/App.java\n@@ -0,0 +1,1 @@\n+a\n",
+                pane.unified()));
+    }
+
+    @Test
     public void theTextualTabIsOfTheUnifiedDiff() throws Exception {
         DiffPane pane = pane("a\nb\nc\n", "a\nx\nc\n");
         awaitComparison(pane);

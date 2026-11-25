@@ -229,7 +229,7 @@
     -fx-max-height: 28;
     -fx-padding: 0em 0.416667em 0em 0.416667em;
     -fx-spacing: 0;
-    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+    -fx-background-color: -nbfx-chrome, -nbfx-neutral;
     -fx-background-insets: 0, 0 0 2 0;
 }
 
@@ -241,7 +241,7 @@
     -fx-padding: 3 8.5 0 8.5;
     -fx-border-color: transparent;
     -fx-border-width: 2;
-    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+    -fx-background-color: -nbfx-chrome, -nbfx-neutral;
     -fx-background-insets: 0, 0 0 2 0;
     -fx-text-fill: -nbfx-text-strong;
     -fx-alignment: CENTER;
@@ -253,9 +253,28 @@
 }
 
 .diff-pane .diff-view-tab:selected {
+    -fx-background-color: -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 1 1 0 1;
+    -fx-border-color: transparent transparent -nbfx-canvas transparent;
+}
+
+/* While the focus is in the diff - in its table of files too - as in a tab pane that has it. */
+.diff-pane:focus-within .diff-view-tabs,
+.diff-browser:focus-within .diff-pane .diff-view-tabs,
+.diff-pane:focus-within .diff-view-tab,
+.diff-browser:focus-within .diff-pane .diff-view-tab {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+}
+
+.diff-pane:focus-within .diff-view-tab:hover,
+.diff-browser:focus-within .diff-pane .diff-view-tab:hover {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-hover;
+}
+
+.diff-pane:focus-within .diff-view-tab:selected,
+.diff-browser:focus-within .diff-pane .diff-view-tab:selected {
     -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
     -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
-    -fx-border-color: transparent transparent -nbfx-canvas transparent;
 }
 
 /* The icons the style sheet draws: the arrows that put the left side back over the right one. */

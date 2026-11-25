@@ -115,6 +115,7 @@ final class DiffPane extends BorderPane implements DiffContent {
     private List<String> comparedRight = List.of();
     private long comparedVersion = -1;
     private Subscription edits = Subscription.EMPTY;
+    private Runnable onTabChanged = () -> { };
     private Node sides;
     private EditorDocument left;
     private EditorDocument right;
@@ -171,6 +172,7 @@ final class DiffPane extends BorderPane implements DiffContent {
                 tabs.selectToggle(was);
             } else if (was != null) {
                 showTab();
+                onTabChanged.run();
             }
         });
         HBox tabStrip = new HBox(graphicalTab, textualTab);
@@ -235,6 +237,11 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** Shows the Textual tab, or the Graphical one. */
     void setTextual(boolean shown) {
         (shown ? textualTab : graphicalTab).setSelected(true);
+    }
+
+    /** Runs after the other tab was chosen, by the user or by {@link #setTextual}. */
+    void setOnTabChanged(Runnable action) {
+        onTabChanged = Objects.requireNonNull(action);
     }
 
     ToggleButton graphicalTab() {

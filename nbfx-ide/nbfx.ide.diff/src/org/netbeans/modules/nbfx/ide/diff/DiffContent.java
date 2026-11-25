@@ -52,6 +52,11 @@ interface DiffContent {
         return new SimpleBooleanProperty(false);
     }
 
+    /** Whether this diff keeps edits of the text {@code other} shows that are not saved, in an editor not shown. */
+    default boolean keepsEditsOf(EditorDocument other) {
+        return false;
+    }
+
     /** Writes the edits made in this diff to their files. */
     default void save() throws IOException {
     }

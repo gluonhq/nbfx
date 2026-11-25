@@ -74,11 +74,30 @@ public class GitDiffTest {
         assertEquals("INDEX_VS_WORKING_TREE\nfolder\n" + Path.of("/repo"),
                 GitDiff.state(VcsCompareMode.INDEX_VS_WORKING_TREE, false, Path.of("/repo")));
         assertEquals("git-diff", new GitDiff.Restorer().id());
+        // Of a folder, with the file shown.
+        assertEquals("HEAD_VS_INDEX\nfolder\n" + Path.of("/repo") + "\nsrc/App.java",
+                GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, false, Path.of("/repo"), "src/App.java"));
 
         assertFalse(GitDiff.restore(""));
         assertFalse(GitDiff.restore("SIDEWAYS\nfile\n/repo/src/App.java"));
         // No such folder, so no working tree.
         assertFalse(GitDiff.restore("HEAD_VS_INDEX\nfile\n/no/such/folder/of/a/diff/App.java"));
+    }
+
+    @Test
+    public void theStatusTellsTheIndexAndTheWorkingTreeApartWhenBothAreCompared() {
+        VcsFileStatus both = new VcsFileStatus("A.java", null, VcsChangeKind.ADDED, VcsChangeKind.MODIFIED, false);
+        VcsFileStatus unstaged = new VcsFileStatus("B.java", null, null, VcsChangeKind.MODIFIED, false);
+        VcsFileStatus conflict = new VcsFileStatus("C.java", null, null, null, true);
+
+        assertEquals("Added/Modified", GitDiff.statusText(both, VcsCompareMode.HEAD_VS_WORKING_TREE));
+        assertEquals("-/Modified", GitDiff.statusText(unstaged, VcsCompareMode.HEAD_VS_WORKING_TREE));
+        assertEquals("Added", GitDiff.statusText(both, VcsCompareMode.HEAD_VS_INDEX));
+        assertEquals("Modified", GitDiff.statusText(unstaged, VcsCompareMode.INDEX_VS_WORKING_TREE));
+        // The same on both sides of the mode, or not changed at all.
+        assertEquals("", GitDiff.statusText(unstaged, VcsCompareMode.HEAD_VS_INDEX));
+        assertEquals("", GitDiff.statusText(null, VcsCompareMode.HEAD_VS_WORKING_TREE));
+        assertEquals("Conflicted", GitDiff.statusText(conflict, VcsCompareMode.HEAD_VS_WORKING_TREE));
     }
 
     private static List<String> paths(String scope, VcsCompareMode mode) {

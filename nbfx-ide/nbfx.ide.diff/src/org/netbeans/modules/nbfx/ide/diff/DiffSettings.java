@@ -25,15 +25,16 @@ import java.util.stream.Collectors;
 import org.openide.util.NbPreferences;
 
 /**
- * Keeps how the table of files of a diff is laid out - as a list or a tree, its columns and its
- * height - from
- * one diff tab to the next and across restarts, as the Git window keeps its own.
+ * Keeps how a diff is shown - side by side or as a unified diff - and how its table of files is
+ * laid out - as a list or a tree, its columns and its height - from one diff tab to the next and
+ * across restarts, as the Git window keeps its own.
  */
 final class DiffSettings {
 
     private static final String KEY_TREE = "files.tree";
     private static final String KEY_COLUMNS = "files.columns";
     private static final String KEY_SHARE = "files.share";
+    private static final String KEY_TEXTUAL = "view.textual";
 
     private DiffSettings() {
     }
@@ -45,13 +46,22 @@ final class DiffSettings {
         browser.restoreColumns(parse(preferences.get(KEY_COLUMNS, "")));
         // None kept yet: the table takes the height of its rows.
         browser.setTableShare(preferences.getDouble(KEY_SHARE, -1));
+        browser.setTextual(preferences.getBoolean(KEY_TEXTUAL, false));
         browser.setOnLayoutChanged(() -> {
+            preferences.putBoolean(KEY_TEXTUAL, browser.isTextual());
             preferences.putBoolean(KEY_TREE, browser.isTree());
             preferences.put(KEY_COLUMNS, format(browser.columns()));
             if (browser.tableShare() > 0) {
                 preferences.putDouble(KEY_SHARE, browser.tableShare());
             }
         });
+    }
+
+    /** Shows {@code pane} on the tab the last diff was left on, and keeps the one the user chooses. */
+    static void attach(DiffPane pane) {
+        Preferences preferences = NbPreferences.forModule(DiffSettings.class);
+        pane.setTextual(preferences.getBoolean(KEY_TEXTUAL, false));
+        pane.setOnTabChanged(() -> preferences.putBoolean(KEY_TEXTUAL, pane.isTextual()));
     }
 
     /** The columns as one line: {@code id=width:visible}, joined by commas. */
