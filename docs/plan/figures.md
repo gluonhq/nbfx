@@ -6,8 +6,8 @@ Every number the plan states is derived here from the tree. Regenerate with
 
 | Figure | Value |
 |---|---|
-| nbfx modules | 70 |
-| nbfx source files | 854 |
+| nbfx modules | 71 |
+| nbfx source files | 855 |
 | modules exporting packages (`<public-packages>`) | 51 |
 | of those, subtree exports (`<subpackages>`) | 16 |
 | modules with `arch.xml` | 24 |
@@ -25,7 +25,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files using `NbBundle` | 169 |
 | `Bundle.properties` files | 72 |
 | test files | 136 |
-| modules with tests | 44 of 70 |
+| modules with tests | 44 of 71 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
 | upstream modules depending on `org.openide.nodes` | 388 |

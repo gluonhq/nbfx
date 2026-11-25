@@ -72,6 +72,7 @@ nb.cluster.nbfx-platform=\
         nbfx.api.views,\
         nbfx.api.wizard,\
         nbfx.platform.actions,\
+        nbfx.platform.content,\
         nbfx.platform.editor,\
         nbfx.platform.launcher,\
         nbfx.platform.macos,\
