@@ -26,6 +26,23 @@
         <apidef name="netbeansfx_editor">NetBeansFX Editor API</apidef>
     </apidefs>
     <changes>
+        <change id="editor.document.view">
+            <api name="netbeansfx_editor"/>
+            <summary>The side of the gutter and the breadcrumbs bar are properties of an editor document.</summary>
+            <version major="1" minor="3"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>EditorDocument.gutterPositionProperty()</code>, the side of the text a
+                view has its line numbers and marks on, and
+                <code>EditorDocument.showBreadcrumbsProperty()</code>, with which a view hides the
+                breadcrumbs bar whatever the shared setting is. Both are of one view, for editors
+                that are part of something else, as the two of a diff; both have default
+                implementations, so documents that are not code editors need no change.
+            </description>
+            <class package="org.netbeans.api.nbfx.editor" name="EditorDocument"/>
+        </change>
         <change id="editor.language.spi">
             <api name="netbeansfx_editor"/>
             <summary>The language decoration, lex, breadcrumb and completion SPI.</summary>
