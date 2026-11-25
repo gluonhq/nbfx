@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.platform.editor.breadcrumbs;
 
-import org.netbeans.api.nbfx.editor.EditorSettings;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsProvider;
@@ -75,7 +74,6 @@ public final class BreadcrumbsSupport {
     private final FileObject fileObject;
     private final CodeArea codeArea;
     private final BreadcrumbsBar bar;
-    private final EditorSettings settings;
 
     /** Monotonic id of the latest request; queries carrying an older id are stale. */
     private final AtomicLong requestSequence = new AtomicLong();
@@ -112,19 +110,16 @@ public final class BreadcrumbsSupport {
      * @param fileObject file shown in the editor
      * @param codeArea the editor's code area
      * @param bar the breadcrumbs bar to publish paths to
-     * @param settings shared view settings, or {@code null} when none is registered
      */
-    public BreadcrumbsSupport(FileObject fileObject, CodeArea codeArea, BreadcrumbsBar bar,
-                              EditorSettings settings) {
+    public BreadcrumbsSupport(FileObject fileObject, CodeArea codeArea, BreadcrumbsBar bar) {
         this.fileObject = Objects.requireNonNull(fileObject, "fileObject must not be null");
         this.codeArea = Objects.requireNonNull(codeArea, "codeArea must not be null");
         this.bar = Objects.requireNonNull(bar, "bar must not be null");
-        this.settings = settings;
     }
 
     /**
-     * Starts driving the bar: wires crumb navigation, subscribes to caret moves and to the
-     * "show breadcrumbs" setting (querying right away when currently visible).
+     * Starts driving the bar: wires crumb navigation, subscribes to caret moves and to whether the
+     * bar is shown (querying right away when it is), which is its editor's to decide.
      *
      * @return subscription releasing every listener and cancelling any pending query
      */
@@ -139,18 +134,14 @@ public final class BreadcrumbsSupport {
                     revealed = null;
                     schedule();
                 });
-        if (settings != null) {
-            // The consumer variant fires immediately, scheduling the initial query when visible.
-            // Forget the last queried offset so re-showing the bar always refreshes it.
-            subscription = subscription.and(settings.showBreadcrumbs().subscribe(show -> {
-                if (show) {
-                    lastQueriedOffset = -1;
-                    schedule();
-                }
-            }));
-        } else {
-            schedule();
-        }
+        // The consumer variant fires immediately, scheduling the initial query when visible.
+        // Forget the last queried offset so re-showing the bar always refreshes it.
+        subscription = subscription.and(bar.visibleProperty().subscribe(show -> {
+            if (show) {
+                lastQueriedOffset = -1;
+                schedule();
+            }
+        }));
         return subscription.and(() -> {
             if (model != null) {
                 model.removeListener(modelListener);
@@ -240,7 +231,7 @@ public final class BreadcrumbsSupport {
     }
 
     private boolean isHidden() {
-        return settings != null && !settings.showBreadcrumbs().get();
+        return !bar.isVisible();
     }
 
     private void cancelPending() {
