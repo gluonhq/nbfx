@@ -98,4 +98,17 @@ public class DiffLinesTest {
                 .mapToObj(line -> toRight ? DiffLines.toRight(DIFFERENCES, line) : DiffLines.toLeft(DIFFERENCES, line))
                 .toList();
     }
+
+    @Test
+    public void unifiedDiffMarksRunsOfLinesAddedAndDeletedAndTheHunkLines() {
+        List<String> lines = List.of("--- HEAD", "+++ Working Tree", "@@ -1,4 +1,5 @@", " a", "-b", "-c", "+x", "+y", "+z",
+                " d", "@@ -9,2 +10,1 @@", "-e", " f");
+
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 2, DiffLines.DELETED),
+                new LineBand(6, 3, DiffLines.ADDED), new LineBand(10, 1, DiffLines.CHANGED),
+                new LineBand(11, 1, DiffLines.DELETED)), DiffLines.unifiedBands(lines));
+        // The names of the texts are not lines deleted and added; no diff, no bands.
+        assertEquals(List.of(), DiffLines.unifiedBands(List.of("--- a", "+++ b")));
+        assertEquals(List.of(), DiffLines.unifiedBands(List.of("")));
+    }
 }

@@ -258,18 +258,20 @@ final class GitDiff {
 
         /** A file the last commit does not have is compared as an empty one; so is one not in the index. */
         private DiffSource head(String name, String path) throws IOException {
-            return new DiffSource(message("Git.diff.head"), inMemory(name, GitClient.headContent(root, path).orElse("")));
+            return new DiffSource(message("Git.diff.head"), inMemory(name, GitClient.headContent(root, path).orElse("")),
+                    path);
         }
 
         private DiffSource index(String name, String path) throws IOException {
-            return new DiffSource(message("Git.diff.index"), inMemory(name, GitClient.indexContent(root, path).orElse("")));
+            return new DiffSource(message("Git.diff.index"), inMemory(name, GitClient.indexContent(root, path).orElse("")),
+                    path);
         }
 
         /** The file on disk, so that the diff shows it as it is saved; an empty one when it is gone. */
         private DiffSource workingTree(String name, String path) throws IOException {
             File onDisk = root.resolve(path).toFile();
             FileObject file = onDisk.isFile() ? FileUtil.toFileObject(onDisk) : null;
-            return new DiffSource(message("Git.diff.workingTree"), file != null ? file : inMemory(name, ""));
+            return new DiffSource(message("Git.diff.workingTree"), file != null ? file : inMemory(name, ""), path);
         }
     }
 

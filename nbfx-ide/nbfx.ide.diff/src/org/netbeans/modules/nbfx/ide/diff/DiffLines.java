@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.ide.diff;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
 
@@ -131,4 +132,30 @@ final class DiffLines {
         return Math.clamp(current + (forward ? 1 : -1), 0, count - 1);
     }
 
+
+    /**
+     * The bands of a unified diff, by the first character of its {@code lines}: each run of lines
+     * added, of lines deleted, and each line that starts a hunk. The two lines that name the texts
+     * - the first two - have none, though they start as lines deleted and added do.
+     */
+    static List<LineBand> unifiedBands(List<String> lines) {
+        List<LineBand> bands = new ArrayList<>();
+        int start = 0;
+        String running = null;
+        for (int i = 0; i <= lines.size(); i++) {
+            String kind = i < 2 || i == lines.size() ? null : unifiedKind(lines.get(i));
+            if (!Objects.equals(kind, running)) {
+                if (running != null) {
+                    bands.add(new LineBand(start, i - start, running));
+                }
+                running = kind;
+                start = i;
+            }
+        }
+        return bands;
+    }
+
+    private static String unifiedKind(String line) {
+        return line.startsWith("+") ? ADDED : line.startsWith("-") ? DELETED : line.startsWith("@@") ? CHANGED : null;
+    }
 }

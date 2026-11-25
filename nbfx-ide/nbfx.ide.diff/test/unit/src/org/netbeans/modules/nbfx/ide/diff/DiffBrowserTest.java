@@ -176,6 +176,21 @@ public class DiffBrowserTest {
     }
 
     @Test
+    public void theNextFileIsShownOnTheTabTheLastOneWasOn() throws Exception {
+        DiffBrowser browser = browser(new Files(), null);
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.pane().setTextual(true));
+
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(browser.pane().isTextual());
+            assertTrue(browser.pane().unified().startsWith("--- HEAD\n+++ Working Tree\n@@ "));
+        });
+    }
+
+    @Test
     public void selectingAFileShowsItsDiff() throws Exception {
         DiffBrowser browser = browser(new Files(), null);
         await(browser);

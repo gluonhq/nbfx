@@ -100,6 +100,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private boolean sized;
     private DiffMode mode;
     private DiffPane pane;
+    /** Whether the diff shown last was on its Textual tab. */
+    private boolean textual;
     /** Set while the table is filled: the selection is acted on once, when it is. */
     private boolean filling;
     private long listing;
@@ -487,6 +489,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     /** Shows {@code shown} in place of the diff before, or {@code why} there is none. */
     private void show(DiffPane shown, String why) {
         if (pane != null) {
+            // The next file is shown as this one was: side by side, or as a unified diff.
+            textual = pane.isTextual();
             previous.disableProperty().unbind();
             next.disableProperty().unbind();
             summary.textProperty().unbind();
@@ -503,6 +507,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             previous.disableProperty().bind(pane.previousButton().disableProperty());
             next.disableProperty().bind(pane.nextButton().disableProperty());
             summary.textProperty().bind(pane.summaryProperty());
+            pane.setTextual(textual);
             holder.getChildren().setAll(pane);
         }
     }

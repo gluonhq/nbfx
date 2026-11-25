@@ -91,6 +91,40 @@ public class DiffPaneTest {
     }
 
     @Test
+    public void theUnifiedDiffNamesTheSidesByTheirPath() throws Exception {
+        FileObject from = inMemory("a\nb\n");
+        FileObject to = inMemory("a\nx\n");
+        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", from, "src/App.java"),
+                new DiffSource("Working Tree", to, "src/App.java")));
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> assertTrue(pane.unified(),
+                pane.unified().startsWith("--- a/src/App.java\n+++ b/src/App.java\n@@ ")));
+    }
+
+    @Test
+    public void theTextualTabIsOfTheUnifiedDiff() throws Exception {
+        DiffPane pane = pane("a\nb\nc\n", "a\nx\nc\n");
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("--- HEAD\n+++ Working Tree\n@@ -1,3 +1,3 @@\n a\n-b\n+x\n c\n", pane.unified());
+            assertTrue(pane.graphicalTab().isSelected());
+            assertFalse(pane.isTextual());
+
+            pane.textualTab().fire();
+            assertTrue(pane.isTextual());
+            // The blocks are still gone through, and a click on the tab shown leaves it shown.
+            assertEquals("1/1", pane.counter());
+            pane.textualTab().fire();
+            assertTrue(pane.isTextual());
+
+            pane.setTextual(false);
+            assertTrue(pane.graphicalTab().isSelected());
+        });
+    }
+
+    @Test
     public void sameFilesHaveNoDifferences() throws Exception {
         DiffPane pane = pane("same\n", "same\n");
 

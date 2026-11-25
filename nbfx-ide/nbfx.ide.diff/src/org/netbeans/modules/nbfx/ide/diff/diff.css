@@ -218,3 +218,42 @@
 .diff-files:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .diff-file-cell {
     -fx-text-fill: -nbfx-on-accent;
 }
+
+/*
+ * Graphical and Textual: the two ways to show the differences, as tabs above the headings, drawn as
+ * those of the docking area are: as high, the one shown with the line of the accent above it.
+ */
+.diff-pane .diff-view-tabs {
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+    -fx-max-height: 28;
+    -fx-padding: 0em 0.416667em 0em 0.416667em;
+    -fx-spacing: 0;
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+
+.diff-pane .diff-view-tab {
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+    -fx-max-height: 28;
+    -fx-background-radius: 0;
+    -fx-padding: 3 8.5 0 8.5;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+    -fx-background-insets: 0, 0 0 2 0;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-alignment: CENTER;
+}
+
+.diff-pane .diff-view-tab:hover {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-hover;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+
+.diff-pane .diff-view-tab:selected {
+    -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
+    -fx-border-color: transparent transparent -nbfx-canvas transparent;
+}

@@ -27,13 +27,33 @@ import org.openide.filesystems.FileObject;
  *
  * @param title the heading of this side
  * @param file the file whose text is shown; its name tells the editor how to colour it
+ * @param path where the file is in what is compared, with {@code /} between its folders - in a
+ *        repository, from its root - for the unified diff to name it by, as {@code a/path} and
+ *        {@code b/path}; null to have it named by the title
  * @since 1.0
  */
-public record DiffSource(String title, FileObject file) {
+public record DiffSource(String title, FileObject file, String path) {
 
-    /** Both are required. */
+    /** The title and the file are required. */
     public DiffSource {
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(file, "file");
+    }
+
+    /**
+     * A text with no path, named by its title in the unified diff.
+     *
+     * @param title the heading of this side
+     * @param file the file whose text is shown
+     */
+    public DiffSource(String title, FileObject file) {
+        this(title, file, null);
+    }
+
+    /**
+     * What the unified diff calls this side: its path after {@code prefix}, or its title.
+     */
+    String unifiedName(String prefix) {
+        return path == null ? title : prefix + path;
     }
 }

@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.ide.diff;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.logging.Level;
@@ -29,6 +31,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -36,14 +40,18 @@ import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Subscription;
 import org.netbeans.api.nbfx.diff.Diff;
 import org.netbeans.api.nbfx.diff.DiffResult;
 import org.netbeans.api.nbfx.diff.Difference;
+import org.netbeans.api.nbfx.diff.UnifiedDiff;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.icons.ToolIcons;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
@@ -56,6 +64,9 @@ import org.openide.util.RequestProcessor;
  * the other ({@link DiffConnectors}) under a counter of the blocks; at the right edge another
  * marks them all along the text ({@link DiffOverview}); two buttons above go from one block to the
  * next.
+ * <p>
+ * Two tabs above the headings choose how the differences are shown: Graphical, as said, or
+ * Textual, as a unified diff in one read-only editor, its lines marked as added and deleted.
  * <p>
  * The texts are read and compared off the FX thread; until then, and when they are the same, the
  * line above the headings says so.
@@ -75,8 +86,18 @@ final class DiffPane extends BorderPane implements DiffContent {
     private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
     private final DiffConnectors connectors = new DiffConnectors();
     private final DiffOverview overview = new DiffOverview();
+    private final ToggleButton graphicalTab = tab("Diff.graphical");
+    private final ToggleButton textualTab = tab("Diff.textual");
+    /** The two editors side by side, or the unified diff: what the tab chosen shows. */
+    private final StackPane content = new StackPane();
+    private final EditorService editors = Lookup.getDefault().lookup(EditorService.class);
+    private Node sides;
     private EditorDocument left;
     private EditorDocument right;
+    /** The differences as a unified diff; what the Textual tab shows. */
+    private UnifiedDiff unified = new UnifiedDiff("", List.of());
+    /** The editor of the unified diff, made when the Textual tab is first shown and after each comparison. */
+    private EditorDocument textual;
     private List<Difference> differences = List.of();
     private int current = -1;
     private Subscription scrolling = Subscription.EMPTY;
@@ -113,11 +134,23 @@ final class DiffPane extends BorderPane implements DiffContent {
         HBox bar = new HBox(previous, next, summary);
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
-        if (ownBar) {
-            setTop(bar);
-        }
+        ToggleGroup tabs = new ToggleGroup();
+        graphicalTab.setToggleGroup(tabs);
+        textualTab.setToggleGroup(tabs);
+        graphicalTab.setSelected(true);
+        tabs.selectedToggleProperty().subscribe((was, now) -> {
+            if (now == null) {
+                // A click on the tab shown would leave none chosen.
+                tabs.selectToggle(was);
+            } else if (was != null) {
+                showTab();
+            }
+        });
+        HBox tabStrip = new HBox(graphicalTab, textualTab);
+        tabStrip.getStyleClass().add("diff-view-tabs");
+        setTop(ownBar ? new VBox(bar, tabStrip) : tabStrip);
+        setCenter(content);
 
-        EditorService editors = Lookup.getDefault().lookup(EditorService.class);
         if (editors != null) {
             left = editors.createPreviewDocument(leftSource.file());
             right = editors.createPreviewDocument(rightSource.file());
@@ -127,10 +160,11 @@ final class DiffPane extends BorderPane implements DiffContent {
             VBox.setVgrow(overview, Priority.ALWAYS);
             VBox edge = new VBox(heading(""), overview);
             edge.getStyleClass().add("diff-edge");
-            HBox sides = new HBox(side(leftSource.title(), left.getNode(), true), strip,
+            HBox both = new HBox(side(leftSource.title(), left.getNode(), true), strip,
                     side(rightSource.title(), right.getNode(), false), edge);
-            sides.getStyleClass().add("diff-sides");
-            setCenter(sides);
+            both.getStyleClass().add("diff-sides");
+            sides = both;
+            content.getChildren().setAll(sides);
             scrolling = left.topParagraphProperty().subscribe(top -> follow(top.doubleValue(), true))
                     .and(right.topParagraphProperty().subscribe(top -> follow(top.doubleValue(), false)));
         }
@@ -151,6 +185,29 @@ final class DiffPane extends BorderPane implements DiffContent {
 
     ReadOnlyStringProperty summaryProperty() {
         return summary.textProperty();
+    }
+
+    /** The differences as a unified diff: what the Textual tab shows. Empty until compared, and when the same. */
+    String unified() {
+        return unified.text();
+    }
+
+    /** Whether the Textual tab is the one shown. */
+    boolean isTextual() {
+        return textualTab.isSelected();
+    }
+
+    /** Shows the Textual tab, or the Graphical one. */
+    void setTextual(boolean shown) {
+        (shown ? textualTab : graphicalTab).setSelected(true);
+    }
+
+    ToggleButton graphicalTab() {
+        return graphicalTab;
+    }
+
+    ToggleButton textualTab() {
+        return textualTab;
     }
 
     /** The block the view is at, counted from zero; -1 when the texts are the same. */
@@ -182,16 +239,20 @@ final class DiffPane extends BorderPane implements DiffContent {
         summary.setText(message("Diff.loading"));
         RP.post(() -> {
             DiffResult result;
+            UnifiedDiff text;
             int rightLines;
             try {
                 List<String> to = Diff.lines(rightSource.file().asText("UTF-8"));
+                List<String> from = Diff.lines(leftSource.file().asText("UTF-8"));
                 rightLines = to.size();
-                result = Diff.compute(Diff.lines(leftSource.file().asText("UTF-8")), to);
+                result = Diff.compute(from, to);
+                text = UnifiedDiff.of(leftSource.unifiedName("a/"), rightSource.unifiedName("b/"), from, to, result.differences(),
+                        UnifiedDiff.DEFAULT_CONTEXT);
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot compare " + leftSource.file() + " and " + rightSource.file(), ex);
                 Platform.runLater(() -> {
                     if (asked == comparison) {
-                        show(List.of(), 1, message("Diff.failed"));
+                        show(List.of(), new UnifiedDiff("", List.of()), 1, message("Diff.failed"));
                     }
                 });
                 return;
@@ -199,7 +260,7 @@ final class DiffPane extends BorderPane implements DiffContent {
             Platform.runLater(() -> {
                 if (asked == comparison) {
                     List<Difference> found = result.differences();
-                    show(found, rightLines, found.isEmpty() ? message("Diff.identical")
+                    show(found, text, rightLines, found.isEmpty() ? message("Diff.identical")
                             : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size()));
                 }
             });
@@ -211,6 +272,7 @@ final class DiffPane extends BorderPane implements DiffContent {
     public void dispose() {
         comparison++;
         scrolling.unsubscribe();
+        dropTextual();
         if (left != null) {
             left.dispose();
         }
@@ -230,7 +292,11 @@ final class DiffPane extends BorderPane implements DiffContent {
         next.setDisable(current < 0 || current >= differences.size() - 1);
         connectors.setCurrent(current);
         overview.setCurrent(current);
-        if (current >= 0 && left != null && right != null) {
+        if (current >= 0 && isTextual()) {
+            if (textual != null && current < unified.differenceLines().size()) {
+                textual.scrollToParagraph(Math.max(0, unified.differenceLines().get(current) - CONTEXT_LINES));
+            }
+        } else if (current >= 0 && left != null && right != null) {
             // The right side leads: it has the lines of the file as it is now.
             leftLeads = false;
             int top = Math.max(0, differences.get(current).rightStart() - CONTEXT_LINES);
@@ -246,9 +312,15 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
-    private void show(List<Difference> found, int rightLines, String text) {
+    private void show(List<Difference> found, UnifiedDiff text, int rightLines, String told) {
         differences = found;
-        summary.setText(text);
+        unified = text;
+        summary.setText(told);
+        // Of the texts as they were: written again when its tab is shown.
+        dropTextual();
+        if (isTextual()) {
+            showTab();
+        }
         if (left != null && right != null) {
             left.setLineBands(DiffLines.leftBands(found));
             right.setLineBands(DiffLines.rightBands(found));
@@ -257,6 +329,58 @@ final class DiffPane extends BorderPane implements DiffContent {
         overview.show(found, rightLines);
         // At the first block, as when the diff opens; without moving the view when there is none.
         select(found.isEmpty() ? -1 : Math.clamp(current, 0, found.size() - 1));
+    }
+
+    /** Shows what the tab chosen is of, and brings the current block into view in it. */
+    private void showTab() {
+        if (isTextual()) {
+            if (textual == null) {
+                textual = textualEditor();
+            }
+            if (textual != null) {
+                content.getChildren().setAll(textual.getNode());
+            } else {
+                content.getChildren().clear();
+            }
+        } else if (sides != null) {
+            content.getChildren().setAll(sides);
+        }
+        if (current >= 0) {
+            select(current);
+        }
+    }
+
+    /**
+     * A read-only editor of the unified diff, its lines marked as the two sides mark theirs; or
+     * {@code null} without an editor service. The text is that of a file in memory named after
+     * the file compared.
+     */
+    private EditorDocument textualEditor() {
+        if (editors == null) {
+            return null;
+        }
+        try {
+            FileObject file = FileUtil.createMemoryFileSystem().getRoot()
+                    .createData(rightSource.file().getNameExt() + ".diff");
+            try (OutputStream out = file.getOutputStream()) {
+                out.write(unified.text().getBytes(StandardCharsets.UTF_8));
+            }
+            EditorDocument editor = editors.createPreviewDocument(file);
+            editor.setLineBands(DiffLines.unifiedBands(Diff.lines(unified.text())));
+            editor.getNode().getStyleClass().add("diff-textual");
+            return editor;
+        } catch (IOException ex) {
+            LOG.log(Level.INFO, "Cannot show the unified diff", ex);
+            return null;
+        }
+    }
+
+    private void dropTextual() {
+        if (textual != null) {
+            content.getChildren().remove(textual.getNode());
+            textual.dispose();
+            textual = null;
+        }
     }
 
     /** Brings beside the top of the leading editor the place of the other that stands by it. */
@@ -296,6 +420,13 @@ final class DiffPane extends BorderPane implements DiffContent {
         // File names and revisions are data: an underscore in one must not become a mnemonic.
         heading.setMnemonicParsing(false);
         return heading;
+    }
+
+    private static ToggleButton tab(String key) {
+        ToggleButton tab = new ToggleButton(message(key));
+        tab.getStyleClass().add("diff-view-tab");
+        tab.setFocusTraversable(false);
+        return tab;
     }
 
     private static Button button(String icon, String key) {
