@@ -949,7 +949,7 @@ Lower layers never depend on higher layers. Product modules import API/SPI only.
 `api.shell` (T2-FX) adds:
 
 - `ShellProvider`/`ShellFrame` — product-owned visual shell;
-- `ShellContribution`/named slots for the default shell (`BRAND`, `MENU`, `TOOLBAR`, `CONTENT_HEADER`,
+- `ShellContribution`/named slots for the default shell (`BRAND`, `MENUBAR`, `TOOLBAR`, `CONTENT_HEADER`,
   `STATUS`, `EMPTY_STATE`, `ABOUT`);
 - `WindowDecoration` and narrow `ShellWindow`/`ShellContext` facades;
 - the custom-shell value boundary: a custom frame is a visual adapter over `ShellRuntime`/`DockRuntime`;

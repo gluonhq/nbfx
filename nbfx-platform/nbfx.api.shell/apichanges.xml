@@ -75,6 +75,26 @@
             <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneFactory"/>
             <class package="org.netbeans.spi.nbfx.shell" name="WindowPaneProvider"/>
         </change>
+        <change id="cjap.shell.regions">
+            <api name="netbeansfx_shell"/>
+            <summary>Declarative shell-region metadata, registration and discovery.</summary>
+            <version major="1" minor="1"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds Node-free <code>ShellRegionId</code>, <code>ShellRegionKind</code>,
+                <code>ShellRegionSpec</code>, <code>ShellRegionRegistry</code> and source-retained
+                <code>@ShellRegionRegistration</code> declarations for <code>NbFx/ShellRegions</code>.
+                Built-ins include <code>DOCK</code>; contribution/renderer lifecycle remains separate.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionId"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionKind"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionSpec"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRegistry"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRegistration"/>
+            <class package="org.netbeans.api.nbfx.shell" name="ShellRegionRegistrations"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

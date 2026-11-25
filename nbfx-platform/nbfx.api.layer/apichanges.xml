@@ -130,6 +130,19 @@
             </description>
             <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
         </change>
+        <change id="cjap.shell.regions.path">
+            <api name="netbeansfx_layer"/>
+            <summary>Layer path for declarative shell regions.</summary>
+            <version major="1" minor="9"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerPaths.SHELL_REGIONS</code> for CJAP shell chrome metadata and
+                contribution/action children.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

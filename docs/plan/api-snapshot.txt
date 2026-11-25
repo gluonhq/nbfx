@@ -149,6 +149,12 @@ org.netbeans.api.nbfx.shell.ShellChromeProvider
 org.netbeans.api.nbfx.shell.ShellCommandResolver
 org.netbeans.api.nbfx.shell.ShellContext
 org.netbeans.api.nbfx.shell.ShellIconProvider
+org.netbeans.api.nbfx.shell.ShellRegionId
+org.netbeans.api.nbfx.shell.ShellRegionKind
+org.netbeans.api.nbfx.shell.ShellRegionRegistration
+org.netbeans.api.nbfx.shell.ShellRegionRegistrations
+org.netbeans.api.nbfx.shell.ShellRegionRegistry
+org.netbeans.api.nbfx.shell.ShellRegionSpec
 org.netbeans.api.nbfx.shell.ShellWindow
 org.netbeans.api.nbfx.shell.ShellWindowProvider
 org.netbeans.api.nbfx.shell.TabHomeResolver

@@ -884,43 +884,50 @@ public record ShellRegionSpec(
         ShellRegionKind kind,
         int position,
         Set<String> profiles,
-        StyleRef style,
+        AreaStyle style,
         boolean visibleByDefault) {}
 ```
 
-Built-in ids:
+Built-in ids and kinds:
 
 ```text
-BRAND, MENUBAR, TOOLBAR, RIBBON, DOCK, STATUS, OVERLAY
+nbfx:brand, nbfx:menubar, nbfx:toolbar, nbfx:ribbon,
+nbfx:dock, nbfx:status, nbfx:overlay
 ```
 
-Built-in kinds use the same names. Product-defined ids/kinds are allowed.
+Short forms such as `BRAND`/`brand` are accepted case-insensitively. Product-defined ids/kinds are
+allowed and require `namespace:name`. `ShellRegionRegistry.discover()`, `find(id)` and
+`forProfile(profileId)` return immutable metadata snapshots. Empty profile sets mean all profiles;
+non-empty sets match exact case-sensitive atomic ids (no commas or whitespace). `visibleByDefault` is
+independent of discovery. Present-but-wrong-typed layer attributes make the region malformed; they do
+not silently broaden visibility, profiles or ordering.
 
 ### 9.5 Declarative layer
 
 ```text
 NbFx/ShellRegions/
-  brand/
-  menubar/
+  nbfx:brand/
+  nbfx:menubar/
     File/
-  toolbar/
+  nbfx:toolbar/
     main/
-  ribbon/
+  nbfx:ribbon/
     Home/
       Clipboard/
-  dock/
-  status/
-  overlay/
+  nbfx:dock/
+  nbfx:status/
+  nbfx:overlay/
 ```
 
 Region metadata:
 
 ```xml
-<folder name="brand">
-    <attr name="kind" stringvalue="BRAND"/>
+<folder name="nbfx:brand">
+    <attr name="kind" stringvalue="nbfx:brand"/>
     <attr name="position" intvalue="10"/>
     <attr name="profiles" stringvalue="main"/>
     <attr name="styleClass" stringvalue="acme-brand"/>
+    <attr name="visibleByDefault" boolvalue="true"/>
 </folder>
 ```
 
@@ -943,8 +950,8 @@ Action reference:
 Nested ribbon/menu folders:
 
 ```xml
-<folder name="ribbon">
-    <attr name="kind" stringvalue="RIBBON"/>
+<folder name="nbfx:ribbon">
+    <attr name="kind" stringvalue="nbfx:ribbon"/>
     <folder name="Home">
         <folder name="Clipboard">
             <file name="paste.ref" actionId="paste" position="10"/>
@@ -957,8 +964,8 @@ Nested ribbon/menu folders:
 
 ```java
 @ShellRegionRegistration(
-    id = "brand",
-    kind = ShellRegionKinds.BRAND,
+    id = "BRAND",
+    kind = "BRAND",
     position = 10,
     profiles = {"main"})
 public final class BrandRegionDeclaration {}
@@ -971,7 +978,10 @@ public final class ProductBrandBar implements ShellContribution {
 }
 ```
 
-The layer owns region/position/profile metadata. The contribution does not hardcode placement.
+The layer owns region/position/profile metadata. The annotation accepts strings so product-defined
+kinds do not require a platform constants class. `styleClass` is one CSS class token and maps to the
+region's `AreaStyle` class set; richer style resources are authored in layer XML. The contribution does not hardcode placement.
+Contribution/renderer registration is owned by the subsequent shell-contribution and frame slices.
 
 ### 9.7 Region renderers
 
@@ -1018,9 +1028,9 @@ NbFx/Actions/save.instance
 
 ```java
 @ActionReferences({
-    @ActionReference(id = "save", path = "ShellRegions/menubar/File"),
-    @ActionReference(id = "save", path = "ShellRegions/toolbar/main"),
-    @ActionReference(id = "save", path = "ShellRegions/ribbon/Home/Clipboard"),
+    @ActionReference(id = "save", path = "ShellRegions/nbfx:menubar/File"),
+    @ActionReference(id = "save", path = "ShellRegions/nbfx:toolbar/main"),
+    @ActionReference(id = "save", path = "ShellRegions/nbfx:ribbon/Home/Clipboard"),
     @ActionReference(id = "save", path = "ContextMenus/Editor")
 })
 ```
@@ -1629,26 +1639,26 @@ NbFx/
     main/
     floating-editor/
   ShellRegions/
-    brand/
+    nbfx:brand/
       product.instance
       open.ref
-    menubar/
+    nbfx:menubar/
       File/
         save.ref
-    toolbar/
+    nbfx:toolbar/
       main/
         save.ref
         build.ref
-    ribbon/
+    nbfx:ribbon/
       Home/
         Clipboard/
           paste.ref
-    dock/
-      kind=DOCK
-    status/
+    nbfx:dock/
+      kind=nbfx:dock
+    nbfx:status/
       progress.instance
       source-health.instance
-    overlay/
+    nbfx:overlay/
       palette.dynamic
   LayoutAreas/
     product:side/

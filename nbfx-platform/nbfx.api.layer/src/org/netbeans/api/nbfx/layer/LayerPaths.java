@@ -56,6 +56,9 @@ public final class LayerPaths {
     /** Registered CJAP physical dock groups, by canonical group id. */
     public static final String DOCK_GROUPS = "NbFx/DockGroups";
 
+    /** Declarative shell chrome regions and their contribution/action children. */
+    public static final String SHELL_REGIONS = "NbFx/ShellRegions";
+
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 

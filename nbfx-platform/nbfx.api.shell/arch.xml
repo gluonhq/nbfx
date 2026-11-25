@@ -35,7 +35,9 @@
       The <b>nbfx Shell API</b> is the product-facing contract of the generic JavaFX application
       shell: the window facade and pane/tab manager, pane roles and hosts, the chrome and branding
       contracts, the UI-ready hook, the window-environment capabilities, the shutdown contract and
-      the pane-provider SPI, the window-system lifecycle and its <code>WindowSink</code>/<code>WindowState</code> model. The shell implementation is <code>nbfx.platform.shell</code>.
+      the pane-provider SPI, the window-system lifecycle and its <code>WindowSink</code>/<code>WindowState</code>
+      model, plus CJAP declarative shell-region metadata and discovery. The shell implementation is
+      <code>nbfx.platform.shell</code>.
     </p>
   </answer>
 
@@ -47,6 +49,21 @@
       project, IDE or Java type; editor documents and project state are resolved by the contribution
       through its lookup.
     </p>
+    <api name="org.netbeans.api.nbfx.shell" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/api/nbfx/shell/package-summary.html">
+      Product-facing shell contracts, including Node-free CJAP region metadata. This API remains devel
+      until the CJAP reference product and scenarios pass.
+    </api>
+    <api name="org.netbeans.api.nbfx.shell.shutdown" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/api/nbfx/shell/shutdown/package-summary.html">
+      Shell shutdown coordination contracts. This API remains devel until the CJAP reference product
+      and scenarios pass.
+    </api>
+    <api name="org.netbeans.spi.nbfx.shell" group="java" type="export" category="devel"
+         url="@TOP@/org/netbeans/spi/nbfx/shell/package-summary.html">
+      Shell pane-provider SPI. This API remains devel until the CJAP reference product and scenarios
+      pass.
+    </api>
   </answer>
 
   <answer id="arch-usecases">
@@ -59,6 +76,8 @@
       <li>A product adds a shutdown participant with <code>ShutdownParticipant</code>.</li>
       <li>An <code>@OnUiReady</code> task reaches the window through
           <code>ShellWindowProvider</code>.</li>
+      <li>A product declares shell chrome slots with <code>@ShellRegionRegistration</code> and reads
+          immutable metadata through <code>ShellRegionRegistry</code>.</li>
     </ul>
   </answer>
 
@@ -67,7 +86,9 @@
       <code>PaneRoleTest</code> covers the canonical roles and the product-role rules. The shell
       modules exercise the contracts in their unit tests and the AppShell conformance fixture. The
       API is under development until the MVP freeze, after which signature tests
-      (<code>sigtest</code>) are enabled.
+      (<code>sigtest</code>) are enabled. CJAP region tests cover id/kind canonicalization, immutable
+      specs, direct-folder discovery, profile filtering, malformed/duplicate isolation and generated
+      layer equality.
     </p>
   </answer>
 
@@ -92,15 +113,19 @@
   </answer>
 
   <answer id="lookup-register">
-    <p>The host module registers its implementations; this module only defines the contracts.</p>
+    <p>The host module registers its implementations; this module only defines the contracts.
+      <code>@ServiceProvider(service = Processor.class)</code> registers
+      <code>ShellRegionRegistrationProcessor</code> at compile time.</p>
   </answer>
 
   <answer id="resources-layer">
-    <p>None.</p>
+    <p><code>@ShellRegionRegistration</code> writes direct region metadata folders under
+      <code>NbFx/ShellRegions</code>. Nested contribution/menu/action children are not region metadata.</p>
   </answer>
 
   <answer id="resources-read">
-    <p>None.</p>
+    <p><code>ShellRegionRegistry</code> reads direct region folders from the configuration layer and
+      ignores nested folders as regions. It performs no implicit filesystem or network access.</p>
   </answer>
 
   <answer id="resources-preferences">
@@ -110,7 +135,8 @@
   <answer id="exec-threading">
     <p>
       Window and scene-graph operations run on the JavaFX Application Thread. The shutdown
-      confirmation runs on that thread, while the selected cleanup runs off it.
+      confirmation runs on that thread, while the selected cleanup runs off it. CJAP region ids,
+      specs, annotation processing and metadata discovery are Node-free and stateless.
     </p>
   </answer>
 
