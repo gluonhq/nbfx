@@ -235,8 +235,10 @@ api.plugins (T1)        → api.layer, api.resources
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and `resolve(...)` tries caller-supplied
   targets in priority order, returning the first handler whose target/source kind matches and
-  whose evaluation is accepted. Shell DnD wiring, `@DropRegistration` annotation processing,
-  file/URI source adaptation and accessible rejection announcements remain follow-up slices.
+  whose evaluation is accepted. NbfxTabPane file-drag handlers now consult DropRouter for
+  GROUP/AREA targets before the legacy file-open fallback, preserving existing behavior when no
+  handler accepts. `@DropRegistration` annotation processing, richer source adaptation, and
+  accessible rejection announcements remain follow-up slices.
 
 ### 15. Review resolution: custom-shell composition contract
 

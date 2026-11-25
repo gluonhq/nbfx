@@ -36,12 +36,20 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
+import org.netbeans.api.nbfx.content.DropDecision;
+import org.netbeans.api.nbfx.content.DropHandler;
+import org.netbeans.api.nbfx.content.DropRequest;
+import org.netbeans.api.nbfx.content.DropTargetKind;
+import org.netbeans.api.nbfx.content.TransferKind;
+import org.netbeans.api.nbfx.content.TransferSource;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.editor.FileTypes;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import org.netbeans.modules.nbfx.platform.content.DropRouter;
+import org.openide.util.lookup.Lookups;
 import org.netbeans.modules.nbfx.platform.workspace.WindowEnvironment;
 import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.shell.PaneRole;
@@ -1188,6 +1196,13 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      */
     private static void addFileDropHandlers(TabPane tabPane) {
         tabPane.addEventFilter(DragEvent.DRAG_OVER, e -> {
+            Optional<DropRouter.ResolvedDrop> routed = tryRouteFileDrop(tabPane, e);
+            if (routed.isPresent()) {
+                e.acceptTransferModes(toFxTransferMode(routed.get().decision().effect()));
+                TabDropIndicator.showHighlight(tabPane);
+                e.consume();
+                return;
+            }
             if (openableFilesOf(e, tabPane).isEmpty()) {
                 return;
             }
@@ -1205,6 +1220,15 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         });
         tabPane.addEventFilter(DragEvent.DRAG_DROPPED, e -> {
+            Optional<DropRouter.ResolvedDrop> routed = tryRouteFileDrop(tabPane, e);
+            if (routed.isPresent()) {
+                DropRouter.ResolvedDrop drop = routed.get();
+                drop.handler().perform(drop.request(), drop.decision());
+                TabDropIndicator.hide(tabPane);
+                e.setDropCompleted(true);
+                e.consume();
+                return;
+            }
             List<FileObject> files = openableFilesOf(e, tabPane);
             if (files.isEmpty()) {
                 return;
@@ -1217,6 +1241,58 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             e.setDropCompleted(contentManager != null);
             e.consume();
         });
+    }
+
+    private static Optional<DropRouter.ResolvedDrop> tryRouteFileDrop(TabPane tabPane, DragEvent event) {
+        if (!FileDragAndDrop.hasFiles(event.getDragboard())
+                || FileDragAndDrop.isWithinDropTarget(event.getTarget())) {
+            return Optional.empty();
+        }
+        List<java.io.File> files = event.getDragboard().getFiles();
+        if (files == null || files.isEmpty()) {
+            return Optional.empty();
+        }
+        List<org.netbeans.api.nbfx.content.DropTarget> targets = dropTargetsFor(tabPane);
+        if (targets.isEmpty()) {
+            return Optional.empty();
+        }
+        TransferSource source = new TransferSource() {
+            @Override
+            public TransferKind kind() {
+                return TransferKind.FILES;
+            }
+
+            @Override
+            public Lookup data() {
+                return Lookups.fixed(files.toArray(new Object[0]));
+            }
+        };
+        javafx.geometry.Point2D location = tabPane.sceneToLocal(event.getSceneX(), event.getSceneY());
+        if (location == null) {
+            location = new javafx.geometry.Point2D(event.getX(), event.getY());
+        }
+        org.netbeans.api.nbfx.content.TransferMode requested = org.netbeans.api.nbfx.content.TransferMode.COPY;
+        return DropRouter.resolve(source, targets, location, requested, Lookup.EMPTY,
+                DropRouter.discover());
+    }
+
+    private static List<org.netbeans.api.nbfx.content.DropTarget> dropTargetsFor(TabPane tabPane) {
+        if (!(tabPane instanceof NbfxTabPane nbfx)) {
+            return List.of();
+        }
+        return List.of(
+                new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.GROUP, nbfx.groupId().value()),
+                new org.netbeans.api.nbfx.content.DropTarget(DropTargetKind.AREA, nbfx.role().name()));
+    }
+
+    private static TransferMode[] toFxTransferMode(org.netbeans.api.nbfx.content.TransferMode mode) {
+        if (mode == org.netbeans.api.nbfx.content.TransferMode.MOVE) {
+            return new TransferMode[]{TransferMode.MOVE};
+        }
+        if (mode == org.netbeans.api.nbfx.content.TransferMode.LINK) {
+            return new TransferMode[]{TransferMode.LINK};
+        }
+        return new TransferMode[]{TransferMode.COPY};
     }
 
     /**
