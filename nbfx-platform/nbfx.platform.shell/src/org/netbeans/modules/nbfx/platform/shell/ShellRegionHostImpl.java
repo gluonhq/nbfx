@@ -102,6 +102,11 @@ public final class ShellRegionHostImpl implements ShellRegionHost, AutoCloseable
         return dockRoot;
     }
 
+    boolean isDockMounted(Node node) {
+        Mount mount = mounts.get(node);
+        return mount != null && mount.spec.kind().equals(ShellRegionKind.DOCK);
+    }
+
     @Override
     public List<ShellRegionSpec> regions(ShellChromeProfile profile) {
         Objects.requireNonNull(profile, "profile");

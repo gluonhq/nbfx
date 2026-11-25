@@ -337,7 +337,71 @@ public class ShellRegionHostImplTest {
     }
 
     @Test
-    public void defaultFrameClosesResolverOwnedCommandsOnce() throws Exception {
+    public void toolbarRendererUpdateKeepsTheActiveContainer() throws Exception {
+        onFxThread(() -> {
+            ShellToolBars toolBars = new ShellToolBars(CONTEXT);
+            ShellRegionSpec toolbar = spec(ShellRegionId.TOOLBAR, ShellRegionKind.TOOLBAR,
+                    Set.of(), true);
+            ShellRegionSpec secondToolbar = spec(ShellRegionId.of("product:toolbar"),
+                    ShellRegionKind.TOOLBAR, Set.of(), true);
+            AtomicBoolean failFolder = new AtomicBoolean();
+            AtomicBoolean attempted = new AtomicBoolean();
+            AtomicReference<ShellRegionHostImpl> hostRef = new AtomicReference<>();
+            ShellRegionHostImpl host = new ShellRegionHostImpl(CONTEXT, null,
+                    DefaultShellFrame.renderers(CONTEXT, toolBars),
+                    profile -> List.of(toolbar), (id, profile) -> List.of(), id -> {
+                        if (failFolder.get() && attempted.compareAndSet(false, true)) {
+                            assertThrows(IllegalStateException.class,
+                                    () -> hostRef.get().mount(secondToolbar,
+                                            new ShellRegionContext(CONTEXT)));
+                            throw new IllegalStateException("folder lookup failed");
+                        }
+                        if (failFolder.get()) {
+                            throw new IllegalStateException("folder lookup failed");
+                        }
+                        return null;
+                    });
+            hostRef.set(host);
+            Node wrapper = host.mount(toolbar, new ShellRegionContext(CONTEXT));
+            assertTrue(((VBox) wrapper).getChildren().contains(toolBars.container()));
+            failFolder.set(true);
+            assertThrows(IllegalStateException.class, () -> host.update(toolbar, wrapper));
+            assertNull(toolBars.container().getParent());
+            failFolder.set(false);
+            host.update(toolbar, wrapper);
+            assertSame(wrapper, toolBars.container().getParent());
+            assertTrue(((VBox) wrapper).getChildren().contains(toolBars.container()));
+            host.dispose(toolbar, wrapper);
+            assertNull(toolBars.container().getParent());
+            return null;
+        });
+    }
+
+    @Test
+    public void secondToolbarRegionCannotDetachTheActiveContainer() throws Exception {
+        onFxThread(() -> {
+            ShellToolBars toolBars = new ShellToolBars(CONTEXT);
+            ShellRegionSpec first = spec(ShellRegionId.TOOLBAR, ShellRegionKind.TOOLBAR,
+                    Set.of(), true);
+            ShellRegionSpec second = spec(ShellRegionId.of("product:toolbar"),
+                    ShellRegionKind.TOOLBAR, Set.of(), true);
+            ShellRegionHostImpl host = new ShellRegionHostImpl(CONTEXT, null,
+                    DefaultShellFrame.renderers(CONTEXT, toolBars),
+                    profile -> List.of(first, second), (id, profile) -> List.of(), id -> null);
+            Node firstWrapper = host.mount(first, new ShellRegionContext(CONTEXT));
+            Node secondWrapper = host.mount(second, new ShellRegionContext(CONTEXT));
+            assertTrue(((VBox) firstWrapper).getChildren().contains(toolBars.container()));
+            assertTrue(((VBox) secondWrapper).getChildren().isEmpty());
+            host.dispose(second, secondWrapper);
+            assertSame(firstWrapper, toolBars.container().getParent());
+            host.dispose(first, firstWrapper);
+            assertNull(toolBars.container().getParent());
+            return null;
+        });
+    }
+
+    @Test
+    public void legacyChromeLeavesResolverOwnershipToApplication() throws Exception {
         onFxThread(() -> {
             int[] closed = {0};
             ShellCommandResolver resolver = new ShellCommandResolver() {
@@ -352,15 +416,9 @@ public class ShellRegionHostImplTest {
                 }
             };
             ShellContext context = new ShellContext(Lookups.singleton(resolver));
-            StackPane dockRoot = new StackPane();
-            ShellRegionSpec dock = spec(ShellRegionId.DOCK, ShellRegionKind.DOCK,
-                    Set.of(), true);
-            ShellRegionHostImpl host = new ShellRegionHostImpl(context, dockRoot, List.of(),
-                    profile -> List.of(dock), (id, profile) -> List.of(), id -> null);
-            DefaultShellFrame frame = new DefaultShellFrame(context, host);
-            frame.setDockRoot(dockRoot);
-            frame.close();
-            frame.close();
+            new DefaultShellChrome(context).dispose();
+            assertEquals(0, closed[0]);
+            resolver.close();
             assertEquals(1, closed[0]);
             return null;
         });

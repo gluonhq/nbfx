@@ -844,7 +844,13 @@ its style/visibility metadata and never loads ordinary contributions. Region wra
 accessible names and menu/toolbar roles.
 
 `ShellApplication` is the default composition root. Products do not subclass it; they provide a
-`ShellProvider` or use the default. C2-5 lands this frame contract without `overlays()`;
+`ShellProvider` or use the default. Zero providers select the neutral default frame, one selects the
+product frame, and more than one fails before frame creation; there is no priority or silent fallback.
+The runtime region host is published in `ShellContext.lookup()` before provider creation, and a custom
+frame must return that same host and mount the exact runtime dock node beneath its stable, unparented
+root. The default/custom paths share toolbar persistence and View-menu toolbar controls. Existing
+IDE/test subclasses retain the legacy chrome hooks until C8 migration. C2-5 lands this frame contract
+without `overlays()`;
 `ShellFrame.overlays()` is added in C6-2 together with `OverlayHost` in `api.content`, so no
 placeholder is exposed in the wrong module.
 

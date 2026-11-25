@@ -309,10 +309,12 @@ Acceptance: one command appears in menu, toolbar, ribbon and brand bar; scoped e
   C6-2 with `OverlayHost` in `api.content`.
 - `ShellApplication` becomes the default composition root, not a subclassing API.
 - Default shell consumes `ShellRegionRegistry`; custom shells use `ShellRegionHost`.
-- Runtime region host/default frame implement stable mount/update/dispose and DOCK-by-kind ownership;
-  `ShellApplication` provider selection/wiring follows in the next slice.
+- Runtime region host/default frame implement stable mount/update/dispose and DOCK-by-kind ownership.
+- `ShellApplication` selects zero/one/many `ShellProvider` implementations deterministically, publishes
+  the runtime host in `ShellContext`, and preserves the legacy subclass chrome path until C8.
 
-Acceptance: default shell and a custom shell run with the same services.
+Acceptance: default shell and an API-only custom shell run with the same services, toolbar persistence
+and View-menu controls; duplicate providers, missing DOCK mounts and invalid roots fail with rollback.
 
 #### T2.6 — Window chrome profiles
 

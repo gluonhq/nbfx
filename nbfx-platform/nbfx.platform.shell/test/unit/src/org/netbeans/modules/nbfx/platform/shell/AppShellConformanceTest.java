@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.ShellFrame;
 import org.netbeans.api.nbfx.views.ViewSpec;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
@@ -38,6 +39,7 @@ import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.actions.RunnableCommand;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.actions.ActionRegistryImpl;
+import org.netbeans.modules.nbfx.platform.status.StatusBar;
 import org.netbeans.modules.nbfx.platform.launcher.AppProvider;
 import org.netbeans.api.nbfx.nodes.PropertiesProvider;
 import org.netbeans.api.nbfx.nodes.PropertySetModel;
@@ -87,8 +89,9 @@ public class AppShellConformanceTest {
             assertNotNull(application.getMainPane());
             assertNotNull(application.getDockArea());
             assertNotNull(application.getSlidingArea());
-            assertNotNull(application.getChrome());
-            assertNotNull(application.getChrome().bottom());
+            ShellFrame frame = application.getShellFrame();
+            assertNotNull(frame);
+            assertNotNull(findNode(frame.root(), StatusBar.class));
             assertSame(application.getMainPane(), application.getWindow().mainPane());
             assertSame(application.getRoot(), application.getWindow().root());
 
@@ -219,6 +222,21 @@ public class AppShellConformanceTest {
     }
 
     /** The API-only property fixture a downstream product can write. */
+    private static <T> T findNode(Node node, Class<T> type) {
+        if (type.isInstance(node)) {
+            return type.cast(node);
+        }
+        if (node instanceof javafx.scene.Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                T found = findNode(child, type);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
     private static final class ConformancePropertiesProvider implements PropertiesProvider {
 
         @Override

@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,11 +30,11 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
-import org.netbeans.api.nbfx.shell.ShellCommandResolver;
 import org.netbeans.api.nbfx.shell.ShellContext;
 import org.netbeans.api.nbfx.shell.ShellFrame;
 import org.netbeans.api.nbfx.shell.ShellRegionContext;
 import org.netbeans.api.nbfx.shell.ShellRegionHost;
+import org.netbeans.api.nbfx.shell.ShellRegionId;
 import org.netbeans.api.nbfx.shell.ShellRegionKind;
 import org.netbeans.api.nbfx.shell.ShellRegionRenderer;
 import org.netbeans.api.nbfx.shell.ShellRegionSpec;
@@ -54,7 +55,6 @@ final class DefaultShellFrame implements ShellFrame {
     private final List<MountedRegion> mounted = new ArrayList<>();
     private Node dockRoot;
     private boolean closed;
-    private boolean resolverClosed;
 
     DefaultShellFrame(ShellContext context, ShellRegionHost host) {
         this.context = Objects.requireNonNull(context, "context");
@@ -169,43 +169,80 @@ final class DefaultShellFrame implements ShellFrame {
             overlays.getChildren().clear();
             content.setCenter(null);
             content.setBottom(null);
-            closeResolver();
-        }
-    }
-
-    private void closeResolver() {
-        if (resolverClosed) {
-            return;
-        }
-        resolverClosed = true;
-        ShellCommandResolver resolver = context.lookup().lookup(ShellCommandResolver.class);
-        if (resolver != null) {
-            try {
-                resolver.close();
-            } catch (RuntimeException ex) {
-                LOG.log(Level.WARNING, "Cannot close shell command resolver", ex);
-            }
         }
     }
 
     /** Built-in renderers used by the neutral default frame. */
-    static List<ShellRegionRenderer> renderers(ShellContext context) {
-        return List.of(new ShellRegionRenderer() {
-            @Override
-            public ShellRegionKind kind() {
-                return ShellRegionKind.STATUS;
-            }
+    static List<ShellRegionRenderer> renderers(ShellContext context, ShellToolBars toolBars) {
+        return List.of(
+                new ShellRegionRenderer() {
+                    private final Map<Node, ShellMenuBar> menus = new java.util.IdentityHashMap<>();
 
-            @Override
-            public Node render(ShellRegionSpec region, ShellRegionContext regionContext) {
-                return new StatusBar(StatusElementRegistry.load(regionContext.shell().lookup()));
-            }
+                    @Override
+                    public ShellRegionKind kind() {
+                        return ShellRegionKind.MENUBAR;
+                    }
 
-            @Override
-            public void dispose(ShellRegionSpec region, Node mounted) {
-                ((StatusBar) mounted).dispose();
-            }
-        });
+                    @Override
+                    public Node render(ShellRegionSpec region, ShellRegionContext regionContext) {
+                        ShellMenuBar menu = new ShellMenuBar(regionContext.shell());
+                        Node node = menu.menuBar();
+                        menus.put(node, menu);
+                        return node;
+                    }
+
+                    @Override
+                    public void dispose(ShellRegionSpec region, Node mounted) {
+                        ShellMenuBar menu = menus.remove(mounted);
+                        if (menu != null) {
+                            menu.dispose();
+                        }
+                    }
+                },
+                new ShellRegionRenderer() {
+                    private Node active;
+                    private ShellRegionId owner;
+
+                    @Override
+                    public ShellRegionKind kind() {
+                        return ShellRegionKind.TOOLBAR;
+                    }
+
+                    @Override
+                    public Node render(ShellRegionSpec region, ShellRegionContext regionContext) {
+                        if (owner != null && !owner.equals(region.id())) {
+                            throw new IllegalStateException("Only one TOOLBAR region can be mounted");
+                        }
+                        owner = region.id();
+                        if (active == null) {
+                            active = toolBars.container();
+                        }
+                        return active;
+                    }
+
+                    @Override
+                    public void dispose(ShellRegionSpec region, Node mounted) {
+                        if (mounted == active && mounted.getParent() instanceof javafx.scene.layout.Pane parent) {
+                            parent.getChildren().remove(mounted);
+                        }
+                    }
+                },
+                new ShellRegionRenderer() {
+                    @Override
+                    public ShellRegionKind kind() {
+                        return ShellRegionKind.STATUS;
+                    }
+
+                    @Override
+                    public Node render(ShellRegionSpec region, ShellRegionContext regionContext) {
+                        return new StatusBar(StatusElementRegistry.load(regionContext.shell().lookup()));
+                    }
+
+                    @Override
+                    public void dispose(ShellRegionSpec region, Node mounted) {
+                        ((StatusBar) mounted).dispose();
+                    }
+                });
     }
 
     private record MountedRegion(ShellRegionSpec spec, Node node) {

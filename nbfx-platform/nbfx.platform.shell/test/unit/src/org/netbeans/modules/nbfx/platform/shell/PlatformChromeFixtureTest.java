@@ -21,17 +21,19 @@ package org.netbeans.modules.nbfx.platform.shell;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.layout.VBox;
+import javafx.scene.control.ToolBar;
 import javafx.stage.Stage;
 import org.junit.After;
 import org.junit.Test;
 import org.netbeans.api.nbfx.actions.ActionRegistry;
-import org.netbeans.api.nbfx.shell.ShellChrome;
+import org.netbeans.api.nbfx.shell.ShellFrame;
 import org.netbeans.modules.nbfx.platform.status.StatusBar;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -53,9 +55,10 @@ public class PlatformChromeFixtureTest {
         JavaFxTestSupport.onFx(() -> {
             ShellApplication application = new ShellApplication();
             application.start(new Stage());
-            ShellChrome chrome = application.getChrome();
+            ShellFrame frame = application.getShellFrame();
+            assertNotNull("declarative frame missing", frame);
 
-            MenuBar menuBar = menuBar(chrome.top());
+            MenuBar menuBar = menuBar(frame.root());
             assertNotNull("no menu bar", menuBar);
             Menu conformance = menu(menuBar, "Conformance");
             assertNotNull("the annotated menu is missing", conformance);
@@ -65,12 +68,14 @@ public class PlatformChromeFixtureTest {
                     Lookup.getDefault().lookup(ActionRegistry.class)
                             .find(PlatformChromeFixture.ACTION).isPresent());
 
-            ToolBarHost host = (ToolBarHost) chrome;
             assertTrue("the annotated tool bar is missing",
-                    host.toolBars().getToolBars().stream()
-                            .anyMatch(bar -> "conformance".equals(bar.getId())));
+                    toolBar(frame.root(), "conformance") != null);
+            ToolBarContainer toolBars = findNode(frame.root(), ToolBarContainer.class);
+            assertNotNull("toolbar lifecycle container missing", toolBars);
+            assertTrue("View menu toolbar controls missing",
+                    !new ViewMenuFactory().create(Lookups.singleton(toolBars)).items().isEmpty());
 
-            StatusBar statusBar = (StatusBar) chrome.bottom();
+            StatusBar statusBar = findNode(frame.root(), StatusBar.class);
             assertTrue("the annotated status element is missing",
                     statusBar.elements().stream()
                             .anyMatch(element -> "conformance.status".equals(element.id())));
@@ -78,12 +83,12 @@ public class PlatformChromeFixtureTest {
         });
     }
 
-    private static MenuBar menuBar(Node top) {
-        if (top instanceof MenuBar menuBar) {
+    private static MenuBar menuBar(Node node) {
+        if (node instanceof MenuBar menuBar) {
             return menuBar;
         }
-        if (top instanceof VBox box) {
-            for (Node child : box.getChildren()) {
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
                 MenuBar found = menuBar(child);
                 if (found != null) {
                     return found;
@@ -97,6 +102,36 @@ public class PlatformChromeFixtureTest {
         for (Menu menu : menuBar.getMenus()) {
             if (id.equals(menu.getId())) {
                 return menu;
+            }
+        }
+        return null;
+    }
+
+    private static ToolBar toolBar(Node node, String id) {
+        if (node instanceof ToolBar bar && id.equals(bar.getId())) {
+            return bar;
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                ToolBar found = toolBar(child, id);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static <T> T findNode(Node node, Class<T> type) {
+        if (type.isInstance(node)) {
+            return type.cast(node);
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                T found = findNode(child, type);
+                if (found != null) {
+                    return found;
+                }
             }
         }
         return null;

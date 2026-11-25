@@ -22,7 +22,10 @@ import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.ShellChrome;
 import org.netbeans.api.nbfx.shell.ShellWindow;
 import org.netbeans.api.nbfx.shell.ShellChromeProvider;
+import org.netbeans.api.nbfx.shell.ShellCommandResolver;
 import org.netbeans.api.nbfx.shell.ShellContext;
+import org.netbeans.api.nbfx.shell.ShellFrame;
+import org.netbeans.api.nbfx.shell.ShellProvider;
 import org.netbeans.api.nbfx.shell.shutdown.ShutdownCoordinator;
 import org.netbeans.api.nbfx.shell.shutdown.ShutdownImpact;
 import org.netbeans.api.nbfx.shell.shutdown.ShutdownSelection;
@@ -35,6 +38,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -74,13 +78,16 @@ import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.shell.WindowSystem;
 import org.openide.LifecycleManager;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.AbstractLookup;
+import org.openide.util.lookup.InstanceContent;
 import org.openide.util.lookup.Lookups;
 import org.openide.util.lookup.ProxyLookup;
 
 /**
  * The platform's generic JavaFX application shell: the main window, the editor pane, docking,
- * sliding sides, the persisted window layout and the window-system lifecycle. A product extends it
- * and adds its own panes, chrome, views and services through the hooks called from {@link #start}:
+ * sliding sides, the persisted window layout and the window-system lifecycle. Products use a
+ * {@link ShellProvider} or the neutral default frame. Existing subclasses retain the legacy hooks
+ * called from {@link #start} only until the C8 migration:
  * {@link #prepare()}, {@link #createPane(WindowPane, WindowPaneContext)}, {@link #decorate(BorderPane)},
  * {@link #sceneReady(Scene)} and {@link #started()}, in that order, then
  * {@link #restoreSession()}. {@link #captureSession()}
@@ -116,6 +123,9 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private SlidingArea slidingArea;
     private BorderPane root;
     private ShellChrome chrome;
+    private ShellFrame shellFrame;
+    private ShellRegionHostImpl regionHost;
+    private boolean shellResolverClosed;
     private ShellContext shellContext;
     private ShellBranding branding;
     private boolean applicationMenuInstalled;
@@ -153,24 +163,96 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         }
         dockArea = Docking.create(composition, panes);
         slidingArea = Docking.slides();
-        root = new BorderPane(slidingArea);
         ShellContext context = new ShellContext(shellLookup);
         shellContext = context;
+        List<ShellProvider> frameProviders = List.copyOf(shellLookup.lookupAll(ShellProvider.class));
+        if (frameProviders.size() > 1) {
+            closeShellResolver();
+            throw new IllegalStateException("Exactly one ShellProvider is allowed; found "
+                    + frameProviders.size());
+        }
+        if (!frameProviders.isEmpty() || getClass() == ShellApplication.class) {
+            ShellFrame frame = null;
+            Node frameRoot = null;
+            try {
+                InstanceContent frameServices = new InstanceContent();
+                context = new ShellContext(new ProxyLookup(new AbstractLookup(frameServices), shellLookup));
+                shellContext = context;
+                ShellToolBars toolBars = new ShellToolBars(context);
+                regionHost = new ShellRegionHostImpl(context, slidingArea,
+                        DefaultShellFrame.renderers(context, toolBars));
+                frameServices.set(List.of(regionHost, toolBars.container()), null);
+                if (!frameProviders.isEmpty()) {
+                    frame = frameProviders.get(0).create(context, context.profile());
+                    if (frame == null) {
+                        throw new IllegalStateException("ShellProvider returned null");
+                    }
+                    frameRoot = Objects.requireNonNull(frame.root(), "ShellFrame root");
+                    if (frameRoot.getParent() != null) {
+                        throw new IllegalStateException("ShellFrame root must be unparented");
+                    }
+                    if (frame.regions() != regionHost) {
+                        throw new IllegalStateException("ShellFrame must use the runtime ShellRegionHost");
+                    }
+                } else {
+                    frame = new DefaultShellFrame(context, regionHost);
+                    frameRoot = Objects.requireNonNull(frame.root(), "ShellFrame root");
+                }
+                frame.setDockRoot(slidingArea);
+                if (slidingArea.getParent() == null || !isWithin(slidingArea, frameRoot)
+                        || !regionHost.isDockMounted(slidingArea)) {
+                    throw new IllegalStateException("ShellFrame did not mount the runtime DOCK root");
+                }
+                shellFrame = frame;
+                appState.initToolbars(toolBars.container());
+                root = new BorderPane(frameRoot);
+            } catch (RuntimeException | Error ex) {
+                if (frame != null) {
+                    try {
+                        frame.close();
+                    } catch (RuntimeException closeFailure) {
+                        LOG.log(Level.WARNING, "Cannot close failed shell frame", closeFailure);
+                    }
+                }
+                if (regionHost != null) {
+                    regionHost.close();
+                }
+                closeShellResolver();
+                shellFrame = null;
+                regionHost = null;
+                throw ex;
+            }
+        } else {
+            try {
+                root = new BorderPane(slidingArea);
+                chrome = createChrome(context);
+                if (chrome.top() != null) {
+                    root.setTop(chrome.top());
+                }
+                if (chrome.bottom() != null) {
+                    root.setBottom(chrome.bottom());
+                }
+                if (chrome instanceof ToolBarHost toolBarHost) {
+                    appState.initToolbars(toolBarHost.toolBars());
+                }
+                decorate(root);
+            } catch (RuntimeException | Error ex) {
+                if (chrome != null) {
+                    try {
+                        chrome.dispose();
+                    } catch (RuntimeException disposeFailure) {
+                        LOG.log(Level.WARNING, "Cannot dispose failed legacy chrome", disposeFailure);
+                    }
+                    chrome = null;
+                }
+                closeShellResolver();
+                throw ex;
+            }
+        }
         branding = ShellBranding.select(context.lookup()).orElse(null);
         if (branding != null) {
             root.getStyleClass().addAll(branding.rootStyleClasses());
         }
-        chrome = createChrome(context);
-        if (chrome.top() != null) {
-            root.setTop(chrome.top());
-        }
-        if (chrome.bottom() != null) {
-            root.setBottom(chrome.bottom());
-        }
-        if (chrome instanceof ToolBarHost toolBarHost) {
-            appState.initToolbars(toolBarHost.toolBars());
-        }
-        decorate(root);
 
         Scene scene = new Scene(root, AppState.DEFAULT_WIDTH, AppState.DEFAULT_HEIGHT);
         scene.getStylesheets().add(NbfxTabPane.stylesheet());
@@ -253,9 +335,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             branding.dispose();
             branding = null;
         }
-        if (chrome != null) {
-            chrome.dispose();
-        }
+        closeShellFrame();
         shellContext = null;
         applicationMenuInstalled = false;
         ShellWindowProviderService.set(null);
@@ -264,6 +344,54 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         stopping();
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
+    }
+
+    private void closeShellFrame() {
+        if (shellFrame == null) {
+            try {
+                if (chrome != null) {
+                    chrome.dispose();
+                }
+            } catch (RuntimeException ex) {
+                LOG.log(Level.WARNING, "Cannot close legacy shell chrome", ex);
+            } finally {
+                chrome = null;
+                closeShellResolver();
+            }
+            return;
+        }
+        ShellFrame frame = shellFrame;
+        try {
+            frame.close();
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Cannot close shell frame", ex);
+        } finally {
+            if (regionHost != null) {
+                try {
+                    regionHost.close();
+                } catch (RuntimeException ex) {
+                    LOG.log(Level.WARNING, "Cannot close shell region host", ex);
+                }
+                regionHost = null;
+            }
+            closeShellResolver();
+            shellFrame = null;
+        }
+    }
+
+    private void closeShellResolver() {
+        if (shellResolverClosed || shellContext == null) {
+            return;
+        }
+        shellResolverClosed = true;
+        ShellCommandResolver resolver = shellContext.lookup().lookup(ShellCommandResolver.class);
+        if (resolver != null) {
+            try {
+                resolver.close();
+            } catch (RuntimeException ex) {
+                LOG.log(Level.WARNING, "Cannot close shell command resolver", ex);
+            }
+        }
     }
 
     /** The shell's stage. */
@@ -294,6 +422,11 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** The chrome installed for this shell. */
     protected final ShellChrome getChrome() {
         return chrome;
+    }
+
+    /** The declarative frame installed for this shell, or {@code null} on the legacy subclass path. */
+    protected final ShellFrame getShellFrame() {
+        return shellFrame;
     }
 
     /** The stable window facade for products and contributions. */
@@ -346,8 +479,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     /**
      * The lookup exposed to the chrome and its dynamic contributions. The default is the global
-     * lookup; a product overrides this to add per-shell services (its command resolver, dynamic
-     * menu factories, branding and so on).
+     * lookup. This is a legacy subclass hook; new products publish per-shell services through their
+     * NBM modules and use {@link ShellProvider} for the frame.
      *
      * @return the lookup, never {@code null}
      */
@@ -356,8 +489,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     }
 
     /**
-     * Creates the chrome for this shell. The default resolves the highest-priority
-     * {@link ShellChromeProvider}; a product may override this method directly.
+     * Creates legacy chrome for subclass-based shells. The declarative default/custom frame path does
+     * not call this method; new products use {@link ShellProvider}.
      *
      * @param context the shell context
      * @return the chrome, never {@code null}

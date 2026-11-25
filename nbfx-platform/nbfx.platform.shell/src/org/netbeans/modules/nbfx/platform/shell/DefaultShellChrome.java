@@ -20,7 +20,6 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.shell.ShellChrome;
 import org.netbeans.api.nbfx.shell.ShellContext;
-import org.netbeans.api.nbfx.shell.ShellCommandResolver;
 
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
@@ -84,9 +83,5 @@ public final class DefaultShellChrome implements ShellChrome, ToolBarHost {
     public void dispose() {
         menuBuilder.dispose();
         statusBar.dispose();
-        ShellCommandResolver resolver = context.lookup().lookup(ShellCommandResolver.class);
-        if (resolver != null) {
-            resolver.close();
-        }
     }
 }
