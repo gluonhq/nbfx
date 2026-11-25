@@ -22,8 +22,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
@@ -33,9 +35,9 @@ import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
 
 /**
- * Discovers declarative product layouts from {@code NbFx/Layouts} and logical areas from
- * {@code NbFx/LayoutAreas}. Malformed entries are skipped and reported to the log; they do not
- * prevent other declarations from loading.
+ * Discovers declarative product layouts from {@code NbFx/Layouts}, logical areas from
+ * {@code NbFx/LayoutAreas} and physical groups from {@code NbFx/DockGroups}. Malformed entries are
+ * skipped and reported to the log; they do not prevent other declarations from loading.
  *
  * @since 1.0
  */
@@ -73,6 +75,28 @@ public final class LayoutRegistry {
         try {
             PaneRole role = PaneRole.of(id);
             return areas().stream().filter(area -> area.id().equals(role)).findFirst();
+        } catch (IllegalArgumentException ex) {
+            return Optional.empty();
+        }
+    }
+
+    /** All registered physical dock groups, ordered by canonical group id. */
+    public static List<DockGroupSpec> groups() {
+        Map<PaneRole, ViewArea> areas = new HashMap<>();
+        for (ViewArea area : areas()) {
+            areas.put(area.id(), area);
+        }
+        return readGroups(FileUtil.getConfigFile(LayerPaths.DOCK_GROUPS), areas);
+    }
+
+    /** The physical dock group with {@code id}, if it is registered and valid. */
+    public static Optional<DockGroupSpec> findGroup(String id) {
+        if (id == null || id.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            DockGroupId groupId = DockGroupId.of(id);
+            return groups().stream().filter(group -> group.id().equals(groupId)).findFirst();
         } catch (IllegalArgumentException ex) {
             return Optional.empty();
         }
@@ -142,6 +166,55 @@ public final class LayoutRegistry {
                     policyId, AreaStyle.EMPTY, visibility, emptyPolicy, order);
         } catch (IllegalArgumentException ex) {
             LOG.warning("Cannot read layout area " + folder.getPath() + ": " + ex.getMessage());
+            return null;
+        }
+    }
+
+    /** Reads group files below {@code folder}; package-visible for tests. */
+    static List<DockGroupSpec> readGroups(FileObject folder, Map<PaneRole, ViewArea> areas) {
+        if (folder == null) {
+            return List.of();
+        }
+        List<DockGroupSpec> result = new ArrayList<>();
+        for (FileObject file : folder.getChildren()) {
+            if (file.isData()) {
+                DockGroupSpec group = readGroup(file, areas);
+                if (group != null) {
+                    result.add(group);
+                }
+            }
+        }
+        result.sort(Comparator.comparing(group -> group.id().value()));
+        return List.copyOf(result);
+    }
+
+    private static DockGroupSpec readGroup(FileObject file, Map<PaneRole, ViewArea> areas) {
+        try {
+            DockGroupId id = DockGroupId.of(file.getNameExt());
+            String areaText = stringAttribute(file, "area", "").trim();
+            if (areaText.isEmpty()) {
+                throw new IllegalArgumentException("missing area");
+            }
+            PaneRole area = PaneRole.of(areaText);
+            ViewArea areaSpec = areas.get(area);
+            if (areaSpec == null) {
+                throw new IllegalArgumentException("unknown area " + area);
+            }
+            PaneKind kind = PaneKind.valueOf(
+                    stringAttribute(file, "kind", "VIEW").trim().toUpperCase(Locale.ROOT));
+            String presentationText = stringAttribute(file, "presentation", "").trim();
+            PresentationId presentation = presentationText.isEmpty()
+                    ? areaSpec.defaultPresentation() : PresentationId.of(presentationText);
+            ContentCapacity capacity = ContentCapacity.valueOf(
+                    stringAttribute(file, "capacity", "MANY").trim().toUpperCase(Locale.ROOT));
+            String policyText = stringAttribute(file, "policyId", "").trim();
+            String policyId = policyText.isEmpty() ? areaSpec.policyId() : policyText;
+            GroupLifetime lifetime = GroupLifetime.valueOf(
+                    stringAttribute(file, "lifetime", "PERSISTENT").trim().toUpperCase(Locale.ROOT));
+            return new DockGroupSpec(id, area, kind, presentation, capacity, policyId, lifetime,
+                    AreaStyle.EMPTY);
+        } catch (IllegalArgumentException ex) {
+            LOG.warning("Cannot read dock group " + file.getPath() + ": " + ex.getMessage());
             return null;
         }
     }

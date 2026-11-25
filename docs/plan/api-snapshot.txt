@@ -72,6 +72,8 @@ org.netbeans.api.nbfx.layer.LayerRegistration
 org.netbeans.api.nbfx.layout.AreaStyle
 org.netbeans.api.nbfx.layout.ContentCapacity
 org.netbeans.api.nbfx.layout.DockGroupId
+org.netbeans.api.nbfx.layout.DockGroupRegistration
+org.netbeans.api.nbfx.layout.DockGroupRegistrations
 org.netbeans.api.nbfx.layout.DockGroupSpec
 org.netbeans.api.nbfx.layout.DockLocation
 org.netbeans.api.nbfx.layout.DockSide

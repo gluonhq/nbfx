@@ -598,8 +598,14 @@ Standalone neutral area metadata uses `@ViewAreaRegistration` and `@ViewAreaRegi
 annotation mirrors the scalar `ViewArea` contract, canonicalizes `PaneRole`/`ViewAreaKind`/
 `PresentationId` values, validates `#key` names and writes `NbFx/LayoutAreas/<canonical-role>`.
 `LayoutRegistry.areas()` and `findArea(id)` reconstruct immutable areas with `AreaStyle.EMPTY`; styled
-areas and complete trees use `@LayoutRegistration`. Area and layout catalogs are independent and are
-not implicitly merged.
+areas and complete trees use `@LayoutRegistration`.
+
+Standalone physical-group metadata uses `@DockGroupRegistration` and `@DockGroupRegistrations`.
+Ids and owning areas are canonicalized, explicit presentation/policy overrides are preserved, and
+empty overrides inherit from the resolved area. The processor writes `NbFx/DockGroups/<id>`;
+`LayoutRegistry.groups()` and `findGroup(id)` reconstruct immutable `DockGroupSpec` values with
+`AreaStyle.EMPTY`. An owning area may come from another module; unresolved areas are skipped with a
+log warning. Area, group and layout catalogs are independent and are not implicitly merged.
 
 ## 7. Docking policy and transfer
 
@@ -1630,6 +1636,8 @@ NbFx/
       palette.dynamic
   LayoutAreas/
     product:side/
+  DockGroups/
+    product:side.main/
   Layouts/
     product.default.xml
   Views/

@@ -232,8 +232,8 @@ Acceptance: zero-content layout with multiple groups/areas validates.
 
 - `LayoutBuilder` canonical API.
 - `@LayoutRegistration` carries a complete self-contained layout XML document.
-- `@ViewAreaRegistration` declares neutral standalone area metadata; `@DockGroupRegistration` follows
-  in the next slice.
+- `@ViewAreaRegistration` and `@DockGroupRegistration` declare neutral standalone area/group
+  metadata, with group presentation/policy inheritance from the resolved area.
 - Layer XML reader/writer with path diagnostics and includes.
 
 Acceptance: builder/XML/annotation paths produce equal `LayoutSpec`.

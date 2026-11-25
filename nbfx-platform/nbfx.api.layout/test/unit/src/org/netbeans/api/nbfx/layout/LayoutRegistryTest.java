@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.Test;
 import org.openide.filesystems.FileObject;
@@ -76,6 +77,26 @@ public class LayoutRegistryTest {
         assertEquals(Set.of(ViewAreaCapability.MOVABLE, ViewAreaCapability.MINIMIZABLE),
                 areas.get(0).capabilities());
         assertThrows(UnsupportedOperationException.class, () -> areas.add(areas.get(0)));
+    }
+
+    @Test
+    public void readsGroupsAndSkipsUnknownAreas() throws Exception {
+        PaneRole area = PaneRole.of("product:editor");
+        ViewArea areaSpec = new ViewArea(area, ViewAreaKind.MAIN, "Editor", DockLocation.CENTER, 1.0d,
+                PresentationId.of("product:ribbon"), Set.of(), "restricted", AreaStyle.EMPTY,
+                ViewAreaVisibility.STARTUP, EmptyAreaPolicy.KEEP, 0);
+        FileSystem fileSystem = FileUtil.createMemoryFileSystem();
+        FileObject folder = fileSystem.getRoot().createFolder("DockGroups");
+        FileObject good = folder.createData("product:editor.main");
+        good.setAttribute("area", area.value());
+        FileObject bad = folder.createData("product:missing");
+        bad.setAttribute("area", "product:unknown");
+
+        List<DockGroupSpec> groups = LayoutRegistry.readGroups(folder, Map.of(area, areaSpec));
+        assertEquals(1, groups.size());
+        assertEquals(PresentationId.of("product:ribbon"), groups.get(0).presentation());
+        assertEquals("restricted", groups.get(0).policyId());
+        assertThrows(UnsupportedOperationException.class, () -> groups.add(groups.get(0)));
     }
 
     private static void write(FileObject folder, String name, String contents) throws IOException {

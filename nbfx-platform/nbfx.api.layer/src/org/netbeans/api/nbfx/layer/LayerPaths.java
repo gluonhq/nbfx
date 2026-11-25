@@ -53,6 +53,9 @@ public final class LayerPaths {
     /** Registered CJAP logical layout areas, by canonical role id. */
     public static final String LAYOUT_AREAS = "NbFx/LayoutAreas";
 
+    /** Registered CJAP physical dock groups, by canonical group id. */
+    public static final String DOCK_GROUPS = "NbFx/DockGroups";
+
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 

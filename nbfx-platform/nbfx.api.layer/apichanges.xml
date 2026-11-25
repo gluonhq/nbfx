@@ -118,6 +118,18 @@
             </description>
             <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
         </change>
+        <change id="cjap.dock.groups.path">
+            <api name="netbeansfx_layer"/>
+            <summary>Layer path for CJAP physical dock groups.</summary>
+            <version major="1" minor="8"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerPaths.DOCK_GROUPS</code> for declarative CJAP dock-group metadata.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
