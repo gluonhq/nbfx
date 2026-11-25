@@ -22,9 +22,14 @@ import javafx.beans.property.SimpleIntegerProperty;
 import java.util.List;
 import java.io.IOException;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ObservableValue;
+import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import org.openide.filesystems.FileObject;
@@ -189,6 +194,35 @@ public interface EditorDocument extends Lookup.Provider {
      */
     default ObservableValue<Number> textVersionProperty() {
         return new SimpleLongProperty(0);
+    }
+
+    /**
+     * The side of the text this view has its gutter on - the line numbers, the marks of errors and
+     * the annotations: {@link HPos#LEFT}, as editors have it, or {@link HPos#RIGHT}, as the left
+     * one of two texts side by side may, to have it next to the other. Any other value is as
+     * {@code LEFT}. It is of this view alone: a {@linkplain #cloneDocument() clone} starts on the
+     * left. The default implementation returns a property that nothing follows.
+     *
+     * @return the writable gutter-position property
+     * @since 1.3
+     */
+    default ObjectProperty<HPos> gutterPositionProperty() {
+        return new SimpleObjectProperty<>(this, "gutterPosition", HPos.LEFT);
+    }
+
+    /**
+     * Whether this view may show the breadcrumbs bar: {@code true}, as it starts, leaves it to the
+     * {@linkplain EditorSettings#showBreadcrumbs() setting} of every editor; {@code false} hides it
+     * in this view whatever the setting is, for a view that is part of something else - a diff, a
+     * preview - and has no room or use for it. It is of this view alone: a
+     * {@linkplain #cloneDocument() clone} starts with {@code true}. The default implementation
+     * returns a property that nothing follows.
+     *
+     * @return the writable show-breadcrumbs property
+     * @since 1.3
+     */
+    default BooleanProperty showBreadcrumbsProperty() {
+        return new SimpleBooleanProperty(this, "showBreadcrumbs", true);
     }
 
     /**
@@ -377,7 +411,7 @@ public interface EditorDocument extends Lookup.Provider {
      * the regions to where the lines are. The default does nothing.
      *
      * @param bands the bands to show
-     * @since 1.3
+     * @since 1.4
      */
     default void setLineBands(List<LineBand> bands) {
     }
@@ -389,7 +423,7 @@ public interface EditorDocument extends Lookup.Provider {
      * out of sight. The default is always zero.
      *
      * @return the observable top position, never {@code null}
-     * @since 1.3
+     * @since 1.4
      */
     default ObservableValue<Number> topParagraphProperty() {
         return new SimpleIntegerProperty(0);
@@ -402,7 +436,7 @@ public interface EditorDocument extends Lookup.Provider {
      * nothing.
      *
      * @param position the place in the text to bring to the top
-     * @since 1.3
+     * @since 1.4
      */
     default void scrollToParagraph(double position) {
     }

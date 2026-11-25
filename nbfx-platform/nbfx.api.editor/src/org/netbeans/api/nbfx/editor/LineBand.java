@@ -29,7 +29,7 @@ import java.util.Objects;
  * @param paragraph the first line of the band, counted from zero
  * @param count the number of lines it covers; zero for a rule
  * @param styleClass the style class of the band, by which a stylesheet of the view colours it
- * @since 1.3
+ * @since 1.4
  */
 public record LineBand(int paragraph, int count, String styleClass) {
 
