@@ -43,6 +43,25 @@
             <class package="org.netbeans.api.nbfx.content" name="ContentKind"/>
             <class package="org.netbeans.api.nbfx.content" name="ContentState"/>
         </change>
+        <change id="cjap.content.lifecycle">
+            <api name="netbeansfx_content"/>
+            <summary>Content lifecycle, factory and host requirements.</summary>
+            <version major="1" minor="1"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>Content</code>, <code>ContentFactory</code>,
+                <code>ContentRequirements</code> and <code>ContentCreationException</code>. Content
+                has a stable identity, node and lifecycle the manager drives; the factory recreates
+                content from its state and captures it back. The content manager and sources land in
+                the following content slices.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="Content"/>
+            <class package="org.netbeans.api.nbfx.content" name="ContentCreationException"/>
+            <class package="org.netbeans.api.nbfx.content" name="ContentFactory"/>
+            <class package="org.netbeans.api.nbfx.content" name="ContentRequirements"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
