@@ -309,6 +309,8 @@ Acceptance: one command appears in menu, toolbar, ribbon and brand bar; scoped e
   C6-2 with `OverlayHost` in `api.content`.
 - `ShellApplication` becomes the default composition root, not a subclassing API.
 - Default shell consumes `ShellRegionRegistry`; custom shells use `ShellRegionHost`.
+- Runtime region host/default frame implement stable mount/update/dispose and DOCK-by-kind ownership;
+  `ShellApplication` provider selection/wiring follows in the next slice.
 
 Acceptance: default shell and a custom shell run with the same services.
 

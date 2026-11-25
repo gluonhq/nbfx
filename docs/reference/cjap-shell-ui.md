@@ -836,6 +836,13 @@ public interface ShellRegionHost {
 }
 ```
 
+Region hosts keep a stable wrapper Node across updates, apply style/visibility metadata, create fresh
+contribution Nodes on the JavaFX Application Thread, reject null/parented results, isolate failures,
+and dispose renderer/contribution/scoped-action resources idempotently. Empty overlay layers do not
+pick up pointer bounds. Any region whose kind is `DOCK` mounts the exact runtime dock root, applies
+its style/visibility metadata and never loads ordinary contributions. Region wrappers expose semantic
+accessible names and menu/toolbar roles.
+
 `ShellApplication` is the default composition root. Products do not subclass it; they provide a
 `ShellProvider` or use the default. C2-5 lands this frame contract without `overlays()`;
 `ShellFrame.overlays()` is added in C6-2 together with `OverlayHost` in `api.content`, so no
