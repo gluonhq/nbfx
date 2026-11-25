@@ -30,12 +30,17 @@ import com.sun.jfx.incubator.scene.control.richtext.RichTextAreaSkinHelper;
 import com.sun.jfx.incubator.scene.control.richtext.VFlow;
 import javafx.application.Platform;
 import javafx.css.PseudoClass;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.beans.value.WeakChangeListener;
 import javafx.collections.MapChangeListener;
+import javafx.geometry.HPos;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -80,6 +85,10 @@ public class CodeEditor implements EditorDocument {
     private final EditorBuffer buffer;
     private final ReadOnlyBooleanWrapper hasSelection = new ReadOnlyBooleanWrapper(this, "hasSelection", false);
     private final CaretInfoSupport caretInfo;
+    /** The side of the text the gutter of this view is on. */
+    private final ObjectProperty<HPos> gutterPosition = new SimpleObjectProperty<>(this, "gutterPosition", HPos.LEFT);
+    /** Whether this view shows the breadcrumbs bar when the shared setting has it shown. */
+    private final BooleanProperty showBreadcrumbs = new SimpleBooleanProperty(this, "showBreadcrumbs", true);
 
     private final MarkLineNumberDecorator lineDecorator;
     private final LineHighlightSupport lineHighlight;
@@ -236,15 +245,21 @@ public class CodeEditor implements EditorDocument {
         bottom.getStyleClass().add("editor-side-bars");
         rootPane.setBottom(bottom);
         search = preview ? null : new SearchSupport(codeArea, model, decorator, bottom);
+        // Shown when the shared setting and this view both have it shown.
+        Runnable showBar = () -> {
+            boolean show = showBreadcrumbs.get()
+                    && (editorSettings == null || editorSettings.showBreadcrumbs().get());
+            breadcrumbsBar.setVisible(show);
+            breadcrumbsBar.setManaged(show);
+        };
+        subscription = subscription.and(showBreadcrumbs.subscribe(_ -> showBar.run()));
         if (editorSettings != null) {
-            subscription = subscription.and(editorSettings.showBreadcrumbs().subscribe(show -> {
-                breadcrumbsBar.setVisible(show);
-                breadcrumbsBar.setManaged(show);
-            }));
+            subscription = subscription.and(editorSettings.showBreadcrumbs().subscribe(_ -> showBar.run()));
         }
+        subscription = subscription.and(gutterPosition.subscribe((_, _) -> refreshLineDecorator()));
 
-        // Debounced caret-driven breadcrumbs queries plus crumb-click navigation
-        breadcrumbs = new BreadcrumbsSupport(fo, codeArea, breadcrumbsBar, editorSettings);
+        // Debounced caret-driven breadcrumbs queries plus crumb-click navigation, while the bar is shown
+        breadcrumbs = new BreadcrumbsSupport(fo, codeArea, breadcrumbsBar);
         subscription = subscription.and(breadcrumbs.install());
 
         // Tooltip for squiggly error/warning diagnostics on mouse hover
@@ -309,6 +324,16 @@ public class CodeEditor implements EditorDocument {
     @Override
     public String getTitle() {
         return buffer.fileObject.getNameExt();
+    }
+
+    @Override
+    public ObjectProperty<HPos> gutterPositionProperty() {
+        return gutterPosition;
+    }
+
+    @Override
+    public BooleanProperty showBreadcrumbsProperty() {
+        return showBreadcrumbs;
     }
 
     @Override
@@ -605,11 +630,17 @@ public class CodeEditor implements EditorDocument {
         }
     }
 
-    /** Refreshes the line-number gutter for the current setting. */
+    /** Refreshes the line-number gutter for the current setting, on the side this view has it. */
     private void refreshLineDecorator() {
         lineDecorator.setShowLineNumbers(editorSettings == null || editorSettings.showLineNumbers().get());
+        boolean right = gutterPosition.get() == HPos.RIGHT;
         codeArea.setLeftDecorator(null);
-        codeArea.setLeftDecorator(lineDecorator);
+        codeArea.setRightDecorator(null);
+        if (right) {
+            codeArea.setRightDecorator(lineDecorator);
+        } else {
+            codeArea.setLeftDecorator(lineDecorator);
+        }
     }
 
     /** Places the caret back at (or as close as possible to) its position before an external reload. */

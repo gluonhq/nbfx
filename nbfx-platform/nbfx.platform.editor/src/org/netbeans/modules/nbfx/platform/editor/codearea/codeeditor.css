@@ -98,7 +98,8 @@
     -fx-fill: -nbfx-editor-selection;
 }
 
-.code-editor > .code-area-wrapper > .code-area > .vflow > .left-side {
+.code-editor > .code-area-wrapper > .code-area > .vflow > .left-side,
+.code-editor > .code-area-wrapper > .code-area > .vflow > .right-side {
     -fx-background-color: -nbfx-editor-gutter;
 }
 
@@ -116,11 +117,13 @@
 .code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .vport > .content > .caret-line {
     -fx-fill: -nbfx-editor-readonly-line;
 }
-.code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .left-side {
+.code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .left-side,
+.code-editor:readonly > .code-area-wrapper > .code-area > .vflow > .right-side {
     -fx-background-color: -nbfx-editor-readonly-gutter;
 }
 
-.code-editor > .code-area-wrapper > .code-area > .vflow > .left-side > .line-number-decorator {
+.code-editor > .code-area-wrapper > .code-area > .vflow > .left-side > .line-number-decorator,
+.code-editor > .code-area-wrapper > .code-area > .vflow > .right-side > .line-number-decorator {
     -fx-padding: 0 5 0 0;
 }
 
