@@ -79,6 +79,7 @@ import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.api.nbfx.views.ViewContent;
 import org.netbeans.api.nbfx.content.Content;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.modules.nbfx.platform.launcher.Budget;
 import org.netbeans.modules.nbfx.platform.theme.NbfxTheme;
 import org.netbeans.api.nbfx.product.ProductProvider;
@@ -163,12 +164,15 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
     /** Binds view tab open/close to this shell's content manager. */
     private NbfxTabPane.ViewLifecycle viewLifecycle;
+    /** Binds editor tab open/close to this shell's content manager. */
+    private NbfxTabPane.EditorLifecycle editorLifecycle;
 
     @Override
     public final void start(Stage stage) {
         Budget.mark("fxStart");
         this.stage = stage;
         bindViewContentLifecycle();
+        bindEditorContentLifecycle();
         NbfxTheme.install();
         prepare();
         WindowComposition composition = WindowCompositionResolver.resolve();
@@ -342,6 +346,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         if (viewLifecycle != null) {
             NbfxTabPane.removeViewLifecycle(viewLifecycle);
             viewLifecycle = null;
+        }
+        if (editorLifecycle != null) {
+            NbfxTabPane.removeEditorLifecycle(editorLifecycle);
+            editorLifecycle = null;
         }
         if (!stateCaptured) {
             captureSession();
@@ -606,6 +614,35 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             }
         };
         NbfxTabPane.addViewLifecycle(viewLifecycle);
+    }
+
+    /**
+     * Binds editor tab open/close to this shell's content manager, so an editor and a view share one
+     * lifecycle. A close without a matching open content falls back to unregistering the document.
+     */
+    private void bindEditorContentLifecycle() {
+        editorLifecycle = new NbfxTabPane.EditorLifecycle() {
+            @Override
+            public void editorOpened(EditorDocument document) {
+                contentManager.open(new EditorContent(document));
+            }
+
+            @Override
+            public void editorClosed(EditorDocument document) {
+                Content content = new EditorContent(document);
+                Content open = contentManager.find(content.id()).orElse(null);
+                if (open != null) {
+                    contentManager.close(open);
+                } else {
+                    org.netbeans.api.nbfx.editor.EditorContext context =
+                            org.openide.util.Lookup.getDefault().lookup(org.netbeans.api.nbfx.editor.EditorContext.class);
+                    if (context != null) {
+                        context.unregister(document);
+                    }
+                }
+            }
+        };
+        NbfxTabPane.addEditorLifecycle(editorLifecycle);
     }
 
     /**

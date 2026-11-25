@@ -192,8 +192,21 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         void viewClosed(ViewProvider view);
     }
 
+    /** Receives editor tab open/close so a shell can drive its content lifecycle. */
+    interface EditorLifecycle {
+
+        /** A tab for {@code document} was created. */
+        void editorOpened(EditorDocument document);
+
+        /** The tab for {@code document} was closed for good. */
+        void editorClosed(EditorDocument document);
+    }
+
     /** The registered view lifecycles; empty until a shell binds its content manager. */
     private static final List<ViewLifecycle> VIEW_LIFECYCLES = new CopyOnWriteArrayList<>();
+
+    /** The registered editor lifecycles; empty until a shell binds its content manager. */
+    private static final List<EditorLifecycle> EDITOR_LIFECYCLES = new CopyOnWriteArrayList<>();
 
     /** True while a tab-header drag gesture is in progress (between drag-detected and drag-done). */
     private static boolean tabDragInProgress;
@@ -931,6 +944,41 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         return true;
     }
 
+    /** Registers an editor open/close lifecycle; the shell binds its content manager here. */
+    static void addEditorLifecycle(EditorLifecycle lifecycle) {
+        if (lifecycle != null) {
+            EDITOR_LIFECYCLES.add(lifecycle);
+        }
+    }
+
+    /** Removes a lifecycle added with {@link #addEditorLifecycle(EditorLifecycle)}. */
+    static void removeEditorLifecycle(EditorLifecycle lifecycle) {
+        EDITOR_LIFECYCLES.remove(lifecycle);
+    }
+
+    /** Publishes that a tab for {@code document} was created. */
+    static void notifyEditorOpened(EditorDocument document) {
+        for (EditorLifecycle lifecycle : EDITOR_LIFECYCLES) {
+            lifecycle.editorOpened(document);
+        }
+    }
+
+    /**
+     * Publishes that the tab for {@code document} was closed for good.
+     *
+     * @return whether a lifecycle handled the close, so the caller can fall back to
+     *         {@link EditorContext#unregister(EditorDocument)} when none did
+     */
+    private static boolean notifyEditorClosed(EditorDocument document) {
+        if (EDITOR_LIFECYCLES.isEmpty()) {
+            return false;
+        }
+        for (EditorLifecycle lifecycle : EDITOR_LIFECYCLES) {
+            lifecycle.editorClosed(document);
+        }
+        return true;
+    }
+
     /** Notifies the view-tab listeners; called after a tab is attached, moved or closed. */
     private static void notifyViewTabsChanged() {
         for (Runnable listener : List.copyOf(VIEW_TABS_LISTENERS)) {
@@ -999,9 +1047,11 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         }
         EditorSplit.dispose(tab);
         EditorDocument document = documentOf(tab);
-        EditorContext context = editorContext();
-        if (document != null && context != null) {
-            context.unregister(document);
+        if (document != null && !notifyEditorClosed(document)) {
+            EditorContext context = editorContext();
+            if (context != null) {
+                context.unregister(document);
+            }
         }
     }
 

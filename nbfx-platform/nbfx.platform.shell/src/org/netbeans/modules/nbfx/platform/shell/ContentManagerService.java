@@ -182,6 +182,7 @@ public class ContentManagerService implements ContentManager {
         if (editorContext != null) {
             editorContext.register(document);
         }
+        NbfxTabPane.notifyEditorOpened(document);
         return tab;
     }
 

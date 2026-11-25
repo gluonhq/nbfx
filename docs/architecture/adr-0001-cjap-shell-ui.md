@@ -213,9 +213,10 @@ api.plugins (T1)        → api.layer, api.resources
   existing readers keep working while runtimes become instance-scoped and testable in isolation.
 - C4-2b has `ShellApplication` own one `DefaultContentManager` and publish it in the shell lookup,
   so views, editors and products resolve the same per-shell lifecycle. C4-2c binds view tab
-  open/close to it through `ViewContent`; a close without an open content falls back to the view's
-  own `viewClosed()`. Editor tab integration and extracting the manager into a `ShellRuntime` follow
-  in later slices.
+  open/close to it through `ViewContent`; C4-2d does the same for editor documents through an
+  internal `EditorContent` adapter. A close without an open content falls back to the view's own
+  `viewClosed()` or to editor context unregister. Editor split-clone cleanup stays tab-owned;
+  extracting the manager into a `ShellRuntime` and programmatic tab-close via manager follow.
 
 ### 15. Review resolution: custom-shell composition contract
 
