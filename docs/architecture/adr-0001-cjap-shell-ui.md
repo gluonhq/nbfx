@@ -197,6 +197,10 @@ api.plugins (T1)        → api.layer, api.resources
   and no T0 `DockRuntime` type.
 - `DockHost.content()` is read-only. `remove` detaches without disposal; `dispose` detaches host
   content and releases host resources. `ContentManager` owns content close/dispose.
+- C3-1 makes `DockRuntime` the per-shell owner of the dock area, slides, composition and
+  pane/location lookups, and has `ShellApplication` create, use and dispose it. The legacy static
+  `Docking` facade delegates to the most recent runtime until the T8.2 migration removes it, so
+  existing readers keep working while runtimes become instance-scoped and testable in isolation.
 
 ### 15. Review resolution: custom-shell composition contract
 
@@ -287,8 +291,10 @@ split/minimize/maximize/drop behavior and tests are preserved.
   native/undecorated style before showing, and makes menu/toolbar/shell-region action reads
   profile-aware. Ambiguous multiple explicit profiles/hints fail. Null/blank profile
   queries mean all profiles; absent MIME/language/context dimensions still exclude restricted refs.
-- `WindowState.profileId` persistence remains C2-6c. Persisted state round-trip does not imply
-  restored-frame selection; that sequencing is completed with C3-3.
+- C2-6c adds an optional `WindowState.profileId` with a source-compatible constructor and a
+  missing/blank-key fallback in the state store, so a session round-trips the id. Persisted state
+  round-trip does not imply restored-frame selection; selecting a restored profile before frame
+  creation remains C3-3.
 
 ## Consequences
 
