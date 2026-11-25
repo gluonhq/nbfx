@@ -224,6 +224,26 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.dock-request">
+            <api name="netbeansfx_shell"/>
+            <summary>Dock request, decision and result contracts on WindowManager.</summary>
+            <version major="1" minor="8"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DockRequest</code>, <code>DockDecision</code>, <code>DockResult</code> and
+                <code>DockModifier</code>, and exposes <code>canDock</code>/<code>dock</code> on
+                <code>WindowManager</code>. The initial implementation accepts group/tab-strip
+                placements into existing groups and rejects unsupported placements with a reason key;
+                split, float, redock and window enumeration follow in later C3 slices.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="DockModifier"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DockRequest"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DockDecision"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DockResult"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

@@ -84,4 +84,20 @@ public interface WindowManager {
      * @param index   the position among the target's content, or {@code -1} to append
      */
     void attach(ContentId content, DockGroupId group, int index);
+
+    /**
+     * Evaluates whether {@code request} can be performed now.
+     *
+     * @param request the dock request
+     * @return the decision, never {@code null}
+     */
+    DockDecision canDock(DockRequest request);
+
+    /**
+     * Performs {@code request} if it is allowed.
+     *
+     * @param request the dock request
+     * @return the result, never {@code null}
+     */
+    DockResult dock(DockRequest request);
 }

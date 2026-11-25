@@ -220,8 +220,13 @@ api.plugins (T1)        → api.layer, api.resources
 - C3-2a evolves `WindowManager` to the CJAP content/group identity surface (`groups`,
   `primary(PaneRole)`, `groupOf`, `select`, `move`, `attach` on `ContentId`/`DockGroupId`) and
   removes tab/pane handle operations from the public API. NbfxTabPane carries a stable group id;
-  DefaultWindowManager resolves content through the per-shell ContentManager. Dock
-  request/decision/result, float/redock and window enumeration remain for C3-2b/C3-3.
+  DefaultWindowManager resolves content through the per-shell ContentManager.
+- C3-2b adds `DockRequest`/`DockDecision`/`DockResult`/`DockModifier` and
+  `WindowManager.canDock`/`dock`. The initial implementation accepts INTO_GROUP/TAB_STRIP into
+  existing groups and rejects missing content/target or unsupported placements with reason keys;
+  split, float, redock, group close/undo and window enumeration remain for later C3 slices. The
+  types live in `api.shell` for now to avoid a PaneRole dependency cycle; the target module map
+  still places docking contracts in `api.docking`.
 
 ### 15. Review resolution: custom-shell composition contract
 

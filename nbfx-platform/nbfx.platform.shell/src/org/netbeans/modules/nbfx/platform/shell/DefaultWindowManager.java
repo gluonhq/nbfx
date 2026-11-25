@@ -26,7 +26,11 @@ import javafx.scene.control.TabPane;
 import org.netbeans.api.nbfx.content.Content;
 import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.ContentManager;
+import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.layout.DockGroupId;
+import org.netbeans.api.nbfx.shell.DockDecision;
+import org.netbeans.api.nbfx.shell.DockRequest;
+import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.views.ViewContent;
@@ -96,6 +100,54 @@ final class DefaultWindowManager implements WindowManager {
             NbfxTabPane.moveTab(pane, tab, index);
             NbfxTabPane.selectTabAndMoveToFront(tab);
         }
+    }
+
+    @Override
+    public DockDecision canDock(DockRequest request) {
+        if (request == null || request.content() == null) {
+            return DockDecision.reject("dock.request.invalid");
+        }
+        if (contentManager.find(request.content()).isEmpty()) {
+            return DockDecision.reject("dock.content.missing");
+        }
+        DockGroupId target = resolveTargetGroup(request);
+        if (target == null || paneForGroup(target) == null) {
+            return DockDecision.reject("dock.target.missing");
+        }
+        DockPlacement placement = request.placement();
+        if (placement == DockPlacement.INTO_GROUP || placement == DockPlacement.TAB_STRIP) {
+            return DockDecision.allow(placement);
+        }
+        return DockDecision.reject("dock.placement.unsupported");
+    }
+
+    @Override
+    public DockResult dock(DockRequest request) {
+        DockDecision decision = canDock(request);
+        if (!decision.allowed()) {
+            return DockResult.rejected(decision);
+        }
+        DockGroupId target = resolveTargetGroup(request);
+        Tab tab = findTab(request.content()).orElse(null);
+        TabPane pane = paneForGroup(target);
+        if (tab == null || pane == null) {
+            return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+        }
+        NbfxTabPane.attachTab(pane, tab);
+        return DockResult.accepted(decision, target);
+    }
+
+    private DockGroupId resolveTargetGroup(DockRequest request) {
+        if (request.targetGroup() != null) {
+            return request.targetGroup();
+        }
+        if (request.targetArea() != null) {
+            TabPane pane = NbfxTabPane.paneWithRole(request.targetArea());
+            if (pane instanceof NbfxTabPane nbfx) {
+                return nbfx.groupId();
+            }
+        }
+        return null;
     }
 
     private Optional<Tab> findTab(ContentId contentId) {

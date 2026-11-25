@@ -24,8 +24,14 @@ import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.Pane;
 import org.junit.Test;
+import java.util.Set;
 import org.netbeans.api.nbfx.content.ContentId;
+import org.netbeans.api.nbfx.content.DockPlacement;
+import org.netbeans.api.nbfx.content.TransferMode;
 import org.netbeans.api.nbfx.layout.DockGroupId;
+import org.netbeans.api.nbfx.shell.DockDecision;
+import org.netbeans.api.nbfx.shell.DockRequest;
+import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -82,6 +88,42 @@ public class WindowManagerTest {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
                 NbfxTabPane.unregister(custom);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void canDockAndDockIntoExistingGroup() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                WindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("dock.view", "Dock"));
+                contentManager.open(content);
+                Tab tab = new Tab("Dock");
+                NbfxTabPane.setViewId(tab, "dock.view");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockRequest request = new DockRequest(content.id(), main.groupId(), null,
+                        other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
+                DockDecision decision = manager.canDock(request);
+                assertTrue(decision.allowed());
+
+                DockResult result = manager.dock(request);
+                assertTrue(result.decision().allowed());
+                assertEquals(other.groupId(), result.group());
+                assertSame(other.groupId(), manager.groupOf(content.id()).orElseThrow());
+
+                DockRequest missing = new DockRequest(ContentId.of("nbfx:view.missing"), null, null,
+                        other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
+                assertTrue(!manager.canDock(missing).allowed());
+                assertTrue(!manager.dock(missing).decision().allowed());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
             }
             return null;
         });
