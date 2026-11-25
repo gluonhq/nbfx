@@ -18,15 +18,21 @@
  */
 package org.netbeans.api.nbfx.actions;
 
+import java.util.Collection;
+import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.openide.util.Lookup;
+import org.openide.util.LookupListener;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
 import org.openide.util.test.MockLookup;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -67,6 +73,92 @@ public class ContextSensitiveCommandTest {
         TestCommand command = new TestCommand();
         command.refreshContext();
         assertFalse(command.isDisabled());
+    }
+
+    @Test
+    public void scopedViewFollowsExplicitContextSnapshot() {
+        InstanceContent scopedContent = new InstanceContent();
+        TestCommand base = new TestCommand();
+        Command scoped = base.forContext(new AbstractLookup(scopedContent));
+        assertNotSame(base, scoped);
+        assertTrue(scoped.isDisabled());
+
+        scopedContent.add("selected");
+        assertFalse(scoped.isDisabled());
+        scopedContent.remove("selected");
+        assertTrue(scoped.isDisabled());
+        scoped.dispose();
+        base.dispose();
+    }
+
+    @Test
+    public void scopedConstructorRollsBackListenersOnFailure() {
+        TrackingLookup refreshFailure = new TrackingLookup(false);
+        FailingCommand first = new FailingCommand();
+        assertThrows(IllegalStateException.class, () -> first.forContext(refreshFailure));
+        assertEquals(1, refreshFailure.added);
+        assertEquals(1, refreshFailure.removed);
+        first.dispose();
+
+        TrackingLookup registrationFailure = new TrackingLookup(true);
+        FailingCommand second = new FailingCommand();
+        assertThrows(IllegalStateException.class, () -> second.forContext(registrationFailure));
+        assertEquals(1, registrationFailure.added);
+        assertEquals(1, registrationFailure.removed);
+        second.dispose();
+    }
+
+    private static final class FailingCommand extends ContextSensitiveCommand {
+        FailingCommand() {
+            super("failing", "Failing", String.class);
+        }
+
+        @Override
+        protected boolean isEnabled(ActionContext context) {
+            throw new IllegalStateException("cannot evaluate");
+        }
+
+        @Override
+        public void run() {
+        }
+    }
+
+    private static final class TrackingLookup extends Lookup {
+        private final boolean failAdd;
+        private int added;
+        private int removed;
+
+        private TrackingLookup(boolean failAdd) {
+            this.failAdd = failAdd;
+        }
+
+        @Override
+        public <T> T lookup(Class<T> clazz) {
+            return null;
+        }
+
+        @Override
+        public <T> Result<T> lookup(Template<T> template) {
+            return new Result<>() {
+                @Override
+                public void addLookupListener(LookupListener listener) {
+                    added++;
+                    if (failAdd) {
+                        throw new IllegalStateException("cannot register");
+                    }
+                }
+
+                @Override
+                public void removeLookupListener(LookupListener listener) {
+                    removed++;
+                }
+
+                @Override
+                public Collection<? extends T> allInstances() {
+                    return List.of();
+                }
+            };
+        }
     }
 
     private static final class TestCommand extends ContextSensitiveCommand {

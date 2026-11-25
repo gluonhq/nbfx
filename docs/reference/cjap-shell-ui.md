@@ -1063,6 +1063,23 @@ The same `Command` is reused. No duplicate action registration exists per surfac
 - `profiles`;
 - presentation hints.
 
+Context queries carry neutral metadata alongside selected objects:
+
+```java
+Lookup context = Lookups.fixed(
+    selectedNode,
+    new ActionContextMetadata("editor", "text/x-java", "java", "main"));
+List<ActionRef> refs = ActionLayerReader.readForContext("ShellRegions/nbfx:menubar/File", context);
+```
+
+Different filter dimensions are ANDed; profile ids are ORed. A missing context/MIME/language value
+excludes restricted references, while a null/blank profile means all profiles. Wrong-typed layer
+attributes or invalid filter tokens make a reference malformed and it is logged/skipped rather than
+broadened. Presentation hints use atomic `key=value` entries. `ContextSensitiveCommand.forContext`
+provides a scoped view that follows the supplied lookup. Context-aware menu construction uses
+`LayerMenuBuilder.buildOwned(...)`; closing that result disposes scoped command views, while legacy
+`build(...)` keeps canonical/global-context behavior.
+
 ### 10.3 Resolution
 
 ```java

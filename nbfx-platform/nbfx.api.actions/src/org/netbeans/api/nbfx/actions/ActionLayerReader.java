@@ -18,116 +18,193 @@
  */
 package org.netbeans.api.nbfx.actions;
 
-import org.netbeans.api.nbfx.layer.LayerPaths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.logging.Logger;
+import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 
 /**
- * Reads the action references contributed to a UI surface under the {@code NbFx} layer, the way
- * NetBeans menus are assembled from {@code Menu/} folders.
- * <p>
- * References are written by the nbfx annotation processor as {@code <id>.ref} files carrying
- * {@code actionId}, {@code position} and {@code separatorBefore} attributes.
+ * Reads action references contributed to a UI surface under the {@code NbFx} layer. References retain
+ * placement, presentation and context metadata; discovery never resolves or creates commands.
  *
  * @since 1.0
  */
 public final class ActionLayerReader {
 
+    private static final Logger LOG = Logger.getLogger(ActionLayerReader.class.getName());
     private static final String REF_EXT = LayerPaths.REF_SUFFIX.startsWith(".")
             ? LayerPaths.REF_SUFFIX.substring(1) : LayerPaths.REF_SUFFIX;
+    private static final String HINT_PREFIX = "hint.";
 
     private ActionLayerReader() {
     }
 
-    /**
-     * Reads the action references directly under {@code folder}, ordered by position then id.
-     *
-     * @param folder the surface folder (for example {@code NbFx/Menus/File}); may be {@code null}
-     * @return the ordered references, never {@code null}
-     */
+    /** Reads direct references ordered by position then action id. */
     public static List<ActionRef> read(FileObject folder) {
-        if (folder == null) {
-            return List.of();
-        }
-        List<ActionRef> refs = new ArrayList<>();
-        for (FileObject child : folder.getChildren()) {
-            if (!child.isData() || !child.hasExt(REF_EXT)) {
-                continue;
-            }
-            if (child.getAttribute("actionId") instanceof String actionId && !actionId.isBlank()) {
-                int position = child.getAttribute("position") instanceof Integer p ? p : Integer.MAX_VALUE;
-                boolean separatorBefore = Boolean.TRUE.equals(child.getAttribute("separatorBefore"));
-                refs.add(new ActionRef(actionId, position, separatorBefore));
-            }
-        }
-        refs.sort(Comparator.comparingInt(ActionRef::position).thenComparing(ActionRef::actionId));
-        return List.copyOf(refs);
+        return read(folder, ref -> true);
     }
 
-    /**
-     * Reads the action references directly under {@code folder} that apply to {@code mimeType}: a
-     * reference with no {@code mimeType} attribute applies to every type, one with a type applies
-     * only when it matches. Ordered by position then id.
-     *
-     * @param folder   the surface folder (for example {@code NbFx/ContextMenus/Navigator}); may be
-     *                 {@code null}
-     * @param mimeType the content type of the node the surface is being built for, or {@code null}
-     * @return the ordered references, never {@code null}
-     */
+    /** Reads direct references that match a MIME-carrying context. */
     public static List<ActionRef> readForMime(FileObject folder, String mimeType) {
-        if (folder == null) {
-            return List.of();
-        }
-        List<ActionRef> refs = new ArrayList<>();
-        for (FileObject child : folder.getChildren()) {
-            if (!child.isData() || !child.hasExt(REF_EXT)) {
-                continue;
-            }
-            if (!(child.getAttribute("actionId") instanceof String actionId) || actionId.isBlank()) {
-                continue;
-            }
-            if (!mimeMatches(child.getAttribute("mimeType"), mimeType)) {
-                continue;
-            }
-            int position = child.getAttribute("position") instanceof Integer p ? p : Integer.MAX_VALUE;
-            boolean separatorBefore = Boolean.TRUE.equals(child.getAttribute("separatorBefore"));
-            refs.add(new ActionRef(actionId, position, separatorBefore));
-        }
-        refs.sort(Comparator.comparingInt(ActionRef::position).thenComparing(ActionRef::actionId));
-        return List.copyOf(refs);
+        ActionContextMetadata metadata = new ActionContextMetadata(null, mimeType, null, null);
+        return readForContext(folder, Lookups.singleton(metadata));
     }
 
-    /**
-     * Reads the mime-filtered action references from the layer folder at {@code layerPath}; see
-     * {@link #readForMime(FileObject, String)}.
-     *
-     * @param layerPath the layer path (for example {@code "NbFx/ContextMenus/Navigator"}); may be null
-     * @param mimeType  the content type of the node, or {@code null}
-     * @return the ordered references, never {@code null}
-     */
+    /** Reads MIME-filtered references from a layer path. */
     public static List<ActionRef> readForMime(String layerPath, String mimeType) {
         return readForMime(layerPath == null ? null : FileUtil.getConfigFile(layerPath), mimeType);
     }
 
-    /** A reference with no declared mime applies everywhere; otherwise it must equal the node's mime. */
-    private static boolean mimeMatches(Object declared, String mimeType) {
-        if (!(declared instanceof String declaredMime) || declaredMime.isBlank()) {
-            return true;
+    /**
+     * Reads direct references matching {@link ActionContextMetadata} in {@code context}. Different
+     * filter dimensions are ANDed; profile ids are ORed. A null/blank profile means all profiles.
+     */
+    public static List<ActionRef> readForContext(FileObject folder, Lookup context) {
+        Objects.requireNonNull(context, "context");
+        ActionContextMetadata metadata = context.lookup(ActionContextMetadata.class);
+        if (metadata == null) {
+            metadata = new ActionContextMetadata(null, null, null, null);
         }
-        return declaredMime.equals(mimeType);
+        ActionContextMetadata query = metadata;
+        return read(folder, ref -> matches(ref.contextType(), query.contextType())
+                && matches(ref.mimeType(), query.mimeType())
+                && matches(ref.languageId(), query.languageId())
+                && matchesProfiles(ref.profiles(), query.profileId()));
     }
 
-    /**
-     * A nested menu folder: its {@link #displayName()}, {@link #position()} and {@link #folder()}.
-     *
-     * @param position       the position among the siblings, from the folder's {@code position} attribute
-     * @param separatorBefore whether the submenu asks for a separator before it
-     * @param displayName    the submenu's title, from its {@code displayName} attribute or folder name
-     * @param folder         the layer folder holding the submenu's contents
-     */
+    /** Reads context-filtered references from a layer path. */
+    public static List<ActionRef> readForContext(String layerPath, Lookup context) {
+        Objects.requireNonNull(context, "context");
+        return readForContext(layerPath == null ? null : FileUtil.getConfigFile(layerPath), context);
+    }
+
+    private static List<ActionRef> read(FileObject folder, Predicate<ActionRef> filter) {
+        if (folder == null) {
+            return List.of();
+        }
+        List<ActionRef> refs = new ArrayList<>();
+        for (FileObject child : folder.getChildren()) {
+            if (!child.isData() || !child.hasExt(REF_EXT)) {
+                continue;
+            }
+            ActionRef ref = readRef(child);
+            if (ref != null && filter.test(ref)) {
+                refs.add(ref);
+            }
+        }
+        refs.sort(Comparator.comparingInt(ActionRef::position).thenComparing(ActionRef::actionId));
+        return List.copyOf(refs);
+    }
+
+    private static ActionRef readRef(FileObject file) {
+        try {
+            String actionId = stringAttribute(file, "actionId", "");
+            if (actionId.isBlank()) {
+                throw new IllegalArgumentException("missing actionId");
+            }
+            int position = intAttribute(file, "position", Integer.MAX_VALUE);
+            boolean separatorBefore = booleanAttribute(file, "separatorBefore", false);
+            String displayName = stringAttribute(file, "displayName", "");
+            String iconName = stringAttribute(file, "iconName", "");
+            String contextType = stringAttribute(file, "contextType", "");
+            String languageId = stringAttribute(file, "languageId", "");
+            String mimeType = stringAttribute(file, "mimeType", "");
+            validateFilterToken(contextType, "contextType");
+            validateFilterToken(languageId, "languageId");
+            validateFilterToken(mimeType, "mimeType");
+            Set<String> profiles = parseProfiles(stringAttribute(file, "profiles", ""));
+            Map<String, String> hints = new LinkedHashMap<>();
+            for (String name : Collections.list(file.getAttributes())) {
+                if (name.startsWith(HINT_PREFIX)) {
+                    String key = name.substring(HINT_PREFIX.length());
+                    if (key.isBlank()) {
+                        throw new IllegalArgumentException("empty presentation hint key");
+                    }
+                    hints.put(key, stringAttribute(file, name, ""));
+                }
+            }
+            return new ActionRef(actionId, position, separatorBefore, displayName, iconName,
+                    contextType, languageId, mimeType, profiles, hints);
+        } catch (IllegalArgumentException ex) {
+            LOG.warning("Cannot read action reference " + file.getPath() + ": " + ex.getMessage());
+            return null;
+        }
+    }
+
+    private static void validateFilterToken(String value, String field) {
+        if (!value.isBlank() && !ActionTokens.isToken(value)) {
+            throw new IllegalArgumentException(field + " must be an atomic token");
+        }
+    }
+
+    private static Set<String> parseProfiles(String value) {
+        Set<String> profiles = new LinkedHashSet<>();
+        String text = value.trim();
+        if (!text.isEmpty()) {
+            for (String item : text.split("[,\\s]+", -1)) {
+                if (!ActionTokens.isToken(item)) {
+                    throw new IllegalArgumentException("profiles must be atomic tokens");
+                }
+                profiles.add(item);
+            }
+        }
+        return profiles;
+    }
+
+    private static boolean matches(String declared, String query) {
+        return declared.isBlank() || (query != null && declared.equals(query));
+    }
+
+    private static boolean matchesProfiles(Set<String> declared, String query) {
+        return declared.isEmpty() || (query != null && !query.isBlank() && declared.contains(query));
+    }
+
+    private static String stringAttribute(FileObject file, String name, String fallback) {
+        Object value = file.getAttribute(name);
+        if (value == null) {
+            return fallback;
+        }
+        if (!(value instanceof String text)) {
+            throw new IllegalArgumentException(name + " must be a string");
+        }
+        return text;
+    }
+
+    private static int intAttribute(FileObject file, String name, int fallback) {
+        Object value = file.getAttribute(name);
+        if (value == null) {
+            return fallback;
+        }
+        if (!(value instanceof Integer number)) {
+            throw new IllegalArgumentException(name + " must be an integer");
+        }
+        return number;
+    }
+
+    private static boolean booleanAttribute(FileObject file, String name, boolean fallback) {
+        Object value = file.getAttribute(name);
+        if (value == null) {
+            return fallback;
+        }
+        if (!(value instanceof Boolean flag)) {
+            throw new IllegalArgumentException(name + " must be boolean");
+        }
+        return flag;
+    }
+
+    /** A nested menu folder and its display metadata. */
     public record Submenu(int position, boolean separatorBefore, String displayName, FileObject folder) {
 
         static Submenu of(FileObject folder) {
@@ -139,14 +216,7 @@ public final class ActionLayerReader {
         }
     }
 
-    /**
-     * Reads the nested folders directly under {@code folder} that hold menu content (a data {@code .ref}
-     * file or another non-empty folder), ordered by position then display name. The parent folders are
-     * the shell's submenus.
-     *
-     * @param folder the surface folder (for example {@code NbFx/Menus/Window}); may be {@code null}
-     * @return the ordered submenu folders, never {@code null}
-     */
+    /** Reads nested folders that contain action references or dynamic sections. */
     public static List<Submenu> readSubmenus(FileObject folder) {
         if (folder == null) {
             return List.of();
@@ -161,7 +231,6 @@ public final class ActionLayerReader {
         return List.copyOf(submenus);
     }
 
-    /** Whether {@code folder} contains an action reference, directly or nested in a child folder. */
     private static boolean hasContent(FileObject folder) {
         String dynamicExt = LayerPaths.DYNAMIC_SUFFIX.startsWith(".")
                 ? LayerPaths.DYNAMIC_SUFFIX.substring(1) : LayerPaths.DYNAMIC_SUFFIX;
@@ -176,13 +245,7 @@ public final class ActionLayerReader {
         return false;
     }
 
-    /**
-     * Reads the action references from the layer folder at {@code layerPath} (for example
-     * {@code "NbFx/Menus/File"}).
-     *
-     * @param layerPath the layer path; may be {@code null}
-     * @return the ordered references, never {@code null}
-     */
+    /** Reads references from a layer path. */
     public static List<ActionRef> read(String layerPath) {
         return read(layerPath == null ? null : FileUtil.getConfigFile(layerPath));
     }

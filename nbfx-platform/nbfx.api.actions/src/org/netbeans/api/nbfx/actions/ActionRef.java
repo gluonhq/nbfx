@@ -18,21 +18,52 @@
  */
 package org.netbeans.api.nbfx.actions;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
- * A reference to an action in a UI surface (a menu, a tool bar or a context menu), as read from the
- * layer. The referenced action is supplied by the {@link ActionRegistry} under
- * {@link #actionId()}.
+ * An immutable reference to an action in a UI surface, as read from the layer.
  *
- * @param actionId        the id of the referenced action
- * @param position        the position among the siblings of the same surface
- * @param separatorBefore whether a separator is drawn before this entry
+ * @param actionId the referenced action id
+ * @param position order among siblings
+ * @param separatorBefore whether a separator precedes the entry
+ * @param displayName optional localized display override
+ * @param iconName optional icon resource override
+ * @param contextType optional exact context token
+ * @param languageId optional exact language id
+ * @param mimeType optional exact MIME type
+ * @param profiles exact profile ids; empty means all profiles
+ * @param presentationHints immutable presentation hints
  * @since 1.0
  */
-public record ActionRef(String actionId, int position, boolean separatorBefore) {
+public record ActionRef(
+        String actionId,
+        int position,
+        boolean separatorBefore,
+        String displayName,
+        String iconName,
+        String contextType,
+        String languageId,
+        String mimeType,
+        Set<String> profiles,
+        Map<String, String> presentationHints) {
+
+    public ActionRef(String actionId, int position, boolean separatorBefore) {
+        this(actionId, position, separatorBefore, "", "", "", "", "", Set.of(), Map.of());
+    }
 
     public ActionRef {
-        Objects.requireNonNull(actionId, "actionId");
+        actionId = Objects.requireNonNull(actionId, "actionId");
+        if (actionId.isBlank()) {
+            throw new IllegalArgumentException("actionId must not be blank");
+        }
+        profiles = Set.copyOf(Objects.requireNonNull(profiles, "profiles"));
+        for (String profile : profiles) {
+            if (!ActionTokens.isToken(profile)) {
+                throw new IllegalArgumentException("profile ids must be atomic tokens");
+            }
+        }
+        presentationHints = Map.copyOf(Objects.requireNonNull(presentationHints, "presentationHints"));
     }
 }

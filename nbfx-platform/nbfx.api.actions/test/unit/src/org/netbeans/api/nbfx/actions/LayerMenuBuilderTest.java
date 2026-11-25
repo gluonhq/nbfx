@@ -28,6 +28,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SeparatorMenuItem;
@@ -41,9 +42,12 @@ import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.lookup.AbstractLookup;
 import org.openide.util.lookup.InstanceContent;
+import org.openide.util.lookup.Lookups;
 import org.openide.util.test.MockLookup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -137,6 +141,117 @@ public class LayerMenuBuilderTest {
         List<MenuItem> items = onFxThread(() -> builder.build(menu));
 
         assertEquals(0, items.size());
+    }
+
+    @Test
+    public void buildsContextFilteredItemsAndDisplayOverride() throws Exception {
+        FileObject menu = menuFolder();
+        addRef(menu, "any", "any", 10, false);
+        FileObject filtered = menu.createData("filtered", "ref");
+        filtered.setAttribute("actionId", "filtered");
+        filtered.setAttribute("position", 20);
+        filtered.setAttribute("displayName", "Custom Save");
+        filtered.setAttribute("contextType", "editor");
+        filtered.setAttribute("mimeType", "text/x-java");
+        filtered.setAttribute("languageId", "java");
+        filtered.setAttribute("profiles", "main");
+        registry.command("any", "Any");
+        registry.command("filtered", "Save");
+        Lookup context = Lookups.fixed(new ActionContextMetadata(
+                "editor", "text/x-java", "java", "main"));
+
+        try (LayerMenuBuilder.Build build = onFxThread(() -> builder.buildOwned(menu, context))) {
+            assertEquals(List.of("Any", "Custom Save"), build.items().stream()
+                    .map(MenuItem::getText).toList());
+        }
+        assertEquals(List.of("Any", "Custom Save"), onFxThread(() -> builder.build(menu)).stream()
+                .map(MenuItem::getText).toList());
+    }
+
+    @Test
+    public void legacyBuildUsesCanonicalCommandAndOwnedBuildDisposesScopedView() throws Exception {
+        FileObject menu = menuFolder();
+        addRef(menu, "scoped", "scoped", 10, false);
+        int[] disposed = {0};
+        RunnableCommand canonical = new RunnableCommand("scoped", "Scoped", null, () -> {},
+                new SimpleBooleanProperty(false)) {
+            @Override
+            public Command forContext(Lookup context) {
+                return new RunnableCommand("scoped", "Scoped", null, () -> {},
+                        new SimpleBooleanProperty(true)) {
+                    @Override
+                    public void dispose() {
+                        disposed[0]++;
+                    }
+                };
+            }
+        };
+        registry.register(canonical);
+
+        MenuItem legacy = onFxThread(() -> builder.build(menu)).get(0);
+        assertFalse(legacy.isDisable());
+        LayerMenuBuilder.Build owned = onFxThread(() -> builder.buildOwned(menu, Lookup.EMPTY));
+        assertTrue(owned.items().get(0).isDisable());
+        assertEquals(0, disposed[0]);
+        owned.close();
+        assertEquals(1, disposed[0]);
+        owned.close();
+        assertEquals(1, disposed[0]);
+    }
+
+    @Test
+    public void ownedBuildDisposesCachedScopedViewOnlyOnce() throws Exception {
+        FileObject menu = menuFolder();
+        addRef(menu, "one", "cached", 10, false);
+        addRef(menu, "two", "cached", 20, false);
+        int[] disposed = {0};
+        RunnableCommand scoped = new RunnableCommand("cached", "Cached", null, () -> {}) {
+            @Override
+            public void dispose() {
+                disposed[0]++;
+            }
+        };
+        registry.register(new RunnableCommand("cached", "Cached", null, () -> {}) {
+            @Override
+            public Command forContext(Lookup context) {
+                return scoped;
+            }
+        });
+
+        LayerMenuBuilder.Build owned = onFxThread(() -> builder.buildOwned(menu, Lookup.EMPTY));
+        owned.close();
+        owned.close();
+        assertEquals(1, disposed[0]);
+    }
+
+    @Test
+    public void failedOwnedBuildDisposesAlreadyCreatedScopedViews() throws Exception {
+        FileObject menu = menuFolder();
+        addRef(menu, "good", "good", 10, false);
+        addRef(menu, "bad", "bad", 20, false);
+        int[] disposed = {0};
+        RunnableCommand scoped = new RunnableCommand("good", "Good", null, () -> {}) {
+            @Override
+            public void dispose() {
+                disposed[0]++;
+            }
+        };
+        registry.register(new RunnableCommand("good", "Good", null, () -> {}) {
+            @Override
+            public Command forContext(Lookup context) {
+                return scoped;
+            }
+        });
+        registry.register(new RunnableCommand("bad", "Bad", null, () -> {}) {
+            @Override
+            public Command forContext(Lookup context) {
+                throw new IllegalStateException("cannot bind");
+            }
+        });
+
+        assertThrows(AssertionError.class,
+                () -> onFxThread(() -> builder.buildOwned(menu, Lookup.EMPTY)));
+        assertEquals(1, disposed[0]);
     }
 
     private static FileObject menuFolder() throws IOException {

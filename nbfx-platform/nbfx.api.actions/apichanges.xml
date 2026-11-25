@@ -40,9 +40,21 @@
                 <code>ActionRegistry.resolve(id, Lookup)</code>. The platform registry loads canonical
                 command instances from <code>NbFx/Actions</code> through <code>api.layer</code>, with
                 provider fallback retained during migration. Layer-owned ids also take precedence in
-                the legacy window-scoped resolution path and follows its observable active document.
+                the legacy window-scoped resolution path and follow its observable active document.
+                Action references now retain presentation hints and context/profile filters, with
+                neutral <code>ActionContextMetadata</code> and <code>readForContext</code> queries.
+                <code>ContextSensitiveCommand</code> and <code>ContextAction</code> support explicit
+                context snapshots. <code>LayerMenuBuilder.Build</code> owns and disposes scoped menu
+                command views; legacy menu builds retain canonical/global-context behavior.
             </description>
             <class package="org.netbeans.api.nbfx.actions" name="ActionRegistration"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ActionReference"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ActionRef"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ActionLayerReader"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ActionContextMetadata"/>
+            <class package="org.netbeans.api.nbfx.actions" name="LayerMenuBuilder"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ContextSensitiveCommand"/>
+            <class package="org.netbeans.api.nbfx.actions" name="ContextAction"/>
             <class package="org.netbeans.api.nbfx.actions" name="Command"/>
             <class package="org.netbeans.api.nbfx.actions" name="ActionRegistry"/>
         </change>

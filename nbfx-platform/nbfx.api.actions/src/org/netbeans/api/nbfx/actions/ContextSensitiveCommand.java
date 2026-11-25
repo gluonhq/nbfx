@@ -20,8 +20,13 @@ package org.netbeans.api.nbfx.actions;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.scene.Node;
 import javafx.scene.input.KeyCombination;
 
 import org.openide.util.Lookup;
@@ -45,6 +50,7 @@ public abstract class ContextSensitiveCommand extends AbstractCommand {
 
     private final List<Lookup.Result<?>> results = new ArrayList<>();
     private final LookupListener listener = this::onContextChanged;
+    private final Class<?>[] observedTypes;
 
     /**
      * Creates a context-sensitive command with no default accelerator.
@@ -69,6 +75,7 @@ public abstract class ContextSensitiveCommand extends AbstractCommand {
     protected ContextSensitiveCommand(String id, String text, KeyCombination accelerator,
             Class<?>... observedTypes) {
         super(id, text, accelerator);
+        this.observedTypes = observedTypes.clone();
         ActionContext context = ActionContext.getDefault();
         if (context != null) {
             for (Class<?> type : observedTypes) {
@@ -125,10 +132,126 @@ public abstract class ContextSensitiveCommand extends AbstractCommand {
     protected abstract boolean isEnabled(ActionContext context);
 
     @Override
+    public Command forContext(Lookup context) {
+        Objects.requireNonNull(context, "context");
+        return new ScopedCommand(this, context);
+    }
+
+    /** Executes in an explicit context; context-free subclasses may keep using {@link #run()}. */
+    protected void run(ActionContext context) {
+        run();
+    }
+
+    @Override
     public void dispose() {
         for (Lookup.Result<?> result : results) {
             result.removeLookupListener(listener);
         }
         results.clear();
+    }
+
+    private static final class ScopedCommand implements Command {
+
+        private final ContextSensitiveCommand base;
+        private final ActionContext context;
+        private final List<Lookup.Result<?>> results = new ArrayList<>();
+        private final LookupListener listener = event -> refresh();
+        private final ReadOnlyBooleanWrapper disabled = new ReadOnlyBooleanWrapper(true);
+        private boolean closed;
+
+        private ScopedCommand(ContextSensitiveCommand base, Lookup lookup) {
+            this.base = base;
+            this.context = lookup instanceof ActionContext actionContext
+                    ? actionContext : new LookupActionContext(lookup);
+            try {
+                for (Class<?> type : base.observedTypes) {
+                    Lookup.Result<?> result = context.lookupResult(type);
+                    results.add(result);
+                    result.addLookupListener(listener);
+                }
+                refresh();
+            } catch (RuntimeException | Error ex) {
+                releaseListeners();
+                throw ex;
+            }
+        }
+
+        @Override
+        public String getId() {
+            return base.getId();
+        }
+
+        @Override
+        public String getText() {
+            return base.getText();
+        }
+
+        @Override
+        public KeyCombination getAccelerator() {
+            return base.getAccelerator();
+        }
+
+        @Override
+        public Node getIcon() {
+            return base.getIcon();
+        }
+
+        @Override
+        public boolean isDisabled() {
+            return disabled.get();
+        }
+
+        @Override
+        public ReadOnlyBooleanProperty disabledProperty() {
+            return disabled.getReadOnlyProperty();
+        }
+
+        @Override
+        public void run() {
+            if (!isDisabled()) {
+                base.run(context);
+            }
+        }
+
+        @Override
+        public void dispose() {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            releaseListeners();
+        }
+
+        private void releaseListeners() {
+            for (Lookup.Result<?> result : results) {
+                result.removeLookupListener(listener);
+            }
+            results.clear();
+        }
+
+        private void refresh() {
+            if (!closed) {
+                disabled.set(!base.isEnabled(context));
+            }
+        }
+    }
+
+    private static final class LookupActionContext extends ActionContext {
+
+        private final Lookup delegate;
+
+        private LookupActionContext(Lookup delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public <T> T lookup(Class<T> clazz) {
+            return delegate.lookup(clazz);
+        }
+
+        @Override
+        public <T> Result<T> lookup(Template<T> template) {
+            return delegate.lookup(template);
+        }
     }
 }

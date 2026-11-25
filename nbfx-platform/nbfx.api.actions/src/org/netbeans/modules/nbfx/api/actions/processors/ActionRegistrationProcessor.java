@@ -24,7 +24,10 @@ import org.netbeans.api.nbfx.actions.ActionRegistration;
 import org.netbeans.api.nbfx.actions.Command;
 import org.netbeans.api.nbfx.layer.LayerPaths;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.Element;
@@ -136,14 +139,92 @@ public class ActionRegistrationProcessor extends LayerGeneratingProcessor {
 
     private void registerReference(Element element, ActionReference reference)
             throws LayerGenerationException {
-        String path = "NbFx/" + reference.path() + "/" + reference.id() + LayerPaths.REF_SUFFIX;
+        String id = reference.id();
+        String surface = reference.path();
+        if (id.isBlank() || !id.equals(id.trim()) || id.indexOf('/') >= 0 || id.indexOf('\\') >= 0
+                || ".".equals(id) || "..".equals(id) || id.chars().anyMatch(Character::isISOControl)) {
+            throw new LayerGenerationException("@ActionReference requires a file-safe id", element);
+        }
+        if (!validPath(surface)) {
+            throw new LayerGenerationException("@ActionReference requires a relative NbFx surface path",
+                    element);
+        }
+        validateOptionalToken(reference.contextType(), "contextType", element);
+        validateOptionalToken(reference.languageId(), "languageId", element);
+        validateOptionalToken(reference.mimeType(), "mimeType", element);
+        Set<String> profiles = new TreeSet<>();
+        for (String profile : reference.profiles()) {
+            if (!isToken(profile)) {
+                throw new LayerGenerationException("Action reference profiles must be atomic tokens", element);
+            }
+            profiles.add(profile);
+        }
+        Map<String, String> hints = new LinkedHashMap<>();
+        for (String hint : reference.presentationHints()) {
+            int equals = hint.indexOf('=');
+            if (equals <= 0 || equals == hint.length() - 1) {
+                throw new LayerGenerationException("Presentation hints must use key=value", element);
+            }
+            String key = hint.substring(0, equals);
+            String value = hint.substring(equals + 1);
+            if (!key.matches("[A-Za-z0-9._-]+") || value.isBlank()
+                    || value.chars().anyMatch(Character::isISOControl)) {
+                throw new LayerGenerationException("Invalid presentation hint: " + hint, element);
+            }
+            if (hints.putIfAbsent(key, value) != null) {
+                throw new LayerGenerationException("Duplicate presentation hint: " + key, element);
+            }
+        }
+
+        String path = "NbFx/" + surface + "/" + id + LayerPaths.REF_SUFFIX;
         org.openide.filesystems.annotations.LayerBuilder.File file = layer(element).file(path);
-        file.stringvalue("actionId", reference.id())
+        file.stringvalue("actionId", id)
                 .intvalue("position", reference.position())
                 .boolvalue("separatorBefore", reference.separatorBefore());
+        file.bundlevalue("displayName", reference.displayName());
+        if (!reference.iconName().isBlank()) {
+            file.stringvalue("iconName", reference.iconName());
+        }
+        if (!reference.contextType().isBlank()) {
+            file.stringvalue("contextType", reference.contextType());
+        }
+        if (!reference.languageId().isBlank()) {
+            file.stringvalue("languageId", reference.languageId());
+        }
         if (!reference.mimeType().isBlank()) {
             file.stringvalue("mimeType", reference.mimeType());
         }
+        if (!profiles.isEmpty()) {
+            file.stringvalue("profiles", String.join(",", profiles));
+        }
+        hints.forEach((key, value) -> file.stringvalue("hint." + key, value));
         file.write();
+    }
+
+    private static boolean validPath(String path) {
+        if (path == null || path.isBlank() || !path.equals(path.trim()) || path.startsWith("/")
+                || path.endsWith("/") || path.indexOf('\\') >= 0
+                || path.chars().anyMatch(Character::isISOControl)) {
+            return false;
+        }
+        for (String segment : path.split("/", -1)) {
+            if (segment.isBlank() || ".".equals(segment) || "..".equals(segment)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void validateOptionalToken(String value, String field, Element element)
+            throws LayerGenerationException {
+        if (!value.isBlank() && !isToken(value)) {
+            throw new LayerGenerationException(field + " must be an atomic token", element);
+        }
+    }
+
+    private static boolean isToken(String value) {
+        return value != null && !value.isBlank()
+                && value.chars().noneMatch(character -> Character.isWhitespace(character)
+                        || Character.isISOControl(character) || character == ',');
     }
 }

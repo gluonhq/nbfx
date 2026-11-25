@@ -59,10 +59,15 @@ public class ContextAction extends ContextSensitiveCommand {
     }
 
     @Override
+    protected void run(ActionContext context) {
+        action.accept(context);
+    }
+
+    @Override
     public void run() {
         ActionContext context = context();
         if (context != null) {
-            action.accept(context);
+            run(context);
         }
     }
 }

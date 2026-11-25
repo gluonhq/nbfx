@@ -20,13 +20,18 @@ package org.netbeans.api.nbfx.actions;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileSystem;
 import org.openide.filesystems.FileUtil;
+import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 
 /**
  * Verifies that action references are read from a layer folder and ordered by position then id, and
@@ -122,6 +127,68 @@ public class ActionLayerReaderTest {
 
         List<ActionRef> noMime = ActionLayerReader.readForMime(menu, null);
         assertEquals(List.of("any"), noMime.stream().map(ActionRef::actionId).toList());
+    }
+
+    @Test
+    public void filtersByContextMimeLanguageAndProfileAndRetainsMetadata() throws IOException {
+        FileObject menu = menuFolder();
+        addRef(menu, "any", "any", 10, false);
+        addFilteredRef(menu, "match", "match", 20);
+        addFilteredRef(menu, "other-profile", "other-profile", 30);
+        FileObject otherProfile = menu.getFileObject("other-profile", "ref");
+        otherProfile.setAttribute("profiles", "compact");
+        Lookup context = Lookups.fixed(new ActionContextMetadata(
+                "editor", "text/x-java", "java", "main"));
+
+        List<ActionRef> refs = ActionLayerReader.readForContext(menu, context);
+        assertEquals(List.of("any", "match"), refs.stream().map(ActionRef::actionId).toList());
+        ActionRef match = refs.get(1);
+        assertEquals("Custom Save", match.displayName());
+        assertEquals("save.png", match.iconName());
+        assertEquals("editor", match.contextType());
+        assertEquals("java", match.languageId());
+        assertEquals("text/x-java", match.mimeType());
+        assertEquals(Set.of("main"), match.profiles());
+        assertEquals(Map.of("iconOnly", "true", "slot", "primary"), match.presentationHints());
+        assertThrows(UnsupportedOperationException.class, () -> match.profiles().add("compact"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> match.presentationHints().put("new", "value"));
+    }
+
+    @Test
+    public void wrongTypedAttributesAreMalformedRatherThanPermissive() throws IOException {
+        FileObject menu = menuFolder();
+        FileObject bad = menu.createData("bad", "ref");
+        bad.setAttribute("actionId", "bad");
+        bad.setAttribute("position", "10");
+        assertTrue(ActionLayerReader.read(menu).isEmpty());
+
+        FileObject badProfiles = menu.createData("profiles", "ref");
+        badProfiles.setAttribute("actionId", "profiles");
+        badProfiles.setAttribute("profiles", 123);
+        assertTrue(ActionLayerReader.read(menu).isEmpty());
+
+        FileObject badFilter = menu.createData("filter", "ref");
+        badFilter.setAttribute("actionId", "filter");
+        badFilter.setAttribute("mimeType", "text/x-java, text/plain");
+        assertTrue(ActionLayerReader.read(menu).isEmpty());
+        assertThrows(IllegalArgumentException.class,
+                () -> new ActionContextMetadata("editor", "bad mime", "java", "main"));
+    }
+
+    private static void addFilteredRef(FileObject folder, String name, String actionId, int position)
+            throws IOException {
+        FileObject file = folder.createData(name, "ref");
+        file.setAttribute("actionId", actionId);
+        file.setAttribute("position", position);
+        file.setAttribute("displayName", "Custom Save");
+        file.setAttribute("iconName", "save.png");
+        file.setAttribute("contextType", "editor");
+        file.setAttribute("languageId", "java");
+        file.setAttribute("mimeType", "text/x-java");
+        file.setAttribute("profiles", "main");
+        file.setAttribute("hint.iconOnly", "true");
+        file.setAttribute("hint.slot", "primary");
     }
 
     private static FileObject menuFolder() throws IOException {

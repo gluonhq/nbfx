@@ -16,6 +16,7 @@
 # nbfx-platform/nbfx.platform.theme
 org.netbeans.api.nbfx.actions.AbstractCommand
 org.netbeans.api.nbfx.actions.ActionContext
+org.netbeans.api.nbfx.actions.ActionContextMetadata
 org.netbeans.api.nbfx.actions.ActionIds
 org.netbeans.api.nbfx.actions.ActionLayerReader
 org.netbeans.api.nbfx.actions.ActionRef

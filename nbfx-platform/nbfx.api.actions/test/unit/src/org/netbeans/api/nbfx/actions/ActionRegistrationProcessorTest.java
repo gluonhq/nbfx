@@ -49,7 +49,10 @@ public class ActionRegistrationProcessorTest {
             + "public class DemoActions {\n"
             + "    @ActionRegistration(id = \"demo.hello\", displayName = \"Hello\","
             + " iconName = \"hello.png\", accelerator = \"Shortcut+H\")\n"
-            + "    @ActionReference(id = \"demo.hello\", path = \"Menus/File\", position = 100)\n"
+            + "    @ActionReference(id = \"demo.hello\", path = \"Menus/File\", position = 100,\n"
+            + "        displayName = \"#hello\", iconName = \"hello.png\", contextType = \"editor\",\n"
+            + "        languageId = \"java\", mimeType = \"text/x-java\", profiles = {\"main\"},\n"
+            + "        presentationHints = {\"iconOnly=true\", \"slot=primary\"})\n"
             + "    @ActionReference(id = \"demo.hello\", path = \"Toolbars/Main\", position = 10)\n"
             + "    @ActionReference(id = \"demo.hello\", path = \"ContextMenus/Editor\", position = 20)\n"
             + "    @ActionReference(id = \"demo.hello\", path = \"ShellRegions/nbfx:ribbon/Home/Clipboard\")\n"
@@ -61,8 +64,9 @@ public class ActionRegistrationProcessorTest {
 
     @Test
     public void generatesOneCommandAndReferencesAcrossSurfaces() throws Exception {
-        String xml = ProcessorTestSupport.compile(PROCESSOR,
-                Map.of("demo/DemoActions.java", SOURCE));
+        String xml = ProcessorTestSupport.compile(PROCESSOR, Map.of(
+                "demo/DemoActions.java", SOURCE,
+                "demo/Bundle.properties", "hello=Hello\n"));
 
         assertTrue(xml, xml.contains("name=\"demo.hello.instance\""));
         assertTrue(xml, xml.contains("instanceClass\" stringvalue=\"demo.DemoActions$Hello\""));
@@ -70,6 +74,13 @@ public class ActionRegistrationProcessorTest {
         assertTrue(xml, xml.contains("iconName\" stringvalue=\"hello.png\""));
         assertTrue(xml, xml.contains("accelerator\" stringvalue=\"Shortcut+H\""));
         assertTrue(xml, xml.contains("actionId\" stringvalue=\"demo.hello\""));
+        assertTrue(xml, xml.contains("bundlevalue=\"demo.Bundle#hello\""));
+        assertTrue(xml, xml.contains("contextType\" stringvalue=\"editor\""));
+        assertTrue(xml, xml.contains("languageId\" stringvalue=\"java\""));
+        assertTrue(xml, xml.contains("mimeType\" stringvalue=\"text/x-java\""));
+        assertTrue(xml, xml.contains("profiles\" stringvalue=\"main\""));
+        assertTrue(xml, xml.contains("hint.iconOnly\" stringvalue=\"true\""));
+        assertTrue(xml, xml.contains("hint.slot\" stringvalue=\"primary\""));
         assertLayerPath(xml, LayerPaths.ACTIONS);
         assertLayerPath(xml, LayerPaths.MENUS);
         assertLayerPath(xml, LayerPaths.TOOLBARS);
@@ -101,6 +112,22 @@ public class ActionRegistrationProcessorTest {
         String duplicateError = ProcessorTestSupport.compileFailure(
                 PROCESSOR, Map.of("demo/Duplicates.java", duplicate));
         assertTrue(duplicateError, duplicateError.contains("Duplicate @ActionRegistration id"));
+
+        String badProfile = SOURCE.replace("profiles = {\"main\"}", "profiles = {\"main,compact\"}");
+        String profileError = ProcessorTestSupport.compileFailure(
+                PROCESSOR, Map.of("demo/DemoActions.java", badProfile));
+        assertTrue(profileError, profileError.contains("profiles must be atomic tokens"));
+
+        String badHint = SOURCE.replace("presentationHints = {\"iconOnly=true\", \"slot=primary\"}",
+                "presentationHints = {\"broken\"}");
+        String hintError = ProcessorTestSupport.compileFailure(
+                PROCESSOR, Map.of("demo/DemoActions.java", badHint));
+        assertTrue(hintError, hintError.contains("Presentation hints must use key=value"));
+
+        String badPath = SOURCE.replace("path = \"Menus/File\"", "path = \"../Menus\"");
+        String pathError = ProcessorTestSupport.compileFailure(
+                PROCESSOR, Map.of("demo/DemoActions.java", badPath));
+        assertTrue(pathError, pathError.contains("relative NbFx surface path"));
     }
 
     @Test
@@ -140,6 +167,9 @@ public class ActionRegistrationProcessorTest {
                 Files.writeString(file, source.getValue(), StandardCharsets.UTF_8);
                 files.add(file);
             }
+            List<Path> javaFiles = files.stream()
+                    .filter(path -> path.getFileName().toString().endsWith(".java"))
+                    .toList();
             Path out = dir.resolve("out");
             Files.createDirectories(out);
             JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
@@ -150,7 +180,7 @@ public class ActionRegistrationProcessorTest {
             boolean success;
             try (StandardJavaFileManager fileManager =
                     compiler.getStandardFileManager(diagnostics, null, StandardCharsets.UTF_8)) {
-                Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromPaths(files);
+                Iterable<? extends JavaFileObject> units = fileManager.getJavaFileObjectsFromPaths(javaFiles);
                 success = Boolean.TRUE.equals(compiler.getTask(output, fileManager, diagnostics,
                         List.of("-classpath", classpath, "-processorpath", classpath,
                                 "-sourcepath", dir.toString(), "-processor", processor, "-d", out.toString()),
