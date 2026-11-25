@@ -16,5 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/** Toolkit-free product layout, area and dock-group model. */
+/** Toolkit-free product layout, area and dock-group model with declarative registration. */
 package org.netbeans.api.nbfx.layout;

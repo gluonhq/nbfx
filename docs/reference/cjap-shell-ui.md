@@ -511,7 +511,8 @@ LayoutSpec layout = LayoutBuilder.builder("product.default", 1)
     .build();
 ```
 
-Layout XML is standalone application data, not a layer registration:
+Layout XML is standalone application data. It is not itself a folder-style layer registration;
+`@LayoutRegistration` embeds a complete document as a generated layer resource:
 
 ```xml
 <layout id="product.default" version="1">
@@ -579,6 +580,19 @@ elements, duplicate ids, repeated group references, repeated slot ids and invali
 The root must be a `Split` or `Group`. Layout-value diagnostics use XPath-like locations such as
 `/layout/areas/area[1]/@weight`; malformed XML is reported as an `IOException`. No custom layout DSL
 is introduced.
+
+Declarative registration uses the source-retained `@LayoutRegistration(id, xml)` annotation. `xml` is a
+complete self-contained version 1 layout document, and its layout id must equal `id`. Includes are not
+allowed in annotation XML. The processor validates the document, checks `#key` display names against
+the annotated package's `Bundle.properties`, canonicalizes the resource to UTF-8 and writes
+`NbFx/Layouts/<id>.xml`; declaration classes are not instantiated. Repeated declarations use
+`@LayoutRegistrations`. Duplicate ids within one compilation are errors; across modules the standard
+layer merge precedence applies, so products should use globally unique ids.
+
+`LayoutRegistry.discover()` returns all valid registered layouts ordered by id, and
+`LayoutRegistry.find(id)` returns one. Discovery is stateless, performs no implicit I/O beyond the
+configured layer, skips malformed or id-mismatched resources with a log warning, and preserves the
+same immutable `LayoutSpec` equality as the builder and XML paths.
 
 ## 7. Docking policy and transfer
 

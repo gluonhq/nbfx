@@ -231,8 +231,8 @@ Acceptance: zero-content layout with multiple groups/areas validates.
 #### T1.3 — Builder, annotations and XML
 
 - `LayoutBuilder` canonical API.
-- `@LayoutRegistration`, `@ViewAreaRegistration`, `@DockGroupRegistration` or equivalent simple
-  declarations.
+- `@LayoutRegistration` carries a complete self-contained layout XML document; standalone
+  `@ViewAreaRegistration`/`@DockGroupRegistration` metadata declarations follow in the next slice.
 - Layer XML reader/writer with path diagnostics and includes.
 
 Acceptance: builder/XML/annotation paths produce equal `LayoutSpec`.

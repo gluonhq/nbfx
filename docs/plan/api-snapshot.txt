@@ -79,6 +79,9 @@ org.netbeans.api.nbfx.layout.EmptyAreaPolicy
 org.netbeans.api.nbfx.layout.GroupLifetime
 org.netbeans.api.nbfx.layout.LayoutBuilder
 org.netbeans.api.nbfx.layout.LayoutNode
+org.netbeans.api.nbfx.layout.LayoutRegistration
+org.netbeans.api.nbfx.layout.LayoutRegistrations
+org.netbeans.api.nbfx.layout.LayoutRegistry
 org.netbeans.api.nbfx.layout.LayoutSpec
 org.netbeans.api.nbfx.layout.LayoutXml
 org.netbeans.api.nbfx.layout.PaneKind

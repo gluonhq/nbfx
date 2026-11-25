@@ -94,6 +94,18 @@
             <class package="org.netbeans.api.nbfx.layer" name="LayerInstances"/>
             <class package="org.netbeans.api.nbfx.layer" name="LayerRegistration"/>
         </change>
+        <change id="cjap.layouts.path">
+            <api name="netbeansfx_layer"/>
+            <summary>Layer path for CJAP product layouts.</summary>
+            <version major="1" minor="6"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>LayerPaths.LAYOUTS</code> for declarative CJAP layout XML resources.
+            </description>
+            <class package="org.netbeans.api.nbfx.layer" name="LayerPaths"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

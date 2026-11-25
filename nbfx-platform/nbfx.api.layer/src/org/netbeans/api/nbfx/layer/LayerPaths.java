@@ -47,6 +47,9 @@ public final class LayerPaths {
     /** Registered view areas, by id. */
     public static final String VIEW_AREAS = "NbFx/ViewAreas";
 
+    /** Registered CJAP product layouts, by id. */
+    public static final String LAYOUTS = "NbFx/Layouts";
+
     /** Registered first-run window layouts, by id. */
     public static final String WINDOW_LAYOUTS = "NbFx/WindowLayouts";
 
