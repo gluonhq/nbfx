@@ -12,19 +12,19 @@ Every number the plan states is derived here from the tree. Regenerate with
 | of those, subtree exports (`<subpackages>`) | 16 |
 | modules with `arch.xml` | 20 |
 | modules with `apichanges.xml` | 14 |
-| distinct `OpenIDE-Module-Specification-Version` values | 5: 1.0, 1.1, 1.2, 1.5, 1.9 |
+| distinct `OpenIDE-Module-Specification-Version` values | 6: 1.0, 1.1, 1.2, 1.3, 1.5, 1.9 |
 | public `Fx*` types (total) | 4 |
 | public `Fx*` types in exporting modules | 0 |
 | files constructing TreeView/TreeTableView/TableView/ListView | 26 |
 | files mentioning a TreeView/TreeTableView/TableView/ListView | 34 |
-| `.subscribe(` call sites | 145 |
+| `.subscribe(` call sites | 147 |
 | files mentioning `dispose()` | 43 |
 | modules importing `org.netbeans.api.java.source` | 5: nbfx.java.editor, nbfx.java.model, nbfx.java.navigation, nbfx.java.navigation.structure, nbfx.java.usages |
 | files importing `org.netbeans.api.java.source` | 46 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 61 |
 | files using `NbBundle` | 169 |
 | `Bundle.properties` files | 68 |
-| test files | 106 |
+| test files | 107 |
 | modules with tests | 40 of 66 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |
