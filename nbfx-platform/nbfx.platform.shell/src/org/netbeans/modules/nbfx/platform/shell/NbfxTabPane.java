@@ -1199,7 +1199,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             Optional<DropRouter.ResolvedDrop> routed = tryRouteExternalDrop(tabPane, e);
             if (routed.isPresent()) {
                 e.acceptTransferModes(toFxTransferMode(routed.get().decision().effect()));
-                TabDropIndicator.showHighlight(tabPane);
+                showRoutedDropHighlight(tabPane, routed.get());
                 e.consume();
                 return;
             }
@@ -1307,6 +1307,23 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         }
         return Optional.empty();
+    }
+
+    private static void showRoutedDropHighlight(TabPane tabPane, DropRouter.ResolvedDrop routed) {
+        if (routed.request().target().kind().equals(DropTargetKind.CONTENT) && tabPane instanceof NbfxTabPane nbfx) {
+            String contentId = routed.request().target().id();
+            for (Tab tab : nbfx.getTabs()) {
+                if (tab.getStyleClass().contains(TabDropIndicator.PLACEHOLDER_TAB_CLASS)) {
+                    continue;
+                }
+                Optional<org.netbeans.api.nbfx.content.ContentId> id = contentIdForTab(tab);
+                if (id.isPresent() && id.get().value().equals(contentId)) {
+                    TabDropIndicator.showContentTarget(tabPane, tab);
+                    return;
+                }
+            }
+        }
+        TabDropIndicator.showHighlight(tabPane);
     }
 
     private static TransferSource transferSource(TransferKind kind, Lookup data) {

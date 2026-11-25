@@ -243,7 +243,8 @@ api.plugins (T1)        → api.layer, api.resources
   no handler accepts.
   `@DropRegistration`/`@DropRegistrations` write handler instances with target/source metadata
   to `NbFx/DropHandlers`; richer node payload adaptation, accessible rejection announcements,
-  and Escape-cancel semantics remain follow-up slices.
+  and Escape-cancel semantics remain follow-up slices. CONTENT-target drags highlight the
+  specific tab header; GROUP/AREA drags retain pane highlight.
 
 ### 15. Review resolution: custom-shell composition contract
 

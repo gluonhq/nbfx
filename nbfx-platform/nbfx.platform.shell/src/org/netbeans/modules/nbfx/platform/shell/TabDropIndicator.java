@@ -50,11 +50,14 @@ public final class TabDropIndicator {
 
     private static final PseudoClass DROP_TARGET_PC = PseudoClass.getPseudoClass("drop-target");
     private static final PseudoClass HAS_PLACEHOLDER_PC = PseudoClass.getPseudoClass("has-placeholder");
+    private static final String CONTENT_TARGET_CLASS = "nbfx-drop-content-target";
 
     private static Tab placeholderTab;
     private static TabPane targetTabPane;
     /** The area currently drawing a drop line, if any. */
     private static DockArea<TabPane> splitArea;
+    /** The tab header node currently highlighted as a content drop target, if any. */
+    private static Node contentTargetNode;
 
     private TabDropIndicator() {}
 
@@ -62,6 +65,7 @@ public final class TabDropIndicator {
     static void show(TabPane tabPane, double localX, Tab dragged) {
         Objects.requireNonNull(tabPane).pseudoClassStateChanged(DROP_TARGET_PC, true);
         clearSplit();
+        clearContentTarget();
         insertOrMovePlaceholder(tabPane, localX, dragged);
     }
 
@@ -72,6 +76,7 @@ public final class TabDropIndicator {
      */
     static void showSplit(TabPane tabPane, DropTarget<TabPane> target) {
         Objects.requireNonNull(tabPane).pseudoClassStateChanged(DROP_TARGET_PC, false);
+        clearContentTarget();
         if (targetTabPane == tabPane) {
             removePlaceholder();
         }
@@ -98,13 +103,70 @@ public final class TabDropIndicator {
      * does not land at a given tab position (files being dropped to be opened).
      */
     static void showHighlight(TabPane tabPane) {
+        clearContentTarget();
         Objects.requireNonNull(tabPane).pseudoClassStateChanged(DROP_TARGET_PC, true);
+    }
+
+    /** Highlights {@code tab} as the content drop target within {@code tabPane}. */
+    static void showContentTarget(TabPane tabPane, Tab tab) {
+        Objects.requireNonNull(tabPane).pseudoClassStateChanged(DROP_TARGET_PC, true);
+        clearSplit();
+        if (targetTabPane == tabPane) {
+            removePlaceholder();
+        }
+        Node header = headerNodeFor(tabPane, tab);
+        if (header == contentTargetNode) {
+            return;
+        }
+        clearContentTarget();
+        if (header != null) {
+            header.getStyleClass().add(CONTENT_TARGET_CLASS);
+            contentTargetNode = header;
+        }
+    }
+
+    private static void clearContentTarget() {
+        if (contentTargetNode != null) {
+            contentTargetNode.getStyleClass().remove(CONTENT_TARGET_CLASS);
+            contentTargetNode = null;
+        }
+    }
+
+    private static Node headerNodeFor(TabPane tabPane, Tab tab) {
+        if (tabPane == null || tab == null) {
+            return null;
+        }
+        int index = tabPane.getTabs().indexOf(tab);
+        if (index < 0) {
+            return null;
+        }
+        java.util.List<Node> tabNodes = tabPane.lookupAll(".tab").stream()
+                .filter(n -> n.getStyleClass().contains("tab") && n.getParent() != null
+                        && (n.getParent().getStyleClass().contains("tab-container")
+                            || n.getParent().getStyleClass().contains("headers-region")))
+                .filter(n -> belongsToTabPane(n, tabPane))
+                .sorted(java.util.Comparator.comparingDouble(n -> n.localToScene(n.getBoundsInLocal()).getMinX()))
+                .toList();
+        return index < tabNodes.size() ? tabNodes.get(index) : null;
+    }
+
+    private static boolean belongsToTabPane(Node node, TabPane tabPane) {
+        for (Node n = node; n != null; n = n.getParent()) {
+            if (n == tabPane) {
+                return true;
+            }
+            if (n instanceof TabPane) {
+                return false;
+            }
+        }
+        return false;
     }
 
     /** Deactivates the pseudo-classes and removes the placeholder if present in the {@code tabPane}. */
     static void hide(TabPane tabPane) {
         Objects.requireNonNull(tabPane).pseudoClassStateChanged(DROP_TARGET_PC, false);
         clearSplit();
+        clearContentTarget();
         if (targetTabPane == tabPane) {
             removePlaceholder();
         }
@@ -116,6 +178,7 @@ public final class TabDropIndicator {
             tp.pseudoClassStateChanged(DROP_TARGET_PC, false);
         }
         clearSplit();
+        clearContentTarget();
         removePlaceholder();
     }
 

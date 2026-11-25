@@ -58,6 +58,14 @@
     -fx-opacity: 0.5;
 }
 
+.nbfx-tab-pane:drop-target > .tab-header-area > .headers-region > .tab.nbfx-drop-content-target {
+    -fx-background-color: -nbfx-chrome-active, derive(-nbfx-drop-indicator, 80%);
+    -fx-background-insets: 0, 1;
+    -fx-border-color: -nbfx-drop-indicator;
+    -fx-border-insets: 0;
+    -fx-border-style: solid;
+}
+
 .nbfx-tab-pane:drop-target > .tab-content-area {
     -fx-border-color: -nbfx-drop-indicator, -nbfx-surface;
     -fx-border-insets: 0, 0 2 2 2;
