@@ -26,6 +26,25 @@
         <apidef name="netbeansfx_editor">NetBeansFX Editor API</apidef>
     </apidefs>
     <changes>
+        <change id="editor.document.restore">
+            <api name="netbeansfx_editor"/>
+            <summary>Documents that are the editor of no file are opened again with the session.</summary>
+            <version major="1" minor="5"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="jpereda"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>SavedDocument</code> and <code>EditorDocument.getSavedState()</code>,
+                with which a document that is the editor of no file - a diff - says who can open
+                it again and what of, and the <code>DocumentRestorer</code> SPI, registered in the
+                default lookup, that the shell asks to open it when it restores the tabs of the
+                last session. <code>getSavedState()</code> returns <code>null</code> by default:
+                such a document is not restored.
+            </description>
+            <class package="org.netbeans.api.nbfx.editor" name="EditorDocument"/>
+            <class package="org.netbeans.api.nbfx.editor" name="SavedDocument"/>
+            <class package="org.netbeans.spi.nbfx.editor" name="DocumentRestorer"/>
+        </change>
         <change id="editor.document.diff">
             <api name="netbeansfx_editor"/>
             <summary>Line bands, the top line of a view, and opening a document that is not the editor of a file.</summary>
@@ -38,7 +57,7 @@
                 <code>LineBand</code> and <code>EditorDocument.setLineBands(List)</code>, which
                 mark blocks of whole lines in one view;
                 <code>EditorDocument.topParagraphProperty()</code> and
-                <code>EditorDocument.scrollToParagraph(int)</code>, which keep several editors
+                <code>EditorDocument.scrollToParagraph(double)</code>, which keep several editors
                 scrolling in step; and <code>ContentManager.openDocument(EditorDocument, Node)</code>,
                 which shows in the editor area a document that is not the editor of a file. All
                 have default implementations.

@@ -280,7 +280,7 @@ public interface EditorDocument extends Lookup.Provider {
      * restored.
      *
      * @return who can open it again and what of, or {@code null}
-     * @since 1.4
+     * @since 1.5
      */
     default SavedDocument getSavedState() {
         return null;
