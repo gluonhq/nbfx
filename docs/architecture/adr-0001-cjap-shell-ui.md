@@ -186,6 +186,10 @@ api.plugins (T1)        → api.layer, api.resources
   `ContentId`/instance key. It does not own order or window placement.
 - `DockWindow.state()` returns `WindowState`; `WindowSystem.snapshot()` returns `SessionState`.
 - Persistence implementation follows the neutral content-id/state contract; C1-3 is resequenced.
+- C4-1 lands the content vocabulary and lifecycle in `api.content` (`ContentId`, `ContentKind`,
+  `ContentState`, `Content`, `ContentFactory`, `ContentRequirements`, `ContentManager`) and the
+  per-application `DefaultContentManager` in `platform.content`. Content sources, drop handling and
+  overlays remain C4-3/C6-2; the manager accepts ready-made content until then.
 
 ### 14. Review resolution: runtime ownership and public handles
 
