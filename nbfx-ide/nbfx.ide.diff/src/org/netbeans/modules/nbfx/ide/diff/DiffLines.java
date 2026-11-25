@@ -155,6 +155,49 @@ final class DiffLines {
         return bands;
     }
 
+    /**
+     * One change to a text: the characters from {@code start} to {@code end} - offsets that count
+     * one character for each line ending - become {@code text}.
+     */
+    record Edit(int start, int end, String text) {
+
+        /** Whether this changes nothing. */
+        boolean isEmpty() {
+            return start == end && text.isEmpty();
+        }
+    }
+
+    /**
+     * What makes the block of {@code difference} on the right as it is on the left: its lines of
+     * {@code right} taken out, those of {@code left} put in their place.
+     */
+    static Edit revert(List<String> left, List<String> right, Difference difference) {
+        List<String> reverted = new ArrayList<>(right.subList(0, difference.rightStart()));
+        reverted.addAll(left.subList(difference.leftStart(), difference.leftEnd()));
+        reverted.addAll(right.subList(difference.rightEnd(), right.size()));
+        return edit(String.join("\n", right), String.join("\n", reverted));
+    }
+
+    /** What makes the text of the lines {@code right} that of the lines {@code left}. */
+    static Edit revertAll(List<String> left, List<String> right) {
+        return edit(String.join("\n", right), String.join("\n", left));
+    }
+
+    /** The least change that makes {@code from} into {@code to}: what they differ in between what they share. */
+    private static Edit edit(String from, String to) {
+        int shortest = Math.min(from.length(), to.length());
+        int start = 0;
+        while (start < shortest && from.charAt(start) == to.charAt(start)) {
+            start++;
+        }
+        int tail = 0;
+        while (tail < shortest - start
+                && from.charAt(from.length() - 1 - tail) == to.charAt(to.length() - 1 - tail)) {
+            tail++;
+        }
+        return new Edit(start, from.length() - tail, to.substring(start, to.length() - tail));
+    }
+
     private static String unifiedKind(String line) {
         return line.startsWith("+") ? ADDED : line.startsWith("-") ? DELETED : line.startsWith("@@") ? CHANGED : null;
     }

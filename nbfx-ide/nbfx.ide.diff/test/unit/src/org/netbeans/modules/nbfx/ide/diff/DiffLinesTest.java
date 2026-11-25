@@ -25,6 +25,7 @@ import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /** Verifies the bands of the two sides of a diff and the lines that stand beside each other. */
 public class DiffLinesTest {
@@ -110,5 +111,40 @@ public class DiffLinesTest {
         // The names of the texts are not lines deleted and added; no diff, no bands.
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("--- a", "+++ b")));
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("")));
+    }
+
+    @Test
+    public void revertingABlockPutsBackTheLinesOfTheLeft() {
+        List<String> left = Diff.lines("a\nb\nc\nd\n");
+        List<String> right = Diff.lines("a\nx\ny\nd\nnew\n");
+        List<Difference> found = Diff.compute(left, right).differences();
+        assertEquals(2, found.size());
+
+        // Changed lines: only what differs in them is replaced.
+        assertEquals("a\nb\nc\nd\nnew\n", applied(right, DiffLines.revert(left, right, found.get(0))));
+        // Lines added at the end are taken out, with their line ending.
+        assertEquals("a\nx\ny\nd\n", applied(right, DiffLines.revert(left, right, found.get(1))));
+        assertEquals("a\nb\nc\nd\n", applied(right, DiffLines.revertAll(left, right)));
+    }
+
+    @Test
+    public void revertingPutsBackLinesDeletedAndTheLastLineEnding() {
+        List<String> left = Diff.lines("a\nb\nc");
+        List<String> right = Diff.lines("a\nc\n");
+        List<Difference> found = Diff.compute(left, right).differences();
+
+        String text = String.join("\n", right);
+        for (int i = found.size() - 1; i >= 0; i--) {
+            // From the last block to the first: an edit leaves the lines above it where they were.
+            DiffLines.Edit edit = DiffLines.revert(left, right, found.get(i));
+            text = text.substring(0, edit.start()) + edit.text() + text.substring(edit.end());
+        }
+        assertEquals("a\nb\nc", text);
+        assertTrue(DiffLines.revertAll(left, left).isEmpty());
+    }
+
+    private static String applied(List<String> lines, DiffLines.Edit edit) {
+        String text = String.join("\n", lines);
+        return text.substring(0, edit.start()) + edit.text() + text.substring(edit.end());
     }
 }

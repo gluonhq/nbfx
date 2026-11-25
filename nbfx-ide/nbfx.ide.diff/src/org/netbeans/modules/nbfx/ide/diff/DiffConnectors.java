@@ -20,11 +20,14 @@ package org.netbeans.modules.nbfx.ide.diff;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.scene.shape.ClosePath;
@@ -36,6 +39,7 @@ import javafx.scene.shape.Rectangle;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.LineBand;
+import org.openide.util.NbBundle;
 
 /**
  * The strip between the two editors of a diff: for each block that differs, a shape that joins its
@@ -50,10 +54,19 @@ final class DiffConnectors extends Pane {
     }
 
     /** The shape of one block, kept and moved: one made anew would be drawn once before it is styled. */
-    private record Shape(Path path, MoveTo start, CubicCurveTo upper, LineTo side, CubicCurveTo lower) {
+    private record Shape(Path path, MoveTo start, CubicCurveTo upper, LineTo side, CubicCurveTo lower,
+            Button revert) {
 
         static Shape of(Difference.Kind kind) {
-            Shape shape = new Shape(new Path(), new MoveTo(), new CubicCurveTo(), new LineTo(), new CubicCurveTo());
+            Shape shape = new Shape(new Path(), new MoveTo(), new CubicCurveTo(), new LineTo(), new CubicCurveTo(),
+                    new Button());
+            shape.revert().getStyleClass().add("diff-revert");
+            shape.revert().setGraphic(DiffIcons.revert());
+            shape.revert().setTooltip(new Tooltip(NbBundle.getMessage(DiffConnectors.class, "Diff.revert")));
+            shape.revert().setAccessibleText(NbBundle.getMessage(DiffConnectors.class, "Diff.revert"));
+            shape.revert().setFocusTraversable(false);
+            shape.revert().setManaged(false);
+            shape.revert().setVisible(false);
             shape.path().getElements().addAll(shape.start(), shape.upper(), shape.side(), shape.lower(),
                     new ClosePath());
             shape.path().getStyleClass().addAll("diff-connector", switch (kind) {
@@ -88,6 +101,9 @@ final class DiffConnectors extends Pane {
 
     /** Half the width of the outline of a shape. */
     private static final double STROKE_INSET = 0.5;
+    /** The side of the button that reverts a block, and how far it is from the left edge and the top of the block. */
+    private static final double REVERT_SIZE = 14;
+    private static final double REVERT_GAP = 2;
 
     private final Rectangle clip = new Rectangle();
     private final InvalidationListener moved = observable -> requestRedraw();
@@ -101,6 +117,8 @@ final class DiffConnectors extends Pane {
     private List<Region> rightRegions = List.of();
     private List<Shape> shapes = List.of();
     private int current = -1;
+    /** What a block is reverted with, given its index; {@code null} when the right side cannot be edited. */
+    private IntConsumer onRevert;
     private boolean redrawRequested;
     /** Set from this drawing in a frame until the next frame starts. */
     private boolean drawnThisFrame;
@@ -140,6 +158,16 @@ final class DiffConnectors extends Pane {
         rightRegions.forEach(this::watch);
         shapes = found.stream().map(difference -> Shape.of(difference.kind())).toList();
         getChildren().setAll(shapes.stream().map(Shape::path).toList());
+        // Above the shapes, each over the top of its own.
+        for (int i = 0; i < shapes.size(); i++) {
+            int index = i;
+            shapes.get(i).revert().setOnAction(event -> {
+                if (onRevert != null) {
+                    onRevert.accept(index);
+                }
+            });
+            getChildren().add(shapes.get(i).revert());
+        }
         mark();
         requestRedraw();
     }
@@ -160,9 +188,23 @@ final class DiffConnectors extends Pane {
         }
     }
 
+    /**
+     * Gives each block a button that reverts it - {@code action} is told the index of the block -
+     * or none, with {@code null}: the right side is not one to edit.
+     */
+    void setOnRevert(IntConsumer action) {
+        onRevert = action;
+        requestRedraw();
+    }
+
     /** The shapes drawn, one for each block in view on either side. */
     List<Node> connectors() {
-        return getChildren().stream().filter(Node::isVisible).toList();
+        return getChildren().stream().filter(Path.class::isInstance).filter(Node::isVisible).toList();
+    }
+
+    /** The buttons that revert the blocks, in their order, those out of view too. */
+    List<Button> revertButtons() {
+        return shapes.stream().map(Shape::revert).toList();
     }
 
     /**
@@ -230,6 +272,7 @@ final class DiffConnectors extends Pane {
             Shape shape = shapes.get(i);
             if (!placed) {
                 shape.path().setVisible(false);
+                shape.revert().setVisible(false);
                 continue;
             }
             Span from = span(leftRegions.get(i), leftBands.get(i));
@@ -239,6 +282,12 @@ final class DiffConnectors extends Pane {
                 shape.join(from, to, getWidth());
             }
             shape.path().setVisible(inView);
+            shape.revert().setVisible(inView && onRevert != null);
+            if (inView && onRevert != null) {
+                // At the top of the lines to put back; over the point, where there are none.
+                double top = leftBands.get(i).count() == 0 ? from.top() - REVERT_SIZE / 2 : from.top() + REVERT_GAP;
+                shape.revert().resizeRelocate(REVERT_GAP, snapPositionY(top), REVERT_SIZE, REVERT_SIZE);
+            }
         }
     }
 

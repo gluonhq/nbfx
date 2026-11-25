@@ -32,6 +32,9 @@ import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -52,6 +55,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Subscription;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.util.NbBundle;
@@ -94,6 +99,16 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous");
     private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
     private final Button refresh = button(ToolIcons.REFRESH, "Diff.refresh");
+    private final Button revertAll = button(DiffIcons.revertAll(), "Diff.revertAll");
+    /** The editor of the side edited in the diff shown; holds {@code null} when neither is. */
+    private final SimpleObjectProperty<EditorDocument> editor = new SimpleObjectProperty<>();
+    private final SimpleBooleanProperty modified = new SimpleBooleanProperty();
+    /**
+     * The editors of the files edited here and left without saving, kept though not shown: their
+     * edits would be lost with the last editor of the file. Released when saved, or with the tab.
+     */
+    private final List<EditorDocument> unsaved = new ArrayList<>();
+    private Subscription edits = Subscription.EMPTY;
     /** The table over the diff, or {@code null} when the provider lists no files. */
     private SplitPane split;
     /** Whether the table was given the height of its rows: once, then it is the user's to size. */
@@ -164,7 +179,12 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         summary.setMaxWidth(Double.MAX_VALUE);
         summary.setAlignment(Pos.CENTER);
         HBox.setHgrow(summary, Priority.ALWAYS);
-        bar.getChildren().addAll(previous, next, new Separator(Orientation.VERTICAL), refresh, summary);
+        bar.getChildren().addAll(previous, next, new Separator(Orientation.VERTICAL), revertAll, refresh, summary);
+        revertAll.setOnAction(event -> {
+            if (pane != null) {
+                pane.revertAll();
+            }
+        });
         previous.setOnAction(event -> fire(true));
         next.setOnAction(event -> fire(false));
         refresh.setOnAction(event -> refresh());
@@ -385,10 +405,70 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     }
 
     @Override
+    public ObservableValue<EditorDocument> editorProperty() {
+        return editor;
+    }
+
+    @Override
+    public ObservableValue<Boolean> modifiedProperty() {
+        return modified;
+    }
+
+    /** Writes the edits of the file shown and of those left without saving. */
+    @Override
+    public void save() throws IOException {
+        IOException failed = null;
+        for (EditorDocument kept : List.copyOf(unsaved)) {
+            try {
+                kept.save();
+                unsaved.remove(kept);
+                kept.dispose();
+            } catch (IOException ex) {
+                failed = failed == null ? ex : failed;
+            }
+        }
+        if (editor.get() != null) {
+            editor.get().save();
+        }
+        updateModified();
+        if (failed != null) {
+            throw failed;
+        }
+    }
+
+    /** The editors kept for their edits, of files not shown. */
+    List<EditorDocument> unsaved() {
+        return List.copyOf(unsaved);
+    }
+
+    Button revertAllButton() {
+        return revertAll;
+    }
+
+    @Override
     public void dispose() {
         listing++;
         loading++;
         show((DiffPane) null, "");
+        // The tab is closed: the user was asked, and what is left was not to be saved.
+        unsaved.forEach(EditorDocument::dispose);
+        unsaved.clear();
+        updateModified();
+    }
+
+    private void updateModified() {
+        EditorDocument shown = editor.get();
+        modified.set(shown != null && shown.isModified() || unsaved.stream().anyMatch(EditorDocument::isModified));
+    }
+
+    /** Keeps the editor of a file left with edits, unless one of that file is kept already. */
+    private void keep(EditorDocument left) {
+        if (unsaved.stream().anyMatch(left::sharesContentWith)) {
+            left.dispose();
+        } else {
+            unsaved.add(left);
+            left.modifiedProperty().subscribe(this::updateModified);
+        }
     }
 
     private void list(List<DiffEntry> found, String failure) {
@@ -494,12 +574,24 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             previous.disableProperty().unbind();
             next.disableProperty().unbind();
             summary.textProperty().unbind();
-            pane.dispose();
+            revertAll.disableProperty().unbind();
+            edits.unsubscribe();
+            edits = Subscription.EMPTY;
+            EditorDocument left = pane.disposeKeepingEdits();
+            if (left != null) {
+                keep(left);
+            }
         }
         pane = shown;
+        editor.set(pane == null ? null : pane.editor());
+        if (editor.get() != null) {
+            edits = editor.get().modifiedProperty().subscribe(this::updateModified);
+        }
+        updateModified();
         if (pane == null) {
             previous.setDisable(true);
             next.setDisable(true);
+            revertAll.setDisable(true);
             summary.setText("");
             placeholder.setText(why);
             holder.getChildren().setAll(placeholder);
@@ -507,6 +599,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             previous.disableProperty().bind(pane.previousButton().disableProperty());
             next.disableProperty().bind(pane.nextButton().disableProperty());
             summary.textProperty().bind(pane.summaryProperty());
+            revertAll.disableProperty().bind(pane.revertAllButton().disableProperty());
             pane.setTextual(textual);
             holder.getChildren().setAll(pane);
         }
@@ -622,8 +715,12 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     }
 
     private static Button button(String icon, String key) {
+        return button(ToolIcons.view(icon), key);
+    }
+
+    private static Button button(Node icon, String key) {
         Button button = new Button();
-        button.setGraphic(ToolIcons.view(icon));
+        button.setGraphic(icon);
         button.setTooltip(new Tooltip(message(key)));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");
