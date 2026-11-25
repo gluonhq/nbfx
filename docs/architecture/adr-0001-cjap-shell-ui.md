@@ -227,6 +227,11 @@ api.plugins (T1)        → api.layer, api.resources
   split, float, redock, group close/undo and window enumeration remain for later C3 slices. The
   types live in `api.shell` for now to avoid a PaneRole dependency cycle; the target module map
   still places docking contracts in `api.docking`.
+- C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
+  handlers are discovered from `Lookup.getDefault()` and `resolve(...)` tries caller-supplied
+  targets in priority order, returning the first handler whose target/source kind matches and
+  whose evaluation is accepted. Shell DnD wiring, `@DropRegistration` annotation processing,
+  file/URI source adaptation and accessible rejection announcements remain follow-up slices.
 
 ### 15. Review resolution: custom-shell composition contract
 
