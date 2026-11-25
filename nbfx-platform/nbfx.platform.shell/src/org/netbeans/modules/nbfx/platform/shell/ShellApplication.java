@@ -130,6 +130,8 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     private final SessionRestorer sessionRestorer = new SessionRestorer(appState, this::viewTabFor, this::viewStateStore);
 
     private NbfxTabPane mainPane;
+    /** The application-scoped docking runtime this shell owns. */
+    private DockRuntime dockRuntime;
     private DockArea<TabPane> dockArea;
     private SlidingArea slidingArea;
     private BorderPane root;
@@ -173,6 +175,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             mainPane = panes.values().iterator().next();
         }
         dockArea = Docking.create(composition, panes);
+        dockRuntime = Docking.runtime();
         slidingArea = Docking.slides();
         ShellContext context = new ShellContext(shellLookup);
         shellContext = context;
@@ -356,6 +359,10 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
         NbfxTheme.dispose();
         disposePanes();
         stopping();
+        if (dockRuntime != null) {
+            dockRuntime.dispose();
+            dockRuntime = null;
+        }
         LOG.info("JavaFX shell stopping, shutting down the NetBeans Platform...");
         LifecycleManager.getDefault().exit();
     }
@@ -456,6 +463,14 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** The main editor pane. */
     protected final NbfxTabPane getMainPane() {
         return mainPane;
+    }
+
+    /**
+     * The application-scoped docking runtime this shell owns, or {@code null} before the shell has
+     * started. Products and tests use it to reach the runtime without the static Docking facade.
+     */
+    protected final DockRuntime getDockRuntime() {
+        return dockRuntime;
     }
 
     /** The dock area holding the main pane and any docked panes. */
@@ -783,7 +798,11 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
 
     protected void restoreSession() {
         sessionRestorer.restoreSession(null);
-        Docking.completeStartupLayout();
+        if (dockRuntime != null) {
+            dockRuntime.completeStartupLayout();
+        } else {
+            Docking.completeStartupLayout();
+        }
     }
 
     private static NbfxTabPane createMainPane() {
