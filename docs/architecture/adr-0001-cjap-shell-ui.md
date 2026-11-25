@@ -233,12 +233,13 @@ api.plugins (T1)        → api.layer, api.resources
   manager's default constructor; richer composition/predicates and `api.docking` placement remain
   follow-ups.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
-  handlers are discovered from `Lookup.getDefault()` and `resolve(...)` tries caller-supplied
-  targets in priority order, returning the first handler whose target/source kind matches and
-  whose evaluation is accepted. NbfxTabPane file-drag handlers now consult DropRouter for
-  GROUP/AREA targets before the legacy file-open fallback, preserving existing behavior when no
-  handler accepts. `@DropRegistration` annotation processing, richer source adaptation, and
-  accessible rejection announcements remain follow-up slices.
+  handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
+  `resolve(...)` tries caller-supplied targets in priority order, returning the first handler
+  whose target/source kind matches and whose evaluation is accepted. NbfxTabPane file-drag
+  handlers now consult DropRouter for GROUP/AREA targets before the legacy file-open fallback,
+  preserving existing behavior when no handler accepts. `@DropRegistration`/`@DropRegistrations`
+  write handler instances with target/source metadata to `NbFx/DropHandlers`; richer source
+  adaptation and accessible rejection announcements remain follow-up slices.
 
 ### 15. Review resolution: custom-shell composition contract
 

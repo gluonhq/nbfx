@@ -114,6 +114,21 @@
             <class package="org.netbeans.api.nbfx.content" name="DropDecision"/>
             <class package="org.netbeans.api.nbfx.content" name="DropHandler"/>
         </change>
+        <change id="cjap.content.drop-registration">
+            <api name="netbeansfx_content"/>
+            <summary>Declarative drop handler registration.</summary>
+            <version major="1" minor="5"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DropRegistration</code> and <code>DropRegistrations</code>. The processor
+                writes drop handler instances to <code>NbFx/DropHandlers</code> with target and
+                source-kind metadata for discovery.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="DropRegistration"/>
+            <class package="org.netbeans.api.nbfx.content" name="DropRegistrations"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

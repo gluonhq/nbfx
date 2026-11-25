@@ -68,6 +68,9 @@ public final class LayerPaths {
     /** Registered permanent window panes, by id. */
     public static final String WINDOW_PANES = "NbFx/WindowPanes";
 
+    /** Registered drop handlers, under {@code NbFx/DropHandlers}. */
+    public static final String DROP_HANDLERS = "NbFx/DropHandlers";
+
     /** Registered status bar elements, by id. */
     public static final String STATUS = "NbFx/Status";
 

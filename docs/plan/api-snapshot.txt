@@ -54,6 +54,8 @@ org.netbeans.api.nbfx.content.ContentState
 org.netbeans.api.nbfx.content.DockPlacement
 org.netbeans.api.nbfx.content.DropDecision
 org.netbeans.api.nbfx.content.DropHandler
+org.netbeans.api.nbfx.content.DropRegistration
+org.netbeans.api.nbfx.content.DropRegistrations
 org.netbeans.api.nbfx.content.DropRequest
 org.netbeans.api.nbfx.content.DropTarget
 org.netbeans.api.nbfx.content.DropTargetKind

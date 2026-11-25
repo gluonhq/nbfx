@@ -19,6 +19,7 @@
 package org.netbeans.modules.nbfx.platform.content;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,7 +30,9 @@ import org.netbeans.api.nbfx.content.DropRequest;
 import org.netbeans.api.nbfx.content.DropTarget;
 import org.netbeans.api.nbfx.content.TransferMode;
 import org.netbeans.api.nbfx.content.TransferSource;
+import org.netbeans.api.nbfx.layer.LayerPaths;
 import org.openide.util.Lookup;
+import org.openide.util.lookup.Lookups;
 
 /**
  * Routes external/domain drops to registered {@link DropHandler}s. Targets are tried in the
@@ -53,9 +56,12 @@ public final class DropRouter {
         }
     }
 
-    /** Discovers handlers from {@link Lookup#getDefault()}. */
+    /** Discovers handlers from {@link Lookup#getDefault()} and the drop-handler layer path. */
     public static List<DropHandler> discover() {
-        return List.copyOf(Lookup.getDefault().lookupAll(DropHandler.class));
+        LinkedHashSet<DropHandler> handlers = new LinkedHashSet<>();
+        handlers.addAll(Lookup.getDefault().lookupAll(DropHandler.class));
+        handlers.addAll(Lookups.forPath(LayerPaths.DROP_HANDLERS).lookupAll(DropHandler.class));
+        return List.copyOf(handlers);
     }
 
     /**
