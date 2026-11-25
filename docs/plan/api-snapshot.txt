@@ -51,6 +51,9 @@ org.netbeans.api.nbfx.content.ContentKind
 org.netbeans.api.nbfx.content.ContentManager
 org.netbeans.api.nbfx.content.ContentRequirements
 org.netbeans.api.nbfx.content.ContentState
+org.netbeans.api.nbfx.content.DockPlacement
+org.netbeans.api.nbfx.content.TransferKind
+org.netbeans.api.nbfx.content.TransferMode
 org.netbeans.api.nbfx.css.CssTokens
 org.netbeans.api.nbfx.editor.BreadcrumbsElements
 org.netbeans.api.nbfx.editor.CaretInfo

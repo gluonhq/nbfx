@@ -76,6 +76,23 @@
             </description>
             <class package="org.netbeans.api.nbfx.content" name="ContentManager"/>
         </change>
+        <change id="cjap.content.transfer.vocabulary">
+            <api name="netbeansfx_content"/>
+            <summary>Neutral transfer kinds, modes and dock placements.</summary>
+            <version major="1" minor="3"/>
+            <date day="25" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds extensible <code>TransferKind</code> (content, files, URIs, text, nodes and
+                product kinds), <code>TransferMode</code> (move, copy, link) and
+                <code>DockPlacement</code> (group, split, edge, float, new window). Docking policies
+                and drop handlers share this vocabulary; source/request/decision contracts follow.
+            </description>
+            <class package="org.netbeans.api.nbfx.content" name="TransferKind"/>
+            <class package="org.netbeans.api.nbfx.content" name="TransferMode"/>
+            <class package="org.netbeans.api.nbfx.content" name="DockPlacement"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
