@@ -62,8 +62,8 @@ public final class GitMenuContributor implements FileContextMenuContributor {
         showChanges.setOnAction(event -> {
             GitStatusViewProvider view = GitStatusViewProvider.instance();
             if (view != null) {
-                // The changes of the project the clicked node belongs to.
-                view.show(ProjectContext.projectOf(file));
+                // The changes of the project the clicked node belongs to, or of its working tree.
+                view.show(file);
             }
         });
         return new Menu(message("Git.menu"), null, showChanges);
@@ -72,7 +72,8 @@ public final class GitMenuContributor implements FileContextMenuContributor {
     private static Menu versioningMenu(FileObject file) {
         MenuItem initialize = new MenuItem(message("Git.init.contextMenu"));
         initialize.setOnAction(event ->
-                GitInitDialog.show(GitMenus.proposedRoot(file, ProjectContext.projectOf(file)), null));
+                GitInitDialog.show(GitMenus.proposedRoot(file,
+                        GitMenus.folderOf(ProjectContext.projectOf(file))), null));
         return new Menu(message("Git.versioning.menu"), null, initialize);
     }
 

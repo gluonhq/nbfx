@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javafx.application.Platform;
@@ -26,6 +27,8 @@ import org.netbeans.api.nbfx.vcs.VcsAnnotator;
 import org.netbeans.api.nbfx.vcs.VcsFileState;
 import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
+import org.openide.util.LookupEvent;
+import org.openide.util.LookupListener;
 
 /**
  * The version control state of the files of the navigator trees, from the registered
@@ -68,21 +71,74 @@ final class VcsStates {
     }
 
     /**
-     * Repaints {@code tree} whenever an annotator reports that states may have changed. The reports
-     * come from any thread and in bursts; one repaint on the FX thread answers those pending.
+     * The state a group is badged with for the changed {@code files} it lists, or {@code null} for
+     * none: conflicts when one of them has some, changes otherwise.
+     */
+    static VcsFileState stateAmong(List<FileObject> files) {
+        VcsFileState among = null;
+        for (FileObject file : files) {
+            VcsFileState state = stateOf(file);
+            if (state == VcsFileState.CONFLICTED) {
+                return state;
+            }
+            if (state != null) {
+                among = VcsFileState.MODIFIED;
+            }
+        }
+        return among;
+    }
+
+    /**
+     * Repaints {@code tree}, while it is shown, whenever an annotator reports that states may have
+     * changed. The reports come from any thread and in bursts; one repaint on the FX thread answers
+     * those pending. A tree taken out of its scene is no longer told, so that the annotators do not
+     * hold it, and is repainted when put back. Called on the FX thread.
      */
     static void track(TreeView<?> tree) {
-        AtomicBoolean pending = new AtomicBoolean();
-        Runnable repaint = () -> {
+        Tracker tracker = new Tracker(tree);
+        tree.sceneProperty().addListener((property, was, scene) -> tracker.listen(scene != null));
+        tracker.listen(tree.getScene() != null);
+    }
+
+    /** What listens to the annotators for a tree: those registered now, and those that come or go. */
+    private static final class Tracker implements LookupListener {
+
+        private final TreeView<?> tree;
+        private final AtomicBoolean pending = new AtomicBoolean();
+        private final Lookup.Result<VcsAnnotator> registered = Lookup.getDefault().lookupResult(VcsAnnotator.class);
+        private final Runnable repaint = this::repaint;
+        private List<VcsAnnotator> heard = List.of();
+
+        Tracker(TreeView<?> tree) {
+            this.tree = tree;
+        }
+
+        /** Listens to the annotators registered now, or with {@code shown} false to none. FX thread. */
+        void listen(boolean shown) {
+            heard.forEach(annotator -> annotator.removeChangeListener(repaint));
+            registered.removeLookupListener(this);
+            heard = List.of();
+            if (shown) {
+                registered.addLookupListener(this);
+                heard = List.copyOf(registered.allInstances());
+                heard.forEach(annotator -> annotator.addChangeListener(repaint));
+                // What changed while nobody was told.
+                repaint();
+            }
+        }
+
+        @Override
+        public void resultChanged(LookupEvent event) {
+            Platform.runLater(() -> listen(tree.getScene() != null));
+        }
+
+        private void repaint() {
             if (pending.compareAndSet(false, true)) {
                 Platform.runLater(() -> {
                     pending.set(false);
                     tree.refresh();
                 });
             }
-        };
-        for (VcsAnnotator annotator : Lookup.getDefault().lookupAll(VcsAnnotator.class)) {
-            annotator.addChangeListener(repaint);
         }
     }
 }

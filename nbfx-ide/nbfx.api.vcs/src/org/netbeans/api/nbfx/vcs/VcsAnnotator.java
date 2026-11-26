@@ -29,6 +29,10 @@ import org.openide.filesystems.FileObject;
  * The answer comes from what the annotator already knows, as it is asked for every row a view draws,
  * on the thread that draws it: it must not read the disk or run a command. An annotator that has to
  * find out answers with nothing, finds out elsewhere, and tells its listeners when it knows.
+ * <p>
+ * Under development until the version control contract is complete (M2): which annotator answers
+ * for a file when several are registered, and how "no changes" is told from "not known yet", are
+ * not settled, and this interface may change incompatibly until then.
  *
  * @since 1.0
  */

@@ -47,11 +47,12 @@ public class StatusTreeTest {
         assertEquals(List.of(
                 "build.xml [MODIFIED]",
                 "project.xml [MODIFIED]",
+                "Util.java [UNTRACKED]",
                 "App.java [DELETED]",
                 "New.java [ADDED]",
-                "Util.java [UNTRACKED]",
                 "z.txt [MODIFIED]"), outline(rows));
-        assertEquals("module/src/com/example/app/App.java", rows.get(2).row().path());
+        // In path order, whatever order the status holds them in.
+        assertEquals("module/src/com/example/app/App.java", rows.get(3).row().path());
     }
 
     @Test
@@ -80,6 +81,22 @@ public class StatusTreeTest {
                 "  New.java [ADDED]"), outline(StatusTree.tree(STATUS, VcsCompareMode.HEAD_VS_INDEX)));
         assertTrue(StatusTree.tree(VcsStatus.CLEAN, VcsCompareMode.HEAD_VS_INDEX).isEmpty());
         assertTrue(StatusTree.list(VcsStatus.CLEAN, VcsCompareMode.HEAD_VS_INDEX).isEmpty());
+    }
+
+    @Test
+    public void aFileRenamedAndThenDeletedIsARowWhereItWas() {
+        VcsStatus status = new VcsStatus(List.of(new VcsFileStatus("new/Moved.java", "old/Original.java",
+                VcsChangeKind.RENAMED, VcsChangeKind.DELETED, false)));
+
+        // The last commit has it in old/ and the disk nowhere: that is the file deleted.
+        List<StatusTree.Node> rows = StatusTree.tree(status, VcsCompareMode.HEAD_VS_WORKING_TREE);
+        assertEquals(List.of("old/", "  Original.java [DELETED]"), outline(rows));
+        assertEquals("old/Original.java", rows.get(0).children().get(0).row().path());
+        // The index has it in new/.
+        assertEquals(List.of("new/", "  Moved.java [RENAMED]"),
+                outline(StatusTree.tree(status, VcsCompareMode.HEAD_VS_INDEX)));
+        assertEquals("new/Moved.java",
+                StatusTree.list(status, VcsCompareMode.INDEX_VS_WORKING_TREE).get(0).row().path());
     }
 
     private static VcsFileStatus unstaged(String path, VcsChangeKind kind) {

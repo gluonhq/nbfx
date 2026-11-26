@@ -21,6 +21,9 @@ package org.netbeans.api.nbfx.vcs;
 /**
  * What version control says of a file in the working tree, compared with the last commit: the
  * states a view tells apart when it draws the file.
+ * <p>
+ * Under development until the version control contract is complete (M2): states may be added -
+ * untracked, renamed, copied - so a {@code switch} over them should have a {@code default}.
  *
  * @since 1.0
  */

@@ -132,9 +132,7 @@
                     </test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages>
-                <subpackages>org.netbeans.modules.nbfx.ide.vcs</subpackages>
-            </public-packages>
+            <public-packages/>
         </data>
     </configuration>
 </project>

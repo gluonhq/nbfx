@@ -24,20 +24,28 @@
     -fx-font-weight: bold;
 }
 
-/* The files version control reports as changed, as in the Git status window. */
-.tree-cell:vcs-added {
+/*
+ * The files version control reports as changed, as in the Git status window. A selected row keeps
+ * the colour while the tree is not focused - the theme would draw it in the strong text colour -
+ * and gives it up for the one that reads on the selection bar while it is.
+ */
+.tree-cell:vcs-added,
+.tree-cell:filled:selected:vcs-added {
     -fx-text-fill: -nbfx-output-success;
 }
 
-.tree-cell:vcs-modified {
+.tree-cell:vcs-modified,
+.tree-cell:filled:selected:vcs-modified {
     -fx-text-fill: -nbfx-accent;
 }
 
-.tree-cell:vcs-deleted {
+.tree-cell:vcs-deleted,
+.tree-cell:filled:selected:vcs-deleted {
     -fx-text-fill: -nbfx-text-faint;
 }
 
-.tree-cell:vcs-conflicted {
+.tree-cell:vcs-conflicted,
+.tree-cell:filled:selected:vcs-conflicted {
     -fx-text-fill: -nbfx-editor-text-error;
 }
 
