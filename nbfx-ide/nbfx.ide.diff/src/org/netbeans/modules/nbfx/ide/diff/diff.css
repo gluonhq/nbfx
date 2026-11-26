@@ -1,0 +1,326 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+.diff-bar {
+    -fx-padding: 2 6 2 6;
+    -fx-spacing: 2;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-bar > .diff-summary {
+    -fx-padding: 1 8 1 8;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-bar > .diff-tool-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 3;
+}
+
+.diff-bar > .diff-tool-button:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.diff-bar > .diff-tool-button:armed,
+.diff-bar > .diff-tool-button:selected {
+    -fx-background-color: -nbfx-pressed;
+}
+
+.diff-bar > .separator:vertical {
+    -fx-padding: 0 3 0 3;
+}
+
+.diff-bar > .diff-tool-button:disabled {
+    -fx-opacity: 0.4;
+}
+
+.diff-pane .diff-heading {
+    -fx-padding: 3 8 3 8;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-pane > .diff-sides {
+    -fx-padding: 0;
+}
+
+/* The strip of connectors between the editors, under the counter of the blocks. */
+.diff-pane .diff-strip {
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    /* At the sides only: a border above, even an unseen one, would set the counter a pixel lower
+       than the headings beside it. */
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 1 0 1;
+}
+
+.diff-pane .diff-strip > .diff-heading {
+    -fx-padding: 3 0 3 0;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-pane .diff-connector {
+    -fx-stroke-width: 1;
+}
+
+.diff-pane .diff-connector.diff-added {
+    -fx-fill: rgba(60, 200, 60, 0.28);
+    -fx-stroke: rgb(60, 170, 60);
+}
+
+.diff-pane .diff-connector.diff-deleted {
+    -fx-fill: rgba(230, 70, 70, 0.26);
+    -fx-stroke: rgb(210, 70, 70);
+}
+
+.diff-pane .diff-connector.diff-changed {
+    -fx-fill: rgba(70, 130, 230, 0.26);
+    -fx-stroke: rgb(70, 130, 230);
+}
+
+.diff-pane .diff-connector.diff-current {
+    -fx-stroke-width: 2;
+}
+
+/* The marks of all the blocks along the right edge. */
+.diff-pane .diff-edge {
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 0 0 1;
+}
+
+.diff-pane .diff-edge > .diff-heading {
+    -fx-padding: 3 0 3 0;
+}
+
+.diff-pane .diff-mark.diff-added {
+    -fx-background-color: rgb(60, 170, 60);
+}
+
+.diff-pane .diff-mark.diff-deleted {
+    -fx-background-color: rgb(210, 70, 70);
+}
+
+.diff-pane .diff-mark.diff-changed {
+    -fx-background-color: rgb(70, 130, 230);
+}
+
+.diff-pane .diff-mark.diff-current {
+    -fx-border-color: -nbfx-text-strong;
+    -fx-border-width: 1;
+}
+
+/*
+ * The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. Each is
+ * ruled above and below in the colour its connector is drawn with, so that the two read as one shape.
+ */
+.diff-pane .line-band {
+    -fx-border-width: 1 0 1 0;
+}
+
+.diff-pane .line-band.diff-added {
+    -fx-background-color: rgba(60, 200, 60, 0.28);
+    -fx-border-color: rgb(60, 170, 60);
+}
+
+.diff-pane .line-band.diff-deleted {
+    -fx-background-color: rgba(230, 70, 70, 0.26);
+    -fx-border-color: rgb(210, 70, 70);
+}
+
+.diff-pane .line-band.diff-changed {
+    -fx-background-color: rgba(70, 130, 230, 0.26);
+    -fx-border-color: rgb(70, 130, 230);
+}
+
+/* A rule where this side lacks the lines of the other. */
+.diff-pane .line-band.line-band-rule {
+    -fx-border-width: 0;
+}
+
+.diff-pane .line-band.line-band-rule.diff-added {
+    -fx-background-color: rgb(60, 170, 60);
+}
+
+.diff-pane .line-band.line-band-rule.diff-deleted {
+    -fx-background-color: rgb(210, 70, 70);
+}
+
+/* A diff shows two texts, not where the caret is in one: no breadcrumbs under its editors. */
+.diff-pane .code-editor > .editor-side-bars {
+    visibility: hidden;
+    -fx-managed: false;
+}
+
+/* The table of the files that differ, above the two texts. */
+.diff-browser .diff-split {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.diff-browser .diff-files {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.diff-browser .diff-files .tree-table-cell {
+    -fx-padding: 1 4 1 2;
+}
+
+/* The divider between the table and the two texts, as those of the docking area. */
+.diff-browser .diff-split.split-pane:vertical > .split-pane-divider {
+    -fx-background-color: -nbfx-canvas;
+    -fx-background-insets: 0;
+}
+
+.diff-browser .diff-placeholder {
+    -fx-text-fill: -nbfx-text-faint;
+    -fx-padding: 12;
+}
+
+/* File names by change, as the status view colours them. */
+.diff-files .diff-file-cell.diff-file-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.diff-files .diff-file-cell.diff-file-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.diff-files .diff-file-cell.diff-file-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-files .diff-file-cell.diff-file-conflicted {
+    -fx-text-fill: -nbfx-editor-text-error;
+}
+
+.diff-files:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .diff-file-cell {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+/*
+ * Graphical and Textual: the two ways to show the differences, as tabs above the headings, drawn as
+ * those of the docking area are: as high, the one shown with the line of the accent above it.
+ */
+.diff-pane .diff-view-tabs {
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+    -fx-max-height: 28;
+    -fx-padding: 0em 0.416667em 0em 0.416667em;
+    -fx-spacing: 0;
+    -fx-background-color: -nbfx-chrome, -nbfx-neutral;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+
+.diff-pane .diff-view-tab {
+    -fx-min-height: 28;
+    -fx-pref-height: 28;
+    -fx-max-height: 28;
+    -fx-background-radius: 0;
+    -fx-padding: 3 8.5 0 8.5;
+    -fx-border-color: transparent;
+    -fx-border-width: 2;
+    -fx-background-color: -nbfx-chrome, -nbfx-neutral;
+    -fx-background-insets: 0, 0 0 2 0;
+    -fx-text-fill: -nbfx-text-strong;
+    -fx-alignment: CENTER;
+}
+
+.diff-pane .diff-view-tab:hover {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-hover;
+    -fx-background-insets: 0, 0 0 2 0;
+}
+
+.diff-pane .diff-view-tab:selected {
+    -fx-background-color: -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 1 1 0 1;
+    -fx-border-color: transparent transparent -nbfx-canvas transparent;
+}
+
+/* While the focus is in the diff - in its table of files too - as in a tab pane that has it. */
+.diff-pane:focus-within .diff-view-tabs,
+.diff-browser:focus-within .diff-pane .diff-view-tabs,
+.diff-pane:focus-within .diff-view-tab,
+.diff-browser:focus-within .diff-pane .diff-view-tab {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-active;
+}
+
+.diff-pane:focus-within .diff-view-tab:hover,
+.diff-browser:focus-within .diff-pane .diff-view-tab:hover {
+    -fx-background-color: -nbfx-chrome, -nbfx-chrome-hover;
+}
+
+.diff-pane:focus-within .diff-view-tab:selected,
+.diff-browser:focus-within .diff-pane .diff-view-tab:selected {
+    -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
+    -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
+}
+
+/* The icons the style sheet draws: the arrows that put the left side back over the right one. */
+.diff-icon {
+    -fx-min-width: 16;
+    -fx-min-height: 16;
+    -fx-max-width: 16;
+    -fx-max-height: 16;
+    -fx-background-color: -nbfx-icon;
+    -fx-scale-shape: false;
+    -fx-position-shape: true;
+}
+
+.diff-icon-revert {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-max-width: 10;
+    -fx-max-height: 10;
+    -fx-shape: "M 0 3.5 L 5 3.5 L 5 0.5 L 10 5 L 5 9.5 L 5 6.5 L 0 6.5 Z";
+}
+
+.diff-icon-revert-all {
+    -fx-shape: "M 1 6 L 5 6 L 5 3 L 10 8 L 5 13 L 5 10 L 1 10 Z M 8 3 L 13 8 L 8 13 L 10.5 8 Z";
+}
+
+/* The button of a block that puts back its lines of the left side, over the top of its connector. */
+.diff-pane .diff-revert {
+    -fx-background-color: -nbfx-canvas;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-border-color: -nbfx-border;
+    -fx-border-radius: 3;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.diff-pane .diff-revert:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.diff-pane .diff-revert:armed {
+    -fx-background-color: -nbfx-pressed;
+}
+
+/* The bar of a diff shown alone holds its buttons as the browser's does. */
+.diff-pane .diff-bar > .diff-tool-button > .diff-icon,
+.diff-browser .diff-bar > .diff-tool-button > .diff-icon {
+    -fx-background-color: -nbfx-icon;
+}

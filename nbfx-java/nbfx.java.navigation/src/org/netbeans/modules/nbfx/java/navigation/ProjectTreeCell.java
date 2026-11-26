@@ -40,7 +40,7 @@ public class ProjectTreeCell extends NavigatorTreeCell<ProjectEntry> {
             setGraphic(null);
             setText(null);
         } else if (getTreeItem() instanceof ProjectTreeItem treeItem) {
-            setGraphic(treeItem.getGraphic());
+            setIcon(treeItem.getGraphic());
             setText(item.getName());
         } else {
             // shouldn't happen, but just in case

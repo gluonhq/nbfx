@@ -18,6 +18,8 @@
  */
 package org.netbeans.api.nbfx.editor;
 
+import javafx.beans.property.SimpleIntegerProperty;
+import java.util.List;
 import java.io.IOException;
 
 import javafx.beans.property.BooleanProperty;
@@ -273,6 +275,18 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
+     * What opens this document again in a later session, when it is the editor of no file - one
+     * with a file is opened again from it. {@code null}, the default, for a document that is not
+     * restored.
+     *
+     * @return who can open it again and what of, or {@code null}
+     * @since 1.5
+     */
+    default SavedDocument getSavedState() {
+        return null;
+    }
+
+    /**
      * Restores the editor's scroll and caret state: scrolls so {@code topParagraph} is at the top of
      * the viewport and places the caret at {@code caretParagraph}/{@code caretColumn}.
      *
@@ -384,6 +398,47 @@ public interface EditorDocument extends Lookup.Provider {
      * does nothing.
      */
     default void findSelection() {
+    }
+
+    /**
+     * Marks blocks of whole lines with {@code bands}, replacing those set before; an empty list
+     * removes them. The bands belong to this view of the document, follow its scrolling, and are
+     * styled by their style classes, as descendants of {@link #getNode()} with style class
+     * {@code line-band}: one region for each band, in the order given, the children of a node with
+     * style class {@code line-bands}. A region is placed over all the lines of its band, those out
+     * of view too - above or below what is shown, of which only the part over the text area is
+     * drawn - so that a view that draws beside the editor - the connectors of a diff - can follow
+     * the regions to where the lines are. The default does nothing.
+     *
+     * @param bands the bands to show
+     * @since 1.4
+     */
+    default void setLineBands(List<LineBand> bands) {
+    }
+
+    /**
+     * The place in the text at the top of what this view shows, kept up to date while it scrolls,
+     * for views that keep several editors in step: the line there, counted from zero, plus the
+     * fraction of that line that is scrolled off above - 12.5 when half of the thirteenth line is
+     * out of sight. The default is always zero.
+     *
+     * @return the observable top position, never {@code null}
+     * @since 1.4
+     */
+    default ObservableValue<Number> topParagraphProperty() {
+        return new SimpleIntegerProperty(0);
+    }
+
+    /**
+     * Scrolls so that {@code position} is at the top, as far as the text allows, without moving
+     * the caret: the line of its whole part, counted from zero, with the fraction of it that its
+     * fractional part says scrolled off; see {@link #topParagraphProperty()}. The default does
+     * nothing.
+     *
+     * @param position the place in the text to bring to the top
+     * @since 1.4
+     */
+    default void scrollToParagraph(double position) {
     }
 
     /**

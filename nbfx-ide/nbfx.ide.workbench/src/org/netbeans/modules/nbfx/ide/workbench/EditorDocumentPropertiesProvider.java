@@ -48,7 +48,8 @@ public final class EditorDocumentPropertiesProvider implements PropertiesProvide
         properties.add(readOnly("title", message("EditorDocumentPropertiesProvider.title"),
                 document.getTitle()));
         properties.add(readOnly("file", message("EditorDocumentPropertiesProvider.file"),
-                document.getFileObject().getPath()));
+                // A document that is no file's editor - a diff - has none.
+                document.getFileObject() == null ? "" : document.getFileObject().getPath()));
         properties.add(readOnly("modified", message("EditorDocumentPropertiesProvider.modified"),
                 message(document.isModified()
                         ? "EditorDocumentPropertiesProvider.yes"

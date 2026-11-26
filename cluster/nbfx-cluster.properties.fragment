@@ -89,12 +89,15 @@ nb.cluster.nbfx-ide.depends=\
         nb.cluster.ide,\
         nb.cluster.java
 nb.cluster.nbfx-ide=\
+        nbfx.api.diff,\
         nbfx.api.project,\
         nbfx.api.usages,\
+        nbfx.api.vcs,\
         nbfx.editor.actions,\
         nbfx.ide.actions,\
         nbfx.ide.build,\
         nbfx.ide.debug,\
+        nbfx.ide.diff,\
         nbfx.ide.editor.css,\
         nbfx.ide.editor.xml,\
         nbfx.ide.file,\

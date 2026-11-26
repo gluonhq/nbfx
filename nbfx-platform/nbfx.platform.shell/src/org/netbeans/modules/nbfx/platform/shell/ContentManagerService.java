@@ -112,6 +112,16 @@ public class ContentManagerService implements ContentManager {
         Platform.runLater(() -> document.selectRange(start, end));
     }
 
+    @Override
+    public void openDocument(EditorDocument document, Node graphic) {
+        if (document == null) {
+            return;
+        }
+        NbfxTabPane.findTab(document).ifPresentOrElse(
+            NbfxTabPane::selectTabAndMoveToFront,
+            () -> attachNewTab(document, graphic));
+    }
+
     /** Builds a tab for a freshly created {@code document} and adds it to the pane editors open in. */
     private void attachNewTab(EditorDocument document, Node graphic) {
         LOG.info("Open tab named " + document.getTitle() + " with content " + document.getNode());
@@ -188,7 +198,8 @@ public class ContentManagerService implements ContentManager {
     /** The icon for {@code file} from the registered {@link FileIconProvider}, or {@code null}. */
     private static Node iconFor(FileObject file) {
         FileIconProvider icons = Lookup.getDefault().lookup(FileIconProvider.class);
-        return icons == null ? null : icons.createIcon(file);
+        // A document that is no file's editor has the icon it was opened with, or none.
+        return icons == null || file == null ? null : icons.createIcon(file);
     }
 
     @Override

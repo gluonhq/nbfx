@@ -34,6 +34,7 @@ import jfx.incubator.scene.control.richtext.SyntaxDecorator;
 import jfx.incubator.scene.control.richtext.TextPos;
 import jfx.incubator.scene.control.richtext.model.CodeTextModel;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -99,6 +100,12 @@ public class JavaSyntaxDecorator extends BaseSyntaxDecorator {
                 }
             });
 
+    /**
+     * Whether the file is analyzed beyond its tokens. A file that is on no disk and in no archive -
+     * the text of an earlier revision shown by a diff - belongs to no project and has no class
+     * path: its analysis would mark every name as unresolved.
+     */
+    private final boolean analyzable;
     private final JavaSourceContext context;
     private final JavaFileProcessor javaProcessor;
     private final MarkOccurrencesProcessor occurrencesProcessor;
@@ -153,6 +160,7 @@ public class JavaSyntaxDecorator extends BaseSyntaxDecorator {
         this.context = (JavaSourceContext) lexProcessor.context();
         this.javaProcessor = new JavaFileProcessor(context);
         this.occurrencesProcessor = new MarkOccurrencesProcessor();
+        this.analyzable = FileUtil.toFile(fo) != null || FileUtil.getArchiveFile(fo) != null;
     }
 
     @Override
@@ -217,7 +225,7 @@ public class JavaSyntaxDecorator extends BaseSyntaxDecorator {
      */
     @Override
     public void updateOccurrencesInBackground(CodeTextModel model, TextPos caret) {
-        if (model == null || caret == null) {
+        if (model == null || caret == null || !analyzable) {
             return;
         }
         // cancel any pending or running request.
@@ -277,6 +285,9 @@ public class JavaSyntaxDecorator extends BaseSyntaxDecorator {
      */
     @Override
     public void analyzeInBackground(CodeTextModel model) {
+        if (!analyzable) {
+            return;
+        }
         int editLine = lastEditLine;
         restartJavaAnalysis(model, editLine);
 

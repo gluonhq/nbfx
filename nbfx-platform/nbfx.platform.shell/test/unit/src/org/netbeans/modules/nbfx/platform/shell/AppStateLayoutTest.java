@@ -29,6 +29,7 @@ import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 import java.util.List;
 import javafx.geometry.Side;
 import org.junit.Test;
+import org.netbeans.api.nbfx.editor.SavedDocument;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -45,6 +46,23 @@ public class AppStateLayoutTest {
 
     private static final TabEntry PROJECTS = new TabEntry(TabKind.VIEW, "projects", 0, 0, 0);
     private static final TabEntry EDITOR = new TabEntry(TabKind.EDITOR, "/tmp/A.java", 3, 4, 5);
+
+    @Test
+    public void aDocumentThatIsNoFilesEditorKeepsItsSavedStateWhateverItHolds() {
+        // The state holds the characters that separate the fields and the tabs of a pane line.
+        SavedDocument saved = new SavedDocument("git-diff", "HEAD_VS_INDEX\nfile\n/tmp/a\tb\rc.java");
+        PaneLayout pane = PaneLayout.docked(PaneRole.MAIN, List.of(EDITOR, TabEntry.document(saved)), 1);
+
+        PaneLayout read = AppState.parsePane(AppState.serialize(pane));
+
+        assertEquals(2, read.tabs().size());
+        assertEquals(TabKind.DOCUMENT, read.tabs().get(1).kind());
+        assertEquals(saved, read.tabs().get(1).saved());
+        // Not the state of a document: an editor, or an id that cannot be read.
+        assertNull(EDITOR.saved());
+        assertNull(new TabEntry(TabKind.DOCUMENT, "git-diff:not base64!", 0, 0, 0).saved());
+        assertNull(new TabEntry(TabKind.DOCUMENT, "no colon", 0, 0, 0).saved());
+    }
 
     @Test
     public void corruptPaneRoleIsIgnored() {

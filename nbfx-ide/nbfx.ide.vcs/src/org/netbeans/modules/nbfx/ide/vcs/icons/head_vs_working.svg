@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!-- HEAD vs working tree: redrawn from NetBeans' head_vs_working.png -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" version="1.1" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="frame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5889A4"/><stop offset="1" stop-color="#41687E"/>
+    </linearGradient>
+    <linearGradient id="frameOff" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#AFAFAF"/><stop offset="1" stop-color="#8C8C8C"/>
+    </linearGradient>
+    <linearGradient id="head" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.5" stop-color="#ADF4DA"/><stop offset="0.5" stop-color="#4AE7AD"/>
+    </linearGradient>
+    <linearGradient id="off" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.5" stop-color="#F5F5F5"/><stop offset="0.5" stop-color="#D9D9D9"/>
+    </linearGradient>
+    <linearGradient id="working" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.5" stop-color="#F4EDAD"/><stop offset="0.5" stop-color="#E7D64A"/>
+    </linearGradient>
+  </defs>
+  <rect x="9" y="2" width="7" height="4" rx="0.5" fill="#000" opacity="0.2"/>
+  <rect x="8" y="1" width="7" height="4" rx="0.5" fill="url(#frame)"/>
+  <rect x="9" y="2" width="5" height="2" fill="url(#head)"/>
+  <rect x="9" y="7" width="7" height="4" rx="0.5" fill="#000" opacity="0.2"/>
+  <rect x="8" y="6" width="7" height="4" rx="0.5" fill="url(#frameOff)"/>
+  <rect x="9" y="7" width="5" height="2" fill="url(#off)"/>
+  <rect x="9" y="12" width="7" height="4" rx="0.5" fill="#000" opacity="0.2"/>
+  <rect x="8" y="11" width="7" height="4" rx="0.5" fill="url(#frame)"/>
+  <rect x="9" y="12" width="5" height="2" fill="url(#working)"/>
+  <defs>
+    <linearGradient id="line" gradientUnits="userSpaceOnUse" x1="0" y1="1" x2="0" y2="15">
+      <stop offset="0" stop-color="#2B353F"/><stop offset="0.5" stop-color="#515F6C"/><stop offset="1" stop-color="#2B353F"/>
+    </linearGradient>
+    <linearGradient id="arrow" gradientUnits="userSpaceOnUse" x1="0" y1="2" x2="0" y2="14">
+      <stop offset="0" stop-color="#DAE3ED"/><stop offset="0.5" stop-color="#F8FAFC"/><stop offset="1" stop-color="#DAE3ED"/>
+    </linearGradient>
+    <path id="bracket" d="M1 3 H5 V2 L7 3.5 L5 5 V4 H2 V12 H5 V11 L7 12.5 L5 14 V13 H1 Z"/>
+  </defs>
+  <use xlink:href="#bracket" transform="translate(0.5 0.5)" fill="#000" stroke="#000" stroke-width="2" stroke-linejoin="round" opacity="0.12"/>
+  <use xlink:href="#bracket" fill="url(#line)" stroke="url(#line)" stroke-width="2" stroke-linejoin="round"/>
+  <use xlink:href="#bracket" fill="url(#arrow)"/>
+</svg>

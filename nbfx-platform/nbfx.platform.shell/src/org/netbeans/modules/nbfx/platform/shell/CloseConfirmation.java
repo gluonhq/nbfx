@@ -101,8 +101,10 @@ public final class CloseConfirmation {
 
     private static boolean hasOpenCloneOutside(EditorDocument document, List<EditorDocument> closing) {
         return EditorContexts.documentsSnapshot().stream()
-                .anyMatch(open -> open != document && document.sharesContentWith(open)
-                        && !closing.contains(open));
+                // Asked of both: a tab that shows the text among others - a diff - knows of the
+                // editor of the file, which does not know of it.
+                .anyMatch(open -> open != document && !closing.contains(open)
+                        && (document.sharesContentWith(open) || open.sharesContentWith(document)));
     }
 
     /**

@@ -26,6 +26,9 @@ import javafx.scene.control.TreeItem;
 
 import org.netbeans.api.project.ProjectManager;
 import org.openide.filesystems.FileObject;
+import org.netbeans.api.java.queries.AccessibilityQuery;
+import org.netbeans.api.java.queries.AccessibilityQuery.Accessibility;
+import org.openide.util.NbBundle;
 
 /**
  * The {@link NavigatorContextMenuFactory.Host} implementations of the two navigator views. They live
@@ -96,6 +99,39 @@ final class NavigatorHosts {
             @Override
             public boolean isDeletable(TreeItem<ProjectEntry> item) {
                 return item != null && !isProjectRoot(item) && DeleteActions.isDeletable(item.getValue());
+            }
+
+            @Override
+            public boolean isRecursive(TreeItem<ProjectEntry> item) {
+                // A package node is its own files, the subpackages are its siblings; the project
+                // files group lists files of the project folder.
+                ProjectEntry entry = item == null ? null : item.getValue();
+                return entry == null || (entry.getType() != ProjectEntry.Type.PACKAGE
+                        && entry.getType() != ProjectEntry.Type.FILES);
+            }
+
+            @Override
+            public String describe(TreeItem<ProjectEntry> item) {
+                ProjectEntry entry = item == null ? null : item.getValue();
+                if (entry == null) {
+                    return "";
+                }
+                if (entry.getType() != ProjectEntry.Type.PACKAGE || entry.getFileObject() == null) {
+                    return entry.getName();
+                }
+                // As NetBeans names a package: by whether its module exports it.
+                Accessibility accessibility = Accessibility.UNKNOWN;
+                try {
+                    accessibility = AccessibilityQuery.isPubliclyAccessible2(entry.getFileObject()).getAccessibility();
+                } catch (RuntimeException ex) {
+                    // Told as a plain package.
+                }
+                String key = switch (accessibility) {
+                    case EXPORTED -> "Package.exported";
+                    case PRIVATE -> "Package.private";
+                    case UNKNOWN -> "Package.plain";
+                };
+                return NbBundle.getMessage(NavigatorHosts.class, key, entry.getName());
             }
 
             @Override
