@@ -29,7 +29,7 @@ import java.util.Objects;
  * @param restorerId the {@link org.netbeans.spi.nbfx.editor.DocumentRestorer#id() id} of the
  *        restorer: letters, digits, {@code _}, {@code .} and {@code -}
  * @param state what the restorer needs to open the document again, in a form of its own; any text
- * @since 1.4
+ * @since 1.5
  */
 public record SavedDocument(String restorerId, String state) {
 
