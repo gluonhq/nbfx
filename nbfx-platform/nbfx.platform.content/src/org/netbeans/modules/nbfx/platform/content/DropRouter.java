@@ -56,6 +56,27 @@ public final class DropRouter {
         }
     }
 
+    /**
+     * Detailed routing outcome. Exactly one of {@code resolved} and {@code rejection} is non-null.
+     *
+     * @param resolved the accepted drop, or {@code null} when none accepts
+     * @param rejection the first rejection reason, or {@code null} when a drop resolves
+     */
+    public record Resolution(ResolvedDrop resolved, DropDecision rejection) {
+        public Resolution {
+            if ((resolved == null) == (rejection == null)) {
+                throw new IllegalArgumentException("resolution needs exactly one outcome");
+            }
+            if (rejection != null && rejection.allowed()) {
+                throw new IllegalArgumentException("resolution rejection must be rejected");
+            }
+        }
+
+        public boolean accepted() {
+            return resolved != null;
+        }
+    }
+
     /** Discovers handlers from {@link Lookup#getDefault()} and the drop-handler layer path. */
     public static List<DropHandler> discover() {
         LinkedHashSet<DropHandler> handlers = new LinkedHashSet<>();
@@ -81,12 +102,29 @@ public final class DropRouter {
                                                  TransferMode requestedMode,
                                                  Lookup context,
                                                  Collection<? extends DropHandler> handlers) {
+        return Optional.ofNullable(resolveDetailed(source, targetsInPriorityOrder, location,
+                requestedMode, context, handlers).resolved());
+    }
+
+    /**
+     * Resolves a drop and retains the first rejection when no handler accepts. Handlers are evaluated
+     * once, in target-priority then handler order.
+     *
+     * @return an accepted resolution or a rejected resolution carrying a reason key
+     */
+    public static Resolution resolveDetailed(TransferSource source,
+                                             List<DropTarget> targetsInPriorityOrder,
+                                             Point2D location,
+                                             TransferMode requestedMode,
+                                             Lookup context,
+                                             Collection<? extends DropHandler> handlers) {
         Objects.requireNonNull(source, "source");
         Objects.requireNonNull(targetsInPriorityOrder, "targetsInPriorityOrder");
         Objects.requireNonNull(location, "location");
         Objects.requireNonNull(requestedMode, "requestedMode");
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(handlers, "handlers");
+        DropDecision firstRejection = null;
         for (DropTarget target : targetsInPriorityOrder) {
             if (target == null) {
                 continue;
@@ -101,10 +139,14 @@ public final class DropRouter {
                 }
                 DropDecision decision = handler.evaluate(request);
                 if (decision != null && decision.allowed()) {
-                    return Optional.of(new ResolvedDrop(handler, request, decision));
+                    return new Resolution(new ResolvedDrop(handler, request, decision), null);
+                }
+                if (decision != null && firstRejection == null) {
+                    firstRejection = decision;
                 }
             }
         }
-        return Optional.empty();
+        return new Resolution(null, firstRejection == null
+                ? DropDecision.reject("drop.no-handler") : firstRejection);
     }
 }

@@ -1200,10 +1200,10 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      */
     private static void addFileDropHandlers(TabPane tabPane) {
         tabPane.addEventFilter(DragEvent.DRAG_OVER, e -> {
-            Optional<DropRouter.ResolvedDrop> routed = tryRouteExternalDrop(tabPane, e);
-            if (routed.isPresent()) {
-                e.acceptTransferModes(toFxTransferMode(routed.get().decision().effect()));
-                showRoutedDropHighlight(tabPane, routed.get());
+            DropRoute routed = tryRouteExternalDrop(tabPane, e);
+            if (routed.resolved() != null) {
+                e.acceptTransferModes(toFxTransferMode(routed.resolved().decision().effect()));
+                showRoutedDropHighlight(tabPane, routed.resolved());
                 e.consume();
                 return;
             }
@@ -1227,10 +1227,11 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         });
         tabPane.addEventFilter(DragEvent.DRAG_DROPPED, e -> {
-            Optional<DropRouter.ResolvedDrop> routed = tryRouteExternalDrop(tabPane, e);
-            if (routed.isPresent()) {
-                DropRouter.ResolvedDrop drop = routed.get();
+            DropRoute routed = tryRouteExternalDrop(tabPane, e);
+            if (routed.resolved() != null) {
+                DropRouter.ResolvedDrop drop = routed.resolved();
                 drop.handler().perform(drop.request(), drop.decision());
+                DropAccessibility.accepted(tabPane);
                 TabDropIndicator.hide(tabPane);
                 e.setDropCompleted(true);
                 e.consume();
@@ -1238,11 +1239,17 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
             List<FileObject> files = openableFilesOf(e, tabPane);
             if (files.isEmpty()) {
+                if (routed.external()) {
+                    DropAccessibility.rejected(tabPane, routed.rejection().reasonKey());
+                }
                 return;
             }
             ContentManager contentManager = Lookup.getDefault().lookup(ContentManager.class);
             if (contentManager != null) {
                 files.forEach(file -> openFileInto(tabPane, file, contentManager));
+                DropAccessibility.accepted(tabPane);
+            } else {
+                DropAccessibility.rejected(tabPane, "drop.open.failed");
             }
             TabDropIndicator.hide(tabPane);
             e.setDropCompleted(contentManager != null);
@@ -1250,13 +1257,16 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         });
     }
 
-    private static Optional<DropRouter.ResolvedDrop> tryRouteExternalDrop(TabPane tabPane, DragEvent event) {
+    private record DropRoute(DropRouter.ResolvedDrop resolved, DropDecision rejection, boolean external) {
+    }
+
+    private static DropRoute tryRouteExternalDrop(TabPane tabPane, DragEvent event) {
         if (FileDragAndDrop.isWithinDropTarget(event.getTarget())) {
-            return Optional.empty();
+            return new DropRoute(null, null, false);
         }
         List<org.netbeans.api.nbfx.content.DropTarget> targets = dropTargetsFor(tabPane, event);
         if (targets.isEmpty()) {
-            return Optional.empty();
+            return new DropRoute(null, DropDecision.reject("drop.no-handler"), hasExternalPayload(event));
         }
         javafx.geometry.Point2D location = tabPane.sceneToLocal(event.getSceneX(), event.getSceneY());
         if (location == null) {
@@ -1265,44 +1275,57 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         org.netbeans.api.nbfx.content.TransferMode requested = org.netbeans.api.nbfx.content.TransferMode.COPY;
         List<DropHandler> handlers = DropRouter.discover();
         if (handlers.isEmpty()) {
-            return Optional.empty();
+            return new DropRoute(null, DropDecision.reject("drop.no-handler"), hasExternalPayload(event));
         }
         Dragboard db = event.getDragboard();
+        DropDecision firstRejection = null;
+        boolean attempted = false;
         if (FileDragAndDrop.hasFiles(db)) {
             List<java.io.File> files = db.getFiles();
             if (files != null && !files.isEmpty()) {
-                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                attempted = true;
+                DropRouter.Resolution resolution = DropRouter.resolveDetailed(
                         transferSource(TransferKind.FILES, Lookups.fixed(files.toArray(new Object[0]))),
                         targets, location, requested, Lookup.EMPTY, handlers);
-                if (resolved.isPresent()) {
-                    return resolved;
+                if (resolution.accepted()) {
+                    return new DropRoute(resolution.resolved(), null, true);
                 }
+                firstRejection = resolution.rejection();
             }
         }
         if (db.hasUrl()) {
             String url = db.getUrl();
             if (url != null && !url.isBlank()) {
-                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                attempted = true;
+                DropRouter.Resolution resolution = DropRouter.resolveDetailed(
                         transferSource(TransferKind.URIS, Lookups.fixed(url)),
                         targets, location, requested, Lookup.EMPTY, handlers);
-                if (resolved.isPresent()) {
-                    return resolved;
+                if (resolution.accepted()) {
+                    return new DropRoute(resolution.resolved(), null, true);
+                }
+                if (firstRejection == null) {
+                    firstRejection = resolution.rejection();
                 }
             }
         }
         if (db.hasString()) {
             String text = db.getString();
             if (text != null && !text.isEmpty()) {
-                Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+                attempted = true;
+                DropRouter.Resolution resolution = DropRouter.resolveDetailed(
                         transferSource(TransferKind.TEXT, Lookups.fixed(text)),
                         targets, location, requested, Lookup.EMPTY, handlers);
-                if (resolved.isPresent()) {
-                    return resolved;
+                if (resolution.accepted()) {
+                    return new DropRoute(resolution.resolved(), null, true);
+                }
+                if (firstRejection == null) {
+                    firstRejection = resolution.rejection();
                 }
             }
         }
         Object gestureSource = event.getGestureSource();
         if (gestureSource instanceof Node sourceNode && !draggedTab(db).isPresent()) {
+            attempted = true;
             java.util.List<Object> payload = new java.util.ArrayList<>();
             payload.add(sourceNode);
             if (db.hasUrl()) {
@@ -1317,14 +1340,24 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
                     payload.add(text);
                 }
             }
-            Optional<DropRouter.ResolvedDrop> resolved = DropRouter.resolve(
+            DropRouter.Resolution resolution = DropRouter.resolveDetailed(
                     transferSource(TransferKind.NODES, Lookups.fixed(payload.toArray(new Object[0]))),
                     targets, location, requested, Lookup.EMPTY, handlers);
-            if (resolved.isPresent()) {
-                return resolved;
+            if (resolution.accepted()) {
+                return new DropRoute(resolution.resolved(), null, true);
+            }
+            if (firstRejection == null) {
+                firstRejection = resolution.rejection();
             }
         }
-        return Optional.empty();
+        return new DropRoute(null, firstRejection == null
+                ? DropDecision.reject("drop.no-handler") : firstRejection, attempted);
+    }
+
+    private static boolean hasExternalPayload(DragEvent event) {
+        Dragboard db = event.getDragboard();
+        return FileDragAndDrop.hasFiles(db) || db.hasUrl() || db.hasString()
+                || event.getGestureSource() instanceof Node && !draggedTab(db).isPresent();
     }
 
     private static void showRoutedDropHighlight(TabPane tabPane, DropRouter.ResolvedDrop routed) {

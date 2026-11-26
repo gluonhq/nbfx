@@ -108,6 +108,43 @@ public class DropRouterTest {
     }
 
     @Test
+    public void detailedResolutionKeepsFirstRejectionWithoutReevaluating() {
+        DropTarget content = new DropTarget(DropTargetKind.CONTENT, "editor");
+        DropTarget area = new DropTarget(DropTargetKind.AREA, "main");
+        RecordingHandler contentHandler = new RecordingHandler(content, Set.of(TransferKind.FILES),
+                DropDecision.reject("drop.content.denied"));
+        RecordingHandler areaHandler = new RecordingHandler(area, Set.of(TransferKind.FILES),
+                DropDecision.reject("drop.area.denied"));
+        TransferSource source = new TransferSource() {
+            @Override public TransferKind kind() { return TransferKind.FILES; }
+            @Override public Lookup data() { return Lookup.EMPTY; }
+        };
+
+        DropRouter.Resolution resolution = DropRouter.resolveDetailed(source,
+                List.of(content, area), Point2D.ZERO, TransferMode.COPY,
+                Lookup.EMPTY, List.of(contentHandler, areaHandler));
+
+        assertFalse(resolution.accepted());
+        assertNull(resolution.resolved());
+        assertEquals("drop.content.denied", resolution.rejection().reasonKey());
+        assertEquals(1, contentHandler.evaluations);
+        assertEquals(1, areaHandler.evaluations);
+    }
+
+    @Test
+    public void detailedResolutionUsesStableNoHandlerReason() {
+        TransferSource source = new TransferSource() {
+            @Override public TransferKind kind() { return TransferKind.TEXT; }
+            @Override public Lookup data() { return Lookup.EMPTY; }
+        };
+        DropRouter.Resolution resolution = DropRouter.resolveDetailed(source,
+                List.of(new DropTarget(DropTargetKind.GROUP, "main")), Point2D.ZERO,
+                TransferMode.COPY, Lookup.EMPTY, List.of());
+        assertFalse(resolution.accepted());
+        assertEquals("drop.no-handler", resolution.rejection().reasonKey());
+    }
+
+    @Test
     public void ignoresHandlersWithWrongTargetOrSourceKind() {
         TransferKind files = TransferKind.FILES;
         TransferKind uris = TransferKind.URIS;

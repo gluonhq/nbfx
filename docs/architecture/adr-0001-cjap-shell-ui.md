@@ -298,9 +298,14 @@ api.plugins (T1)        → api.layer, api.resources
   not a tab drag) and only tried after FILES/URIS/TEXT. Existing behavior is preserved when
   no handler accepts.
   `@DropRegistration`/`@DropRegistrations` write handler instances with target/source metadata
-  to `NbFx/DropHandlers`; richer node payload adaptation, accessible rejection announcements,
-  and Escape-cancel semantics remain follow-up slices. CONTENT-target drags highlight the
-  specific tab header; GROUP/AREA drags retain pane highlight.
+  to `NbFx/DropHandlers`; richer node payload adaptation and Escape-cancel semantics remain
+  follow-up slices. CONTENT-target drags highlight the specific tab header; GROUP/AREA drags retain
+  pane highlight.
+- C4-3d adds `DropRouter.resolveDetailed`, preserving the first rejection without re-evaluating
+  handlers, and accessible drop-result announcements through JavaFX accessible-text change
+  notifications. Handler acceptance, legacy file-open success, rejection/no-handler, and missing
+  content-host outcomes are announced; internal tab drags and navigator-owned drop targets stay
+  silent.
 
 ### 15. Review resolution: custom-shell composition contract
 
