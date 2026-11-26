@@ -138,6 +138,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     /** Key under which each tab stores its {@link EditorDocument} in {@code Tab.getProperties()}. */
     private static final String DOCUMENT_KEY = "nbfx.editorDocument";
     private static final String PRESERVE_CONTENT_ON_HIDE = "nbfx.preserveContentOnHide";
+    private static final String FLOATING_WINDOW = "nbfx.floatingWindow";
 
     /** Key under which a view tab stores its stable {@code ViewProvider} identifier for persistence. */
     private static final String VIEW_ID_KEY = "nbfx.viewId";
@@ -1593,7 +1594,19 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      * @return the detached pane now holding {@code tab}
      */
     static NbfxTabPane floatTab(Tab tab, double x, double y, double width, double height) {
+        return floatTab(tab, x, y, width, height, _ -> { });
+    }
+
+    /**
+     * Moves {@code tab} into a new detached pane and configures its window before showing it.
+     *
+     * @param configure stage configuration, such as owner, title and resizability
+     * @return the detached pane now holding {@code tab}
+     */
+    static NbfxTabPane floatTab(Tab tab, double x, double y, double width, double height,
+            java.util.function.Consumer<Stage> configure) {
         Objects.requireNonNull(tab, "tab");
+        Objects.requireNonNull(configure, "configure");
         LOG.info(() -> "Detaching tab [" + titleOf(tab) + "] to a new window");
         TabPane source = tab.getTabPane();
         PaneKind kind = documentOf(tab) != null ? PaneKind.EDITOR : kindOf(source);
@@ -1602,7 +1615,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             source.getTabs().remove(tab);
         }
         attachTab(newPane, tab);
-        showDetachedPane(newPane, x, y, width, height);
+        showDetachedPane(newPane, x, y, width, height, configure);
         return newPane;
     }
 
@@ -1611,11 +1624,23 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      * an existing docked pane must detach it from its {@code DockArea} first.
      */
     static void showDetachedPane(NbfxTabPane pane, double x, double y, double width, double height) {
+        showDetachedPane(pane, x, y, width, height, _ -> { });
+    }
+
+    /**
+     * Shows an already-drained or newly created detached {@code pane} in a window, applying
+     * {@code configure} before the window is shown. Callers floating an existing docked pane must
+     * detach it from its {@code DockArea} first.
+     */
+    static void showDetachedPane(NbfxTabPane pane, double x, double y, double width, double height,
+            java.util.function.Consumer<Stage> configure) {
         Objects.requireNonNull(pane, "pane");
+        Objects.requireNonNull(configure, "configure");
         if (stageOf(pane) != null) {
             throw new IllegalArgumentException("Pane is already in a window");
         }
         Stage stage = createDetachedStage(pane, x, y, width, height);
+        configure.accept(stage);
         stage.show();
     }
 
@@ -1624,9 +1649,14 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
      * resources are released without unregistering the pane or its documents, for redock flows that
      * have already moved the pane or its tabs back into the main window.
      */
+    static boolean isFloatingPane(TabPane pane) {
+        Stage stage = stageOf(pane);
+        return stage != null && Boolean.TRUE.equals(stage.getProperties().get(FLOATING_WINDOW));
+    }
+
     static void closeFloatingPane(NbfxTabPane pane, boolean preserveContent) {
         Stage stage = stageOf(pane);
-        if (stage == null || roleOf(pane) != PaneRole.DETACHED) {
+        if (!isFloatingPane(pane)) {
             return;
         }
         if (preserveContent) {
@@ -1665,6 +1695,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     private static Stage createDetachedStage(TabPane newPane,
                                              double x, double y, double width, double height) {
         Stage stage = new Stage();
+        stage.getProperties().put(FLOATING_WINDOW, Boolean.TRUE);
         newPane.getSelectionModel().selectedItemProperty().subscribe(newTab -> {
             if (newTab == null) {
                 return;
@@ -1929,7 +1960,11 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
                     stage.getProperties().get(PRESERVE_CONTENT_ON_HIDE));
             stage.getProperties().remove(PRESERVE_CONTENT_ON_HIDE);
             if (!preserveContent) {
-                TAB_PANES.remove(newPane);
+                DockArea<TabPane> area = Docking.area();
+                boolean primary = area != null && area.isPrimary(newPane);
+                if (!primary) {
+                    TAB_PANES.remove(newPane);
+                }
                 PANES_PENDING_CLOSE.remove(newPane);
                 if (lastFocusedPane == newPane) {
                     // Don't keep a closed window (and its scene graph) alive through the focus tracking.

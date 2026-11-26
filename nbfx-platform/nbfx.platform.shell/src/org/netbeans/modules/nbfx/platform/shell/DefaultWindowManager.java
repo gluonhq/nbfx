@@ -18,14 +18,21 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javafx.geometry.Side;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.stage.Stage;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import org.netbeans.api.nbfx.content.Content;
 import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.ContentManager;
@@ -36,7 +43,9 @@ import org.netbeans.api.nbfx.shell.DockPolicy;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowManager;
+import org.netbeans.api.nbfx.shell.WindowOptions;
 import org.netbeans.api.nbfx.views.ViewContent;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
@@ -50,6 +59,7 @@ final class DefaultWindowManager implements WindowManager {
 
     private final ContentManager contentManager;
     private final Supplier<Collection<? extends DockPolicy>> policies;
+    private final Map<NbfxTabPane, FloatingWindow> floating = new LinkedHashMap<>();
 
     DefaultWindowManager(ContentManager contentManager) {
         this(contentManager, () -> Lookup.getDefault().lookupAll(DockPolicy.class));
@@ -215,6 +225,199 @@ final class DefaultWindowManager implements WindowManager {
                     : DockResult.accepted(decision, group);
         }
         return DockResult.rejected(DockDecision.reject("dock.placement.unsupported"));
+    }
+
+    // --- Package-private float/redock runtime; public DockWindow contracts follow separately. ---
+
+    FloatingWindow floatContent(ContentId content, WindowOptions options) {
+        Objects.requireNonNull(content, "content");
+        WindowOptions checked = requireFloatingOptions(options);
+        return floatContent(content, checked, defaultFloatingX(checked), defaultFloatingY(checked));
+    }
+
+    FloatingWindow floatContent(ContentId content, WindowOptions options, double x, double y) {
+        Objects.requireNonNull(content, "content");
+        WindowOptions checked = requireFloatingOptions(options);
+        Tab tab = findTab(content).orElseThrow(() -> new IllegalArgumentException("Content is not docked"));
+        if (tab.getTabPane() instanceof NbfxTabPane nbfx && NbfxTabPane.isFloatingPane(nbfx)) {
+            FloatingWindow existing = floating.get(nbfx);
+            if (existing != null && existing.stage().isShowing()) {
+                return existing;
+            }
+        }
+        Consumer<Stage> configure = floatingStageConfigurator(checked, x, y);
+        NbfxTabPane pane = NbfxTabPane.floatTab(tab, x, y, checked.width(), checked.height(), configure);
+        return registerFloating(pane, null);
+    }
+
+    FloatingWindow floatGroup(DockGroupId group, WindowOptions options) {
+        Objects.requireNonNull(group, "group");
+        WindowOptions checked = requireFloatingOptions(options);
+        return floatGroup(group, checked, defaultFloatingX(checked), defaultFloatingY(checked));
+    }
+
+    FloatingWindow floatGroup(DockGroupId group, WindowOptions options, double x, double y) {
+        Objects.requireNonNull(group, "group");
+        WindowOptions checked = requireFloatingOptions(options);
+        TabPane pane = paneForGroup(group);
+        if (!(pane instanceof NbfxTabPane nbfx)) {
+            throw new IllegalArgumentException("Unknown dock group: " + group);
+        }
+        if (nbfx.role() == PaneRole.MAIN) {
+            throw new IllegalArgumentException("The main pane cannot be floated");
+        }
+        FloatingWindow existing = floating.get(nbfx);
+        if (existing != null && existing.stage().isShowing()) {
+            return existing;
+        }
+        if (NbfxTabPane.isFloatingPane(nbfx)) {
+            return registerFloating(nbfx, null);
+        }
+        DockArea<TabPane> area = Docking.area();
+        if (area == null || !area.contains(nbfx)) {
+            throw new IllegalArgumentException("Dock group is not in the dock area: " + group);
+        }
+        DockArea.Anchor<TabPane> anchor = area.detach(nbfx);
+        Consumer<Stage> configure = floatingStageConfigurator(checked, x, y);
+        NbfxTabPane.showDetachedPane(nbfx, x, y, checked.width(), checked.height(), configure);
+        return registerFloating(nbfx, anchor);
+    }
+
+    DockResult redock(FloatingWindow window, DockRequest request) {
+        if (window == null || window.owner() != this || window.stage() == null
+                || !NbfxTabPane.tabPanes().contains(window.pane())) {
+            return DockResult.rejected(DockDecision.reject("dock.window.missing"));
+        }
+        if (request == null) {
+            return DockResult.rejected(DockDecision.reject("dock.request.invalid"));
+        }
+        Tab representative = findTab(request.content()).orElse(null);
+        if (representative == null || representative.getTabPane() != window.pane()) {
+            return DockResult.rejected(DockDecision.reject("dock.window.mismatch"));
+        }
+        if (window.pane().getTabs().isEmpty()) {
+            return DockResult.rejected(DockDecision.reject("dock.content.missing"));
+        }
+        DockDecision decision = canDock(request);
+        if (!decision.allowed()) {
+            return DockResult.rejected(decision);
+        }
+        DockPlacement placement = decision.placement();
+        Tab selected = window.pane().getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            selected = window.pane().getTabs().getFirst();
+        }
+        if (isGroupPlacement(placement)) {
+            DockGroupId target = resolveTargetGroup(request);
+            TabPane pane = paneForGroup(target);
+            if (pane == null) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            List<Tab> tabs = List.copyOf(window.pane().getTabs());
+            int base = pane.getTabs().size();
+            if (isRelativePlacement(placement)) {
+                Tab targetTab = findTab(request.targetContent()).orElse(null);
+                if (targetTab == null || targetTab.getTabPane() != pane) {
+                    return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+                }
+                base = pane.getTabs().indexOf(targetTab) + (placement == DockPlacement.AFTER ? 1 : 0);
+            }
+            for (int i = 0; i < tabs.size(); i++) {
+                int index = isRelativePlacement(placement) ? base + i : pane.getTabs().size();
+                NbfxTabPane.moveTab(pane, tabs.get(i), index);
+            }
+            NbfxTabPane.closeFloatingPane(window.pane(), true);
+            if (window.pane().role() == PaneRole.DETACHED || window.pane().role() == PaneRole.DOCKED) {
+                NbfxTabPane.unregister(window.pane());
+            }
+            floating.remove(window.pane());
+            NbfxTabPane.selectTabAndMoveToFront(selected);
+            return DockResult.accepted(decision, ((NbfxTabPane) pane).groupId());
+        }
+        if (isSplitPlacement(placement) || isEdgePlacement(placement)) {
+            DockArea<TabPane> area = Docking.area();
+            if (area == null) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            TabPane targetPane = isSplitPlacement(placement)
+                    ? paneForGroup(resolveTargetGroup(request)) : null;
+            if (isSplitPlacement(placement) && (targetPane == null || !area.contains(targetPane))) {
+                return DockResult.rejected(DockDecision.reject("dock.target.missing"));
+            }
+            NbfxTabPane.closeFloatingPane(window.pane(), true);
+            area.dockDetached(window.pane(), dropTargetFor(placement, targetPane));
+            floating.remove(window.pane());
+            NbfxTabPane.selectTabAndMoveToFront(selected);
+            return DockResult.accepted(decision, window.pane().groupId());
+        }
+        return DockResult.rejected(DockDecision.reject("dock.placement.unsupported"));
+    }
+
+    List<FloatingWindow> floatingWindows() {
+        List<FloatingWindow> result = new ArrayList<>();
+        for (FloatingWindow window : List.copyOf(floating.values())) {
+            if (NbfxTabPane.tabPanes().contains(window.pane()) && window.stage().isShowing()) {
+                result.add(window);
+            } else {
+                floating.remove(window.pane(), window);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private FloatingWindow registerFloating(NbfxTabPane pane, DockArea.Anchor<TabPane> anchor) {
+        Stage stage = NbfxTabPane.stageOf(pane);
+        if (stage == null) {
+            throw new IllegalStateException("Floating pane has no stage");
+        }
+        FloatingWindow window = new FloatingWindow(this, pane, stage, anchor);
+        floating.put(pane, window);
+        stage.addEventHandler(WindowEvent.WINDOW_HIDDEN, _ -> floating.remove(pane, window));
+        return window;
+    }
+
+    private static WindowOptions requireFloatingOptions(WindowOptions options) {
+        Objects.requireNonNull(options, "options");
+        if (options.kind() != WindowKind.FLOATING) {
+            throw new IllegalArgumentException("Floating windows require WindowKind.FLOATING");
+        }
+        return options;
+    }
+
+    private static Consumer<Stage> floatingStageConfigurator(WindowOptions options, double x, double y) {
+        return stage -> {
+            if (options.owner() != null) {
+                stage.initOwner(options.owner());
+            }
+            if (options.modal()) {
+                stage.initModality(options.owner() != null
+                        ? javafx.stage.Modality.WINDOW_MODAL : javafx.stage.Modality.APPLICATION_MODAL);
+            }
+            if (options.title() != null && !options.title().isBlank()) {
+                stage.setTitle(options.title());
+            }
+            stage.setResizable(options.resizable());
+            stage.setX(x);
+            stage.setY(y);
+        };
+    }
+
+    private static double defaultFloatingX(WindowOptions options) {
+        Window owner = options.owner();
+        if (owner == null) {
+            DockArea<TabPane> area = Docking.area();
+            owner = area != null && area.getScene() != null ? area.getScene().getWindow() : null;
+        }
+        return owner != null && Double.isFinite(owner.getX()) ? owner.getX() + 40 : 100;
+    }
+
+    private static double defaultFloatingY(WindowOptions options) {
+        Window owner = options.owner();
+        if (owner == null) {
+            DockArea<TabPane> area = Docking.area();
+            owner = area != null && area.getScene() != null ? area.getScene().getWindow() : null;
+        }
+        return owner != null && Double.isFinite(owner.getY()) ? owner.getY() + 40 : 100;
     }
 
     private DockDecision validatePlacement(DockRequest request, DockPlacement placement) {

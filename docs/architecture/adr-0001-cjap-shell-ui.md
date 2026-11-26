@@ -253,6 +253,12 @@ api.plugins (T1)        → api.layer, api.resources
   can preserve pane/document registration for redock while still releasing detached chrome.
   Normal close keeps the existing unregister/close-confirmation behavior. Public `DockWindow`
   contracts and `WindowManager` float/redock operations follow separately.
+- C3-2i proves package-private `DefaultWindowManager` float/redock runtime semantics with a
+  `FloatingWindow` handle: float content or a non-main group, enumerate live windows, redock all
+  tabs into a group (including relative placement) or reattach the whole pane at a split/edge.
+  Owner/mismatch validation, stage cleanup, primary-pane retention, and focus restoration are
+  covered. `WindowOptions` geometry, owner, modality, title and resizability are applied; icon,
+  chrome profile/decoration and bounds persistence remain for the public multi-window slice.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
+import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Tab;
 import javafx.scene.layout.Pane;
@@ -34,12 +35,15 @@ import org.netbeans.api.nbfx.shell.DockDecision;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowManager;
+import org.netbeans.api.nbfx.shell.WindowOptions;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.api.nbfx.views.ViewContent;
 import org.netbeans.modules.nbfx.platform.content.DefaultContentManager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -262,9 +266,112 @@ public class WindowManagerTest {
                 }
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
+                disposeDocking();
             }
             return null;
         });
+    }
+
+    @Test
+    public void floatsContentAndRedocksIntoGroup() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                DefaultWindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("float.content", "Float"));
+                contentManager.open(content);
+                Tab tab = new Tab("Float");
+                NbfxTabPane.setViewId(tab, "float.content");
+                NbfxTabPane.attachTab(main, tab);
+
+                FloatingWindow window = manager.floatContent(content.id(), floatingOptions(), 10, 20);
+                assertTrue(window.stage().isShowing());
+                assertEquals(window.pane().groupId(), manager.groupOf(content.id()).orElseThrow());
+                assertEquals(List.of(window), manager.floatingWindows());
+
+                DockRequest request = new DockRequest(content.id(), window.pane().groupId(), null,
+                        other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
+                DockResult result = manager.redock(window, request);
+                assertTrue(result.decision().allowed());
+                assertEquals(other.groupId(), result.group());
+                assertEquals(other.groupId(), manager.groupOf(content.id()).orElseThrow());
+                assertFalse(window.stage().isShowing());
+                assertTrue(manager.floatingWindows().isEmpty());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void floatsGroupAndRedocksToEdgePreservingGroup() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                DefaultWindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("float.group", "Group"));
+                contentManager.open(content);
+                Tab tab = new Tab("Group");
+                NbfxTabPane.setViewId(tab, "float.group");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockRequest split = new DockRequest(content.id(), main.groupId(), null,
+                        main.groupId(), DockPlacement.SPLIT_RIGHT, TransferMode.MOVE, Set.of());
+                DockGroupId group = manager.dock(split).group();
+                NbfxTabPane docked = (NbfxTabPane) tab.getTabPane();
+                FloatingWindow window = manager.floatGroup(group, floatingOptions(), 30, 40);
+                assertTrue(window.stage().isShowing());
+                assertFalse(Docking.area().contains(docked));
+                assertEquals(group, window.pane().groupId());
+
+                DockRequest edge = new DockRequest(content.id(), group, PaneRole.MAIN,
+                        null, DockPlacement.EDGE_BOTTOM, TransferMode.MOVE, Set.of());
+                DockResult result = manager.redock(window, edge);
+                assertTrue(result.decision().allowed());
+                assertEquals(group, result.group());
+                assertTrue(Docking.area().contains(docked));
+                assertEquals(group, manager.groupOf(content.id()).orElseThrow());
+                assertFalse(window.stage().isShowing());
+                assertTrue(manager.floatingWindows().isEmpty());
+            } finally {
+                for (javafx.scene.control.TabPane pane : new java.util.ArrayList<>(NbfxTabPane.panesByRole())) {
+                    if (pane instanceof NbfxTabPane nbfx && nbfx.role() == PaneRole.DOCKED) {
+                        NbfxTabPane.unregister(pane);
+                    }
+                }
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    private static void disposeDocking() {
+        DockRuntime runtime = Docking.runtime();
+        if (runtime != null) {
+            runtime.dispose();
+        }
+    }
+
+    private static WindowOptions floatingOptions() {
+        return new WindowOptions(WindowKind.FLOATING, null, "Floating", null, null,
+                false, 400, 300, true, false, null);
     }
 
     private static final class FakeView implements ViewProvider {
