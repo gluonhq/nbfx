@@ -137,6 +137,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
 
     /** Key under which each tab stores its {@link EditorDocument} in {@code Tab.getProperties()}. */
     private static final String DOCUMENT_KEY = "nbfx.editorDocument";
+    private static final String PRESERVE_CONTENT_ON_HIDE = "nbfx.preserveContentOnHide";
 
     /** Key under which a view tab stores its stable {@code ViewProvider} identifier for persistence. */
     private static final String VIEW_ID_KEY = "nbfx.viewId";
@@ -1581,15 +1582,58 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
 
     /** Moves {@code tab} into a new detached window whose top-left corner is at screen {@code (x, y)}. */
     static void detachTabToWindowAt(Tab tab, double x, double y) {
+        floatTab(tab, x, y, DETACHED_WIDTH, DETACHED_HEIGHT);
+    }
+
+    /**
+     * Moves {@code tab} into a new detached pane and shows it in a window. The pane keeps the
+     * source pane's kind (or editor kind for an editor document), so editor chrome and close
+     * behavior remain correct after floating.
+     *
+     * @return the detached pane now holding {@code tab}
+     */
+    static NbfxTabPane floatTab(Tab tab, double x, double y, double width, double height) {
+        Objects.requireNonNull(tab, "tab");
         LOG.info(() -> "Detaching tab [" + titleOf(tab) + "] to a new window");
         TabPane source = tab.getTabPane();
+        PaneKind kind = documentOf(tab) != null ? PaneKind.EDITOR : kindOf(source);
+        NbfxTabPane newPane = new NbfxTabPane(PaneRole.DETACHED, kind);
         if (source != null) {
             source.getTabs().remove(tab);
         }
-        TabPane newPane = new NbfxTabPane();
         attachTab(newPane, tab);
-        Stage stage = createDetachedStage(newPane, x, y, DETACHED_WIDTH, DETACHED_HEIGHT);
+        showDetachedPane(newPane, x, y, width, height);
+        return newPane;
+    }
+
+    /**
+     * Shows an already-drained or newly created detached {@code pane} in a window. Callers floating
+     * an existing docked pane must detach it from its {@code DockArea} first.
+     */
+    static void showDetachedPane(NbfxTabPane pane, double x, double y, double width, double height) {
+        Objects.requireNonNull(pane, "pane");
+        if (stageOf(pane) != null) {
+            throw new IllegalArgumentException("Pane is already in a window");
+        }
+        Stage stage = createDetachedStage(pane, x, y, width, height);
         stage.show();
+    }
+
+    /**
+     * Closes the detached window showing {@code pane}. When {@code preserveContent} is true, window
+     * resources are released without unregistering the pane or its documents, for redock flows that
+     * have already moved the pane or its tabs back into the main window.
+     */
+    static void closeFloatingPane(NbfxTabPane pane, boolean preserveContent) {
+        Stage stage = stageOf(pane);
+        if (stage == null || roleOf(pane) != PaneRole.DETACHED) {
+            return;
+        }
+        if (preserveContent) {
+            stage.getProperties().put(PRESERVE_CONTENT_ON_HIDE, Boolean.TRUE);
+            stage.setOnCloseRequest(null);
+        }
+        stage.close();
     }
 
     /**
@@ -1881,14 +1925,19 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         });
         Objects.requireNonNull(stage).setOnHidden(_ -> {
-            TAB_PANES.remove(newPane);
-            PANES_PENDING_CLOSE.remove(newPane);
-            if (lastFocusedPane == newPane) {
-                // Don't keep a closed window (and its scene graph) alive through the focus tracking.
-                lastFocusedPane = null;
-            }
-            if (activePane == newPane) {
-                activePane = null;
+            boolean preserveContent = Boolean.TRUE.equals(
+                    stage.getProperties().get(PRESERVE_CONTENT_ON_HIDE));
+            stage.getProperties().remove(PRESERVE_CONTENT_ON_HIDE);
+            if (!preserveContent) {
+                TAB_PANES.remove(newPane);
+                PANES_PENDING_CLOSE.remove(newPane);
+                if (lastFocusedPane == newPane) {
+                    // Don't keep a closed window (and its scene graph) alive through the focus tracking.
+                    lastFocusedPane = null;
+                }
+                if (activePane == newPane) {
+                    activePane = null;
+                }
             }
             // This window's scoped commands observe documents that outlive it, so detach them.
             scopedCommands.forEach(Command::dispose);
@@ -1897,10 +1946,10 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
                 chrome.dispose();
             }
             // The window closed with tabs still in it (Save/Discard on close): those tabs are
-            // gone now, so unregister their documents. If the pane was emptied by a drag-out or
-            // last-tab close, documentsOf(newPane) is empty and there is nothing to unregister.
+            // gone now, so unregister their documents. Redock flows set preserveContent after
+            // moving the pane or its tabs back into the main window.
             EditorContext context = editorContext();
-            if (context != null) {
+            if (!preserveContent && context != null) {
                 documentsOf(newPane).forEach(context::unregister);
             }
         });

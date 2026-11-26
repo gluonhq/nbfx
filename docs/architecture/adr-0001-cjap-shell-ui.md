@@ -248,6 +248,11 @@ api.plugins (T1)        → api.layer, api.resources
   requested pane/area target and re-establishes emptiness tracking. The main pane, the only pane,
   contained/minimized/set-aside panes, and invalid targets are rejected. The private tree-removal
   helper is renamed `detachNode` so internal collapse/relocate paths keep their original semantics.
+- C3-2h adds shell-side floating lifecycle helpers: `NbfxTabPane.floatTab` creates a detached pane
+  with the source/editor kind, `showDetachedPane` rejects double-showing, and `closeFloatingPane`
+  can preserve pane/document registration for redock while still releasing detached chrome.
+  Normal close keeps the existing unregister/close-confirmation behavior. Public `DockWindow`
+  contracts and `WindowManager` float/redock operations follow separately.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler
