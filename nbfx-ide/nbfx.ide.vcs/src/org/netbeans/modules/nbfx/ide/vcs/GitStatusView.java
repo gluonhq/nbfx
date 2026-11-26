@@ -30,6 +30,7 @@ import org.netbeans.modules.nbfx.project.context.ProjectContext;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -72,6 +73,8 @@ final class GitStatusView extends BorderPane {
     private final Button commit = new Button(message("Git.commit"));
     /** Counts the reads asked for: what an earlier one found is not shown over a later one. */
     private final AtomicLong reads = new AtomicLong();
+    /** The project folder the rows are of, which is what Commit commits; {@code null} without rows read. */
+    private Path shown;
 
     GitStatusView() {
         getStyleClass().add("git-view");
@@ -113,10 +116,13 @@ final class GitStatusView extends BorderPane {
     void reload() {
         Path dir = selectedProject();
         long read = reads.incrementAndGet();
+        // Nothing to commit until it is read again: the rows may be out of date.
+        commit.setDisable(true);
+        if (!Objects.equals(dir, shown)) {
+            // Another project: the rows of the last one are not its changes.
+            show(null, "", List.of());
+        }
         if (dir == null) {
-            branch.setText("");
-            changes.clear();
-            commit.setDisable(true);
             return;
         }
         RP.post(() -> {
@@ -130,9 +136,7 @@ final class GitStatusView extends BorderPane {
                         if (read != reads.get()) {
                             return;
                         }
-                        branch.setText(message("Git.notRepository"));
-                        changes.clear();
-                        commit.setDisable(true);
+                        show(null, message("Git.notRepository"), List.of());
                     });
                     return;
                 }
@@ -145,13 +149,13 @@ final class GitStatusView extends BorderPane {
                         // The selection changed while this was read: the read of that one follows.
                         return;
                     }
-                    branch.setText(message("Git.branch") + ": " + branchName);
-                    changes.setAll(files);
-                    commit.setDisable(files.isEmpty());
+                    show(dir, message("Git.branch") + ": " + branchName, files);
                 });
             } catch (RuntimeException | java.io.IOException ex) {
                 Platform.runLater(() -> {
                     if (read == reads.get()) {
+                        // What was shown is not known to hold any more.
+                        show(null, "", List.of());
                         ErrorReporter.report(message("Git.title"), message("Git.error"), ex.getMessage(), ex);
                     }
                 });
@@ -159,8 +163,17 @@ final class GitStatusView extends BorderPane {
         });
     }
 
+    /** Shows {@code files} as the changes of {@code dir}; Commit is for a folder with changes only. */
+    private void show(Path dir, String title, List<VcsFileStatus> files) {
+        shown = dir;
+        branch.setText(title);
+        changes.setAll(files);
+        commit.setDisable(dir == null || files.isEmpty());
+    }
+
     private void commitDialog() {
-        Path dir = selectedProject();
+        // What is committed is what the rows show, whatever is selected by now.
+        Path dir = shown;
         if (dir == null) {
             return;
         }

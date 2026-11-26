@@ -129,6 +129,40 @@ public class VcsFileStatusTest {
         assertTrue(VcsStatus.CLEAN.files(HEAD_VS_WORKING_TREE).isEmpty());
     }
 
+    @Test
+    public void aFileRenamedGoneAndWrittenAgainWhereItWasIsListedOnce() {
+        VcsFileStatus moved = new VcsFileStatus("z-new.txt", "a-old.txt", RENAMED, DELETED, false);
+        VcsFileStatus back = new VcsFileStatus("a-old.txt", null, null, UNTRACKED, false);
+        VcsFileStatus other = new VcsFileStatus("m.txt", null, null, MODIFIED, false);
+        VcsStatus status = new VcsStatus(List.of(back, other, moved));
+
+        // The last commit and the disk both have a-old.txt: one file, changed, and none at z-new.txt.
+        List<VcsFileStatus> files = status.files(HEAD_VS_WORKING_TREE);
+        assertEquals(List.of("a-old.txt", "m.txt"),
+                files.stream().map(file -> file.path(HEAD_VS_WORKING_TREE)).toList());
+        assertEquals(Optional.of(MODIFIED), files.get(0).change(HEAD_VS_WORKING_TREE));
+        // Against the index they stay the two files git tells of.
+        assertEquals(List.of(moved), status.files(HEAD_VS_INDEX));
+        assertEquals(List.of(back, other, moved), status.files(INDEX_VS_WORKING_TREE));
+    }
+
+    @Test
+    public void theFilesOfAModeAreInTheOrderOfTheirPathsInIt() {
+        VcsFileStatus first = new VcsFileStatus("b.txt", null, null, MODIFIED, false);
+        VcsFileStatus undone = new VcsFileStatus("c.txt", "a.txt", RENAMED, DELETED, false);
+        VcsStatus status = new VcsStatus(List.of(first, undone));
+
+        // Deleted at a.txt between the last commit and the disk, which sorts before b.txt.
+        assertEquals(List.of(undone, first), status.files(HEAD_VS_WORKING_TREE));
+        assertEquals(List.of(first, undone), status.files(INDEX_VS_WORKING_TREE));
+    }
+
+    @Test
+    public void aChangeStagedAndUndoneOnDiskIsStillAChange() {
+        // The two changes are combined, the contents are not read: there is a staged change to deal with.
+        assertModes(file(MODIFIED, MODIFIED), MODIFIED, MODIFIED, MODIFIED);
+    }
+
     private static VcsFileStatus file(VcsChangeKind staged, VcsChangeKind unstaged) {
         return new VcsFileStatus("a.txt", null, staged, unstaged, false);
     }

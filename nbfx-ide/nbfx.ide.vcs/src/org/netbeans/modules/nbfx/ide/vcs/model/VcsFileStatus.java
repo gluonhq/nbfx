@@ -61,6 +61,11 @@ public record VcsFileStatus(String path, String originalPath, VcsChangeKind stag
      * commit has, which {@link #path(VcsCompareMode)} names; a file deleted from the index with an
      * untracked file in its place is {@link VcsChangeKind#MODIFIED}.
      *
+     * <p>That combination is of the two changes, not of the contents: neither side of it is read. A
+     * file changed in the index and changed back on disk is {@link VcsChangeKind#MODIFIED} between
+     * the last commit and the working tree, although the two hold the same - there is still a staged
+     * change to commit or to drop.
+     *
      * @return the change, or empty when the file is the same on both sides
      */
     public Optional<VcsChangeKind> change(VcsCompareMode mode) {

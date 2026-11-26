@@ -87,12 +87,18 @@ final class GitClient {
 
     /**
      * Commits what is staged. In a folder below the repository root only the changes in that folder
-     * are committed, as NetBeans commits a project that shares its repository with others; at the
-     * root it is a plain commit, which is also the only one git accepts while merging.
+     * are committed, as NetBeans commits a project that shares its repository with others. At the
+     * root it is a plain commit, and so it is while merging, wherever {@code dir} is: git concludes
+     * a merge as a whole or not at all, and refuses the commit of a part of it.
      */
     static Result commit(Path dir, String message) {
-        return isRoot(dir) ? result(dir, "commit", "-m", message)
+        return isRoot(dir) || isMerging(dir) ? result(dir, "commit", "-m", message)
                 : result(dir, "commit", "-m", message, "--", ".");
+    }
+
+    /** Whether a merge was started in the repository of {@code dir} and is not yet committed. */
+    static boolean isMerging(Path dir) {
+        return result(dir, "rev-parse", "--quiet", "--verify", "MERGE_HEAD").exitCode() == 0;
     }
 
     private static boolean isRoot(Path dir) {

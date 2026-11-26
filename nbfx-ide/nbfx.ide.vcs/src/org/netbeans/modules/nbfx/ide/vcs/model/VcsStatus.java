@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.ide.vcs.model;
 
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The changed files of a repository, read once. A status view shows {@link #files(VcsCompareMode)} for
@@ -36,9 +38,27 @@ public record VcsStatus(List<VcsFileStatus> files) {
         files = List.copyOf(files);
     }
 
-    /** The files that differ between the two sides of {@code mode}, in path order. */
+    /**
+     * The files that differ between the two sides of {@code mode}, one for each
+     * {@link VcsFileStatus#path(VcsCompareMode) path of that mode} and in the order of those paths.
+     *
+     * <p>A file renamed in the index, deleted from disk and written again where it was is two files
+     * to git, the renamed one and an untracked one. Between the last commit and the working tree
+     * they are one: both sides have it, so it is listed once, as
+     * {@link VcsChangeKind#MODIFIED}.
+     */
     public List<VcsFileStatus> files(VcsCompareMode mode) {
-        return files.stream().filter(file -> file.change(mode).isPresent()).toList();
+        Map<String, VcsFileStatus> byPath = new TreeMap<>();
+        for (VcsFileStatus file : files) {
+            if (file.change(mode).isPresent()) {
+                String path = file.path(mode);
+                // Out of the index, yet on disk: what the file is between the last commit and the disk.
+                byPath.merge(path, file, (first, second) -> first.conflicted() || second.conflicted()
+                        ? new VcsFileStatus(path, null, null, null, true)
+                        : new VcsFileStatus(path, null, VcsChangeKind.DELETED, VcsChangeKind.UNTRACKED, false));
+            }
+        }
+        return List.copyOf(byPath.values());
     }
 
     /** Whether no file differs in any mode. */
