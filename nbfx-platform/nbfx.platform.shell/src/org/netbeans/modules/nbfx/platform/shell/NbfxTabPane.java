@@ -389,8 +389,9 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         if (id.isBlank()) {
             id = "group";
         }
-        if (PaneRole.DETACHED.equals(role)) {
-            return DockGroupId.of("nbfx:detached." + GROUP_SEQ.incrementAndGet());
+        if (PaneRole.DETACHED.equals(role) || PaneRole.DOCKED.equals(role)) {
+            String prefix = PaneRole.DETACHED.equals(role) ? "detached" : "docked";
+            return DockGroupId.of("nbfx:" + prefix + "." + GROUP_SEQ.incrementAndGet());
         }
         return DockGroupId.of("nbfx:" + id);
     }

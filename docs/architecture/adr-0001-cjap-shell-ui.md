@@ -263,6 +263,10 @@ api.plugins (T1)        → api.layer, api.resources
   Owner/mismatch validation, stage cleanup, primary-pane retention, and focus restoration are
   covered. `WindowOptions` geometry, owner, modality, title and resizability are applied; icon,
   chrome profile/decoration and bounds persistence remain for the public multi-window slice.
+- C3-2j gives every runtime `DOCKED` pane a sequenced `nbfx:docked.N` identity, matching detached
+  panes. Previously all docked panes shared `nbfx:docked`, so `paneForGroup` and content/group
+  operations selected the first match and multi-group docking was ambiguous. Permanent role-based
+  identities remain stable.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

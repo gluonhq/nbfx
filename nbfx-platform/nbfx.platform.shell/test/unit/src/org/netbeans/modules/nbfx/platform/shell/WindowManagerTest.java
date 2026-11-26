@@ -99,6 +99,36 @@ public class WindowManagerTest {
     }
 
     @Test
+    public void dockedGroupsHaveUniqueStableIdentities() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane first = new NbfxTabPane(PaneRole.DOCKED);
+            NbfxTabPane second = new NbfxTabPane(PaneRole.DOCKED);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                WindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("docked.identity", "Identity"));
+                contentManager.open(content);
+                Tab tab = new Tab("Identity");
+                NbfxTabPane.setViewId(tab, "docked.identity");
+                NbfxTabPane.attachTab(main, tab);
+
+                assertTrue(!first.groupId().equals(second.groupId()));
+                assertTrue(manager.groups().containsAll(List.of(first.groupId(), second.groupId())));
+                manager.move(content.id(), second.groupId(), 0);
+                assertEquals(second.groupId(), manager.groupOf(content.id()).orElseThrow());
+                assertEquals(List.of(tab), second.getTabs());
+                assertTrue(first.getTabs().isEmpty());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(first);
+                NbfxTabPane.unregister(second);
+            }
+            return null;
+        });
+    }
+
+    @Test
     public void dockPolicyCanReject() throws InterruptedException {
         JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
