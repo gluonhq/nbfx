@@ -717,6 +717,7 @@ public interface WindowManager {
     void attach(ContentId content, DockGroupId group, int index);
     void move(ContentId content, DockGroupId target, int index);
     void select(ContentId content);
+    void closeGroup(DockGroupId group);
 
     DockWindow floatContent(ContentId content, WindowOptions options);
     DockWindow floatGroup(DockGroupId group, WindowOptions options);

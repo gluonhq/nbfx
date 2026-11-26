@@ -325,6 +325,21 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.close-group">
+            <api name="netbeansfx_shell"/>
+            <summary>WindowManager close-group operation.</summary>
+            <version major="1" minor="14"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" modification="yes" binary="incompatible" source="incompatible" semantic="incompatible"/>
+            <description>
+                Adds <code>WindowManager.closeGroup(DockGroupId)</code>, reusing the shell's normal
+                editor/view close lifecycle and unsaved-editor confirmation. Unknown groups are
+                ignored. The interface expansion is intentionally incompatible for external
+                <code>WindowManager</code> implementers.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

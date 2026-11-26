@@ -292,6 +292,9 @@ api.plugins (T1)        → api.layer, api.resources
   have no `LayoutNode`, use the requested id/options/profile, participate in `windows()`, and close
   their content host exactly once. Plain hide keeps them live; close removes them and prevents
   re-showing. Duplicate live ids and already-attached content roots are rejected.
+- C3-2q exposes `WindowManager.closeGroup(DockGroupId)` by delegating to the existing context-menu
+  close-group lifecycle. Editor confirmation, view close, deferred tab removal and empty-pane
+  cleanup therefore stay identical between pointer and programmatic operations.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

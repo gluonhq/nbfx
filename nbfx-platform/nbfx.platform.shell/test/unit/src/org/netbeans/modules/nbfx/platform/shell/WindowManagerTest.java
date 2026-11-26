@@ -30,6 +30,7 @@ import javafx.stage.Stage;
 import org.junit.Test;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.content.TransferMode;
@@ -133,6 +134,32 @@ public class WindowManagerTest {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(first);
                 NbfxTabPane.unregister(second);
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void closeGroupUsesExistingTabCloseLifecycle() throws InterruptedException {
+        AtomicReference<NbfxTabPane> paneRef = new AtomicReference<>();
+        AtomicReference<DefaultWindowManager> managerRef = new AtomicReference<>();
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane pane = new NbfxTabPane(PaneRole.MAIN);
+            paneRef.set(pane);
+            DefaultWindowManager manager = new DefaultWindowManager(new DefaultContentManager());
+            managerRef.set(manager);
+            NbfxTabPane.attachTab(pane, new Tab("First"));
+            NbfxTabPane.attachTab(pane, new Tab("Second"));
+            manager.closeGroup(pane.groupId());
+            manager.closeGroup(DockGroupId.of("nbfx:missing"));
+            return null;
+        });
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane pane = paneRef.get();
+            try {
+                assertTrue(pane.getTabs().isEmpty());
+            } finally {
+                NbfxTabPane.unregister(pane);
             }
             return null;
         });

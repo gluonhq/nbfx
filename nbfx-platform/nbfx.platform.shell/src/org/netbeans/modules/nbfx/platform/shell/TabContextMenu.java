@@ -363,7 +363,7 @@ public final class TabContextMenu {
     }
 
     /** Closes every tab of {@code pane}, confirming the unsaved editors once; an emptied pane goes away by itself. */
-    private static void closeGroup(TabPane pane) {
+    static void closeGroup(TabPane pane) {
         if (pane != null) {
             closeTabs(pane, List.copyOf(pane.getTabs()));
         }

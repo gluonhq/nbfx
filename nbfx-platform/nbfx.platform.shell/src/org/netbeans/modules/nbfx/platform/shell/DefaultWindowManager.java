@@ -146,6 +146,14 @@ final class DefaultWindowManager implements WindowManager {
     }
 
     @Override
+    public void closeGroup(DockGroupId group) {
+        TabPane pane = paneForGroup(group);
+        if (pane != null) {
+            TabContextMenu.closeGroup(pane);
+        }
+    }
+
+    @Override
     public DockDecision canDock(DockRequest request) {
         if (request == null || request.content() == null) {
             return DockDecision.reject("dock.request.invalid");

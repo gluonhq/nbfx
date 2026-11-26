@@ -1,5 +1,5 @@
 Manifest-Version: 1.0
 OpenIDE-Module: org.netbeans.modules.nbfx.api.shell
 OpenIDE-Module-Localizing-Bundle: org/netbeans/api/nbfx/shell/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.13
+OpenIDE-Module-Specification-Version: 1.14
 OpenIDE-Module-Java-Dependencies: Java > 25

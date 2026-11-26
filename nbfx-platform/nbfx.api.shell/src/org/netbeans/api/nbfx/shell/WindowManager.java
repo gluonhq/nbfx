@@ -86,6 +86,15 @@ public interface WindowManager {
     void attach(ContentId content, DockGroupId group, int index);
 
     /**
+     * Closes every tab in {@code group} through the normal editor/view close lifecycle, including
+     * unsaved-editor confirmation. An unknown group is ignored.
+     *
+     * @param group the group to close
+     * @since 1.14
+     */
+    void closeGroup(DockGroupId group);
+
+    /**
      * Evaluates whether {@code request} can be performed now.
      *
      * @param request the dock request
