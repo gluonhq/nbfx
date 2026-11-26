@@ -8,8 +8,8 @@ Every number the plan states is derived here from the tree. Regenerate with
 |---|---|
 | nbfx modules | 66 |
 | nbfx source files | 773 |
-| modules exporting packages (`<public-packages>`) | 47 |
-| of those, subtree exports (`<subpackages>`) | 16 |
+| modules exporting packages (`<public-packages>`) | 46 |
+| of those, subtree exports (`<subpackages>`) | 15 |
 | modules with `arch.xml` | 20 |
 | modules with `apichanges.xml` | 14 |
 | distinct `OpenIDE-Module-Specification-Version` values | 6: 1.0, 1.1, 1.2, 1.3, 1.5, 1.9 |

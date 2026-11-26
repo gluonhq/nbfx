@@ -47,14 +47,11 @@ sealed interface StatusRow {
      * A changed file.
      *
      * @param name the file name
+     * @param path where the file is in the mode the table compares, which for a file renamed and then
+     *        deleted is where it was
      * @param status the state of the file
      * @param kind how the file differs in the mode the table compares
      */
-    record File(String name, VcsFileStatus status, VcsChangeKind kind) implements StatusRow {
-
-        @Override
-        public String path() {
-            return status.path();
-        }
+    record File(String name, String path, VcsFileStatus status, VcsChangeKind kind) implements StatusRow {
     }
 }

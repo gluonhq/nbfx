@@ -37,6 +37,7 @@ import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -72,6 +73,24 @@ public class GitClientStatusTest {
     @Test
     public void freshCommitIsClean() throws IOException {
         assertTrue(GitClient.status(root).isClean());
+    }
+
+    @Test
+    public void whatGitSaysBesideItsOutputIsNoPartOfWhatIsRead() throws Exception {
+        write("modified.txt", "changed on disk\n");
+        // Git traces to its standard error, as a hook, a helper or the configuration warn there.
+        Map<String, String> traced = Map.of("GIT_TRACE", "1");
+
+        GitClient.Result status = GitClient.result(root, traced, "status", "--porcelain=v2", "-z");
+        assertEquals(status.output(), 0, status.exitCode());
+        assertFalse(status.output(), status.output().contains("trace:"));
+        assertEquals(Map.of("modified.txt", VcsChangeKind.MODIFIED),
+                changes(GitStatusParser.parse(status.output()), VcsCompareMode.HEAD_VS_WORKING_TREE));
+
+        // Of a command that failed, what it said is what there is to show.
+        GitClient.Result failed = GitClient.result(root, traced, "rev-parse", "--verify", "--quiet", "no-such-branch");
+        assertTrue(failed.exitCode() != 0);
+        assertTrue(failed.output(), failed.output().contains("trace:"));
     }
 
     @Test
@@ -158,10 +177,47 @@ public class GitClientStatusTest {
                 changes(GitClient.status(root), VcsCompareMode.HEAD_VS_INDEX));
     }
 
+    @Test
+    public void aMergeIsConcludedFromAFolderOfTheRepository() throws Exception {
+        write("project/App.java", "class App {}\n");
+        write("other/Readme.txt", "first\n");
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "two projects");
+        git("checkout", "--quiet", "-b", "feature");
+        write("project/App.java", "class App { int feature; }\n");
+        write("other/Readme.txt", "feature\n");
+        git("commit", "--quiet", "-am", "feature");
+        git("checkout", "--quiet", "-");
+        git("merge", "--quiet", "--no-ff", "--no-commit", "feature");
+        Path project = root.resolve("project");
+        assertTrue(GitClient.isMerging(project));
+
+        assertEquals(0, GitClient.addAll(project).exitCode());
+        // Git commits no part of a merge: the commit is of all of it, the other project as well.
+        GitClient.Result commit = GitClient.commit(project, "merged");
+        assertEquals(commit.output(), 0, commit.exitCode());
+
+        assertFalse(GitClient.isMerging(project));
+        assertTrue(GitClient.status(root).isClean());
+    }
+
+    @Test
+    public void aFileRenamedGoneAndWrittenAgainWhereItWasIsOneChangedFile() throws Exception {
+        git("mv", "renamed.txt", "moved.txt");
+        Files.delete(root.resolve("moved.txt"));
+        write("renamed.txt", "written again\n");
+
+        VcsStatus status = GitClient.status(root);
+
+        assertEquals(Map.of("renamed.txt", VcsChangeKind.MODIFIED),
+                changes(status, VcsCompareMode.HEAD_VS_WORKING_TREE));
+        assertEquals(1, status.files(VcsCompareMode.HEAD_VS_WORKING_TREE).size());
+    }
+
     private static Map<String, VcsChangeKind> changes(VcsStatus status, VcsCompareMode mode) {
         Map<String, VcsChangeKind> changes = new TreeMap<>();
         for (VcsFileStatus file : status.files(mode)) {
-            changes.put(file.path(), file.change(mode).orElseThrow());
+            changes.put(file.path(mode), file.change(mode).orElseThrow());
         }
         return changes;
     }
