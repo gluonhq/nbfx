@@ -295,6 +295,10 @@ api.plugins (T1)        → api.layer, api.resources
 - C3-2q exposes `WindowManager.closeGroup(DockGroupId)` by delegating to the existing context-menu
   close-group lifecycle. Editor confirmation, view close, deferred tab removal and empty-pane
   cleanup therefore stay identical between pointer and programmatic operations.
+- C3-2r honors `WindowOptions.rememberBounds` for custom windows through the existing
+  preferences-backed `AppState`. Bounds save on hide/close, restore by stable `WindowId`, override
+  constructor defaults, and are clamped to visible screens. Floating editor/view windows continue
+  to use the existing detached-pane layout persistence.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

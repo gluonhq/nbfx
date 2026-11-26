@@ -19,12 +19,14 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowId;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.api.nbfx.views.PaneKind;
 import org.netbeans.modules.nbfx.platform.workspace.DockTrees;
 
 import org.netbeans.api.nbfx.editor.EditorSettings;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashSet;
@@ -68,6 +70,7 @@ public final class AppState {
     private static final String VIEW_SHOW_BREADCRUMBS = "view.showBreadcrumbs";
     /** The default views the user has been shown once; see {@link #getIntroducedViews()}. */
     private static final String VIEWS_INTRODUCED = "views.introduced";
+    private static final String CUSTOM_WINDOW_BOUNDS_PREFIX = "custom.window.";
     private static final String LAYOUT_NODE = "layout";
 
     /**
@@ -217,6 +220,36 @@ public final class AppState {
 
     /** A main-window geometry snapshot: position ({@code NaN} when unknown), size and maximized flag. */
     public record WindowBounds(double x, double y, double width, double height, boolean maximized) {}
+
+    /** Returns remembered bounds for a custom window, or {@code null} when none were stored. */
+    public WindowBounds customWindowBounds(WindowId id) {
+        String key = customWindowKey(id);
+        double width = getDouble(key + ".width", Double.NaN);
+        double height = getDouble(key + ".height", Double.NaN);
+        if (!Double.isFinite(width) || !Double.isFinite(height) || width <= 0 || height <= 0) {
+            return null;
+        }
+        return new WindowBounds(getDouble(key + ".x", Double.NaN),
+                getDouble(key + ".y", Double.NaN), width, height, false);
+    }
+
+    /** Remembers bounds for a custom window and flushes them immediately. */
+    public void saveCustomWindowBounds(WindowId id, double x, double y, double width, double height) {
+        if (!Double.isFinite(width) || !Double.isFinite(height) || width <= 0 || height <= 0) {
+            return;
+        }
+        String key = customWindowKey(id);
+        prefs.putDouble(key + ".x", x);
+        prefs.putDouble(key + ".y", y);
+        prefs.putDouble(key + ".width", width);
+        prefs.putDouble(key + ".height", height);
+        flush();
+    }
+
+    private static String customWindowKey(WindowId id) {
+        return CUSTOM_WINDOW_BOUNDS_PREFIX + Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(id.value().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
 
     /**
      * The ids of the views registered to open at start-up that have already been introduced: docked

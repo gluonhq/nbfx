@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 import javafx.scene.layout.StackPane;
+import javafx.stage.Stage;
+import java.util.prefs.Preferences;
 import org.junit.Test;
 import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
@@ -80,6 +82,51 @@ public class CustomWindowTest {
             assertTrue(content.closed);
             assertTrue(manager.windows().isEmpty());
             assertThrows(IllegalStateException.class, window::show);
+            return null;
+        });
+    }
+
+    @Test
+    public void remembersCustomWindowBoundsAcrossManagers() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            Preferences prefs = Preferences.userRoot().node("nbfx-custom-bounds-" + System.nanoTime());
+            AppState appState = new AppState(prefs);
+            WindowId id = WindowId.of("product:window.bounds");
+            WindowOptions options = new WindowOptions(WindowKind.CUSTOM, null, "Bounds",
+                    null, null, false, 300, 200, true, true, null);
+            DockWindow first = new DefaultWindowManager(new DefaultContentManager(),
+                    () -> java.util.List.of(), () -> null, appState)
+                    .createCustomWindow(id, options, new FakeContent(id));
+            try {
+                Stage stage = (Stage) first.window();
+                stage.setX(50);
+                stage.setY(60);
+                stage.setWidth(640);
+                stage.setHeight(480);
+                first.hide();
+            } finally {
+                first.close();
+            }
+
+            WindowOptions differentDefaults = new WindowOptions(WindowKind.CUSTOM, null, "Bounds",
+                    null, null, false, 200, 100, true, true, null);
+            DockWindow restored = new DefaultWindowManager(new DefaultContentManager(),
+                    () -> java.util.List.of(), () -> null, appState)
+                    .createCustomWindow(id, differentDefaults, new FakeContent(id));
+            try {
+                Stage stage = (Stage) restored.window();
+                assertEquals(50, stage.getX(), 0.001);
+                assertEquals(60, stage.getY(), 0.001);
+                assertEquals(640, stage.getWidth(), 0.001);
+                assertEquals(480, stage.getHeight(), 0.001);
+            } finally {
+                restored.close();
+                try {
+                    prefs.removeNode();
+                } catch (java.util.prefs.BackingStoreException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
             return null;
         });
     }

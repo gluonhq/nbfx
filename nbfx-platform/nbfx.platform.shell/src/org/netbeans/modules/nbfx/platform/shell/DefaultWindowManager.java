@@ -71,6 +71,7 @@ final class DefaultWindowManager implements WindowManager {
     private final ContentManager contentManager;
     private final Supplier<Collection<? extends DockPolicy>> policies;
     private final Supplier<WindowState> mainState;
+    private final AppState appState;
     private final Map<NbfxTabPane, FloatingWindow> floating = new LinkedHashMap<>();
     private final Map<WindowId, CustomWindow> custom = new LinkedHashMap<>();
     private MainDockWindow mainWindow;
@@ -85,9 +86,15 @@ final class DefaultWindowManager implements WindowManager {
 
     DefaultWindowManager(ContentManager contentManager, Supplier<Collection<? extends DockPolicy>> policies,
             Supplier<WindowState> mainState) {
+        this(contentManager, policies, mainState, null);
+    }
+
+    DefaultWindowManager(ContentManager contentManager, Supplier<Collection<? extends DockPolicy>> policies,
+            Supplier<WindowState> mainState, AppState appState) {
         this.contentManager = Objects.requireNonNull(contentManager, "contentManager");
         this.policies = Objects.requireNonNull(policies, "policies");
         this.mainState = Objects.requireNonNull(mainState, "mainState");
+        this.appState = appState;
     }
 
     @Override
@@ -342,9 +349,23 @@ final class DefaultWindowManager implements WindowManager {
         if (custom.containsKey(id)) {
             throw new IllegalArgumentException("Custom window already exists: " + id);
         }
-        Consumer<Stage> configure = windowStageConfigurator(options,
-                defaultFloatingX(options), defaultFloatingY(options));
-        CustomWindow window = new CustomWindow(this, id, options, content, configure);
+        double x = defaultFloatingX(options);
+        double y = defaultFloatingY(options);
+        WindowOptions effective = options;
+        if (options.rememberBounds() && appState != null) {
+            AppState.WindowBounds bounds = appState.customWindowBounds(id);
+            if (bounds != null) {
+                double[] clamped = AppState.clampBounds(bounds.x(), bounds.y(),
+                        bounds.width(), bounds.height());
+                x = clamped[0];
+                y = clamped[1];
+                effective = new WindowOptions(options.kind(), options.profile(), options.title(),
+                        options.icon(), options.owner(), options.modal(), clamped[2], clamped[3],
+                        options.resizable(), true, options.decoration());
+            }
+        }
+        Consumer<Stage> configure = windowStageConfigurator(effective, x, y);
+        CustomWindow window = new CustomWindow(this, id, effective, content, configure);
         custom.put(id, window);
         window.show();
         return window;
@@ -452,6 +473,13 @@ final class DefaultWindowManager implements WindowManager {
         }
         result.addAll(custom.values());
         return List.copyOf(result);
+    }
+
+    void saveCustomWindowBounds(CustomWindow window) {
+        if (appState != null && window.options().rememberBounds()) {
+            appState.saveCustomWindowBounds(window.windowId(), window.stage().getX(),
+                    window.stage().getY(), window.stage().getWidth(), window.stage().getHeight());
+        }
     }
 
     void removeCustomWindow(CustomWindow window) {

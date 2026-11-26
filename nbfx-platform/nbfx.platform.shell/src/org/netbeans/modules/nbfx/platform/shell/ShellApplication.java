@@ -164,7 +164,7 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
             new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
     private final WindowManager windowManager = new DefaultWindowManager(contentManager,
             () -> Lookup.getDefault().lookupAll(DockPolicy.class),
-            this::snapshot);
+            this::snapshot, appState);
     /** Binds view tab open/close to this shell's content manager. */
     private NbfxTabPane.ViewLifecycle viewLifecycle;
     /** Binds editor tab open/close to this shell's content manager. */

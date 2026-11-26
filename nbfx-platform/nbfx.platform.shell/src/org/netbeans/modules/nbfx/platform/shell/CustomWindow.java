@@ -73,6 +73,14 @@ final class CustomWindow implements DockWindow {
         return id;
     }
 
+    WindowOptions options() {
+        return options;
+    }
+
+    Stage stage() {
+        return stage;
+    }
+
     @Override
     public WindowId id() {
         return id;
@@ -110,6 +118,7 @@ final class CustomWindow implements DockWindow {
     public void hide() {
         if (!closed) {
             stage.hide();
+            owner.saveCustomWindowBounds(this);
         }
     }
 
@@ -135,6 +144,7 @@ final class CustomWindow implements DockWindow {
             return;
         }
         closed = true;
+        owner.saveCustomWindowBounds(this);
         try {
             content.close();
         } finally {
