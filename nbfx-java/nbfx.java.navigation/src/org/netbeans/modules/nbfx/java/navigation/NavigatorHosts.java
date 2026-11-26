@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.java.navigation;
 
 import org.netbeans.modules.nbfx.java.navigation.utils.DeleteActions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javafx.scene.control.TreeItem;
@@ -103,11 +104,26 @@ final class NavigatorHosts {
 
             @Override
             public boolean isRecursive(TreeItem<ProjectEntry> item) {
-                // A package node is its own files, the subpackages are its siblings; the project
-                // files group lists files of the project folder.
+                // A package node is its own files, the subpackages are its siblings.
                 ProjectEntry entry = item == null ? null : item.getValue();
-                return entry == null || (entry.getType() != ProjectEntry.Type.PACKAGE
-                        && entry.getType() != ProjectEntry.Type.FILES);
+                return entry == null || entry.getType() != ProjectEntry.Type.PACKAGE;
+            }
+
+            @Override
+            public List<FileObject> listedFiles(TreeItem<ProjectEntry> item) {
+                // The project files group stands for the files it lists, wherever they are below
+                // the project folder, and not for the folder: the sources are not its own.
+                ProjectEntry entry = item == null ? null : item.getValue();
+                if (entry == null || entry.getType() != ProjectEntry.Type.FILES) {
+                    return null;
+                }
+                List<FileObject> files = new ArrayList<>();
+                for (TreeItem<ProjectEntry> child : item.getChildren()) {
+                    if (child.getValue() != null && child.getValue().getFileObject() != null) {
+                        files.add(child.getValue().getFileObject());
+                    }
+                }
+                return files;
             }
 
             @Override

@@ -28,4 +28,5 @@ nbfx-platform/nbfx.api.nodes
 nbfx-platform/nbfx.api.options
 nbfx-platform/nbfx.api.output
 nbfx-ide/nbfx.api.project
+nbfx-ide/nbfx.api.vcs
 nbfx-platform/nbfx.platform.theme
