@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.java.navigation;
 
+import javafx.stage.Window;
 import org.netbeans.modules.nbfx.project.ui.TreeCellDnD;
 import org.netbeans.modules.nbfx.project.ui.utils.Projects;
 
@@ -73,8 +74,12 @@ abstract class NavigatorTreeCell<T> extends TreeCell<T> {
                     ? List.of()
                     : new ArrayList<>(tree.getSelectionModel().getSelectedItems());
             ContextMenu contextMenu = factory.create(treeItem, selection);
-            if (contextMenu != null) {
-                contextMenu.show(tree, e.getScreenX(), e.getScreenY());
+            Window window = tree == null || tree.getScene() == null ? null : tree.getScene().getWindow();
+            if (contextMenu != null && window != null) {
+                // Shown on the window, as a menu set with setContextMenu is, not on the tree: a popup
+                // does not close on a press inside the node it is shown on, so a menu anchored to the
+                // tree stayed open while other rows were clicked.
+                contextMenu.show(window, e.getScreenX(), e.getScreenY());
             }
             e.consume();
         });

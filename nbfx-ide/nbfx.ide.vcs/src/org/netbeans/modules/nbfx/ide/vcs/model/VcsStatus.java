@@ -61,6 +61,11 @@ public record VcsStatus(List<VcsFileStatus> files) {
         return List.copyOf(byPath.values());
     }
 
+    /** Whether a file has an unresolved merge conflict: there is nothing to commit until none has. */
+    public boolean hasConflicts() {
+        return files.stream().anyMatch(VcsFileStatus::conflicted);
+    }
+
     /** Whether no file differs in any mode. */
     public boolean isClean() {
         return files.isEmpty();

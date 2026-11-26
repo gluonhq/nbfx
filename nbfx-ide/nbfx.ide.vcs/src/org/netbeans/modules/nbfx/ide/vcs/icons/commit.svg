@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!-- Commit: redrawn from NetBeans' commit.png -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" version="1.1" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="bin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0062AC"/><stop offset="0.75" stop-color="#004280"/><stop offset="1" stop-color="#003468"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#408BC3"/><stop offset="1" stop-color="#73ABD8"/>
+    </linearGradient>
+    <linearGradient id="sheetEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#61A022"/><stop offset="1" stop-color="#3A690D"/>
+    </linearGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#E6F3E0"/><stop offset="1" stop-color="#A3D28E"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#92C1E0"/><stop offset="0.3" stop-color="#92C1E0"/><stop offset="0.55" stop-color="#6299C8"/>
+      <stop offset="0.8" stop-color="#7BB1DC"/><stop offset="1" stop-color="#4F90C3"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8FC6F0"/><stop offset="0.15" stop-color="#B4DCF9"/><stop offset="0.35" stop-color="#E8F5FF"/>
+      <stop offset="0.5" stop-color="#C4E4FA"/><stop offset="0.75" stop-color="#A8D4F6"/><stop offset="1" stop-color="#7BB5DF"/>
+    </linearGradient>
+    <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2E78B7" stop-opacity="0"/><stop offset="0.6" stop-color="#2E78B7" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#2E78B7" stop-opacity="0.6"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="14.6" width="10" height="1.2" rx="0.6" fill="#000" opacity="0.2"/>
+  <rect x="2" y="1.5" width="12" height="13.5" rx="1.5" fill="url(#bin)"/>
+  <path d="M3.6 2.4 H12.4 Q13 2.4 13 3 V6 H3 V3 Q3 2.4 3.6 2.4 Z" fill="url(#back)"/>
+  <rect x="4" y="0" width="9" height="6" fill="url(#sheetEdge)"/>
+  <rect x="5" y="1" width="7" height="5" fill="url(#sheet)"/>
+  <rect x="6" y="2" width="5" height="1" fill="#81A859"/>
+  <rect x="6" y="4" width="3" height="1" fill="#81A859"/>
+  <path id="glass" d="M3 5 H13 V13 Q13 14 12 14 H4 Q3 14 3 13 Z" fill="url(#front)"/>
+  <path d="M3 5 H13 V13 Q13 14 12 14 H4 Q3 14 3 13 Z" fill="url(#shade)"/>
+  <rect x="3" y="5" width="10" height="1" fill="url(#rim)"/>
+</svg>

@@ -214,6 +214,92 @@ public class GitClientStatusTest {
         assertEquals(1, status.files(VcsCompareMode.HEAD_VS_WORKING_TREE).size());
     }
 
+    @Test
+    public void nothingIsStagedOrCommittedWhileAFileIsConflicted() throws Exception {
+        git("checkout", "--quiet", "-b", "feature");
+        write("both.txt", "theirs\n");
+        git("commit", "--quiet", "-am", "theirs");
+        git("checkout", "--quiet", "-");
+        write("both.txt", "ours\n");
+        git("commit", "--quiet", "-am", "ours");
+        // The merge stops at the conflict, with its markers in the file.
+        assertTrue(gitFails("merge", "--quiet", "feature"));
+        write("modified.txt", "another change\n");
+        VcsStatus before = GitClient.status(root);
+        assertTrue(before.hasConflicts());
+        String head = head();
+
+        GitClient.Result commit = GitClient.commitAll(root, "would call the conflict resolved");
+
+        assertTrue(commit.exitCode() != 0);
+        assertEquals("Resolve the conflicted files before committing", commit.output());
+        assertEquals("no commit was made", head, head());
+        // The file is still unmerged in the index, and nothing else was staged.
+        assertEquals(before, GitClient.status(root));
+        assertTrue(Files.readString(root.resolve("both.txt")).contains("<<<<<<<"));
+
+        // Resolved by hand and told so to git, the merge is committed with every change.
+        write("both.txt", "ours and theirs\n");
+        git("add", "both.txt");
+        commit = GitClient.commitAll(root, "merged");
+        assertEquals(commit.output(), 0, commit.exitCode());
+        assertTrue(GitClient.status(root).isClean());
+        assertFalse(GitClient.isMerging(root));
+    }
+
+    @Test
+    public void whatIsCommittedIsTheWorkingTreeWhateverWasStaged() throws Exception {
+        // Staged and then undone on disk: no change. Deleted in the index: deleted.
+        write("staged.txt", "changed and staged\n");
+        git("add", "staged.txt");
+        write("staged.txt", "first line of staged.txt\nsecond line\nthird line\n");
+        git("rm", "--quiet", "removed.txt");
+        // Deleted in the index and written again: the file stays, with what it holds now.
+        git("rm", "--quiet", "deleted.txt");
+        write("deleted.txt", "written again\n");
+        write("untracked.txt", "new\n");
+
+        GitClient.Result commit = GitClient.commitAll(root, "the working tree");
+
+        assertEquals(commit.output(), 0, commit.exitCode());
+        assertTrue(GitClient.status(root).isClean());
+        assertEquals(List.of("deleted.txt", "removed.txt", "untracked.txt"), committedPaths());
+        assertEquals("written again\n", Files.readString(root.resolve("deleted.txt")));
+    }
+
+    @Test
+    public void aChangeStagedAndUndoneAloneLeavesNothingToCommit() throws Exception {
+        write("staged.txt", "changed and staged\n");
+        git("add", "staged.txt");
+        write("staged.txt", "first line of staged.txt\nsecond line\nthird line\n");
+        assertFalse(GitClient.status(root).isClean());
+        String head = head();
+
+        GitClient.Result commit = GitClient.commitAll(root, "nothing");
+
+        // No commit and no failure: the index is back at the last commit, as the disk is.
+        assertEquals(commit.output(), 0, commit.exitCode());
+        assertEquals(head, head());
+        assertTrue(GitClient.status(root).isClean());
+    }
+
+    /** The paths the last commit changed, in order. */
+    private List<String> committedPaths() {
+        GitClient.Result names = GitClient.result(root, Map.of(), "diff", "--name-only", "HEAD~1", "HEAD");
+        assertEquals(names.output(), 0, names.exitCode());
+        return names.output().lines().sorted().toList();
+    }
+
+    private String head() {
+        GitClient.Result head = GitClient.result(root, Map.of(), "rev-parse", "HEAD");
+        assertEquals(head.output(), 0, head.exitCode());
+        return head.output().trim();
+    }
+
+    private boolean gitFails(String... args) {
+        return GitClient.result(root, Map.of(), args).exitCode() != 0;
+    }
+
     private static Map<String, VcsChangeKind> changes(VcsStatus status, VcsCompareMode mode) {
         Map<String, VcsChangeKind> changes = new TreeMap<>();
         for (VcsFileStatus file : status.files(mode)) {

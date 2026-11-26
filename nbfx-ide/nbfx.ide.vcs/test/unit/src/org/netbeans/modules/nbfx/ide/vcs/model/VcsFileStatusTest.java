@@ -163,6 +163,16 @@ public class VcsFileStatusTest {
         assertModes(file(MODIFIED, MODIFIED), MODIFIED, MODIFIED, MODIFIED);
     }
 
+    @Test
+    public void aStatusWithAConflictedFileSaysSo() {
+        VcsFileStatus changed = new VcsFileStatus("a.txt", null, null, MODIFIED, false);
+        VcsFileStatus unmerged = new VcsFileStatus("b.txt", null, null, null, true);
+
+        assertFalse(new VcsStatus(List.of(changed)).hasConflicts());
+        assertTrue(new VcsStatus(List.of(changed, unmerged)).hasConflicts());
+        assertFalse(VcsStatus.CLEAN.hasConflicts());
+    }
+
     private static VcsFileStatus file(VcsChangeKind staged, VcsChangeKind unstaged) {
         return new VcsFileStatus("a.txt", null, staged, unstaged, false);
     }

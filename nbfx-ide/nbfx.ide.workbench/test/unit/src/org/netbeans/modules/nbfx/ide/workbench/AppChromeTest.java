@@ -79,7 +79,7 @@ public class AppChromeTest extends NbTestCase {
         // items back), so they are only read there: read from this thread, a menu can be seen half filled.
         MenuBar menuBar = ScenarioSupport.onFx(() -> menuBar(chrome.top()));
         assertNotNull("the main window has no menu bar", menuBar);
-        assertEquals(List.of("File", "Edit", "View", "Build", "Navigate", "Debug", "Tools", "Window"),
+        assertEquals(List.of("File", "Edit", "View", "Build", "Navigate", "Debug", "Team", "Tools", "Window"),
                 ScenarioSupport.onFx(() -> menuIds(menuBar)));
         assertTrue("the recent-projects section is missing",
                 ScenarioSupport.onFx(() -> hasMenu(menu(menuBar, "File"), "Open Recent Project")));
