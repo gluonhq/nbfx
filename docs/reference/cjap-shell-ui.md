@@ -720,14 +720,15 @@ public interface WindowManager {
 
     DockWindow floatContent(ContentId content, WindowOptions options);
     DockWindow floatGroup(DockGroupId group, WindowOptions options);
+    DockWindow createCustomWindow(WindowId id, WindowOptions options, WindowContent content);
     DockResult redock(DockWindow window, DockRequest request);
 
     List<DockWindow> windows();
 }
 ```
 
-Public operations use content/group handles. The current runtime enumerates the main window first,
-then live floating windows; custom product windows are added with the multi-window slice. `Tab` and `WindowPaneHost` are not target API types.
+Public operations use content/group handles. The runtime enumerates the main window first, then
+live floating windows, then live custom product windows. `Tab` and `WindowPaneHost` are not target API types.
 
 ## 8. Windows and chrome profiles
 

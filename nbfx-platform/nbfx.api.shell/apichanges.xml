@@ -309,6 +309,22 @@
             <class package="org.netbeans.api.nbfx.shell" name="DockWindow"/>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.custom-window">
+            <api name="netbeansfx_shell"/>
+            <summary>Product-owned custom windows through WindowManager.</summary>
+            <version major="1" minor="13"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" modification="yes" binary="incompatible" source="incompatible" semantic="incompatible"/>
+            <description>
+                Adds <code>WindowManager.createCustomWindow</code>. Custom windows host a product
+                <code>WindowContent</code>, have no <code>LayoutNode</code>, participate in
+                <code>windows()</code>, and release content host resources on close. The interface
+                expansion is intentionally incompatible for external <code>WindowManager</code>
+                implementers.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

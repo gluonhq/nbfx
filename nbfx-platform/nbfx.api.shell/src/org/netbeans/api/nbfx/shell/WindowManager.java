@@ -135,8 +135,21 @@ public interface WindowManager {
     DockResult redock(DockWindow window, DockRequest request);
 
     /**
-     * Every live window managed by this manager, main window first followed by floating windows.
-     * Custom product windows are enumerated when the multi-window runtime is installed.
+     * Creates and shows a product-owned custom window.
+     *
+     * @param id the stable window identity
+     * @param options initial window options; kind must be {@link WindowKind#CUSTOM}
+     * @param content the product-owned content
+     * @return the custom window handle
+     * @throws IllegalArgumentException when the id is already live, the options are invalid, or the
+     *                                  content root is already attached to a scene
+     * @since 1.13
+     */
+    DockWindow createCustomWindow(WindowId id, WindowOptions options, WindowContent content);
+
+    /**
+     * Every live window managed by this manager: main first, then floating windows, then custom
+     * product windows.
      *
      * @return the windows, never {@code null}
      * @since 1.12

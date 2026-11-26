@@ -288,6 +288,10 @@ api.plugins (T1)        → api.layer, api.resources
 - C3-2o feeds `ShellApplication.snapshot()` into the main-window adapter, so `DockWindow.state()`
   combines live pane/view state with the shell's restored geometry, maximized flag and chrome
   profile instead of reporting stage geometry and a false/null default.
+- C3-2p adds `WindowManager.createCustomWindow` for product-owned `WindowContent`. Custom windows
+  have no `LayoutNode`, use the requested id/options/profile, participate in `windows()`, and close
+  their content host exactly once. Plain hide keeps them live; close removes them and prevents
+  re-showing. Duplicate live ids and already-attached content roots are rejected.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

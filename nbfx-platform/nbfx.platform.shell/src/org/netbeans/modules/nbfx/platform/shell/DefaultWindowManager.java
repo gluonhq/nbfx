@@ -49,6 +49,8 @@ import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowContent;
+import org.netbeans.api.nbfx.shell.WindowId;
 import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.shell.WindowOptions;
@@ -70,6 +72,7 @@ final class DefaultWindowManager implements WindowManager {
     private final Supplier<Collection<? extends DockPolicy>> policies;
     private final Supplier<WindowState> mainState;
     private final Map<NbfxTabPane, FloatingWindow> floating = new LinkedHashMap<>();
+    private final Map<WindowId, CustomWindow> custom = new LinkedHashMap<>();
     private MainDockWindow mainWindow;
 
     DefaultWindowManager(ContentManager contentManager) {
@@ -276,7 +279,7 @@ final class DefaultWindowManager implements WindowManager {
             existing.show();
             return existing;
         }
-        Consumer<Stage> configure = floatingStageConfigurator(checked, x, y);
+        Consumer<Stage> configure = windowStageConfigurator(checked, x, y);
         NbfxTabPane pane = NbfxTabPane.floatTab(tab, x, y, checked.width(), checked.height(), configure);
         return registerFloating(pane, null);
     }
@@ -315,9 +318,28 @@ final class DefaultWindowManager implements WindowManager {
             throw new IllegalArgumentException("Dock group is not in the dock area: " + group);
         }
         DockArea.Anchor<TabPane> anchor = area.detach(nbfx);
-        Consumer<Stage> configure = floatingStageConfigurator(checked, x, y);
+        Consumer<Stage> configure = windowStageConfigurator(checked, x, y);
         NbfxTabPane.showDetachedPane(nbfx, x, y, checked.width(), checked.height(), configure);
         return registerFloating(nbfx, anchor);
+    }
+
+    @Override
+    public DockWindow createCustomWindow(WindowId id, WindowOptions options, WindowContent content) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(options, "options");
+        Objects.requireNonNull(content, "content");
+        if (options.kind() != WindowKind.CUSTOM) {
+            throw new IllegalArgumentException("Custom windows require WindowKind.CUSTOM");
+        }
+        if (custom.containsKey(id)) {
+            throw new IllegalArgumentException("Custom window already exists: " + id);
+        }
+        Consumer<Stage> configure = windowStageConfigurator(options,
+                defaultFloatingX(options), defaultFloatingY(options));
+        CustomWindow window = new CustomWindow(this, id, options, content, configure);
+        custom.put(id, window);
+        window.show();
+        return window;
     }
 
     @Override
@@ -420,7 +442,12 @@ final class DefaultWindowManager implements WindowManager {
                 floating.remove(window.pane(), window);
             }
         }
+        result.addAll(custom.values());
         return List.copyOf(result);
+    }
+
+    void removeCustomWindow(CustomWindow window) {
+        custom.remove(window.windowId(), window);
     }
 
     void closeFloatingWindow(FloatingWindow window) {
@@ -462,7 +489,7 @@ final class DefaultWindowManager implements WindowManager {
         return options;
     }
 
-    private static Consumer<Stage> floatingStageConfigurator(WindowOptions options, double x, double y) {
+    private static Consumer<Stage> windowStageConfigurator(WindowOptions options, double x, double y) {
         return stage -> {
             if (options.owner() != null) {
                 stage.initOwner(options.owner());
@@ -477,27 +504,27 @@ final class DefaultWindowManager implements WindowManager {
             if (options.decoration() != null) {
                 ShellApplication.applyWindowDecoration(stage, options.decoration());
             }
-            applyFloatingIcon(stage, options.icon());
+            applyWindowIcon(stage, options.icon());
             stage.setResizable(options.resizable());
             stage.setX(x);
             stage.setY(y);
         };
     }
 
-    private static void applyFloatingIcon(Stage stage, ResourceRef icon) {
+    private static void applyWindowIcon(Stage stage, ResourceRef icon) {
         if (icon == null) {
             return;
         }
         ClassLoader loader = Lookup.getDefault().lookup(ClassLoader.class);
         URL resource = loader == null ? null : loader.getResource(icon.path());
         if (resource == null) {
-            LOG.warning(() -> "Floating window icon resource not found: " + icon.path());
+            LOG.warning(() -> "Window icon resource not found: " + icon.path());
             return;
         }
         try {
             stage.getIcons().setAll(new Image(resource.toExternalForm()));
         } catch (RuntimeException ex) {
-            LOG.log(Level.WARNING, "Cannot load floating window icon: " + icon.path(), ex);
+            LOG.log(Level.WARNING, "Cannot load window icon: " + icon.path(), ex);
         }
     }
 
