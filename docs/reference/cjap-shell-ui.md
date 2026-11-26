@@ -651,6 +651,7 @@ public record DockRequest(
         DockGroupId sourceGroup,
         PaneRole targetArea,
         DockGroupId targetGroup,
+        ContentId targetContent,
         DockPlacement placement,
         TransferMode mode,
         Set<DockModifier> modifiers) {}
@@ -676,6 +677,9 @@ SPLIT_LEFT, SPLIT_RIGHT, SPLIT_TOP, SPLIT_BOTTOM,
 EDGE_LEFT, EDGE_RIGHT, EDGE_TOP, EDGE_BOTTOM,
 FLOAT, NEW_WINDOW
 ```
+
+`BEFORE` and `AFTER` use `DockRequest.targetContent` as the relative tab target in the target group;
+missing, foreign-group, and self targets are rejected with `dock.target.missing`.
 
 ### 7.3 Hosts
 

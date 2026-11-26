@@ -236,8 +236,13 @@ api.plugins (T1)        → api.layer, api.resources
 - C3-2d extends `DefaultWindowManager.canDock`/`dock` to SPLIT_LEFT/RIGHT/TOP/BOTTOM and
   EDGE_LEFT/RIGHT/TOP/BOTTOM via `DockArea.split`/`relocate`. Single-tab sources in the area are
   relocated for edge moves or splits beside a different pane; splitting a pane relative to itself
-  falls back to remove+split to create a new group. BEFORE/AFTER, FLOAT, NEW_WINDOW, group
-  close/split lifecycle, redock, and undo-per-gesture remain follow-ups.
+  falls back to remove+split to create a new group.
+- C3-2f adds an optional `DockRequest.targetContent` and implements BEFORE/AFTER relative to that
+  content in the target group. Missing, foreign-group, or self targets reject with
+  `dock.target.missing`; same-pane index adjustment keeps before/after semantics correct when the
+  source already precedes the target. Structural validation is centralized and re-run after policy
+  placement refinement. FLOAT, NEW_WINDOW, group close/split lifecycle, redock, and undo-per-gesture
+  remain follow-ups.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

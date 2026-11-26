@@ -273,6 +273,21 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="DockPolicy"/>
         </change>
+        <change id="cjap.shell.dock-request-relative-target">
+            <api name="netbeansfx_shell"/>
+            <summary>DockRequest carries an optional BEFORE/AFTER target content.</summary>
+            <version major="1" minor="11"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" modification="yes" binary="incompatible" source="compatible" semantic="incompatible"/>
+            <description>
+                Adds <code>targetContent</code> to <code>DockRequest</code> for relative tab
+                placements. A compatibility constructor preserves existing seven-argument source
+                call sites. Record equality/string representation and the canonical constructor
+                change, so binary compatibility is intentionally not retained.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="DockRequest"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

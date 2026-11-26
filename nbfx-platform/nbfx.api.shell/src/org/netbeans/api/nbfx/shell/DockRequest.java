@@ -28,13 +28,14 @@ import org.netbeans.api.nbfx.layout.DockGroupId;
 /**
  * A request to dock content into a group or area.
  *
- * @param content     the content to dock
- * @param sourceGroup the group the content currently occupies, or {@code null}
- * @param targetArea  the target pane role, or {@code null} when targeting a specific group
- * @param targetGroup the target group, or {@code null} when targeting an area
- * @param placement   where to place the content
- * @param mode        the transfer mode
- * @param modifiers   docking modifiers; never {@code null}
+ * @param content       the content to dock
+ * @param sourceGroup   the group the content currently occupies, or {@code null}
+ * @param targetArea    the target pane role, or {@code null} when targeting a specific group
+ * @param targetGroup   the target group, or {@code null} when targeting an area
+ * @param targetContent the content to place before/after, or {@code null} when not applicable
+ * @param placement     where to place the content
+ * @param mode          the transfer mode
+ * @param modifiers     docking modifiers; never {@code null}
  * @since 1.7
  */
 public record DockRequest(
@@ -42,9 +43,28 @@ public record DockRequest(
         DockGroupId sourceGroup,
         PaneRole targetArea,
         DockGroupId targetGroup,
+        ContentId targetContent,
         DockPlacement placement,
         TransferMode mode,
         Set<DockModifier> modifiers) {
+
+    /**
+     * Compatibility constructor for requests without a BEFORE/AFTER target content.
+     *
+     * @param content     the content to dock
+     * @param sourceGroup the source group, or {@code null}
+     * @param targetArea  the target area, or {@code null}
+     * @param targetGroup the target group, or {@code null}
+     * @param placement   where to place the content
+     * @param mode        the transfer mode
+     * @param modifiers   docking modifiers
+     * @since 1.7
+     */
+    public DockRequest(ContentId content, DockGroupId sourceGroup, PaneRole targetArea,
+            DockGroupId targetGroup, DockPlacement placement, TransferMode mode,
+            Set<DockModifier> modifiers) {
+        this(content, sourceGroup, targetArea, targetGroup, null, placement, mode, modifiers);
+    }
 
     public DockRequest {
         Objects.requireNonNull(content, "content");

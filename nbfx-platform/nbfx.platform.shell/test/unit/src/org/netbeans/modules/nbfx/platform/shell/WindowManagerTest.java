@@ -162,6 +162,60 @@ public class WindowManagerTest {
     }
 
     @Test
+    public void docksBeforeAndAfterTargetContent() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                WindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent target = new ViewContent(new FakeView("relative.target", "Target"));
+                ViewContent source = new ViewContent(new FakeView("relative.source", "Source"));
+                contentManager.open(target);
+                contentManager.open(source);
+                Tab targetTab = new Tab("Target");
+                Tab sourceTab = new Tab("Source");
+                NbfxTabPane.setViewId(targetTab, "relative.target");
+                NbfxTabPane.setViewId(sourceTab, "relative.source");
+                NbfxTabPane.attachTab(main, targetTab);
+                NbfxTabPane.attachTab(other, sourceTab);
+
+                DockRequest before = new DockRequest(source.id(), other.groupId(), null,
+                        main.groupId(), target.id(), DockPlacement.BEFORE, TransferMode.MOVE, Set.of());
+                assertTrue(manager.canDock(before).allowed());
+                DockResult beforeResult = manager.dock(before);
+                assertTrue(beforeResult.decision().allowed());
+                assertEquals(main.groupId(), beforeResult.group());
+                assertEquals(List.of(sourceTab, targetTab), main.getTabs());
+
+                DockRequest after = new DockRequest(source.id(), main.groupId(), null,
+                        main.groupId(), target.id(), DockPlacement.AFTER, TransferMode.MOVE, Set.of());
+                assertTrue(manager.canDock(after).allowed());
+                DockResult afterResult = manager.dock(after);
+                assertTrue(afterResult.decision().allowed());
+                assertEquals(List.of(targetTab, sourceTab), main.getTabs());
+
+                DockRequest beforeAgain = new DockRequest(source.id(), main.groupId(), null,
+                        main.groupId(), target.id(), DockPlacement.BEFORE, TransferMode.MOVE, Set.of());
+                assertTrue(manager.dock(beforeAgain).decision().allowed());
+                assertEquals(List.of(sourceTab, targetTab), main.getTabs());
+
+                DockRequest missingTarget = new DockRequest(source.id(), main.groupId(), null,
+                        main.groupId(), ContentId.of("nbfx:view.missing"), DockPlacement.BEFORE,
+                        TransferMode.MOVE, Set.of());
+                assertTrue(!manager.canDock(missingTarget).allowed());
+                DockRequest selfTarget = new DockRequest(source.id(), main.groupId(), null,
+                        main.groupId(), source.id(), DockPlacement.AFTER, TransferMode.MOVE, Set.of());
+                assertTrue(!manager.canDock(selfTarget).allowed());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+            }
+            return null;
+        });
+    }
+
+    @Test
     public void docksWithSplitAndEdgePlacements() throws InterruptedException {
         JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
