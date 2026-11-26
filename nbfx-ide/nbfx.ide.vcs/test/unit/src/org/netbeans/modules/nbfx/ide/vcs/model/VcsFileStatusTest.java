@@ -81,6 +81,20 @@ public class VcsFileStatusTest {
     }
 
     @Test
+    public void whatIsDeletedOfAFileRenamedAndGoneIsItsOriginal() {
+        VcsFileStatus moved = new VcsFileStatus("new.txt", "old.txt", RENAMED, DELETED, false);
+        // The last commit has old.txt, the disk neither: old.txt is what is deleted.
+        assertEquals("old.txt", moved.path(HEAD_VS_WORKING_TREE));
+        assertEquals("new.txt", moved.path(HEAD_VS_INDEX));
+        assertEquals("new.txt", moved.path(INDEX_VS_WORKING_TREE));
+
+        // A rename that stays is of the path it has now, in every mode.
+        VcsFileStatus kept = new VcsFileStatus("new.txt", "old.txt", RENAMED, null, false);
+        assertEquals("new.txt", kept.path(HEAD_VS_WORKING_TREE));
+        assertEquals("a.txt", file(MODIFIED, DELETED).path(HEAD_VS_WORKING_TREE));
+    }
+
+    @Test
     public void fileDeletedFromTheIndexAndBackOnDiskIsModified() {
         assertModes(file(DELETED, UNTRACKED), MODIFIED, DELETED, UNTRACKED);
     }

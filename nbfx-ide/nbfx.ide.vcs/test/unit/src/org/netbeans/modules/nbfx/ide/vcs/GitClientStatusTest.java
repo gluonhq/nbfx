@@ -37,6 +37,7 @@ import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -72,6 +73,24 @@ public class GitClientStatusTest {
     @Test
     public void freshCommitIsClean() throws IOException {
         assertTrue(GitClient.status(root).isClean());
+    }
+
+    @Test
+    public void whatGitSaysBesideItsOutputIsNoPartOfWhatIsRead() throws Exception {
+        write("modified.txt", "changed on disk\n");
+        // Git traces to its standard error, as a hook, a helper or the configuration warn there.
+        Map<String, String> traced = Map.of("GIT_TRACE", "1");
+
+        GitClient.Result status = GitClient.result(root, traced, "status", "--porcelain=v2", "-z");
+        assertEquals(status.output(), 0, status.exitCode());
+        assertFalse(status.output(), status.output().contains("trace:"));
+        assertEquals(Map.of("modified.txt", VcsChangeKind.MODIFIED),
+                changes(GitStatusParser.parse(status.output()), VcsCompareMode.HEAD_VS_WORKING_TREE));
+
+        // Of a command that failed, what it said is what there is to show.
+        GitClient.Result failed = GitClient.result(root, traced, "rev-parse", "--verify", "--quiet", "no-such-branch");
+        assertTrue(failed.exitCode() != 0);
+        assertTrue(failed.output(), failed.output().contains("trace:"));
     }
 
     @Test
@@ -130,6 +149,32 @@ public class GitClientStatusTest {
                 changes(GitClient.status(root), VcsCompareMode.HEAD_VS_INDEX));
         assertEquals(0, GitClient.commit(root, "second").exitCode());
         assertTrue(GitClient.status(root).isClean());
+    }
+
+    @Test
+    public void statusAndCommitOfAFolderLeaveTheRestOfTheRepositoryAlone() throws Exception {
+        write("project/src/App.java", "class App {}\n");
+        write("other/Readme.txt", "first\n");
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "two projects");
+        write("project/src/App.java", "class App { int changed; }\n");
+        write("project/new.txt", "new\n");
+        write("other/Readme.txt", "changed\n");
+        Path project = root.resolve("project");
+
+        // The folder's changes only, with paths from the repository root.
+        assertEquals(Map.of("project/new.txt", VcsChangeKind.UNTRACKED, "project/src/App.java", VcsChangeKind.MODIFIED),
+                changes(GitClient.status(project), VcsCompareMode.HEAD_VS_WORKING_TREE));
+
+        assertEquals(0, GitClient.addAll(project).exitCode());
+        // Staged by hand in the other project: a commit of this one must not take it.
+        git("add", "other/Readme.txt");
+        GitClient.Result commit = GitClient.commit(project, "project only");
+        assertEquals(commit.output(), 0, commit.exitCode());
+
+        assertTrue(GitClient.status(project).isClean());
+        assertEquals(Map.of("other/Readme.txt", VcsChangeKind.MODIFIED),
+                changes(GitClient.status(root), VcsCompareMode.HEAD_VS_INDEX));
     }
 
     private static Map<String, VcsChangeKind> changes(VcsStatus status, VcsCompareMode mode) {

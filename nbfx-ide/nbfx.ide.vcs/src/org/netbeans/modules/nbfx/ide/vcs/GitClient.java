@@ -18,23 +18,30 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import java.nio.file.Files;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 /**
  * A thin client over the {@code git} command line: repository detection, branch, status and commit.
- * Runs the command in {@code dir} and captures its merged output.
+ * Runs the command in {@code dir} and captures its output apart from what it says beside it - the
+ * warnings of a hook, a helper or the configuration - which is no part of what is read.
  *
  * @since 1.0
  */
 final class GitClient {
 
-    /** The exit code and merged output of a git command. */
+    /**
+     * The exit code of a git command and what it wrote: its standard output when it succeeded, and
+     * what it said of its failure - its standard error, or its output when that is empty - when not.
+     */
     record Result(int exitCode, String output) {
     }
 
@@ -56,12 +63,13 @@ final class GitClient {
     }
 
     /**
-     * The changed files of the repository, with the index and the working tree told apart, so that one
-     * read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Untracked files
-     * are listed one by one, not by folder.
+     * The changed files in {@code dir} and under it, with the index and the working tree told apart, so
+     * that one read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Their
+     * paths are relative to the repository root, whatever {@code dir} is. Untracked files are listed
+     * one by one, not by folder.
      */
-    static VcsStatus status(Path root) throws IOException {
-        Result result = result(root, "status", "--porcelain=v2", "-z", "--untracked-files=all");
+    static VcsStatus status(Path dir) throws IOException {
+        Result result = result(dir, "status", "--porcelain=v2", "-z", "--untracked-files=all", "--", ".");
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }
@@ -72,33 +80,64 @@ final class GitClient {
         }
     }
 
-    static Result addAll(Path root) {
-        return result(root, "add", "-A");
+    /** Stages every change in {@code dir} and under it. */
+    static Result addAll(Path dir) {
+        return result(dir, "add", "-A", "--", ".");
     }
 
-    static Result commit(Path root, String message) {
-        return result(root, "commit", "-m", message);
+    /**
+     * Commits what is staged. In a folder below the repository root only the changes in that folder
+     * are committed, as NetBeans commits a project that shares its repository with others; at the
+     * root it is a plain commit, which is also the only one git accepts while merging.
+     */
+    static Result commit(Path dir, String message) {
+        return isRoot(dir) ? result(dir, "commit", "-m", message)
+                : result(dir, "commit", "-m", message, "--", ".");
+    }
+
+    private static boolean isRoot(Path dir) {
+        try {
+            return Files.isSameFile(dir, rootOf(dir));
+        } catch (IOException ex) {
+            return false;
+        }
     }
 
     private static Result result(Path dir, String... args) {
+        return result(dir, Map.of(), args);
+    }
+
+    /** As {@link #result(Path, String...)}, with {@code environment} added to that of the command. */
+    static Result result(Path dir, Map<String, String> environment, String... args) {
         List<String> command = new ArrayList<>(args.length + 3);
         command.add("git");
         command.add("-C");
         command.add(dir.toString());
         command.addAll(List.of(args));
         try {
-            Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
+            ProcessBuilder builder = new ProcessBuilder(command);
+            builder.environment().putAll(environment);
+            Process process = builder.start();
+            // Read while the output is: a command that fills one stream waits for it to be read.
+            CompletableFuture<String> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
             // Read as is: the status records end with a NUL and their paths may hold any other character.
-            String output;
-            try (InputStream in = process.getInputStream()) {
-                output = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            }
-            return new Result(process.waitFor(), output);
+            String output = read(process.getInputStream());
+            int exitCode = process.waitFor();
+            String said = error.join();
+            return new Result(exitCode, exitCode == 0 || said.isBlank() ? output : said);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return new Result(1, "Interrupted");
         } catch (IOException ex) {
             return new Result(1, ex.getMessage());
+        }
+    }
+
+    private static String read(InputStream stream) {
+        try (InputStream in = stream) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            return "";
         }
     }
 }

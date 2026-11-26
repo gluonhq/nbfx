@@ -30,6 +30,7 @@ import org.netbeans.modules.nbfx.project.context.ProjectContext;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -52,7 +53,8 @@ import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
 
 /**
- * The Git view: the selected project's branch and changed files, with Refresh and Commit. It runs
+ * The Git view: the selected project's branch and the files changed in its folder - not those of the
+ * other projects of its repository - with Refresh and Commit, which takes those changes. It runs
  * the {@code git} command line off the FX thread and reflects the result in the table.
  *
  * @since 1.0
@@ -68,6 +70,8 @@ final class GitStatusView extends BorderPane {
     private final TableView<VcsFileStatus> table = new TableView<>(changes);
     private final Label branch = new Label();
     private final Button commit = new Button(message("Git.commit"));
+    /** Counts the reads asked for: what an earlier one found is not shown over a later one. */
+    private final AtomicLong reads = new AtomicLong();
 
     GitStatusView() {
         getStyleClass().add("git-view");
@@ -77,7 +81,7 @@ final class GitStatusView extends BorderPane {
                 cell.getValue().change(MODE).map(GitStatusView::label).orElse("")));
         status.setPrefWidth(140);
         TableColumn<VcsFileStatus, String> file = new TableColumn<>(message("Git.column.file"));
-        file.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().path()));
+        file.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().path(MODE)));
         table.getColumns().add(status);
         table.getColumns().add(file);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -93,7 +97,8 @@ final class GitStatusView extends BorderPane {
         // editor document changes, so the view always shows the current selection's repository.
         ActionContext context = ActionContext.getDefault();
         if (context != null) {
-            LookupListener listener = event -> reload();
+            // The context may change on any thread; the view is read and changed on that of JavaFX.
+            LookupListener listener = event -> Platform.runLater(this::reload);
             for (Class<?> type : List.of(FileObject.class, EditorDocument.class, OpenProject.class)) {
                 context.lookupResult(type).addLookupListener(listener);
             }
@@ -101,9 +106,13 @@ final class GitStatusView extends BorderPane {
         reload();
     }
 
-    /** Reads the selected project's git status off the FX thread and fills the table. */
+    /**
+     * Reads the git status of the selected project off the FX thread and fills the table: the changes
+     * in the project folder. Must run on the JavaFX Application Thread.
+     */
     void reload() {
         Path dir = selectedProject();
+        long read = reads.incrementAndGet();
         if (dir == null) {
             branch.setText("");
             changes.clear();
@@ -111,9 +120,16 @@ final class GitStatusView extends BorderPane {
             return;
         }
         RP.post(() -> {
+            if (read != reads.get()) {
+                // Asked again while waiting: that read follows.
+                return;
+            }
             try {
                 if (!GitClient.isRepository(dir)) {
                     Platform.runLater(() -> {
+                        if (read != reads.get()) {
+                            return;
+                        }
                         branch.setText(message("Git.notRepository"));
                         changes.clear();
                         commit.setDisable(true);
@@ -122,16 +138,23 @@ final class GitStatusView extends BorderPane {
                 }
                 Path root = GitClient.rootOf(dir);
                 String branchName = GitClient.branch(root);
-                VcsStatus status = GitClient.status(root);
+                VcsStatus status = GitClient.status(dir);
                 List<VcsFileStatus> files = status.files(MODE);
                 Platform.runLater(() -> {
+                    if (read != reads.get()) {
+                        // The selection changed while this was read: the read of that one follows.
+                        return;
+                    }
                     branch.setText(message("Git.branch") + ": " + branchName);
                     changes.setAll(files);
                     commit.setDisable(files.isEmpty());
                 });
             } catch (RuntimeException | java.io.IOException ex) {
-                Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
-                        message("Git.error"), ex.getMessage(), ex));
+                Platform.runLater(() -> {
+                    if (read == reads.get()) {
+                        ErrorReporter.report(message("Git.title"), message("Git.error"), ex.getMessage(), ex);
+                    }
+                });
             }
         });
     }
@@ -159,14 +182,14 @@ final class GitStatusView extends BorderPane {
 
     private void commit(Path dir, String message) {
         RP.post(() -> {
-            Path root = GitClient.rootOf(dir);
-            GitClient.Result add = GitClient.addAll(root);
+            // The changes of the project: the table shows no others.
+            GitClient.Result add = GitClient.addAll(dir);
             if (add.exitCode() != 0) {
                 Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
                         message("Git.error"), add.output(), null));
                 return;
             }
-            GitClient.Result commit = GitClient.commit(root, message);
+            GitClient.Result commit = GitClient.commit(dir, message);
             if (commit.exitCode() != 0) {
                 Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
                         message("Git.error"), commit.output(), null));

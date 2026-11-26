@@ -57,8 +57,9 @@ public record VcsFileStatus(String path, String originalPath, VcsChangeKind stag
      * <p>A conflicted file is {@link VcsChangeKind#CONFLICTED} in every mode, so that no mode hides it.
      * Between the last commit and the working tree, the staged and the unstaged change combine: a file
      * added to the index and then deleted from disk is in neither, and so has no change; a renamed file
-     * deleted from disk is {@link VcsChangeKind#DELETED}, as its original is gone; a file deleted from the
-     * index with an untracked file in its place is {@link VcsChangeKind#MODIFIED}.
+     * deleted from disk is {@link VcsChangeKind#DELETED}, as its original is gone - the file the last
+     * commit has, which {@link #path(VcsCompareMode)} names; a file deleted from the index with an
+     * untracked file in its place is {@link VcsChangeKind#MODIFIED}.
      *
      * @return the change, or empty when the file is the same on both sides
      */
@@ -71,6 +72,20 @@ public record VcsFileStatus(String path, String originalPath, VcsChangeKind stag
             case INDEX_VS_WORKING_TREE -> unstaged;
             case HEAD_VS_WORKING_TREE -> combined();
         });
+    }
+
+    /**
+     * The file {@link #change(VcsCompareMode)} is of: {@link #path()}, but for a file renamed in the
+     * index and then deleted from disk, between the last commit and the working tree - what is
+     * deleted there is the file the last commit has, at {@link #originalPath()}; the path it was
+     * renamed to is in neither.
+     *
+     * @return the path, relative to the repository root
+     */
+    public String path(VcsCompareMode mode) {
+        boolean renameUndone = mode == VcsCompareMode.HEAD_VS_WORKING_TREE && !conflicted
+                && staged == VcsChangeKind.RENAMED && unstaged == VcsChangeKind.DELETED && originalPath != null;
+        return renameUndone ? originalPath : path;
     }
 
     private VcsChangeKind combined() {
