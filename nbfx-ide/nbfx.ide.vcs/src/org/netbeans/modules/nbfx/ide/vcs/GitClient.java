@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.openide.util.NbBundle;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 /**
@@ -85,13 +86,42 @@ final class GitClient {
         return result(dir, "init");
     }
 
+    /**
+     * Commits every change in {@code dir} and under it as the working tree has it, the untracked files
+     * as well: what the index held of them before does not matter. A change staged and undone on disk
+     * is therefore no change, and nothing is committed where no other is left.
+     *
+     * <p>Nothing is staged or committed while a file in {@code dir} is conflicted: staging it would
+     * tell git the conflict is resolved, with the conflict markers as its content.
+     *
+     * @return the result of the command that failed, or of the commit
+     */
+    static Result commitAll(Path dir, String message) {
+        try {
+            if (status(dir).hasConflicts()) {
+                return new Result(1, NbBundle.getMessage(GitClient.class, "Git.commit.conflicts"));
+            }
+        } catch (IOException ex) {
+            return new Result(1, ex.getMessage());
+        }
+        Result add = addAll(dir);
+        if (add.exitCode() != 0) {
+            return add;
+        }
+        // A merge is concluded by its commit, even one that changes nothing here.
+        if (!isMerging(dir) && result(dir, "diff", "--cached", "--quiet", "--", ".").exitCode() == 0) {
+            return new Result(0, "");
+        }
+        return commit(dir, message);
+    }
+
     /** Stages every change in {@code dir} and under it. */
     static Result addAll(Path dir) {
         return result(dir, "add", "-A", "--", ".");
     }
 
     /**
-     * Commits what is staged. In a folder below the repository root only the changes in that folder
+     * Commits what {@link #addAll(Path)} staged. In a folder below the repository root only the changes in that folder
      * are committed, as NetBeans commits a project that shares its repository with others. At the
      * root it is a plain commit, and so it is while merging, wherever {@code dir} is: git concludes
      * a merge as a whole or not at all, and refuses the commit of a part of it.

@@ -29,7 +29,10 @@ import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.api.nbfx.actions.ActionIds;
 import org.netbeans.api.nbfx.view.ViewManager;
 import org.netbeans.api.nbfx.view.ViewProvider;
+import java.nio.file.Path;
 import javafx.scene.Node;
+import org.netbeans.modules.nbfx.project.context.ProjectContext;
+import org.openide.filesystems.FileObject;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
@@ -86,16 +89,33 @@ public final class GitStatusViewProvider implements ViewProvider {
 
     /**
      * Brings the Git view on screen showing the changes of {@code project}, which it keeps showing
-     * until it is opened for another one; with {@code null} it keeps the project it shows. Must run
-     * on the JavaFX Application Thread.
+     * until it is opened for another one; with {@code null} it keeps what it shows. Must run on the
+     * JavaFX Application Thread.
      */
     public void show(OpenProject project) {
+        front().show(project);
+    }
+
+    /**
+     * Brings the Git view on screen showing the changes around {@code file}: those of its project,
+     * or of the working tree it is in when it is part of no open project. Must run on the JavaFX
+     * Application Thread.
+     */
+    public void show(FileObject file) {
+        OpenProject project = ProjectContext.projectOf(file);
+        Path projectFolder = GitMenus.folderOf(project);
+        Path folder = GitMenus.changesFolder(file, projectFolder);
+        boolean ofProject = folder != null && folder.equals(projectFolder);
+        front().show(folder, ofProject ? project.getDisplayName() : null);
+    }
+
+    private GitStatusView front() {
         ViewManager manager = Lookup.getDefault().lookup(ViewManager.class);
         if (manager != null) {
             manager.show(this);
         }
         // The view exists once it was shown; without a view manager, as in a test, create it.
-        ((GitStatusView) getView()).show(project);
+        return (GitStatusView) getView();
     }
 
     /** The registered instance, or {@code null} when the module is not loaded. */

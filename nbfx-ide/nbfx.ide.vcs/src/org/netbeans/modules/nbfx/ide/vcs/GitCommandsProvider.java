@@ -25,7 +25,8 @@ import java.util.List;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * Contributes the Window ▸ Git command.
+ * Contributes the Show Changes command, for the key bindings and whatever runs a command by its id;
+ * the Team menu has its own entry ({@link GitTeamMenuFactory}), which comes and goes with the repository.
  *
  * @since 1.0
  */
