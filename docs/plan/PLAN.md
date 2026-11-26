@@ -325,7 +325,7 @@ plugin implements is not yet in its API/SPI packages.
 | `api.debug` | M | **planned — M2** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
 | `api.profile` | M | **planned — M2** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
 | `api.tests` | M | **planned — M2** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
-| `api.vcs` | M | **planned — M2** | `VcsProvider`, `VcsStatus`, `VcsHistoryProvider`, `VcsAnnotator` |
+| `api.vcs` | M | **partial — M2** (`devel` until M2) | only `VcsAnnotator`/`VcsFileState` (the file state the Projects and Files trees colour names by; Git answers from `ide.vcs`); `VcsProvider`, `VcsStatus`, `VcsHistoryProvider` are the M2 contract (the status model currently lives in `ide.vcs`); annotator ownership/priority, a "not known yet" answer and finer states (untracked, renamed, copied) are settled with that contract |
 | `api.diff` | M | **planned — M2** | `Diff`, `DiffResult`, `Patch`, `Merge` (headless engine) |
 | `api.tasklist` | M | **planned — M2** | `TaskProvider`, `Task`, `TaskScope` |
 | `api.plugins` | T1 | **planned — M5** | plugin metadata, install/update service surface |

@@ -36,7 +36,7 @@ public class FileTreeCell extends NavigatorTreeCell<FileObject> {
             setGraphic(null);
             setText(null);
         } else if (getTreeItem() instanceof FileTreeItem treeItem) {
-            setGraphic(treeItem.getGraphic());
+            setIcon(treeItem.getGraphic());
             setText(item.getNameExt());
         } else {
             // shouldn't happen, but just in case

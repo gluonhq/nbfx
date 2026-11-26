@@ -322,6 +322,7 @@ public class FileNavigator extends AbstractNavigatorProvider<FileObject> {
             TreeNav.syncFocusToSelection(treeView);
         });
         trackSelectedProject(treeView);
+        VcsStates.track(treeView);
         return treeView;
     }
 

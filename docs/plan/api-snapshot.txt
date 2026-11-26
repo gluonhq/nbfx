@@ -1,4 +1,5 @@
 # nbfx-ide/nbfx.api.project
+# nbfx-ide/nbfx.api.vcs
 # nbfx-platform/nbfx.api.actions
 # nbfx-platform/nbfx.api.editor
 # nbfx-platform/nbfx.api.layer
@@ -137,6 +138,8 @@ org.netbeans.api.nbfx.theme.ThemeTokenProvider
 org.netbeans.api.nbfx.theme.ThemeTokenRegistration
 org.netbeans.api.nbfx.theme.ThemeTokenRegistrations
 org.netbeans.api.nbfx.theme.ThemeTokenType
+org.netbeans.api.nbfx.vcs.VcsAnnotator
+org.netbeans.api.nbfx.vcs.VcsFileState
 org.netbeans.api.nbfx.view.ActiveComponent
 org.netbeans.api.nbfx.view.ActiveComponentContext
 org.netbeans.api.nbfx.view.ApplicationMenu

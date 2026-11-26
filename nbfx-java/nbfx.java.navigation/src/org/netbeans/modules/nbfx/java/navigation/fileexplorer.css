@@ -24,6 +24,67 @@
     -fx-font-weight: bold;
 }
 
+/*
+ * The files version control reports as changed, as in the Git status window. A selected row keeps
+ * the colour while the tree is not focused - the theme would draw it in the strong text colour -
+ * and gives it up for the one that reads on the selection bar while it is.
+ */
+.tree-cell:vcs-added,
+.tree-cell:filled:selected:vcs-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.tree-cell:vcs-modified,
+.tree-cell:filled:selected:vcs-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.tree-cell:vcs-deleted,
+.tree-cell:filled:selected:vcs-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.tree-cell:vcs-conflicted,
+.tree-cell:filled:selected:vcs-conflicted {
+    -fx-text-fill: -nbfx-editor-text-error;
+}
+
+.tree-view:focused .tree-cell:filled:selected:vcs-added,
+.tree-view:focused .tree-cell:filled:selected:vcs-modified,
+.tree-view:focused .tree-cell:filled:selected:vcs-deleted,
+.tree-view:focused .tree-cell:filled:selected:vcs-conflicted {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+/*
+ * The tooltip of a changed file, in the default look of a tooltip: the file name in white on its
+ * dark background, at the size of the tree's text and not the smaller one of a tooltip.
+ */
+.tooltip.vcs-tooltip {
+    -fx-font-size: 1em;
+}
+
+.tooltip.vcs-tooltip .label {
+    -fx-text-fill: white;
+}
+
+/* The state line of a changed file's tooltip, in the colour of its name. */
+.tooltip.vcs-tooltip .vcs-tooltip-state:vcs-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.tooltip.vcs-tooltip .vcs-tooltip-state:vcs-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.tooltip.vcs-tooltip .vcs-tooltip-state:vcs-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.tooltip.vcs-tooltip .vcs-tooltip-state:vcs-conflicted {
+    -fx-text-fill: -nbfx-editor-text-error;
+}
+
 .context-menu,
 .tooltip {
     -fx-font-weight: normal;

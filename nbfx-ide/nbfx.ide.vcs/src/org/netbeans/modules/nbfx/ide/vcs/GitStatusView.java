@@ -328,6 +328,8 @@ final class GitStatusView extends BorderPane {
                 Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
                         message("Git.error"), commit.output(), null));
             }
+            // The trees mark the changed files from the cache: the commit left none, or fewer.
+            GitStatusCache.getDefault().refresh(dir);
             Platform.runLater(this::reload);
         });
     }

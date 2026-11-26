@@ -124,6 +124,8 @@ final class GitInitDialog {
                 if (created != null) {
                     created.refresh();
                 }
+                // A folder that was in no working tree is in one now.
+                GitStatusCache.getDefault().repositoriesChanged();
             }
             Platform.runLater(() -> {
                 if (result.exitCode() != 0) {
