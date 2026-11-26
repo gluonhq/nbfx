@@ -277,6 +277,10 @@ api.plugins (T1)        → api.layer, api.resources
   options and returns the resulting floating group. Structural validation requires docked content;
   policies still run and may reject/refine. `NEW_WINDOW` remains unsupported until its distinct
   window semantics are defined.
+- C3-2m applies `WindowOptions.decoration` and `icon` before a floating stage is shown. Icons use
+  the non-initializing rendering classloader; a module-system lookup was rejected because it can
+  start module installation on the FX thread. Missing/invalid resources log and keep the default
+  icon instead of preventing the window from opening.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

@@ -33,11 +33,13 @@ import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.content.TransferMode;
 import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.layout.LayoutNode;
+import org.netbeans.api.nbfx.resources.ResourceRef;
 import org.netbeans.api.nbfx.shell.DockDecision;
 import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowDecoration;
 import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.shell.WindowManager;
@@ -421,7 +423,15 @@ public class WindowManagerTest {
                 NbfxTabPane.setViewId(tab, "float.lifecycle");
                 NbfxTabPane.attachTab(main, tab);
 
-                DockWindow window = manager.floatContent(content.id(), floatingOptions());
+                ResourceRef icon = ResourceRef.of("org.netbeans.modules.nbfx.api.views",
+                        "org/netbeans/api/nbfx/icons/file_view.png");
+                WindowOptions options = new WindowOptions(WindowKind.FLOATING, null, "Floating",
+                        icon, null, false, 400, 300, true, false, WindowDecoration.UNDECORATED);
+                DockWindow window = manager.floatContent(content.id(), options);
+                javafx.stage.Stage stage = (javafx.stage.Stage) window.window();
+                assertEquals(javafx.stage.StageStyle.UNDECORATED, stage.getStyle());
+                assertFalse(stage.getIcons().isEmpty());
+                assertTrue(stage.getIcons().getFirst().getUrl().endsWith(icon.path()));
                 assertEquals("0", window.content().saveState().payload().get("selectedTab"));
                 window.hide();
                 assertFalse(window.window().isShowing());

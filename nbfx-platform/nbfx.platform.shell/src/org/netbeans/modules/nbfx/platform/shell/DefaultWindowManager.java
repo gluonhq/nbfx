@@ -27,8 +27,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.net.URL;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.geometry.Side;
 import javafx.scene.control.Tab;
+import javafx.scene.image.Image;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -38,6 +42,7 @@ import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.ContentManager;
 import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.layout.DockGroupId;
+import org.netbeans.api.nbfx.resources.ResourceRef;
 import org.netbeans.api.nbfx.shell.DockDecision;
 import org.netbeans.api.nbfx.shell.DockPolicy;
 import org.netbeans.api.nbfx.shell.DockWindow;
@@ -57,6 +62,8 @@ import org.openide.util.Lookup;
  * stable content and group identities into the tab-pane operations the runtime already supports.
  */
 final class DefaultWindowManager implements WindowManager {
+
+    private static final Logger LOG = Logger.getLogger(DefaultWindowManager.class.getName());
 
     private final ContentManager contentManager;
     private final Supplier<Collection<? extends DockPolicy>> policies;
@@ -447,10 +454,31 @@ final class DefaultWindowManager implements WindowManager {
             if (options.title() != null && !options.title().isBlank()) {
                 stage.setTitle(options.title());
             }
+            if (options.decoration() != null) {
+                ShellApplication.applyWindowDecoration(stage, options.decoration());
+            }
+            applyFloatingIcon(stage, options.icon());
             stage.setResizable(options.resizable());
             stage.setX(x);
             stage.setY(y);
         };
+    }
+
+    private static void applyFloatingIcon(Stage stage, ResourceRef icon) {
+        if (icon == null) {
+            return;
+        }
+        ClassLoader loader = Lookup.getDefault().lookup(ClassLoader.class);
+        URL resource = loader == null ? null : loader.getResource(icon.path());
+        if (resource == null) {
+            LOG.warning(() -> "Floating window icon resource not found: " + icon.path());
+            return;
+        }
+        try {
+            stage.getIcons().setAll(new Image(resource.toExternalForm()));
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "Cannot load floating window icon: " + icon.path(), ex);
+        }
     }
 
     private static double defaultFloatingX(WindowOptions options) {
