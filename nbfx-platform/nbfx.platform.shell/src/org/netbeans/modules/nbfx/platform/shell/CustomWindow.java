@@ -28,6 +28,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.netbeans.api.nbfx.shell.DockWindow;
+import org.netbeans.api.nbfx.shell.WindowClosePolicy;
 import org.netbeans.api.nbfx.shell.WindowContent;
 import org.netbeans.api.nbfx.shell.WindowId;
 import org.netbeans.api.nbfx.shell.WindowKind;
@@ -62,7 +63,14 @@ final class CustomWindow implements DockWindow {
         NbfxTheme.apply(scene);
         stage.setScene(scene);
         Objects.requireNonNull(configure, "configure").accept(stage);
-        stage.setOnCloseRequest(event -> dispose());
+        stage.setOnCloseRequest(event -> {
+            if (options.closePolicy() == WindowClosePolicy.HIDE) {
+                event.consume();
+                hide();
+            } else {
+                dispose();
+            }
+        });
     }
 
     DefaultWindowManager owner() {
@@ -125,6 +133,10 @@ final class CustomWindow implements DockWindow {
     @Override
     public void close() {
         if (closed) {
+            return;
+        }
+        if (options.closePolicy() == WindowClosePolicy.HIDE) {
+            hide();
             return;
         }
         stage.setOnCloseRequest(null);

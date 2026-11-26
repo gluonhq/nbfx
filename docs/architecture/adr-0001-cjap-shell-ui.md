@@ -299,6 +299,10 @@ api.plugins (T1)        → api.layer, api.resources
   preferences-backed `AppState`. Bounds save on hide/close, restore by stable `WindowId`, override
   constructor defaults, and are clamped to visible screens. Floating editor/view windows continue
   to use the existing detached-pane layout persistence.
+- C3-2s adds `WindowClosePolicy` to `WindowOptions`: HIDE keeps a window/content live, REDOCK moves
+  floating tabs to their home or main pane before closing the stage, and CLOSE_CONTENT preserves
+  the existing close lifecycle. A compatibility constructor keeps CLOSE_CONTENT as the source
+  default. Custom windows reject REDOCK and support HIDE/CLOSE_CONTENT.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

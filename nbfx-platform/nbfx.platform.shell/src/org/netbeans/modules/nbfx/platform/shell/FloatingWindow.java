@@ -23,14 +23,17 @@ import java.util.Map;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.layout.LayoutNode;
 import org.netbeans.api.nbfx.shell.AreaState;
 import org.netbeans.api.nbfx.shell.DockWindow;
+import org.netbeans.api.nbfx.shell.WindowClosePolicy;
 import org.netbeans.api.nbfx.shell.WindowContent;
 import org.netbeans.api.nbfx.shell.WindowContentState;
 import org.netbeans.api.nbfx.shell.WindowId;
 import org.netbeans.api.nbfx.shell.WindowKind;
+import org.netbeans.api.nbfx.shell.WindowOptions;
 import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.view.ViewProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
@@ -46,16 +49,27 @@ final class FloatingWindow implements DockWindow {
     private final NbfxTabPane pane;
     private final Stage stage;
     private final DockArea.Anchor<TabPane> anchor;
+    private final WindowOptions options;
     private final WindowContent content;
     private boolean closed;
 
     FloatingWindow(DefaultWindowManager owner, NbfxTabPane pane, Stage stage,
-            DockArea.Anchor<TabPane> anchor) {
+            DockArea.Anchor<TabPane> anchor, WindowOptions options) {
         this.owner = owner;
         this.pane = pane;
         this.stage = stage;
         this.anchor = anchor;
+        this.options = options;
         this.content = new Content();
+        stage.addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, event -> {
+            if (options.closePolicy() == WindowClosePolicy.HIDE) {
+                event.consume();
+                hide();
+            } else if (options.closePolicy() == WindowClosePolicy.REDOCK) {
+                event.consume();
+                owner.closeFloatingWindow(this);
+            }
+        });
     }
 
     DefaultWindowManager owner() {
@@ -72,6 +86,10 @@ final class FloatingWindow implements DockWindow {
 
     DockArea.Anchor<TabPane> anchor() {
         return anchor;
+    }
+
+    WindowOptions options() {
+        return options;
     }
 
     void markClosed() {
@@ -135,8 +153,9 @@ final class FloatingWindow implements DockWindow {
         String activeViewId = selected == null ? null : NbfxTabPane.viewId(selected);
         AreaState area = new AreaState(pane.groupId().value(), viewIds, activeViewId,
                 stage.getX(), stage.getY(), stage.getWidth(), stage.getHeight(), true);
+        String profileId = options.profile() == null ? null : options.profile().id();
         return new WindowState(List.of(area), stage.getX(), stage.getY(),
-                stage.getWidth(), stage.getHeight(), false, Map.of(), null);
+                stage.getWidth(), stage.getHeight(), false, Map.of(), profileId);
     }
 
     private final class Content implements WindowContent {

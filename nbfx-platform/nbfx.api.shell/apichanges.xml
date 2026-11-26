@@ -340,6 +340,23 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.window-close-policy">
+            <api name="netbeansfx_shell"/>
+            <summary>Configurable window close policy.</summary>
+            <version major="1" minor="15"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" modification="yes" binary="incompatible" source="compatible" semantic="incompatible"/>
+            <description>
+                Adds <code>WindowClosePolicy</code> and <code>WindowOptions.closePolicy</code> with
+                HIDE, REDOCK and CLOSE_CONTENT behavior. A compatibility constructor preserves
+                eleven-argument source call sites with CLOSE_CONTENT. The record component addition
+                is binary incompatible; REDOCK is valid only for floating shell windows.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowClosePolicy"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowOptions"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DockWindow"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

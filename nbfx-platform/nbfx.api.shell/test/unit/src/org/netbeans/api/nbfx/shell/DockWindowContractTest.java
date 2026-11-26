@@ -43,6 +43,15 @@ public class DockWindowContractTest {
     }
 
     @Test
+    public void windowOptionsDefaultToCloseContent() {
+        WindowOptions options = new WindowOptions(WindowKind.FLOATING, null, null, null, null,
+                false, 400, 300, true, false, null);
+        assertEquals(WindowClosePolicy.CLOSE_CONTENT, options.closePolicy());
+        assertThrows(NullPointerException.class, () -> new WindowOptions(WindowKind.FLOATING,
+                null, null, null, null, false, 400, 300, true, false, null, null));
+    }
+
+    @Test
     public void windowContentStateCopiesOpaquePayload() {
         WindowId id = WindowId.of("nbfx:window.test");
         LayoutNode layout = LayoutNode.group(DockGroupId.of("nbfx:docked.1"));

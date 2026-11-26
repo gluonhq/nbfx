@@ -27,6 +27,7 @@ import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import org.junit.Test;
 import java.util.List;
 import java.util.Set;
@@ -43,6 +44,7 @@ import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowClosePolicy;
 import org.netbeans.api.nbfx.shell.WindowDecoration;
 import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowState;
@@ -562,6 +564,85 @@ public class WindowManagerTest {
     }
 
     @Test
+    public void floatingCloseCanHideWithoutClosingContent() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            DefaultWindowManager manager = null;
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("close.hide", "Hide"));
+                contentManager.open(content);
+                Tab tab = new Tab("Hide");
+                NbfxTabPane.setViewId(tab, "close.hide");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockWindow window = manager.floatContent(content.id(),
+                        floatingOptions(WindowClosePolicy.HIDE));
+                DockGroupId floatingGroup = manager.groupOf(content.id()).orElseThrow();
+                Stage stage = (Stage) window.window();
+                stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+                assertFalse(window.window().isShowing());
+                assertEquals(List.of(window), manager.windows());
+                assertEquals(floatingGroup, manager.groupOf(content.id()).orElseThrow());
+
+                DockRequest request = new DockRequest(content.id(), floatingGroup, null,
+                        other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
+                assertTrue(manager.redock(window, request).decision().allowed());
+                assertTrue(manager.windows().isEmpty());
+            } finally {
+                if (manager != null) {
+                    manager.windows().forEach(DockWindow::close);
+                }
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void floatingCloseCanRedockContent() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                DefaultWindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("close.redock", "Redock"));
+                contentManager.open(content);
+                Tab tab = new Tab("Redock");
+                NbfxTabPane.setViewId(tab, "close.redock");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockWindow window = manager.floatContent(content.id(),
+                        floatingOptions(WindowClosePolicy.REDOCK));
+                Stage stage = (Stage) window.window();
+                stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+                assertFalse(window.window().isShowing());
+                assertEquals(main.groupId(), manager.groupOf(content.id()).orElseThrow());
+                assertEquals(List.of(tab), main.getTabs());
+                assertTrue(manager.windows().isEmpty());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
     public void floatsGroupAndRedocksToEdgePreservingGroup() throws InterruptedException {
         JavaFxTestSupport.onFx(() -> {
             NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
@@ -620,8 +701,12 @@ public class WindowManagerTest {
     }
 
     private static WindowOptions floatingOptions() {
+        return floatingOptions(WindowClosePolicy.CLOSE_CONTENT);
+    }
+
+    private static WindowOptions floatingOptions(WindowClosePolicy closePolicy) {
         return new WindowOptions(WindowKind.FLOATING, null, "Floating", null, null,
-                false, 400, 300, true, false, null);
+                false, 400, 300, true, false, null, closePolicy);
     }
 
     private static final class FakeView implements ViewProvider {

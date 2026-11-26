@@ -802,8 +802,18 @@ public record WindowOptions(
         double height,
         boolean resizable,
         boolean rememberBounds,
-        WindowDecoration decoration) {}
+        WindowDecoration decoration,
+        WindowClosePolicy closePolicy) {}
+
+public enum WindowClosePolicy {
+    HIDE,
+    REDOCK,
+    CLOSE_CONTENT
+}
 ```
+
+`REDOCK` is valid for floating shell windows. Custom product windows support `HIDE` and
+`CLOSE_CONTENT`.
 
 ### 8.5 Chrome profiles
 

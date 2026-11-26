@@ -24,6 +24,7 @@ import java.util.prefs.Preferences;
 import org.junit.Test;
 import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.ShellChromeProfile;
+import org.netbeans.api.nbfx.shell.WindowClosePolicy;
 import org.netbeans.api.nbfx.shell.WindowContent;
 import org.netbeans.api.nbfx.shell.WindowContentState;
 import org.netbeans.api.nbfx.shell.WindowId;
@@ -82,6 +83,28 @@ public class CustomWindowTest {
             assertTrue(content.closed);
             assertTrue(manager.windows().isEmpty());
             assertThrows(IllegalStateException.class, window::show);
+            return null;
+        });
+    }
+
+    @Test
+    public void customCloseCanHideAndRejectsRedockPolicy() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            DefaultWindowManager manager = new DefaultWindowManager(new DefaultContentManager());
+            WindowId id = WindowId.of("product:window.hide");
+            FakeContent content = new FakeContent(id);
+            WindowOptions options = new WindowOptions(WindowKind.CUSTOM, null, "Hide",
+                    null, null, false, 400, 300, true, false, null, WindowClosePolicy.HIDE);
+            DockWindow window = manager.createCustomWindow(id, options, content);
+            window.close();
+            assertFalse(window.window().isShowing());
+            assertFalse(content.closed);
+            assertEquals(java.util.List.of(window), manager.windows());
+
+            WindowOptions redock = new WindowOptions(WindowKind.CUSTOM, null, "Redock",
+                    null, null, false, 400, 300, true, false, null, WindowClosePolicy.REDOCK);
+            assertThrows(IllegalArgumentException.class, () -> manager.createCustomWindow(
+                    WindowId.of("product:window.redock"), redock, new FakeContent(id)));
             return null;
         });
     }

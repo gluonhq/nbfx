@@ -205,6 +205,7 @@ org.netbeans.api.nbfx.shell.ShellRegionSpec
 org.netbeans.api.nbfx.shell.ShellWindow
 org.netbeans.api.nbfx.shell.ShellWindowProvider
 org.netbeans.api.nbfx.shell.TabHomeResolver
+org.netbeans.api.nbfx.shell.WindowClosePolicy
 org.netbeans.api.nbfx.shell.WindowContent
 org.netbeans.api.nbfx.shell.WindowContentState
 org.netbeans.api.nbfx.shell.WindowDecoration

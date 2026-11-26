@@ -49,6 +49,7 @@ import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
+import org.netbeans.api.nbfx.shell.WindowClosePolicy;
 import org.netbeans.api.nbfx.shell.WindowContent;
 import org.netbeans.api.nbfx.shell.WindowId;
 import org.netbeans.api.nbfx.shell.WindowKind;
@@ -289,14 +290,14 @@ final class DefaultWindowManager implements WindowManager {
         if (tab.getTabPane() instanceof NbfxTabPane nbfx && NbfxTabPane.isFloatingPane(nbfx)) {
             FloatingWindow existing = floating.get(nbfx);
             if (existing == null) {
-                existing = registerFloating(nbfx, null);
+                existing = registerFloating(nbfx, null, defaultFloatingOptions());
             }
             existing.show();
             return existing;
         }
         Consumer<Stage> configure = windowStageConfigurator(checked, x, y);
         NbfxTabPane pane = NbfxTabPane.floatTab(tab, x, y, checked.width(), checked.height(), configure);
-        return registerFloating(pane, null);
+        return registerFloating(pane, null, checked);
     }
 
     @Override
@@ -323,7 +324,7 @@ final class DefaultWindowManager implements WindowManager {
         if (NbfxTabPane.isFloatingPane(nbfx)) {
             FloatingWindow existing = floating.get(nbfx);
             if (existing == null) {
-                existing = registerFloating(nbfx, null);
+                existing = registerFloating(nbfx, null, defaultFloatingOptions());
             }
             existing.show();
             return existing;
@@ -335,7 +336,7 @@ final class DefaultWindowManager implements WindowManager {
         DockArea.Anchor<TabPane> anchor = area.detach(nbfx);
         Consumer<Stage> configure = windowStageConfigurator(checked, x, y);
         NbfxTabPane.showDetachedPane(nbfx, x, y, checked.width(), checked.height(), configure);
-        return registerFloating(nbfx, anchor);
+        return registerFloating(nbfx, anchor, checked);
     }
 
     @Override
@@ -345,6 +346,9 @@ final class DefaultWindowManager implements WindowManager {
         Objects.requireNonNull(content, "content");
         if (options.kind() != WindowKind.CUSTOM) {
             throw new IllegalArgumentException("Custom windows require WindowKind.CUSTOM");
+        }
+        if (options.closePolicy() == WindowClosePolicy.REDOCK) {
+            throw new IllegalArgumentException("Custom windows cannot redock content");
         }
         if (custom.containsKey(id)) {
             throw new IllegalArgumentException("Custom window already exists: " + id);
@@ -361,7 +365,7 @@ final class DefaultWindowManager implements WindowManager {
                 y = clamped[1];
                 effective = new WindowOptions(options.kind(), options.profile(), options.title(),
                         options.icon(), options.owner(), options.modal(), clamped[2], clamped[3],
-                        options.resizable(), true, options.decoration());
+                        options.resizable(), true, options.decoration(), options.closePolicy());
             }
         }
         Consumer<Stage> configure = windowStageConfigurator(effective, x, y);
@@ -490,18 +494,62 @@ final class DefaultWindowManager implements WindowManager {
         if (window.owner() != this) {
             throw new IllegalArgumentException("Window belongs to another manager");
         }
-        NbfxTabPane.closeFloatingPane(window.pane(), false);
-        if (!window.stage().isShowing()) {
-            floating.remove(window.pane(), window);
+        switch (window.options().closePolicy()) {
+            case HIDE -> window.hide();
+            case REDOCK -> redockFloatingOnClose(window);
+            case CLOSE_CONTENT -> {
+                NbfxTabPane.closeFloatingPane(window.pane(), false);
+                if (!window.stage().isShowing()) {
+                    floating.remove(window.pane(), window);
+                }
+            }
         }
     }
 
-    private FloatingWindow registerFloating(NbfxTabPane pane, DockArea.Anchor<TabPane> anchor) {
+    private void redockFloatingOnClose(FloatingWindow window) {
+        List<Tab> tabs = List.copyOf(window.pane().getTabs());
+        if (tabs.isEmpty()) {
+            NbfxTabPane.closeFloatingPane(window.pane(), true);
+            window.markClosed();
+            floating.remove(window.pane());
+            return;
+        }
+        DockArea<TabPane> area = Docking.area();
+        TabPane fallback = area == null ? null : area.mainPane();
+        if (fallback == null) {
+            fallback = NbfxTabPane.paneWithRole(PaneRole.MAIN);
+        }
+        Map<Tab, TabPane> targets = new LinkedHashMap<>();
+        for (Tab tab : tabs) {
+            TabPane target = NbfxTabPane.homeOf(tab);
+            if (target == null || target == window.pane() || !NbfxTabPane.tabPanes().contains(target)) {
+                target = fallback;
+            }
+            if (target == null || target == window.pane()) {
+                return;
+            }
+            targets.put(tab, target);
+        }
+        Tab selected = window.pane().getSelectionModel().getSelectedItem();
+        targets.forEach((tab, target) -> NbfxTabPane.moveTab(target, tab, target.getTabs().size()));
+        NbfxTabPane.closeFloatingPane(window.pane(), true);
+        window.markClosed();
+        if (window.pane().role() == PaneRole.DETACHED || window.pane().role() == PaneRole.DOCKED) {
+            NbfxTabPane.unregister(window.pane());
+        }
+        floating.remove(window.pane());
+        if (selected != null) {
+            NbfxTabPane.selectTabAndMoveToFront(selected);
+        }
+    }
+
+    private FloatingWindow registerFloating(NbfxTabPane pane, DockArea.Anchor<TabPane> anchor,
+            WindowOptions options) {
         Stage stage = NbfxTabPane.stageOf(pane);
         if (stage == null) {
             throw new IllegalStateException("Floating pane has no stage");
         }
-        FloatingWindow window = new FloatingWindow(this, pane, stage, anchor);
+        FloatingWindow window = new FloatingWindow(this, pane, stage, anchor, options);
         floating.put(pane, window);
         stage.addEventFilter(WindowEvent.WINDOW_HIDDEN, _ -> {
             if (NbfxTabPane.isClosingWindow(stage)) {
