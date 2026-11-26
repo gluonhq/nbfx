@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeMap;
 import org.junit.Assume;
 import org.junit.Before;
@@ -37,6 +36,8 @@ import org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
+import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -79,11 +80,47 @@ public class GitClientStatusTest {
         write("modified.txt", committed + "staged\nnot staged\n");
         write("new.txt", "new\n");
 
-        assertEquals(Optional.of(committed), GitClient.headContent(root, "modified.txt"));
-        assertEquals(Optional.of(committed + "staged\n"), GitClient.indexContent(root, "modified.txt"));
-        // A file git does not have yet has no content there.
-        assertEquals(Optional.empty(), GitClient.headContent(root, "new.txt"));
-        assertEquals(Optional.empty(), GitClient.indexContent(root, "new.txt"));
+        assertEquals(new GitContent.Text(committed), GitClient.headContent(root, "modified.txt", UTF_8));
+        assertEquals(new GitContent.Text(committed + "staged\n"),
+                GitClient.indexContent(root, "modified.txt", UTF_8));
+        // A file git does not have yet has no content there, and that is no failure.
+        assertEquals(new GitContent.Missing(), GitClient.headContent(root, "new.txt", UTF_8));
+        assertEquals(new GitContent.Missing(), GitClient.indexContent(root, "new.txt", UTF_8));
+    }
+
+    @Test
+    public void contentThatCannotBeReadIsAFailureNotANewFile() throws Exception {
+        Path plain = Files.createTempDirectory("nbfx-no-repository");
+        try {
+            org.junit.Assume.assumeFalse(GitClient.isRepository(plain));
+
+            GitContent head = GitClient.headContent(plain, "modified.txt", UTF_8);
+            GitContent index = GitClient.indexContent(plain, "modified.txt", UTF_8);
+
+            assertTrue(String.valueOf(head), head instanceof GitContent.Failed failed
+                    && failed.message().contains("not a git repository"));
+            assertTrue(String.valueOf(index), index instanceof GitContent.Failed);
+        } finally {
+            Files.delete(plain);
+        }
+    }
+
+    @Test
+    public void binaryContentIsToldAsSuchAndTextReadInItsEncoding() throws Exception {
+        Files.write(root.resolve("image.bin"), new byte[] {(byte) 0x89, 'P', 'N', 'G', 0, 1, 2});
+        // "caf\u00e9" as ISO-8859-1 is no valid UTF-8.
+        Files.write(root.resolve("latin.txt"), "caf\u00e9\n".getBytes(ISO_8859_1));
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "binary and latin");
+
+        assertEquals(new GitContent.Binary(), GitClient.headContent(root, "image.bin", UTF_8));
+        assertEquals(new GitContent.Binary(), GitClient.indexContent(root, "image.bin", UTF_8));
+        assertEquals(new GitContent.Text("caf\u00e9\n"), GitClient.headContent(root, "latin.txt", ISO_8859_1));
+        // An empty file is text with no content, not a missing one.
+        write("empty.txt", "");
+        git("add", "empty.txt");
+        assertEquals(new GitContent.Text(""), GitClient.indexContent(root, "empty.txt", UTF_8));
+        assertEquals(new GitContent.Missing(), GitClient.headContent(root, "empty.txt", UTF_8));
     }
 
     @Test

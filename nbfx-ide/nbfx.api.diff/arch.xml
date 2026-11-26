@@ -58,8 +58,9 @@
 
   <answer id="arch-quality">
     <p>
-      <code>DiffTest</code> covers additions, deletions and changes, their positions at the start
-      and the end of a text, and the options. The API is under development until the MVP freeze,
+      <code>DiffTest</code> covers additions, deletions and changes, the options alone and
+      together, argument checking, cancellation, and that the differences of random texts lead
+      from one to the other. The API is under development until the MVP freeze,
       after which API signature tests (<code>sigtest</code>) are enabled.
     </p>
   </answer>
@@ -109,7 +110,10 @@
   <answer id="exec-threading">
     <p>
       <code>Diff</code> is stateless and its results are immutable: it may be called on any thread.
-      A comparison takes time that grows with the texts, so a view runs it off its drawing thread.
+      A comparison takes time that grows with the texts and nothing in the engine limits their
+      size: a view runs it off its drawing thread, decides how large a text it compares, and
+      cancels a comparison nobody waits for through the <code>BooleanSupplier</code> of
+      <code>Diff.compute</code>.
     </p>
   </answer>
 

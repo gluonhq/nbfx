@@ -21,6 +21,8 @@ package org.netbeans.api.nbfx.diff;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 
 /**
  * Compares two texts line by line. It knows nothing of files, version control or views: the lines
@@ -52,10 +54,45 @@ public final class Diff {
      * @param right the lines of the text compared to
      * @param options what lines may differ in and still be the same
      * @return the differences, from the top down
+     * @throws NullPointerException when an argument, or a line, is {@code null}
      */
     public static DiffResult compute(List<String> left, List<String> right, DiffOptions options) {
+        return compute(left, right, options, () -> false);
+    }
+
+    /**
+     * As {@link #compute(List, List, DiffOptions)}, given up when {@code cancelled} says so. The
+     * time a comparison takes grows with the number of lines of both texts and with how often their
+     * lines repeat, and nothing here limits either: a caller that compares texts of any size does
+     * it off the thread it draws on, decides how large a text it compares at all, and cancels the
+     * comparison nobody waits for any more. {@code cancelled} is asked often, on the calling
+     * thread, and must answer at once.
+     *
+     * @param left the lines of the text compared from
+     * @param right the lines of the text compared to
+     * @param options what lines may differ in and still be the same
+     * @param cancelled whether the result is no longer wanted
+     * @return the differences, from the top down
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     * @throws NullPointerException when an argument, or a line, is {@code null}
+     */
+    public static DiffResult compute(List<String> left, List<String> right, DiffOptions options,
+            BooleanSupplier cancelled) {
+        Objects.requireNonNull(left, "left");
+        Objects.requireNonNull(right, "right");
         Objects.requireNonNull(options, "options");
-        return new DiffResult(HuntDiff.diff(left.toArray(String[]::new), right.toArray(String[]::new), options));
+        Objects.requireNonNull(cancelled, "cancelled");
+        return new DiffResult(HuntDiff.diff(lines(left, "left"), lines(right, "right"), options, cancelled));
+    }
+
+    private static String[] lines(List<String> lines, String side) {
+        String[] array = lines.toArray(String[]::new);
+        for (int i = 0; i < array.length; i++) {
+            if (array[i] == null) {
+                throw new NullPointerException(side + " line " + i);
+            }
+        }
+        return array;
     }
 
     /**

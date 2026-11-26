@@ -21,12 +21,12 @@ package org.netbeans.modules.nbfx.ide.vcs;
 import java.nio.file.Files;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import org.openide.util.NbBundle;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
@@ -46,6 +46,9 @@ final class GitClient {
      */
     record Result(int exitCode, String output) {
     }
+
+    /** How far into a file git looks for a NUL to call it binary. */
+    private static final int BINARY_DETECTION_BYTES = 8000;
 
     private GitClient() {
     }
@@ -83,25 +86,51 @@ final class GitClient {
     }
 
     /**
-     * The content the file at {@code path}, relative to {@code root}, has in the last commit, or
-     * empty when it is not in it - a new file - or cannot be read.
+     * The content the file at {@code path}, relative to {@code root}, has in the last commit, read
+     * as {@code charset} - git stores bytes, and what they spell is for the caller to know, as it
+     * knows the encoding of the file in the working tree. A file not in the commit - a new file -
+     * a binary one and a failure to read are each told as what they are.
      */
-    static Optional<String> headContent(Path root, String path) {
-        return content(root, "HEAD:" + path);
+    static GitContent headContent(Path root, String path, Charset charset) {
+        return content(root, "HEAD:" + path, charset);
     }
 
     /**
      * The content the file at {@code path}, relative to {@code root}, has in the index - what the
-     * next commit takes - or empty when it is not in it or cannot be read.
+     * next commit takes - as {@link #headContent(Path, String, Charset)} tells that of the commit.
      */
-    static Optional<String> indexContent(Path root, String path) {
-        return content(root, ":" + path);
+    static GitContent indexContent(Path root, String path, Charset charset) {
+        return content(root, ":" + path, charset);
     }
 
-    private static Optional<String> content(Path root, String object) {
+    private static GitContent content(Path root, String object, Charset charset) {
+        // Asked first whether it is there: git says nothing and exits with 1 when it is not, and
+        // says why with another code when it cannot tell - no repository, no git.
+        Output named = run(root, Map.of(), "rev-parse", "--quiet", "--verify", object);
+        if (named.exitCode() == 1 && named.error().isBlank()) {
+            return new GitContent.Missing();
+        }
+        if (named.exitCode() != 0) {
+            return new GitContent.Failed(named.error().strip());
+        }
         // Not textconv, not a pager: the bytes as they are stored.
-        Result result = result(root, "--no-pager", "show", "--no-textconv", object);
-        return result.exitCode() == 0 ? Optional.of(result.output()) : Optional.empty();
+        Output shown = run(root, Map.of(), "--no-pager", "show", "--no-textconv", object);
+        if (shown.exitCode() != 0) {
+            return new GitContent.Failed(shown.error().strip());
+        }
+        byte[] bytes = shown.output();
+        return isBinary(bytes) ? new GitContent.Binary() : new GitContent.Text(new String(bytes, charset));
+    }
+
+    /** As git tells a binary file from a text one: by a NUL among its first bytes. */
+    static boolean isBinary(byte[] content) {
+        int looked = Math.min(content.length, BINARY_DETECTION_BYTES);
+        for (int i = 0; i < looked; i++) {
+            if (content[i] == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Creates a repository in {@code dir}, as {@code git init}. */
@@ -173,6 +202,17 @@ final class GitClient {
 
     /** As {@link #result(Path, String...)}, with {@code environment} added to that of the command. */
     static Result result(Path dir, Map<String, String> environment, String... args) {
+        Output output = run(dir, environment, args);
+        // Read as is: the status records end with a NUL and their paths may hold any other character.
+        return new Result(output.exitCode(), output.exitCode() == 0 || output.error().isBlank()
+                ? new String(output.output(), StandardCharsets.UTF_8) : output.error());
+    }
+
+    /** What a command wrote, as bytes, what it said beside it, and its exit code. */
+    private record Output(int exitCode, byte[] output, String error) {
+    }
+
+    private static Output run(Path dir, Map<String, String> environment, String... args) {
         List<String> command = new ArrayList<>(args.length + 3);
         command.add("git");
         command.add("-C");
@@ -183,25 +223,23 @@ final class GitClient {
             builder.environment().putAll(environment);
             Process process = builder.start();
             // Read while the output is: a command that fills one stream waits for it to be read.
-            CompletableFuture<String> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
-            // Read as is: the status records end with a NUL and their paths may hold any other character.
-            String output = read(process.getInputStream());
+            CompletableFuture<byte[]> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
+            byte[] output = read(process.getInputStream());
             int exitCode = process.waitFor();
-            String said = error.join();
-            return new Result(exitCode, exitCode == 0 || said.isBlank() ? output : said);
+            return new Output(exitCode, output, new String(error.join(), StandardCharsets.UTF_8));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            return new Result(1, "Interrupted");
+            return new Output(1, new byte[0], "Interrupted");
         } catch (IOException ex) {
-            return new Result(1, ex.getMessage());
+            return new Output(1, new byte[0], String.valueOf(ex.getMessage()));
         }
     }
 
-    private static String read(InputStream stream) {
+    private static byte[] read(InputStream stream) {
         try (InputStream in = stream) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            return in.readAllBytes();
         } catch (IOException ex) {
-            return "";
+            return new byte[0];
         }
     }
 }

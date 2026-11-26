@@ -23,8 +23,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 
 /**
  * The line comparison of {@link Diff}: the Hunt-McIlroy longest common subsequence, ported from the
@@ -34,13 +34,11 @@ import java.util.regex.Pattern;
  */
 final class HuntDiff {
 
-    private static final Pattern SPACES = Pattern.compile("(\\s+)");
-
     private HuntDiff() {
     }
 
-    static List<Difference> diff(String[] left, String[] right, DiffOptions options) {
-        int[] common = commonLines(left, right, options);
+    static List<Difference> diff(String[] left, String[] right, DiffOptions options, BooleanSupplier cancelled) {
+        int[] common = commonLines(left, right, options, cancelled);
         return merged(differences(common, left.length, right.length));
     }
 
@@ -48,7 +46,8 @@ final class HuntDiff {
      * For each line of {@code lines1}, counted from one, the line of {@code lines2} it is the same
      * as in the longest common subsequence, or zero.
      */
-    private static int[] commonLines(String[] lines1, String[] lines2, DiffOptions options) {
+    private static int[] commonLines(String[] lines1, String[] lines2, DiffOptions options,
+            BooleanSupplier cancelled) {
         int m = lines1.length;
         int n = lines2.length;
         if (options.ignoreCase() || options.ignoreInnerWhitespace()
@@ -83,6 +82,10 @@ final class HuntDiff {
         candidates[1] = new Candidate(m + 1, n + 1, null);
         int k = 0;
         for (int i = 1; i <= m; i++) {
+            // The search is where the time of a large comparison goes.
+            if ((i & 0xFF) == 0 && cancelled.getAsBoolean()) {
+                throw new CancellationException();
+            }
             if (equivalenceAssoc[i] != 0) {
                 k = merge(candidates, k, i, equivalenceLines, equivalence, equivalenceAssoc[i]);
             }
@@ -97,33 +100,42 @@ final class HuntDiff {
     private static String[] normalized(String[] lines, DiffOptions options) {
         String[] normalized = new String[lines.length];
         for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            if (options.ignoreLeadingAndTrailingWhitespace() && options.ignoreInnerWhitespace()) {
-                line = SPACES.matcher(line).replaceAll("");
-            } else if (options.ignoreLeadingAndTrailingWhitespace()) {
-                line = line.strip();
-            } else if (options.ignoreInnerWhitespace()) {
-                line = withoutInnerSpaces(line);
-            }
-            if (options.ignoreCase()) {
-                line = line.toUpperCase(Locale.ROOT);
-            }
-            normalized[i] = line;
+            String line = normalized(lines[i], options.ignoreLeadingAndTrailingWhitespace(),
+                    options.ignoreInnerWhitespace());
+            normalized[i] = options.ignoreCase() ? line.toUpperCase(Locale.ROOT) : line;
         }
         return normalized;
     }
 
-    private static String withoutInnerSpaces(String line) {
-        Matcher matcher = SPACES.matcher(line);
-        StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            if (matcher.start() == 0 || matcher.end() == line.length()) {
-                matcher.appendReplacement(result, "$1");
-            } else {
-                matcher.appendReplacement(result, "");
-            }
+    /**
+     * {@code line} without the white space the options leave out: each option takes its own part
+     * of the line, so that both together take what either does. White space is what
+     * {@link Character#isWhitespace(int)} says, at the edges and within alike; a line of nothing
+     * else is all edge.
+     */
+    private static String normalized(String line, boolean ignoreEdges, boolean ignoreInner) {
+        int length = line.length();
+        int first = 0;
+        while (first < length && Character.isWhitespace(line.codePointAt(first))) {
+            first += Character.charCount(line.codePointAt(first));
         }
-        matcher.appendTail(result);
+        int last = length;
+        while (last > first && Character.isWhitespace(line.codePointBefore(last))) {
+            last -= Character.charCount(line.codePointBefore(last));
+        }
+        StringBuilder result = new StringBuilder(length);
+        if (!ignoreEdges) {
+            result.append(line, 0, first);
+        }
+        if (ignoreInner) {
+            line.substring(first, last).codePoints().filter(c -> !Character.isWhitespace(c))
+                    .forEach(result::appendCodePoint);
+        } else {
+            result.append(line, first, last);
+        }
+        if (!ignoreEdges) {
+            result.append(line, last, length);
+        }
         return result.toString();
     }
 

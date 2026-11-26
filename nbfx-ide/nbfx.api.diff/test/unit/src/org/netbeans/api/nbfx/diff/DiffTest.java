@@ -21,11 +21,13 @@ package org.netbeans.api.nbfx.diff;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CancellationException;
 import org.junit.Test;
 import org.netbeans.api.nbfx.diff.Difference.Kind;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /** Verifies the blocks the line comparison finds, and that they always lead from one text to the other. */
@@ -90,6 +92,52 @@ public class DiffTest {
         assertEquals(List.of(new Difference(Kind.CHANGE, 1, 2, 1, 2)),
                 Diff.compute(left, right, new DiffOptions(false, true, false)).differences());
         assertTrue(Diff.compute(left, right, new DiffOptions(true, true, true)).isIdentical());
+    }
+
+    @Test
+    public void optionsTogetherLeaveOutWhatEachDoes() {
+        // U+2003, an em space: white space, but none of the ASCII ones.
+        String em = "\u2003";
+        List<String> indented = List.of(em + "a" + em + "b" + em, "   ");
+        DiffOptions edges = new DiffOptions(false, false, true);
+        DiffOptions inner = new DiffOptions(false, true, false);
+        DiffOptions both = new DiffOptions(false, true, true);
+
+        assertTrue(Diff.compute(indented, List.of("a" + em + "b", ""), edges).isIdentical());
+        assertTrue(Diff.compute(indented, List.of(em + "ab" + em, "   "), inner).isIdentical());
+        assertFalse(Diff.compute(indented, List.of("ab", ""), inner).isIdentical());
+        assertFalse(Diff.compute(indented, List.of("ab", ""), edges).isIdentical());
+        assertTrue(Diff.compute(indented, List.of("ab", ""), both).isIdentical());
+        assertTrue(Diff.compute(indented, List.of(" a b ", "\t"), both).isIdentical());
+    }
+
+    @Test
+    public void whatIsToCompareMustBeThere() {
+        List<String> lines = List.of("a");
+        assertEquals("left", assertThrows(NullPointerException.class,
+                () -> Diff.compute(null, lines)).getMessage());
+        assertEquals("right", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, null)).getMessage());
+        assertEquals("options", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, lines, null)).getMessage());
+        assertEquals("right line 1", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, java.util.Arrays.asList("a", null))).getMessage());
+    }
+
+    @Test
+    public void aComparisonNobodyWaitsForIsGivenUp() {
+        List<String> left = new ArrayList<>();
+        List<String> right = new ArrayList<>();
+        for (int i = 0; i < 2000; i++) {
+            left.add("line " + i);
+            right.add("line " + (i + 1));
+        }
+        int[] asked = new int[1];
+
+        assertThrows(CancellationException.class,
+                () -> Diff.compute(left, right, DiffOptions.EXACT, () -> ++asked[0] == 3));
+        assertEquals(3, asked[0]);
+        assertFalse(Diff.compute(left, right, DiffOptions.EXACT, () -> false).isIdentical());
     }
 
     @Test

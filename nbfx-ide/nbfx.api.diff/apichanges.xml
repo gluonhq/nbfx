@@ -36,7 +36,8 @@
             <description>
                 Adds <code>Diff</code>, which compares two texts line by line, its
                 <code>DiffOptions</code>, and the <code>DiffResult</code> it answers with: the
-                <code>Difference</code> blocks of added, deleted and changed lines.
+                <code>Difference</code> blocks of added, deleted and changed lines. A comparison
+                can be cancelled; the options leave out, together, what each leaves out.
             </description>
             <class package="org.netbeans.api.nbfx.diff" name="Diff"/>
             <class package="org.netbeans.api.nbfx.diff" name="DiffOptions"/>

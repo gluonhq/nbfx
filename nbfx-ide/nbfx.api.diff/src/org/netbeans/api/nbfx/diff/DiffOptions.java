@@ -19,7 +19,9 @@
 package org.netbeans.api.nbfx.diff;
 
 /**
- * What two lines may differ in and still count as the same line.
+ * What two lines may differ in and still count as the same line. Each option leaves out its own
+ * part of a line, so that several together leave out what each does. White space is what
+ * {@link Character#isWhitespace(int)} says; a line of nothing else is all leading and trailing.
  *
  * @param ignoreCase whether letters that differ only in case are the same
  * @param ignoreInnerWhitespace whether white space between the first and the last character that is
