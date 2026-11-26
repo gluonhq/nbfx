@@ -288,6 +288,27 @@
             </description>
             <class package="org.netbeans.api.nbfx.shell" name="DockRequest"/>
         </change>
+        <change id="cjap.shell.dock-window">
+            <api name="netbeansfx_shell"/>
+            <summary>Public DockWindow contracts and float/redock window operations.</summary>
+            <version major="1" minor="12"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" modification="yes" binary="incompatible" source="incompatible" semantic="incompatible"/>
+            <description>
+                Adds <code>WindowId</code>, <code>WindowContentState</code>,
+                <code>WindowContent</code> and <code>DockWindow</code>, plus
+                <code>WindowManager.floatContent</code>, <code>floatGroup</code>,
+                <code>redock</code> and <code>windows</code>. Floating windows preserve pane/content
+                identity and expose layout, lookup, opaque content state and geometry snapshots.
+                Main/custom window enumeration remains for the multi-window slice.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowId"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowContentState"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowContent"/>
+            <class package="org.netbeans.api.nbfx.shell" name="DockWindow"/>
+            <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>

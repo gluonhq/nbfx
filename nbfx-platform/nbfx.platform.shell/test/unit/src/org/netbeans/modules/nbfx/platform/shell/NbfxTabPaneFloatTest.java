@@ -54,6 +54,13 @@ public class NbfxTabPaneFloatTest {
                     // as documented
                 }
 
+                stage.hide();
+                assertFalse(stage.isShowing());
+                assertTrue(NbfxTabPane.tabPanes().contains(floating));
+                assertEquals(java.util.List.of(tab), floating.getTabs());
+                stage.show();
+                assertTrue(stage.isShowing());
+
                 NbfxTabPane.closeFloatingPane(floating, true);
                 assertFalse(stage.isShowing());
                 assertTrue(NbfxTabPane.tabPanes().contains(floating));

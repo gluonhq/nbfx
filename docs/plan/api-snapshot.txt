@@ -166,6 +166,7 @@ org.netbeans.api.nbfx.shell.DockModifier
 org.netbeans.api.nbfx.shell.DockPolicy
 org.netbeans.api.nbfx.shell.DockRequest
 org.netbeans.api.nbfx.shell.DockResult
+org.netbeans.api.nbfx.shell.DockWindow
 org.netbeans.api.nbfx.shell.NavigatorRevealState
 org.netbeans.api.nbfx.shell.OnUiReady
 org.netbeans.api.nbfx.shell.PaneRole
@@ -204,8 +205,11 @@ org.netbeans.api.nbfx.shell.ShellRegionSpec
 org.netbeans.api.nbfx.shell.ShellWindow
 org.netbeans.api.nbfx.shell.ShellWindowProvider
 org.netbeans.api.nbfx.shell.TabHomeResolver
+org.netbeans.api.nbfx.shell.WindowContent
+org.netbeans.api.nbfx.shell.WindowContentState
 org.netbeans.api.nbfx.shell.WindowDecoration
 org.netbeans.api.nbfx.shell.WindowEnvironmentContribution
+org.netbeans.api.nbfx.shell.WindowId
 org.netbeans.api.nbfx.shell.WindowKind
 org.netbeans.api.nbfx.shell.WindowManager
 org.netbeans.api.nbfx.shell.WindowOptions

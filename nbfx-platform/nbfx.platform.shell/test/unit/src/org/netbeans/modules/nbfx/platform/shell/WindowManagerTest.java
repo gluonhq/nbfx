@@ -23,6 +23,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 import javafx.geometry.Side;
 import javafx.scene.Node;
 import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.layout.Pane;
 import org.junit.Test;
 import java.util.List;
@@ -31,11 +32,14 @@ import org.netbeans.api.nbfx.content.ContentId;
 import org.netbeans.api.nbfx.content.DockPlacement;
 import org.netbeans.api.nbfx.content.TransferMode;
 import org.netbeans.api.nbfx.layout.DockGroupId;
+import org.netbeans.api.nbfx.layout.LayoutNode;
 import org.netbeans.api.nbfx.shell.DockDecision;
+import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
 import org.netbeans.api.nbfx.shell.DockResult;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowKind;
+import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.shell.WindowOptions;
 import org.netbeans.api.nbfx.view.ViewProvider;
@@ -46,6 +50,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * The public {@link WindowManager} exposes dock group and content operations by stable identity.
@@ -320,19 +325,75 @@ public class WindowManagerTest {
                 NbfxTabPane.setViewId(tab, "float.content");
                 NbfxTabPane.attachTab(main, tab);
 
-                FloatingWindow window = manager.floatContent(content.id(), floatingOptions(), 10, 20);
-                assertTrue(window.stage().isShowing());
-                assertEquals(window.pane().groupId(), manager.groupOf(content.id()).orElseThrow());
-                assertEquals(List.of(window), manager.floatingWindows());
+                DockWindow window = manager.floatContent(content.id(), floatingOptions());
+                DockGroupId floatingGroup = manager.groupOf(content.id()).orElseThrow();
+                assertTrue(window.window().isShowing());
+                assertEquals(WindowKind.FLOATING, window.kind());
+                assertEquals(LayoutNode.group(floatingGroup), window.layout());
+                assertEquals(floatingGroup, manager.groupOf(content.id()).orElseThrow());
+                assertEquals(List.of(window), manager.windows());
+                WindowState state = window.state();
+                assertTrue(state.areas().getFirst().detached());
+                assertEquals(floatingGroup.value(), state.areas().getFirst().areaId());
+                assertTrue(window.content().root() instanceof TabPane);
 
-                DockRequest request = new DockRequest(content.id(), window.pane().groupId(), null,
+                window.hide();
+                assertFalse(window.window().isShowing());
+                assertEquals(List.of(window), manager.windows());
+
+                DockRequest request = new DockRequest(content.id(), floatingGroup, null,
                         other.groupId(), DockPlacement.INTO_GROUP, TransferMode.MOVE, Set.of());
                 DockResult result = manager.redock(window, request);
                 assertTrue(result.decision().allowed());
                 assertEquals(other.groupId(), result.group());
                 assertEquals(other.groupId(), manager.groupOf(content.id()).orElseThrow());
-                assertFalse(window.stage().isShowing());
-                assertTrue(manager.floatingWindows().isEmpty());
+                assertFalse(window.window().isShowing());
+                assertTrue(manager.windows().isEmpty());
+            } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void dockWindowHideShowAndCloseStayManaged() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                DefaultWindowManager manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("float.lifecycle", "Lifecycle"));
+                contentManager.open(content);
+                Tab tab = new Tab("Lifecycle");
+                NbfxTabPane.setViewId(tab, "float.lifecycle");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockWindow window = manager.floatContent(content.id(), floatingOptions());
+                assertEquals("0", window.content().saveState().payload().get("selectedTab"));
+                window.hide();
+                assertFalse(window.window().isShowing());
+                assertEquals(List.of(window), manager.windows());
+                assertEquals(window.layout(), LayoutNode.group(manager.groupOf(content.id()).orElseThrow()));
+
+                window.show();
+                assertTrue(window.window().isShowing());
+                window.close();
+                assertFalse(window.window().isShowing());
+                assertTrue(manager.windows().isEmpty());
+                try {
+                    window.show();
+                    fail("a closed window was shown again");
+                } catch (IllegalStateException expected) {
+                    // as documented
+                }
             } finally {
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
@@ -364,10 +425,11 @@ public class WindowManagerTest {
                         main.groupId(), DockPlacement.SPLIT_RIGHT, TransferMode.MOVE, Set.of());
                 DockGroupId group = manager.dock(split).group();
                 NbfxTabPane docked = (NbfxTabPane) tab.getTabPane();
-                FloatingWindow window = manager.floatGroup(group, floatingOptions(), 30, 40);
-                assertTrue(window.stage().isShowing());
+                DockWindow window = manager.floatGroup(group, floatingOptions());
+                assertTrue(window.window().isShowing());
                 assertFalse(Docking.area().contains(docked));
-                assertEquals(group, window.pane().groupId());
+                assertEquals(group, manager.groupOf(content.id()).orElseThrow());
+                assertEquals(LayoutNode.group(group), window.layout());
 
                 DockRequest edge = new DockRequest(content.id(), group, PaneRole.MAIN,
                         null, DockPlacement.EDGE_BOTTOM, TransferMode.MOVE, Set.of());
@@ -376,8 +438,8 @@ public class WindowManagerTest {
                 assertEquals(group, result.group());
                 assertTrue(Docking.area().contains(docked));
                 assertEquals(group, manager.groupOf(content.id()).orElseThrow());
-                assertFalse(window.stage().isShowing());
-                assertTrue(manager.floatingWindows().isEmpty());
+                assertFalse(window.window().isShowing());
+                assertTrue(manager.windows().isEmpty());
             } finally {
                 for (javafx.scene.control.TabPane pane : new java.util.ArrayList<>(NbfxTabPane.panesByRole())) {
                     if (pane instanceof NbfxTabPane nbfx && nbfx.role() == PaneRole.DOCKED) {

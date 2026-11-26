@@ -267,6 +267,12 @@ api.plugins (T1)        → api.layer, api.resources
   panes. Previously all docked panes shared `nbfx:docked`, so `paneForGroup` and content/group
   operations selected the first match and multi-group docking was ambiguous. Permanent role-based
   identities remain stable.
+- C3-2k exposes `WindowId`, `WindowContentState`, `WindowContent` and `DockWindow`, and adds
+  `WindowManager.floatContent/floatGroup/redock/windows` over the proven runtime. Floating handles
+  preserve pane/content identity and expose layout, selected-content lookup, opaque content state
+  and view/geometry snapshots. `windows()` currently enumerates live floating windows; main/custom
+  enumeration remains for C3-3. Plain hide is separated from close cleanup so hidden windows keep
+  their content and remain redockable.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

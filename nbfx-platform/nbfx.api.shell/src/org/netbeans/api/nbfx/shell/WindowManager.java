@@ -100,4 +100,46 @@ public interface WindowManager {
      * @return the result, never {@code null}
      */
     DockResult dock(DockRequest request);
+
+    /**
+     * Floats {@code content} into a new window, preserving its content instance.
+     *
+     * @param content the content to float
+     * @param options initial window options
+     * @return the floating window
+     * @throws IllegalArgumentException when the content is not docked or the options are invalid
+     * @since 1.12
+     */
+    DockWindow floatContent(ContentId content, WindowOptions options);
+
+    /**
+     * Floats a non-main dock group into a window, preserving its pane and content instances.
+     *
+     * @param group the group to float
+     * @param options initial window options
+     * @return the floating window
+     * @throws IllegalArgumentException when the group cannot be floated or the options are invalid
+     * @since 1.12
+     */
+    DockWindow floatGroup(DockGroupId group, WindowOptions options);
+
+    /**
+     * Redocks the content of {@code window} according to {@code request}. Group placements move all
+     * tabs into the target group; split/edge placements reattach the whole floating pane.
+     *
+     * @param window the floating window
+     * @param request the requested dock placement
+     * @return the result, never {@code null}
+     * @since 1.12
+     */
+    DockResult redock(DockWindow window, DockRequest request);
+
+    /**
+     * Every live floating window managed by this manager. Main/custom window enumeration follows
+     * with the multi-window runtime.
+     *
+     * @return the floating windows, never {@code null}
+     * @since 1.12
+     */
+    List<DockWindow> windows();
 }

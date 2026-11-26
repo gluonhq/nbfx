@@ -139,6 +139,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
     private static final String DOCUMENT_KEY = "nbfx.editorDocument";
     private static final String PRESERVE_CONTENT_ON_HIDE = "nbfx.preserveContentOnHide";
     private static final String FLOATING_WINDOW = "nbfx.floatingWindow";
+    private static final String CLOSING_WINDOW = "nbfx.closingWindow";
 
     /** Key under which a view tab stores its stable {@code ViewProvider} identifier for persistence. */
     private static final String VIEW_ID_KEY = "nbfx.viewId";
@@ -1655,6 +1656,10 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         return stage != null && Boolean.TRUE.equals(stage.getProperties().get(FLOATING_WINDOW));
     }
 
+    static boolean isClosingWindow(Stage stage) {
+        return stage != null && Boolean.TRUE.equals(stage.getProperties().get(CLOSING_WINDOW));
+    }
+
     static void closeFloatingPane(NbfxTabPane pane, boolean preserveContent) {
         Stage stage = stageOf(pane);
         if (!isFloatingPane(pane)) {
@@ -1664,6 +1669,12 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             stage.getProperties().put(PRESERVE_CONTENT_ON_HIDE, Boolean.TRUE);
             stage.setOnCloseRequest(null);
         }
+        // A Stage that is already hidden does not emit WINDOW_HIDDEN when closed. Re-show it
+        // synchronously so close cleanup and public-handle invalidation always run.
+        if (!stage.isShowing()) {
+            stage.show();
+        }
+        stage.getProperties().put(CLOSING_WINDOW, Boolean.TRUE);
         stage.close();
     }
 
@@ -1729,6 +1740,9 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
         stage.setOnCloseRequest(event -> {
             if (!CloseConfirmation.confirmClose(documentsOf(newPane))) {
                 event.consume();
+                stage.getProperties().remove(CLOSING_WINDOW);
+            } else {
+                stage.getProperties().put(CLOSING_WINDOW, Boolean.TRUE);
             }
         });
         stage.focusedProperty().subscribe(focused ->
@@ -1957,6 +1971,11 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             }
         });
         Objects.requireNonNull(stage).setOnHidden(_ -> {
+            boolean closing = Boolean.TRUE.equals(stage.getProperties().get(CLOSING_WINDOW));
+            stage.getProperties().remove(CLOSING_WINDOW);
+            if (!closing) {
+                return;
+            }
             boolean preserveContent = Boolean.TRUE.equals(
                     stage.getProperties().get(PRESERVE_CONTENT_ON_HIDE));
             stage.getProperties().remove(PRESERVE_CONTENT_ON_HIDE);
@@ -2009,6 +2028,7 @@ public final class NbfxTabPane extends TabPane implements WindowPaneHost {
             PANES_PENDING_CLOSE.add(pane);
         } else {
             PANES_PENDING_CLOSE.remove(pane);
+            stage.getProperties().put(CLOSING_WINDOW, Boolean.TRUE);
             stage.close();
         }
     }

@@ -724,7 +724,8 @@ public interface WindowManager {
 }
 ```
 
-Public operations use content/group handles. `Tab` and `WindowPaneHost` are not target API types.
+Public operations use content/group handles. The current runtime enumerates live floating windows;
+main/custom window enumeration is completed with the multi-window slice. `Tab` and `WindowPaneHost` are not target API types.
 
 ## 8. Windows and chrome profiles
 
@@ -761,6 +762,17 @@ public interface DockWindow {
 ```
 
 A `CUSTOM` window may have no `LayoutNode`; its `WindowContent` owns the scene graph.
+
+```java
+public record WindowId(String namespace, String name) {}
+
+public record WindowContentState(
+        WindowId windowId,
+        LayoutNode layout,
+        Map<String, String> payload) {}
+```
+
+`WindowContentState.payload` is opaque to the shell and owned by the content implementation.
 
 ### 8.3 `WindowContent`
 
