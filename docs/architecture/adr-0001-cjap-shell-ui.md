@@ -285,6 +285,9 @@ api.plugins (T1)        → api.layer, api.resources
   window first, then floating windows. The adapter converts the live `DockTree` into `LayoutNode`
   groups using the now-unique physical group ids, exposes the active component lookup, and snapshots
   per-pane view tabs plus main geometry. Custom product windows remain for the multi-window slice.
+- C3-2o feeds `ShellApplication.snapshot()` into the main-window adapter, so `DockWindow.state()`
+  combines live pane/view state with the shell's restored geometry, maximized flag and chrome
+  profile instead of reporting stage geometry and a false/null default.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

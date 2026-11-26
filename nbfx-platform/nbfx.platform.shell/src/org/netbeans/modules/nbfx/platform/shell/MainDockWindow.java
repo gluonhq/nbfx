@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import javafx.geometry.Orientation;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
@@ -48,12 +49,15 @@ final class MainDockWindow implements DockWindow {
     private final SlidingArea root;
     private final DockArea<TabPane> area;
     private final Stage stage;
+    private final Supplier<WindowState> shellState;
     private final WindowContent content;
 
-    MainDockWindow(SlidingArea root, DockArea<TabPane> area, Stage stage) {
+    MainDockWindow(SlidingArea root, DockArea<TabPane> area, Stage stage,
+            Supplier<WindowState> shellState) {
         this.root = root;
         this.area = area;
         this.stage = stage;
+        this.shellState = shellState;
         this.content = new Content();
     }
 
@@ -138,8 +142,15 @@ final class MainDockWindow implements DockWindow {
             String activeViewId = selected == null ? null : NbfxTabPane.viewId(selected);
             areas.add(AreaState.docked(((NbfxTabPane) pane).groupId().value(), viewIds, activeViewId));
         }
-        return new WindowState(List.copyOf(areas), stage.getX(), stage.getY(),
-                stage.getWidth(), stage.getHeight(), false, Map.of(), null);
+        WindowState shell = shellState.get();
+        double x = shell != null && Double.isFinite(shell.x()) ? shell.x() : stage.getX();
+        double y = shell != null && Double.isFinite(shell.y()) ? shell.y() : stage.getY();
+        double width = shell != null && Double.isFinite(shell.width()) ? shell.width() : stage.getWidth();
+        double height = shell != null && Double.isFinite(shell.height()) ? shell.height() : stage.getHeight();
+        boolean maximized = shell != null && shell.maximized();
+        String profileId = shell == null ? null : shell.profileId();
+        Map<String, String> viewState = shell == null ? Map.of() : shell.viewState();
+        return new WindowState(List.copyOf(areas), x, y, width, height, maximized, viewState, profileId);
     }
 
     private final class Content implements WindowContent {

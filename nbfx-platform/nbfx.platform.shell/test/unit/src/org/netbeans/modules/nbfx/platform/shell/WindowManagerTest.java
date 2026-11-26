@@ -479,7 +479,9 @@ public class WindowManagerTest {
                 stage = new Stage();
                 stage.setScene(new Scene(slides, 800, 600));
                 stage.show();
-                manager = new DefaultWindowManager(contentManager);
+                WindowState shellState = new WindowState(List.of(), 10, 20, 900, 700,
+                        true, java.util.Map.of("view", "state"), "test.profile");
+                manager = new DefaultWindowManager(contentManager, () -> List.of(), () -> shellState);
                 ViewContent content = new ViewContent(new FakeView("main.window", "Main"));
                 contentManager.open(content);
                 Tab tab = new Tab("Main");
@@ -494,8 +496,16 @@ public class WindowManagerTest {
                 assertSame(stage, mainWindow.window());
                 assertSame(slides, mainWindow.content().root());
                 assertTrue(mainWindow.layout() instanceof LayoutNode.Split);
-                assertEquals(2, mainWindow.state().areas().size());
-                assertTrue(mainWindow.state().areas().stream().noneMatch(AreaState::detached));
+                WindowState state = mainWindow.state();
+                assertEquals(2, state.areas().size());
+                assertTrue(state.areas().stream().noneMatch(AreaState::detached));
+                assertEquals(10, state.x(), 0.001);
+                assertEquals(20, state.y(), 0.001);
+                assertEquals(900, state.width(), 0.001);
+                assertEquals(700, state.height(), 0.001);
+                assertTrue(state.maximized());
+                assertEquals("test.profile", state.profileId());
+                assertEquals("state", state.viewState().get("view"));
 
                 DockWindow floating = manager.floatContent(content.id(), floatingOptions());
                 List<DockWindow> all = manager.windows();

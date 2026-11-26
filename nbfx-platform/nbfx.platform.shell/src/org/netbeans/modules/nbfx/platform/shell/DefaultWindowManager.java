@@ -52,6 +52,7 @@ import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.api.nbfx.shell.WindowKind;
 import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.shell.WindowOptions;
+import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.views.ViewContent;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DropTarget;
@@ -67,16 +68,23 @@ final class DefaultWindowManager implements WindowManager {
 
     private final ContentManager contentManager;
     private final Supplier<Collection<? extends DockPolicy>> policies;
+    private final Supplier<WindowState> mainState;
     private final Map<NbfxTabPane, FloatingWindow> floating = new LinkedHashMap<>();
     private MainDockWindow mainWindow;
 
     DefaultWindowManager(ContentManager contentManager) {
-        this(contentManager, () -> Lookup.getDefault().lookupAll(DockPolicy.class));
+        this(contentManager, () -> Lookup.getDefault().lookupAll(DockPolicy.class), () -> null);
     }
 
     DefaultWindowManager(ContentManager contentManager, Supplier<Collection<? extends DockPolicy>> policies) {
+        this(contentManager, policies, () -> null);
+    }
+
+    DefaultWindowManager(ContentManager contentManager, Supplier<Collection<? extends DockPolicy>> policies,
+            Supplier<WindowState> mainState) {
         this.contentManager = Objects.requireNonNull(contentManager, "contentManager");
         this.policies = Objects.requireNonNull(policies, "policies");
+        this.mainState = Objects.requireNonNull(mainState, "mainState");
     }
 
     @Override
@@ -399,7 +407,7 @@ final class DefaultWindowManager implements WindowManager {
             SlidingArea slides = Docking.runtime().slides();
             if (mainWindow == null || mainWindow.root() != slides
                     || mainWindow.area() != area || mainWindow.stage() != stage) {
-                mainWindow = new MainDockWindow(slides, area, stage);
+                mainWindow = new MainDockWindow(slides, area, stage, mainState);
             }
             result.add(mainWindow);
         } else {

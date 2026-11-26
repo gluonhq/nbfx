@@ -87,6 +87,7 @@ import org.netbeans.spi.nbfx.shell.WindowPane;
 import org.netbeans.spi.nbfx.shell.WindowPaneContext;
 import org.netbeans.spi.nbfx.shell.WindowPaneProvider;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
+import org.netbeans.api.nbfx.shell.DockPolicy;
 import org.netbeans.api.nbfx.shell.WindowSink;
 import org.netbeans.api.nbfx.shell.WindowState;
 import org.netbeans.api.nbfx.shell.WindowSystem;
@@ -161,7 +162,9 @@ public class ShellApplication extends Application implements WindowSink, ShellWi
     /** The per-shell content lifecycle and routing owner. */
     private final org.netbeans.api.nbfx.content.ContentManager contentManager =
             new org.netbeans.modules.nbfx.platform.content.DefaultContentManager();
-    private final WindowManager windowManager = new DefaultWindowManager(contentManager);
+    private final WindowManager windowManager = new DefaultWindowManager(contentManager,
+            () -> Lookup.getDefault().lookupAll(DockPolicy.class),
+            this::snapshot);
     /** Binds view tab open/close to this shell's content manager. */
     private NbfxTabPane.ViewLifecycle viewLifecycle;
     /** Binds editor tab open/close to this shell's content manager. */
