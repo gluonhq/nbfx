@@ -643,6 +643,68 @@ public class DockAreaTest {
         });
     }
 
+    @Test
+    public void detachedPaneCanBeRedockedAtRequestedTarget() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            StackPane docked = f.area.split(f.main, Side.RIGHT);
+            docked.getChildren().add(new Region());
+
+            Anchor<StackPane> anchor = f.area.detach(docked);
+            assertFalse(f.area.contains(docked));
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            assertSame(f.main, anchor.leaf());
+            assertEquals(Side.RIGHT, anchor.side());
+            assertEquals(0.35, anchor.share(), 0.001);
+
+            f.area.dockDetached(docked, new DropTarget<>(f.navigator, Side.BOTTOM));
+            assertTrue(f.area.contains(docked));
+            assertEquals(List.of(f.navigator, docked, f.main), f.area.leaves());
+            assertEquals("H[0.3000](V[0.6500](P:NAVIGATOR,L),P:MAIN)",
+                    DockTrees.format(f.area.tree()));
+            assertSame(docked, f.area.paneBelow(f.navigator));
+            return null;
+        });
+        pulse();
+        onFx(() -> {
+            assertTrue(f.area.contains(f.area.paneBelow(f.navigator)));
+            assertTrue(f.host.disposed.isEmpty());
+            return null;
+        });
+    }
+
+    @Test
+    public void detachAndDockDetachedRejectInvalidPanesAndTargets() throws Exception {
+        Fixture f = onFx(Fixture::new);
+        onFx(() -> {
+            try {
+                f.area.detach(f.main);
+                fail("the main pane was detached");
+            } catch (IllegalArgumentException expected) {
+                // as documented
+            }
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+
+            StackPane detached = new StackPane(new Region());
+            try {
+                f.area.dockDetached(detached, new DropTarget<>(new StackPane(), Side.LEFT));
+                fail("an unrelated target was accepted");
+            } catch (IllegalArgumentException expected) {
+                // as documented
+            }
+            assertFalse(f.area.contains(detached));
+
+            try {
+                f.area.dockDetached(f.navigator, new DropTarget<>(f.main, Side.RIGHT));
+                fail("a pane already in the area was redocked");
+            } catch (IllegalArgumentException expected) {
+                // as documented
+            }
+            assertEquals("H[0.3000](P:NAVIGATOR,P:MAIN)", DockTrees.format(f.area.tree()));
+            return null;
+        });
+    }
+
     /** Lets the pulses the area deferred work to run. */
     private static void pulse() throws InterruptedException {
         for (int i = 0; i < 3; i++) {

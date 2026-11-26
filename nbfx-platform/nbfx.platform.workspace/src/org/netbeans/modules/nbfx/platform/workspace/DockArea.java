@@ -854,9 +854,68 @@ public final class DockArea<N extends Node> extends StackPane {
             host.moveContent(pane, split(target));
             return;
         }
-        detach(pane);
+        detachNode(pane);
         splitNode(target.isArea() ? root : target.pane(), target.side(), pane, DEFAULT_SHARE);
         LOG.fine(() -> "Moved a pane " + target.side() + " of " + (target.isArea() ? "the area" : "a pane"));
+    }
+
+    /**
+     * Takes {@code pane} out of this area with its components, without minimizing or disposing it,
+     * and returns where it came from. The main pane and the area's only pane cannot be detached.
+     * The host may show the pane elsewhere (for example in a floating window) and later pass it to
+     * {@link #dockDetached(Node, DropTarget)}.
+     *
+     * @param pane the pane to detach
+     * @return the anchor describing its former position, or {@code null} when it had no split
+     * @throws IllegalArgumentException for the main pane, the only pane, or a pane not in this area
+     */
+    public Anchor<N> detach(N pane) {
+        Objects.requireNonNull(pane, "pane");
+        if (pane == mainPane()) {
+            throw new IllegalArgumentException("The main pane cannot be detached");
+        }
+        if (!contains(pane) || pane == root) {
+            throw new IllegalArgumentException("Not a detachable pane of this area");
+        }
+        unmaximize();
+        if (isSetAside(pane)) {
+            throw new IllegalArgumentException("A pane set aside by a maximized pane cannot be detached");
+        }
+        Anchor<N> anchor = anchorFor(pane);
+        detachNode(pane);
+        anchors.remove(pane);
+        emptiness.remove(pane);
+        return anchor;
+    }
+
+    /**
+     * Puts a pane previously removed by {@link #detach(Node)} back into this area at {@code target},
+     * preserving its identity and components. The pane must not already be in the area, minimized,
+     * set aside, or the main pane.
+     *
+     * @param pane the detached pane
+     * @param target where to dock it
+     * @throws IllegalArgumentException when the pane or target is not valid for this area
+     */
+    public void dockDetached(N pane, DropTarget<N> target) {
+        Objects.requireNonNull(pane, "pane");
+        Objects.requireNonNull(target, "target");
+        Objects.requireNonNull(target.side(), "side");
+        if (pane == mainPane()) {
+            throw new IllegalArgumentException("The main pane cannot be docked");
+        }
+        if (contains(pane) || minimized.contains(pane) || isSetAside(pane)) {
+            throw new IllegalArgumentException("Pane is not detached");
+        }
+        if (!target.isArea() && !contains(target.pane())) {
+            throw new IllegalArgumentException("Not a pane of this area");
+        }
+        unmaximize();
+        splitNode(target.isArea() ? root : target.pane(), target.side(), pane, DEFAULT_SHARE);
+        anchors.remove(pane);
+        watchEmptiness(pane);
+        LOG.fine(() -> "Redocked a detached pane " + target.side()
+                + (target.isArea() ? " of the area" : " of a pane"));
     }
 
     /** Draws the drop line where {@code target} (see {@link #dropTargetAt}) would dock a component. */
@@ -976,7 +1035,7 @@ public final class DockArea<N extends Node> extends StackPane {
             setRoot(build(defaultTree()));
             dispose(pane);
             LOG.fine("Removed the last emptied docked pane");
-        } else if (detach(pane)) {
+        } else if (detachNode(pane)) {
             dispose(pane);
             LOG.fine("Removed an emptied docked pane");
             if (!hasDockedPane()) {
@@ -1020,7 +1079,7 @@ public final class DockArea<N extends Node> extends StackPane {
             return;
         }
         anchors.put(primary, anchor);
-        detach(primary);
+        detachNode(primary);
         LOG.fine(() -> "Hid the empty " + roleOf(primary) + " pane");
     }
 
@@ -1137,7 +1196,7 @@ public final class DockArea<N extends Node> extends StackPane {
                 throw new IllegalArgumentException("The only pane of the area cannot be minimized");
             }
             Anchor<N> current = anchorFor(pane);
-            detach(pane);
+            detachNode(pane);
             anchors.put(pane, anchor != null ? anchor : current);
         } else if (isPrimary(pane)) {
             if (anchor != null) {
@@ -1249,7 +1308,7 @@ public final class DockArea<N extends Node> extends StackPane {
 
     /** Moves the empty main pane into the docked pane {@code leaf}'s slot, with its components, and disposes of {@code leaf}. */
     private void takePlaceOf(N main, N leaf) {
-        detach(main);
+        detachNode(main);
         replace(leaf, main, parentSplitOf(root, leaf));
         host.moveContent(leaf, main);
         dispose(leaf);
@@ -1341,7 +1400,7 @@ public final class DockArea<N extends Node> extends StackPane {
     }
 
     /** Removes {@code pane} from the area, collapsing its split if one child is left; false if it is not in a split. */
-    private boolean detach(N pane) {
+    private boolean detachNode(N pane) {
         SplitPane parent = parentSplitOf(root, pane);
         if (parent == null) {
             return false;

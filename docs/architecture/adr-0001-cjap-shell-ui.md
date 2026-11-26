@@ -243,6 +243,11 @@ api.plugins (T1)        → api.layer, api.resources
   source already precedes the target. Structural validation is centralized and re-run after policy
   placement refinement. FLOAT, NEW_WINDOW, group close/split lifecycle, redock, and undo-per-gesture
   remain follow-ups.
+- C3-2g adds `DockArea.detach`/`dockDetached` lifecycle primitives for future float/redock:
+  detaching preserves pane identity/content and returns its former anchor; re-docking accepts a
+  requested pane/area target and re-establishes emptiness tracking. The main pane, the only pane,
+  contained/minimized/set-aside panes, and invalid targets are rejected. The private tree-removal
+  helper is renamed `detachNode` so internal collapse/relocate paths keep their original semantics.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler
