@@ -679,7 +679,9 @@ FLOAT, NEW_WINDOW
 ```
 
 `BEFORE` and `AFTER` use `DockRequest.targetContent` as the relative tab target in the target group;
-missing, foreign-group, and self targets are rejected with `dock.target.missing`.
+missing, foreign-group, and self targets are rejected with `dock.target.missing`. `FLOAT` uses the
+shell's default floating-window options; `NEW_WINDOW` remains unsupported until its distinct
+semantics are defined.
 
 ### 7.3 Hosts
 

@@ -291,13 +291,58 @@ public class WindowManagerTest {
                 assertEquals(edgeResult.group(), manager.groupOf(content.id()).orElseThrow());
 
                 DockRequest unsupported = new DockRequest(content.id(), null, null,
-                        main.groupId(), DockPlacement.FLOAT, TransferMode.MOVE, Set.of());
+                        main.groupId(), DockPlacement.NEW_WINDOW, TransferMode.MOVE, Set.of());
                 assertTrue(!manager.canDock(unsupported).allowed());
             } finally {
                 for (javafx.scene.control.TabPane pane : new java.util.ArrayList<>(NbfxTabPane.panesByRole())) {
                     if (pane instanceof NbfxTabPane nbfx && nbfx.role() == PaneRole.DOCKED) {
                         NbfxTabPane.unregister(pane);
                     }
+                }
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void dockRequestFloatsContentAndHonorsPolicy() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            DefaultWindowManager manager = null;
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                Docking.create(new WindowComposition(List.of(), null), panes);
+                manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("dock.float", "Float"));
+                contentManager.open(content);
+                Tab tab = new Tab("Float");
+                NbfxTabPane.setViewId(tab, "dock.float");
+                NbfxTabPane.attachTab(main, tab);
+
+                DockRequest request = new DockRequest(content.id(), main.groupId(), null,
+                        null, DockPlacement.FLOAT, TransferMode.MOVE, Set.of());
+                assertTrue(manager.canDock(request).allowed());
+                DockResult result = manager.dock(request);
+                assertTrue(result.decision().allowed());
+                assertEquals(DockPlacement.FLOAT, result.decision().placement());
+                assertEquals(result.group(), manager.groupOf(content.id()).orElseThrow());
+                assertEquals(1, manager.windows().size());
+
+                DefaultWindowManager rejecting = new DefaultWindowManager(contentManager,
+                        () -> List.of(r -> DockDecision.reject("dock.policy.denied")));
+                assertTrue(!rejecting.canDock(request).allowed());
+                assertTrue(!rejecting.dock(request).decision().allowed());
+                assertEquals(1, manager.windows().size());
+            } finally {
+                if (manager != null) {
+                    manager.windows().forEach(DockWindow::close);
                 }
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);

@@ -169,6 +169,13 @@ final class DefaultWindowManager implements WindowManager {
             return DockResult.rejected(DockDecision.reject("dock.content.missing"));
         }
         DockPlacement placement = decision.placement();
+        if (placement == DockPlacement.FLOAT) {
+            floatContent(request.content(), defaultFloatingOptions());
+            DockGroupId group = groupOf(request.content()).orElse(null);
+            return group == null
+                    ? DockResult.rejected(DockDecision.reject("dock.content.missing"))
+                    : DockResult.accepted(decision, group);
+        }
         if (isGroupPlacement(placement)) {
             DockGroupId target = resolveTargetGroup(request);
             TabPane pane = paneForGroup(target);
@@ -415,6 +422,11 @@ final class DefaultWindowManager implements WindowManager {
         return window;
     }
 
+    private static WindowOptions defaultFloatingOptions() {
+        return new WindowOptions(WindowKind.FLOATING, null, null, null, null,
+                false, 600, 400, true, false, null);
+    }
+
     private static WindowOptions requireFloatingOptions(WindowOptions options) {
         Objects.requireNonNull(options, "options");
         if (options.kind() != WindowKind.FLOATING) {
@@ -460,6 +472,10 @@ final class DefaultWindowManager implements WindowManager {
     }
 
     private DockDecision validatePlacement(DockRequest request, DockPlacement placement) {
+        if (placement == DockPlacement.FLOAT) {
+            return findTab(request.content()).isEmpty()
+                    ? DockDecision.reject("dock.content.missing") : null;
+        }
         if (isGroupPlacement(placement)) {
             DockGroupId target = resolveTargetGroup(request);
             TabPane pane = paneForGroup(target);

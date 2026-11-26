@@ -273,6 +273,10 @@ api.plugins (T1)        → api.layer, api.resources
   and view/geometry snapshots. `windows()` currently enumerates live floating windows; main/custom
   enumeration remains for C3-3. Plain hide is separated from close cleanup so hidden windows keep
   their content and remain redockable.
+- C3-2l routes `DockPlacement.FLOAT` through `WindowManager.canDock/dock` using default floating
+  options and returns the resulting floating group. Structural validation requires docked content;
+  policies still run and may reject/refine. `NEW_WINDOW` remains unsupported until its distinct
+  window semantics are defined.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler
