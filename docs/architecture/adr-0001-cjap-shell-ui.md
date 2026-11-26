@@ -230,8 +230,9 @@ api.plugins (T1)        → api.layer, api.resources
 - C3-2c adds `DockPolicy` in `api.shell`; `DefaultWindowManager.canDock` consults registered
   policies after structural validation. The first rejection wins; an allowing policy may refine
   the effective decision. Policy discovery currently uses `Lookup.getDefault()` through the
-  manager's default constructor; richer composition/predicates and `api.docking` placement remain
-  follow-ups.
+  manager's default constructor. `DockPolicy.allOf`/`anyOf` provide deterministic composition
+  (first rejection for all-of, first allowance or first rejection for any-of); richer declarative
+  predicates and `api.docking` placement remain follow-ups.
 - C3-2d extends `DefaultWindowManager.canDock`/`dock` to SPLIT_LEFT/RIGHT/TOP/BOTTOM and
   EDGE_LEFT/RIGHT/TOP/BOTTOM via `DockArea.split`/`relocate`. Single-tab sources in the area are
   relocated for edge moves or splits beside a different pane; splitting a pane relative to itself

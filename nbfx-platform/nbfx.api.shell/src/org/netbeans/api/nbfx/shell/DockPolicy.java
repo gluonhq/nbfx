@@ -18,6 +18,9 @@
  */
 package org.netbeans.api.nbfx.shell;
 
+import java.util.List;
+import java.util.Objects;
+
 /**
  * Evaluates a docking request. Policies are consulted by {@link WindowManager#canDock(DockRequest)};
  * the first rejection wins.
@@ -34,4 +37,56 @@ public interface DockPolicy {
      * @return the decision, never {@code null}
      */
     DockDecision evaluate(DockRequest request);
+
+    /**
+     * Combines policies so every policy must allow the request. The first rejection wins; allowing
+     * decisions may refine the placement, and the last allowing decision is returned.
+     *
+     * @param policies the policies in evaluation order
+     * @return the composed policy
+     * @since 1.10
+     */
+    static DockPolicy allOf(DockPolicy... policies) {
+        List<DockPolicy> copy = List.of(Objects.requireNonNull(policies, "policies"));
+        copy.forEach(Objects::requireNonNull);
+        return request -> {
+            DockDecision decision = DockDecision.allow(request.placement());
+            for (DockPolicy policy : copy) {
+                DockDecision next = Objects.requireNonNull(policy.evaluate(request), "policy decision");
+                if (!next.allowed()) {
+                    return next;
+                }
+                decision = next;
+            }
+            return decision;
+        };
+    }
+
+    /**
+     * Combines policies so the first policy that allows the request wins. If all reject, the first
+     * rejection is returned.
+     *
+     * @param policies the policies in evaluation order
+     * @return the composed policy
+     * @since 1.10
+     */
+    static DockPolicy anyOf(DockPolicy... policies) {
+        List<DockPolicy> copy = List.of(Objects.requireNonNull(policies, "policies"));
+        copy.forEach(Objects::requireNonNull);
+        return request -> {
+            DockDecision firstRejection = null;
+            for (DockPolicy policy : copy) {
+                DockDecision decision = Objects.requireNonNull(policy.evaluate(request), "policy decision");
+                if (decision.allowed()) {
+                    return decision;
+                }
+                if (firstRejection == null) {
+                    firstRejection = decision;
+                }
+            }
+            return firstRejection == null
+                    ? DockDecision.reject("dock.policy.none")
+                    : firstRejection;
+        };
+    }
 }

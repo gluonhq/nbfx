@@ -259,6 +259,20 @@
             <class package="org.netbeans.api.nbfx.shell" name="DockPolicy"/>
             <class package="org.netbeans.api.nbfx.shell" name="WindowManager"/>
         </change>
+        <change id="cjap.shell.dock-policy-composition">
+            <api name="netbeansfx_shell"/>
+            <summary>Composable DockPolicy all-of and any-of policies.</summary>
+            <version major="1" minor="10"/>
+            <date day="26" month="11" year="2026"/>
+            <author login="svenreimers"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>DockPolicy.allOf</code> and <code>DockPolicy.anyOf</code>. All-of keeps
+                the first rejection and lets allowing policies refine the placement; any-of returns
+                the first allowance or, when every policy rejects, the first rejection.
+            </description>
+            <class package="org.netbeans.api.nbfx.shell" name="DockPolicy"/>
+        </change>
     </changes>
     <htmlcontents>
         <head>
