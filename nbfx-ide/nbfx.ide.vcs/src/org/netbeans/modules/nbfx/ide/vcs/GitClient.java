@@ -18,28 +18,30 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
-import java.io.BufferedReader;
+import java.nio.file.Files;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 /**
  * A thin client over the {@code git} command line: repository detection, branch, status and commit.
- * Runs the command in {@code dir} and captures its merged output.
+ * Runs the command in {@code dir} and captures its output apart from what it says beside it - the
+ * warnings of a hook, a helper or the configuration - which is no part of what is read.
  *
  * @since 1.0
  */
 final class GitClient {
 
-    /** One changed file: a human-readable status and its path. */
-    record Change(String status, String path) {
-    }
-
-    /** The exit code and merged output of a git command. */
+    /**
+     * The exit code of a git command and what it wrote: its standard output when it succeeded, and
+     * what it said of its failure - its standard error, or its output when that is empty - when not.
+     */
     record Result(int exitCode, String output) {
     }
 
@@ -60,43 +62,75 @@ final class GitClient {
         return result.exitCode() == 0 ? result.output().trim() : "";
     }
 
-    static List<Change> status(Path root) throws IOException {
-        Result result = result(root, "status", "--porcelain");
+    /**
+     * The changed files in {@code dir} and under it, with the index and the working tree told apart, so
+     * that one read serves every {@link org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode}. Their
+     * paths are relative to the repository root, whatever {@code dir} is. Untracked files are listed
+     * one by one, not by folder.
+     */
+    static VcsStatus status(Path dir) throws IOException {
+        Result result = result(dir, "status", "--porcelain=v2", "-z", "--untracked-files=all", "--", ".");
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }
-        List<Change> changes = new ArrayList<>();
-        for (String line : result.output().split("\n")) {
-            if (line.length() < 4) {
-                continue;
-            }
-            changes.add(new Change(describe(line.substring(0, 2)), line.substring(3).trim()));
+        try {
+            return GitStatusParser.parse(result.output());
+        } catch (IllegalArgumentException ex) {
+            throw new IOException(ex.getMessage(), ex);
         }
-        return changes;
     }
 
-    static Result addAll(Path root) {
-        return result(root, "add", "-A");
+    /** Stages every change in {@code dir} and under it. */
+    static Result addAll(Path dir) {
+        return result(dir, "add", "-A", "--", ".");
     }
 
-    static Result commit(Path root, String message) {
-        return result(root, "commit", "-m", message);
+    /**
+     * Commits what is staged. In a folder below the repository root only the changes in that folder
+     * are committed, as NetBeans commits a project that shares its repository with others. At the
+     * root it is a plain commit, and so it is while merging, wherever {@code dir} is: git concludes
+     * a merge as a whole or not at all, and refuses the commit of a part of it.
+     */
+    static Result commit(Path dir, String message) {
+        return isRoot(dir) || isMerging(dir) ? result(dir, "commit", "-m", message)
+                : result(dir, "commit", "-m", message, "--", ".");
+    }
+
+    /** Whether a merge was started in the repository of {@code dir} and is not yet committed. */
+    static boolean isMerging(Path dir) {
+        return result(dir, "rev-parse", "--quiet", "--verify", "MERGE_HEAD").exitCode() == 0;
+    }
+
+    private static boolean isRoot(Path dir) {
+        try {
+            return Files.isSameFile(dir, rootOf(dir));
+        } catch (IOException ex) {
+            return false;
+        }
     }
 
     private static Result result(Path dir, String... args) {
+        return result(dir, Map.of(), args);
+    }
+
+    /** As {@link #result(Path, String...)}, with {@code environment} added to that of the command. */
+    static Result result(Path dir, Map<String, String> environment, String... args) {
         List<String> command = new ArrayList<>(args.length + 3);
         command.add("git");
         command.add("-C");
         command.add(dir.toString());
         command.addAll(List.of(args));
         try {
-            Process process = new ProcessBuilder(command).redirectErrorStream(true).start();
-            String output;
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                output = reader.lines().collect(Collectors.joining("\n"));
-            }
-            return new Result(process.waitFor(), output);
+            ProcessBuilder builder = new ProcessBuilder(command);
+            builder.environment().putAll(environment);
+            Process process = builder.start();
+            // Read while the output is: a command that fills one stream waits for it to be read.
+            CompletableFuture<String> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
+            // Read as is: the status records end with a NUL and their paths may hold any other character.
+            String output = read(process.getInputStream());
+            int exitCode = process.waitFor();
+            String said = error.join();
+            return new Result(exitCode, exitCode == 0 || said.isBlank() ? output : said);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return new Result(1, "Interrupted");
@@ -105,31 +139,11 @@ final class GitClient {
         }
     }
 
-    /** A human-readable description of a two-character porcelain status. */
-    private static String describe(String code) {
-        if (code.equals("??")) {
-            return "Untracked";
+    private static String read(InputStream stream) {
+        try (InputStream in = stream) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            return "";
         }
-        if (code.equals("!!")) {
-            return "Ignored";
-        }
-        String index = describeOne(code.charAt(0));
-        String worktree = describeOne(code.charAt(1));
-        if (index.isEmpty()) {
-            return worktree.isEmpty() ? code.trim() : worktree;
-        }
-        return worktree.isEmpty() ? index : index + ", " + worktree;
-    }
-
-    private static String describeOne(char status) {
-        return switch (status) {
-            case 'A' -> "Added";
-            case 'M' -> "Modified";
-            case 'D' -> "Deleted";
-            case 'R' -> "Renamed";
-            case 'C' -> "Copied";
-            case 'U' -> "Conflicted";
-            default -> "";
-        };
     }
 }
