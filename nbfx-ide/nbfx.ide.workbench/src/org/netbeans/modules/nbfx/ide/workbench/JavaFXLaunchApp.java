@@ -156,8 +156,7 @@ public class JavaFXLaunchApp extends ShellApplication {
                         this::clearRecentProjects, this::projectIcon),
                 new OpenProjectsMenuFactory(projectRegistry, projectSwitcher, this::projectIcon),
                 new NavigatorPaneProvider(getSessionRestorer(),
-                        providers == null ? List.of() : providers, this::setNavigatorPane,
-                        windowManager())),
+                        providers == null ? List.of() : providers, this::setNavigatorPane)),
                 super.shellLookup());
     }
 
@@ -315,7 +314,7 @@ public class JavaFXLaunchApp extends ShellApplication {
      */
     @Override
     protected Tab viewTabFor(String viewId) {
-        return windowManager().findViewTab(viewId).orElseGet(() -> {
+        return NbfxTabPane.findViewTab(viewId).orElseGet(() -> {
             for (NavigatorView provider : providers) {
                 if (provider.getId().equals(viewId)) {
                     return createNavigatorTab(provider);
@@ -396,10 +395,10 @@ public class JavaFXLaunchApp extends ShellApplication {
         if (providerId == null) {
             return;
         }
-        for (WindowPaneHost pane : windowManager().panes()) {
-            for (Tab tab : pane.pane().getTabs()) {
-                if (providerId.equals(windowManager().viewId(tab))) {
-                    windowManager().select(tab);
+        for (TabPane pane : NbfxTabPane.tabPanes()) {
+            for (Tab tab : pane.getTabs()) {
+                if (providerId.equals(NbfxTabPane.viewId(tab))) {
+                    NbfxTabPane.selectTabAndMoveToFront(tab);
                     Node content = tab.getContent();
                     if (focusTree && content != null) {
                         Platform.runLater(content::requestFocus);
@@ -415,7 +414,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     private void reopenNavigatorTab(String providerId) {
         Tab tab = viewTabFor(providerId);
         if (tab != null) {
-            windowManager().attach(navigatorPane, tab);
+            NbfxTabPane.attachTab(navigatorPane, tab);
             navigatorPane.getSelectionModel().select(tab);
         }
     }
@@ -651,7 +650,7 @@ public class JavaFXLaunchApp extends ShellApplication {
     }
 
     private TabPane homeOfView(Tab tab, ViewCatalog catalog) {
-        String id = windowManager().viewId(tab);
+        String id = NbfxTabPane.viewId(tab);
         if (id == null) {
             return navigatorPane;
         }
@@ -1165,7 +1164,7 @@ public class JavaFXLaunchApp extends ShellApplication {
             return null;
         }
         Tab selected = navigatorPane == null ? null : navigatorPane.getSelectionModel().getSelectedItem();
-        String id = selected == null ? null : windowManager().viewId(selected);
+        String id = selected == null ? null : NbfxTabPane.viewId(selected);
         if (id != null) {
             for (NavigatorView provider : list) {
                 if (id.equals(provider.getId())) {

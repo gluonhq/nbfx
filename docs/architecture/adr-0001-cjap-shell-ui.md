@@ -217,6 +217,10 @@ api.plugins (T1)        → api.layer, api.resources
   internal `EditorContent` adapter. A close without an open content falls back to the view's own
   `viewClosed()` or to editor context unregister. Editor split-clone cleanup stays tab-owned;
   extracting the manager into a `ShellRuntime` and programmatic tab-close via manager follow.
+- Product navigator integration uses `NbfxTabPane` view-tab helpers for view-specific tab
+  lookup/attach/select operations; it must not call removed tab/pane methods on `WindowManager`.
+  This keeps the public manager content/group-based and prevents product build/load regressions
+  such as the missing Projects view.
 - C3-2a evolves `WindowManager` to the CJAP content/group identity surface (`groups`,
   `primary(PaneRole)`, `groupOf`, `select`, `move`, `attach` on `ContentId`/`DockGroupId`) and
   removes tab/pane handle operations from the public API. NbfxTabPane carries a stable group id;

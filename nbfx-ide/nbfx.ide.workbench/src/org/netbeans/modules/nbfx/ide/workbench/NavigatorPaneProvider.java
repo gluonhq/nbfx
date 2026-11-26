@@ -19,7 +19,6 @@
 package org.netbeans.modules.nbfx.ide.workbench;
 
 import org.netbeans.api.nbfx.shell.PaneRole;
-import org.netbeans.api.nbfx.shell.WindowManager;
 import org.netbeans.api.nbfx.shell.WindowPaneHost;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -47,16 +46,13 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
     private final SessionRestorer sessionRestorer;
     private final List<NavigatorView> providers;
     private final Consumer<NbfxTabPane> paneSink;
-    private final WindowManager windowManager;
 
     NavigatorPaneProvider(SessionRestorer sessionRestorer,
             Collection<? extends NavigatorView> providers,
-            Consumer<NbfxTabPane> paneSink,
-            WindowManager windowManager) {
+            Consumer<NbfxTabPane> paneSink) {
         this.sessionRestorer = sessionRestorer;
         this.providers = List.copyOf(providers);
         this.paneSink = paneSink;
-        this.windowManager = windowManager;
     }
 
     @Override
@@ -84,13 +80,13 @@ final class NavigatorPaneProvider implements WindowPaneProvider {
             // empty order means the user closed them all, and docking them here would flash them into
             // the pane until the project's own layout removed them again.
             if (layout.isEmpty() || order.contains(provider.getId())) {
-                windowManager.attach(navigator, createTab(provider, providers));
+                NbfxTabPane.attachTab(navigator, createTab(provider, providers));
             }
         }
         String selected = navigatorSelectedOf(layout);
         if (selected != null) {
             for (Tab tab : navigator.getTabs()) {
-                if (selected.equals(windowManager.viewId(tab))) {
+                if (selected.equals(NbfxTabPane.viewId(tab))) {
                     navigator.getSelectionModel().select(tab);
                     break;
                 }
