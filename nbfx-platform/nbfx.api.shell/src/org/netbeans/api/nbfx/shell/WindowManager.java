@@ -135,10 +135,10 @@ public interface WindowManager {
     DockResult redock(DockWindow window, DockRequest request);
 
     /**
-     * Every live floating window managed by this manager. Main/custom window enumeration follows
-     * with the multi-window runtime.
+     * Every live window managed by this manager, main window first followed by floating windows.
+     * Custom product windows are enumerated when the multi-window runtime is installed.
      *
-     * @return the floating windows, never {@code null}
+     * @return the windows, never {@code null}
      * @since 1.12
      */
     List<DockWindow> windows();

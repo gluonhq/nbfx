@@ -22,9 +22,11 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import javafx.geometry.Side;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.layout.Pane;
+import javafx.stage.Stage;
 import org.junit.Test;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +36,7 @@ import org.netbeans.api.nbfx.content.TransferMode;
 import org.netbeans.api.nbfx.layout.DockGroupId;
 import org.netbeans.api.nbfx.layout.LayoutNode;
 import org.netbeans.api.nbfx.resources.ResourceRef;
+import org.netbeans.api.nbfx.shell.AreaState;
 import org.netbeans.api.nbfx.shell.DockDecision;
 import org.netbeans.api.nbfx.shell.DockWindow;
 import org.netbeans.api.nbfx.shell.DockRequest;
@@ -450,6 +453,69 @@ public class WindowManagerTest {
                     // as documented
                 }
             } finally {
+                NbfxTabPane.unregister(main);
+                NbfxTabPane.unregister(other);
+                disposeDocking();
+            }
+            return null;
+        });
+    }
+
+    @Test
+    public void windowsEnumeratesMainBeforeFloating() throws InterruptedException {
+        JavaFxTestSupport.onFx(() -> {
+            NbfxTabPane main = new NbfxTabPane(PaneRole.MAIN);
+            NbfxTabPane other = new NbfxTabPane(PaneRole.NAVIGATOR);
+            DefaultContentManager contentManager = new DefaultContentManager();
+            DefaultWindowManager manager = null;
+            Stage stage = null;
+            try {
+                java.util.Map<String, NbfxTabPane> panes = new java.util.LinkedHashMap<>();
+                panes.put(PaneRole.MAIN.name(), main);
+                panes.put(PaneRole.NAVIGATOR.name(), other);
+                org.netbeans.modules.nbfx.platform.workspace.DockArea<TabPane> area =
+                        Docking.create(new WindowComposition(List.of(), null), panes);
+                SlidingArea slides = Docking.runtime().slides();
+                stage = new Stage();
+                stage.setScene(new Scene(slides, 800, 600));
+                stage.show();
+                manager = new DefaultWindowManager(contentManager);
+                ViewContent content = new ViewContent(new FakeView("main.window", "Main"));
+                contentManager.open(content);
+                Tab tab = new Tab("Main");
+                NbfxTabPane.setViewId(tab, "main.window");
+                NbfxTabPane.attachTab(main, tab);
+
+                List<DockWindow> initial = manager.windows();
+                assertEquals(1, initial.size());
+                DockWindow mainWindow = initial.getFirst();
+                assertEquals(WindowKind.MAIN, mainWindow.kind());
+                assertEquals("nbfx:window.main", mainWindow.id().value());
+                assertSame(stage, mainWindow.window());
+                assertSame(slides, mainWindow.content().root());
+                assertTrue(mainWindow.layout() instanceof LayoutNode.Split);
+                assertEquals(2, mainWindow.state().areas().size());
+                assertTrue(mainWindow.state().areas().stream().noneMatch(AreaState::detached));
+
+                DockWindow floating = manager.floatContent(content.id(), floatingOptions());
+                List<DockWindow> all = manager.windows();
+                assertEquals(2, all.size());
+                assertSame(mainWindow, all.getFirst());
+                assertSame(floating, all.get(1));
+                mainWindow.hide();
+                assertFalse(stage.isShowing());
+                assertEquals(2, manager.windows().size());
+                mainWindow.show();
+                assertTrue(stage.isShowing());
+            } finally {
+                if (manager != null) {
+                    manager.windows().stream()
+                            .filter(window -> window.kind() == WindowKind.FLOATING)
+                            .forEach(DockWindow::close);
+                }
+                if (stage != null) {
+                    stage.close();
+                }
                 NbfxTabPane.unregister(main);
                 NbfxTabPane.unregister(other);
                 disposeDocking();

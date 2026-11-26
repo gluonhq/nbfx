@@ -726,8 +726,8 @@ public interface WindowManager {
 }
 ```
 
-Public operations use content/group handles. The current runtime enumerates live floating windows;
-main/custom window enumeration is completed with the multi-window slice. `Tab` and `WindowPaneHost` are not target API types.
+Public operations use content/group handles. The current runtime enumerates the main window first,
+then live floating windows; custom product windows are added with the multi-window slice. `Tab` and `WindowPaneHost` are not target API types.
 
 ## 8. Windows and chrome profiles
 

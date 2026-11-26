@@ -281,6 +281,10 @@ api.plugins (T1)        → api.layer, api.resources
   the non-initializing rendering classloader; a module-system lookup was rejected because it can
   start module installation on the FX thread. Missing/invalid resources log and keep the default
   icon instead of preventing the window from opening.
+- C3-2n adds a main-window `DockWindow` adapter and makes `WindowManager.windows()` return the main
+  window first, then floating windows. The adapter converts the live `DockTree` into `LayoutNode`
+  groups using the now-unique physical group ids, exposes the active component lookup, and snapshots
+  per-pane view tabs plus main geometry. Custom product windows remain for the multi-window slice.
 - C4-3c adds `DropRouter` in `platform.content` as the first routing/discovery primitive:
   handlers are discovered from `Lookup.getDefault()` and the `NbFx/DropHandlers` layer path;
   `resolve(...)` tries caller-supplied targets in priority order, returning the first handler

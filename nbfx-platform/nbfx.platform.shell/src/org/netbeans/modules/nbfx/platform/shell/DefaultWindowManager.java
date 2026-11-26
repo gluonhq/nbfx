@@ -68,6 +68,7 @@ final class DefaultWindowManager implements WindowManager {
     private final ContentManager contentManager;
     private final Supplier<Collection<? extends DockPolicy>> policies;
     private final Map<NbfxTabPane, FloatingWindow> floating = new LinkedHashMap<>();
+    private MainDockWindow mainWindow;
 
     DefaultWindowManager(ContentManager contentManager) {
         this(contentManager, () -> Lookup.getDefault().lookupAll(DockPolicy.class));
@@ -393,6 +394,17 @@ final class DefaultWindowManager implements WindowManager {
     @Override
     public List<DockWindow> windows() {
         List<DockWindow> result = new ArrayList<>();
+        DockArea<TabPane> area = Docking.area();
+        if (area != null && area.getScene() != null && area.getScene().getWindow() instanceof Stage stage) {
+            SlidingArea slides = Docking.runtime().slides();
+            if (mainWindow == null || mainWindow.root() != slides
+                    || mainWindow.area() != area || mainWindow.stage() != stage) {
+                mainWindow = new MainDockWindow(slides, area, stage);
+            }
+            result.add(mainWindow);
+        } else {
+            mainWindow = null;
+        }
         for (FloatingWindow window : List.copyOf(floating.values())) {
             if (NbfxTabPane.tabPanes().contains(window.pane())) {
                 result.add(window);
