@@ -397,7 +397,9 @@ public final class SessionRestorer {
         Set<String> opened = new LinkedHashSet<>();
         for (PaneLayout pane : layout.panes()) {
             for (TabEntry tab : pane.tabs()) {
-                if (tab.kind() == TabKind.DOCUMENT && opened.add(TabKind.DOCUMENT + tab.id())) {
+                if (tab.kind() == TabKind.DOCUMENT) {
+                    // Asked for once for each tab there was, as an editor is cloned for each: whether
+                    // two tabs of the same are two documents or one is for who restores them to say.
                     restoreDocument(tab);
                 }
                 if (tab.kind() != TabKind.EDITOR || !opened.add(tab.id())) {

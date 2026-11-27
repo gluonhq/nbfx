@@ -25,7 +25,6 @@ import java.util.Objects;
  *
  * @param left the text compared from, shown on the left
  * @param right the text compared to, shown on the right
- * @since 1.1
  */
 public record DiffPair(DiffSource left, DiffSource right) {
 

@@ -473,7 +473,6 @@ final class GitStatusPane extends BorderPane {
         return item;
     }
 
-    /** Opens the file in the editor; a deleted file has nothing to open. */
     /**
      * What a double click or Enter on {@code row} does, as in NetBeans' Versioning window: shows
      * what changed in the file - its diff - where one is offered, and else opens the file.
@@ -488,6 +487,7 @@ final class GitStatusPane extends BorderPane {
         }
     }
 
+    /** Opens the file in the editor; a deleted file has nothing to open. */
     private void open(StatusRow.File row) {
         FileObject file = fileObject(row);
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);

@@ -30,7 +30,6 @@ import javafx.scene.Node;
  * @param title what the toggle is for, shown as its tooltip
  * @param icon makes the graphic of the toggle, a fresh node each time; called on the JavaFX
  *        Application Thread
- * @since 1.1
  */
 public record DiffMode(String id, String title, Supplier<Node> icon) {
 

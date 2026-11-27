@@ -23,9 +23,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
 import javafx.scene.Node;
@@ -204,33 +205,45 @@ final class GitDiff {
     }
 
     /** What the diff tab of one file, or of a folder, of a repository shows. */
-    private static final class Provider implements DiffProvider {
-
-        private static final List<String> ICONS = List.of(GitIcons.HEAD_VS_WORKING_TREE, GitIcons.HEAD_VS_INDEX,
-                GitIcons.INDEX_VS_WORKING_TREE);
+    static final class Provider implements DiffProvider {
 
         private final Path root;
         private final String scope;
         private final boolean single;
-        private final List<DiffMode> modes = new ArrayList<>();
+        /** The ways to compare, by what they compare, in the order they are offered in. */
+        private final Map<VcsCompareMode, DiffMode> modes = new EnumMap<>(VcsCompareMode.class);
 
         Provider(Path root, String scope, boolean single) {
             this.root = root;
             this.scope = scope;
             this.single = single;
             for (VcsCompareMode mode : VcsCompareMode.values()) {
-                String icon = ICONS.get(mode.ordinal());
-                modes.add(new DiffMode(mode.name(), message("Git.mode." + mode.name()), () -> GitIcons.view(icon)));
+                String icon = modeIcon(mode);
+                modes.put(mode, new DiffMode(mode.name(), message("Git.mode." + mode.name()), () -> GitIcons.view(icon)));
             }
         }
 
+        private static String modeIcon(VcsCompareMode mode) {
+            return switch (mode) {
+                case HEAD_VS_WORKING_TREE -> GitIcons.HEAD_VS_WORKING_TREE;
+                case HEAD_VS_INDEX -> GitIcons.HEAD_VS_INDEX;
+                case INDEX_VS_WORKING_TREE -> GitIcons.INDEX_VS_WORKING_TREE;
+            };
+        }
+
         DiffMode mode(VcsCompareMode mode) {
-            return modes.get(mode.ordinal());
+            return modes.get(mode);
         }
 
         @Override
         public List<DiffMode> modes() {
-            return List.copyOf(modes);
+            return List.copyOf(modes.values());
+        }
+
+        /** The mode the user chose is the one the next diff opened from a menu compares as. */
+        @Override
+        public void modeChosen(DiffMode chosen) {
+            NbPreferences.forModule(GitDiff.class).put(KEY_MODE, chosen.id());
         }
 
         @Override
@@ -242,8 +255,6 @@ final class GitDiff {
         @Override
         public List<DiffEntry> entries(DiffMode chosen) throws IOException {
             VcsCompareMode mode = VcsCompareMode.valueOf(chosen.id());
-            // Asked for as the diff opens, as a mode is chosen and on Refresh: the mode in use.
-            NbPreferences.forModule(GitDiff.class).put(KEY_MODE, mode.name());
             VcsStatus status = GitClient.status(root);
             if (single) {
                 // The file asked for, changed in this mode or not: the same on both sides then.

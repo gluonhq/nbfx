@@ -84,4 +84,43 @@ public class GitDiffTest {
     private static List<String> paths(String scope, VcsCompareMode mode) {
         return GitDiff.changedWithin(STATUS, scope, mode).stream().map(VcsFileStatus::path).toList();
     }
+
+    @Test
+    public void theModeOfTheNextDiffIsTheOneTheUserChoseNotTheOneADiffWasOpenedIn() throws Exception {
+        java.util.prefs.Preferences preferences = org.openide.util.NbPreferences.forModule(GitDiff.class);
+        String before = preferences.get("diff.mode", null);
+        try {
+            preferences.remove("diff.mode");
+            assertEquals(VcsCompareMode.HEAD_VS_WORKING_TREE, GitDiff.lastMode());
+            java.nio.file.Path folder = java.nio.file.Files.createTempDirectory("nbfx-diff-mode");
+            try {
+                GitDiff.Provider provider = new GitDiff.Provider(folder, "a.txt", true);
+                // The three ways to compare, in their order, each told by what it compares.
+                assertEquals(java.util.List.of("HEAD_VS_WORKING_TREE", "HEAD_VS_INDEX", "INDEX_VS_WORKING_TREE"),
+                        provider.modes().stream().map(org.netbeans.modules.nbfx.ide.diff.DiffMode::id).toList());
+                assertEquals("HEAD_VS_INDEX", provider.mode(VcsCompareMode.HEAD_VS_INDEX).id());
+
+                // Listing in a mode - as a diff opened in it, compared again or restored does -
+                // leaves the mode of the next diff alone, whether it can be listed or not.
+                try {
+                    provider.entries(provider.mode(VcsCompareMode.INDEX_VS_WORKING_TREE));
+                } catch (java.io.IOException noRepository) {
+                    // Not what is tested here.
+                }
+                assertEquals(VcsCompareMode.HEAD_VS_WORKING_TREE, GitDiff.lastMode());
+
+                // The user's choice of one is kept.
+                provider.modeChosen(provider.mode(VcsCompareMode.HEAD_VS_INDEX));
+                assertEquals(VcsCompareMode.HEAD_VS_INDEX, GitDiff.lastMode());
+            } finally {
+                java.nio.file.Files.delete(folder);
+            }
+        } finally {
+            if (before == null) {
+                preferences.remove("diff.mode");
+            } else {
+                preferences.put("diff.mode", before);
+            }
+        }
+    }
 }

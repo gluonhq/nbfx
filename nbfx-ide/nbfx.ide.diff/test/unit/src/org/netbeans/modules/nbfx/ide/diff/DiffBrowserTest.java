@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.ide.diff;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
 import org.junit.Test;
 import org.netbeans.api.nbfx.editor.SavedDocument;
@@ -29,6 +30,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -47,9 +49,27 @@ public class DiffBrowserTest {
         volatile boolean listed = true;
         volatile boolean empty;
         volatile String secondText = "a\nx\nc\ny\n";
+        /** The modes the user chose, as the provider was told; and whether it was let go of. */
+        final List<String> chosen = new CopyOnWriteArrayList<>();
+        volatile int disposed;
+        /** Whether the provider fails at what it is asked on the FX thread. */
+        volatile boolean failing;
+
+        @Override
+        public void modeChosen(DiffMode mode) {
+            chosen.add(mode.id());
+        }
+
+        @Override
+        public void dispose() {
+            disposed++;
+        }
 
         @Override
         public List<DiffMode> modes() {
+            if (failing) {
+                throw new IllegalStateException("no modes");
+            }
             return List.of(ALL, STAGED);
         }
 
@@ -60,6 +80,9 @@ public class DiffBrowserTest {
 
         @Override
         public SavedDocument savedState(DiffMode mode) {
+            if (failing) {
+                throw new IllegalStateException("no state");
+            }
             return new SavedDocument("test-diff", mode.id());
         }
 
@@ -208,6 +231,119 @@ public class DiffBrowserTest {
     }
 
     @Test
+    public void aDiffAskedForAgainComparesInTheWayAskedForAndOnlyTheUsersChoiceIsKept() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+
+        // Asked for again in another way, by a provider made anew: its mode is told by its id.
+        JavaFxTestSupport.onFx(() -> browser.show(new DiffMode("staged", "Staged", Region::new)));
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(STAGED, browser.mode());
+            assertTrue(browser.modeToggles().get(1).isSelected());
+            assertEquals(1, browser.entries().size());
+        });
+        // Not the user's choice: nothing for the provider to keep.
+        assertEquals(List.of(), files.chosen);
+
+        // In the same way, or in none, or one it does not have: compared again as it is.
+        JavaFxTestSupport.onFx(() -> browser.show(STAGED));
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.show(null));
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.show(new DiffMode("other", "Other", Region::new)));
+        await(browser);
+        assertEquals(STAGED, JavaFxTestSupport.onFx(browser::mode));
+        assertEquals(List.of("all", "staged", "staged", "staged", "staged"), files.asked);
+        assertEquals(List.of(), files.chosen);
+
+        // The toggle, which is the user's: told to the provider.
+        JavaFxTestSupport.onFx(() -> browser.modeToggles().get(0).fire());
+        await(browser);
+        assertEquals(List.of("all"), files.chosen);
+    }
+
+    @Test
+    public void theSameFileComparedAgainKeepsItsDiffAndAnotherOneGivesWayAtOnce() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        await(browser);
+        DiffPane shown = JavaFxTestSupport.onFx(browser::pane);
+        assertEquals("2 differences", JavaFxTestSupport.onFx(browser::summary));
+
+        // Refresh with the file changed: the diff that is there takes the new texts.
+        files.secondText = "a\nb\nc\nD\n";
+        JavaFxTestSupport.onFx(() -> {
+            browser.refreshButton().fire();
+            assertSame(shown, browser.pane());
+        });
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertSame(shown, browser.pane());
+            assertEquals("1 difference", browser.summary());
+        });
+
+        // Another file chosen: the diff shown gives way at once, to the word that one is coming.
+        JavaFxTestSupport.onFx(() -> {
+            browser.select(0);
+            assertNull(browser.pane());
+            assertEquals("Comparing...", browser.placeholderText());
+        });
+        await(browser);
+        assertEquals("1 difference", JavaFxTestSupport.onFx(browser::summary));
+    }
+
+    @Test
+    public void aClosedDiffLetsGoOfItsProviderAndAsksItNothingMore() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+        int asked = files.asked.size();
+
+        JavaFxTestSupport.onFx(() -> {
+            // Asked for, and closed before it is answered.
+            browser.refresh();
+            browser.dispose();
+        });
+        Thread.sleep(300);
+
+        assertEquals(1, files.disposed);
+        assertEquals(asked, files.asked.size());
+        assertNull(JavaFxTestSupport.onFx(browser::pane));
+    }
+
+    @Test
+    public void aProviderThatFailsOnTheFxThreadIsTakenAsOneWithNothingToTell() throws Exception {
+        Files files = new Files();
+        files.failing = true;
+
+        // No modes, so none to choose; its files are listed all the same.
+        DiffBrowser browser = browser(files, null);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(browser.modeToggles().isEmpty());
+            assertNull(browser.mode());
+            // Asked as the session is kept: not restored, and nothing thrown.
+            assertNull(browser.savedState());
+        });
+    }
+
+    @Test
+    public void theBarIsReachedWithTheKeyboard() throws Exception {
+        DiffBrowser browser = browser(new Files(), ALL);
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            browser.modeToggles().forEach(toggle -> assertTrue(toggle.isFocusTraversable()));
+            assertTrue(browser.refreshButton().isFocusTraversable());
+            assertTrue(browser.previousButton().isFocusTraversable());
+        });
+    }
+
+    @Test
     public void opensInTheModeAskedFor() throws Exception {
         Files files = new Files();
         DiffBrowser browser = browser(files, STAGED);
@@ -245,7 +381,19 @@ public class DiffBrowserTest {
             assertTrue(browser.entries().isEmpty());
             assertNull(browser.pane());
             assertEquals("", browser.summary());
+            // No table for no file: one line says there is nothing, in place of both.
+            assertTrue(browser.getCenter() instanceof Label);
+            assertEquals("No changes", ((Label) browser.getCenter()).getText());
             assertFalse(browser.previousButton().isVisible() && !browser.previousButton().isDisable());
+        });
+
+        // A file to list again: the table is back.
+        files.empty = false;
+        JavaFxTestSupport.onFx(browser::refresh);
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertFalse(browser.getCenter() instanceof Label);
+            assertEquals(2, browser.entries().size());
         });
     }
 

@@ -115,7 +115,8 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
             Path folder = GitMenus.folderOf(project);
             boolean repository = folder != null && GitMenus.inWorkingTree(folder.toFile());
             showChanges.setVisible(repository);
-            diff.setVisible(repository);
+            // Shown for what choosing it would compare: the file in the context, or the project.
+            diff.setVisible(diffTarget() != null);
             git.setVisible(!repository);
         }
 

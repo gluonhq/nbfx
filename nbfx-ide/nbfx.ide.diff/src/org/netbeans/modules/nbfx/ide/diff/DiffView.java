@@ -73,8 +73,8 @@ public final class DiffView {
     /**
      * Shows the diff of what {@code provider} has in a tab titled "{@code name} [ Diff ]": the ways
      * it can compare as toggles, its files in a table when it lists them, and the two texts of the
-     * file selected. A diff open with the same {@code key} is brought to the front and refreshed,
-     * in the way to compare it is in. Must run on the JavaFX Application Thread.
+     * file selected. A diff open with the same {@code key} is brought to the front and compared
+     * again, in the way to compare asked for - or the one it is in, for {@code null}. Must run on the JavaFX Application Thread.
      *
      * @param key what the diff is of, by {@code equals}: the file or the folder
      * @param name the name in the title of the tab
@@ -90,7 +90,14 @@ public final class DiffView {
             // As the last diff was left: a list or a tree, and the columns.
             DiffSettings.attach(browser);
             return new DiffDocument(key, title(name), browser, onDispose);
-        }, open -> open.content().refresh());
+        }, open -> {
+            // Asked for again, and maybe in another way to compare: that is the one it shows.
+            if (open.content() instanceof DiffBrowser browser) {
+                browser.show(mode);
+            } else {
+                open.content().refresh();
+            }
+        });
     }
 
     /**

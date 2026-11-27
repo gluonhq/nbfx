@@ -34,7 +34,6 @@ import javafx.scene.Node;
  * @param icon makes the icon beside the name, a fresh node each time, on the JavaFX Application
  *        Thread; {@code null}, or a supplier of {@code null}, for none
  * @param loader reads the two texts
- * @since 1.1
  */
 public record DiffEntry(String name, String location, String status, Kind kind, Supplier<Node> icon,
         Loader loader) {
