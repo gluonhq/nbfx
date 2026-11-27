@@ -55,7 +55,7 @@ final class StatusTree {
         Dir root = new Dir("");
         for (VcsFileStatus file : status.files(mode)) {
             Dir dir = root;
-            String path = file.path();
+            String path = file.path(mode);
             int from = 0;
             for (int slash = path.indexOf('/'); slash >= 0; slash = path.indexOf('/', from)) {
                 String folder = path.substring(0, slash);
@@ -86,9 +86,9 @@ final class StatusTree {
     }
 
     private static Node fileNode(VcsFileStatus file, VcsCompareMode mode) {
-        String path = file.path();
+        String path = file.path(mode);
         String name = path.substring(path.lastIndexOf('/') + 1);
-        return new Node(new StatusRow.File(name, file, file.change(mode).orElseThrow()), List.of());
+        return new Node(new StatusRow.File(name, path, file, file.change(mode).orElseThrow()), List.of());
     }
 
     /** A folder while the tree is built; the files arrive in path order, so they stay sorted. */

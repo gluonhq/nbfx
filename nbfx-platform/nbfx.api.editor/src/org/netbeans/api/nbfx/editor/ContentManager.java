@@ -51,7 +51,8 @@ public interface ContentManager {
      * is open already. For documents that are not the editor of a file - a diff - which
      * {@link #openFile(FileObject, Node)} cannot make: such a document has no
      * {@link EditorDocument#getFileObject() file}, is not found by the file-based methods here, and
-     * is not reopened with the session. The default does nothing.
+     * is not reopened with the session. Must be called on the JavaFX Application Thread. The
+     * default does nothing.
      *
      * @param document the document to show
      * @param graphic the icon of its tab, or {@code null} for none

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
+import org.openide.util.NbBundle;
 
 /**
  * What the two editors of a diff view need of the differences, without a toolkit: the bands that
@@ -131,4 +132,34 @@ final class DiffLines {
         return Math.clamp(current + (forward ? 1 : -1), 0, count - 1);
     }
 
+    /** What happened to the lines of the left text, block by block, in words: "Lines 3 to 4 changed". */
+    static List<String> describeLeft(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> NbBundle.getMessage(DiffLines.class, "Diff.told.addedAfter", difference.leftStart());
+                case DELETE -> lines("Diff.told.deleted", difference.leftStart(), difference.leftCount());
+                case CHANGE -> lines("Diff.told.changed", difference.leftStart(), difference.leftCount());
+            });
+        }
+        return told;
+    }
+
+    /** What happened to the lines of the right text, block by block, in words. */
+    static List<String> describeRight(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> lines("Diff.told.added", difference.rightStart(), difference.rightCount());
+                case DELETE -> NbBundle.getMessage(DiffLines.class, "Diff.told.deletedAfter", difference.rightStart());
+                case CHANGE -> lines("Diff.told.changed", difference.rightStart(), difference.rightCount());
+            });
+        }
+        return told;
+    }
+
+    /** The message of {@code key} for {@code count} lines from {@code start}, counted from one for the reader. */
+    private static String lines(String key, int start, int count) {
+        return NbBundle.getMessage(DiffLines.class, key, start + 1, start + count, count);
+    }
 }

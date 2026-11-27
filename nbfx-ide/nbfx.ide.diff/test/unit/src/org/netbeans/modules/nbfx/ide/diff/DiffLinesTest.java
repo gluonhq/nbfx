@@ -43,6 +43,16 @@ public class DiffLinesTest {
     }
 
     @Test
+    public void theBlocksOfEachSideAreToldInWords() {
+        // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7   (told from one)
+        assertEquals(List.of("Lines 3 to 4 changed", "Lines added after line 5", "Line 7 deleted"),
+                DiffLines.describeLeft(DIFFERENCES));
+        assertEquals(List.of("Line 3 changed", "Lines 5 to 6 added", "Lines deleted after line 7"),
+                DiffLines.describeRight(DIFFERENCES));
+        assertEquals(List.of(), DiffLines.describeLeft(List.of()));
+    }
+
+    @Test
     public void sameLinesStandBesideEachOther() {
         // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7
         // Two changed lines beside one are passed at half the pace; a deleted one is passed in no time.

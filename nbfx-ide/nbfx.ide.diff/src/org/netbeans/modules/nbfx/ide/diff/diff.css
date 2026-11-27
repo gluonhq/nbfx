@@ -72,23 +72,31 @@
     -fx-stroke-width: 1;
 }
 
+/* In the colour and at the strength of the band it joins, so that the two read as one shape. */
+.diff-pane .diff-connector {
+    -fx-opacity: 0.3;
+}
+
 .diff-pane .diff-connector.diff-added {
-    -fx-fill: rgba(60, 200, 60, 0.28);
-    -fx-stroke: rgb(60, 170, 60);
+    -fx-fill: -nbfx-output-success;
+    -fx-stroke: -nbfx-output-success;
 }
 
 .diff-pane .diff-connector.diff-deleted {
-    -fx-fill: rgba(230, 70, 70, 0.26);
-    -fx-stroke: rgb(210, 70, 70);
+    -fx-fill: -nbfx-editor-text-error;
+    -fx-stroke: -nbfx-editor-text-error;
+    -fx-stroke-dash-array: 4 3;
 }
 
 .diff-pane .diff-connector.diff-changed {
-    -fx-fill: rgba(70, 130, 230, 0.26);
-    -fx-stroke: rgb(70, 130, 230);
+    -fx-fill: -nbfx-accent;
+    -fx-stroke: -nbfx-accent;
+    -fx-stroke-dash-array: 1 3;
 }
 
 .diff-pane .diff-connector.diff-current {
     -fx-stroke-width: 2;
+    -fx-opacity: 0.6;
 }
 
 /* The marks of all the blocks along the right edge. */
@@ -105,15 +113,15 @@
 }
 
 .diff-pane .diff-mark.diff-added {
-    -fx-background-color: rgb(60, 170, 60);
+    -fx-background-color: -nbfx-output-success;
 }
 
 .diff-pane .diff-mark.diff-deleted {
-    -fx-background-color: rgb(210, 70, 70);
+    -fx-background-color: -nbfx-editor-text-error;
 }
 
 .diff-pane .diff-mark.diff-changed {
-    -fx-background-color: rgb(70, 130, 230);
+    -fx-background-color: -nbfx-accent;
 }
 
 .diff-pane .diff-mark.diff-current {
@@ -122,43 +130,56 @@
 }
 
 /*
- * The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. Each is
- * ruled above and below in the colour its connector is drawn with, so that the two read as one shape.
+ * One vertical scroll bar for the two texts, that of the right one, as in NetBeans: they scroll in
+ * step, and the left one is still scrolled with the wheel and the keys. Its scroll bar is given no
+ * room rather than hidden: the editor is moved through it, and asks it whether there is anywhere
+ * to scroll to.
+ */
+.diff-pane .diff-side-left .scroll-bar:vertical {
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+/* What is said where a text would be: a side that cannot be compared. */
+.diff-pane .diff-notice {
+    -fx-text-fill: -nbfx-text-faint;
+    -fx-padding: 12;
+}
+
+/*
+ * The blocks that differ, as NetBeans colours them - added green, deleted red, changed blue - in the
+ * colours of the theme, so that they are those of a dark one too. The colour is not all that tells
+ * them apart: each kind has its own line along the top and the foot of the block - solid for added,
+ * dashed for deleted, dotted for changed.
  */
 .diff-pane .line-band {
+    -fx-opacity: 0.3;
     -fx-border-width: 1 0 1 0;
 }
 
 .diff-pane .line-band.diff-added {
-    -fx-background-color: rgba(60, 200, 60, 0.28);
-    -fx-border-color: rgb(60, 170, 60);
+    -fx-background-color: -nbfx-output-success;
+    -fx-border-color: -nbfx-output-success;
+    -fx-border-style: solid;
 }
 
 .diff-pane .line-band.diff-deleted {
-    -fx-background-color: rgba(230, 70, 70, 0.26);
-    -fx-border-color: rgb(210, 70, 70);
+    -fx-background-color: -nbfx-editor-text-error;
+    -fx-border-color: -nbfx-editor-text-error;
+    -fx-border-style: dashed;
 }
 
 .diff-pane .line-band.diff-changed {
-    -fx-background-color: rgba(70, 130, 230, 0.26);
-    -fx-border-color: rgb(70, 130, 230);
+    -fx-background-color: -nbfx-accent;
+    -fx-border-color: -nbfx-accent;
+    -fx-border-style: dotted;
 }
 
-/* A rule where this side lacks the lines of the other. */
+/* A rule where this side lacks the lines of the other: a line of the colour, at its full strength. */
 .diff-pane .line-band.line-band-rule {
+    -fx-opacity: 1;
     -fx-border-width: 0;
-}
-
-.diff-pane .line-band.line-band-rule.diff-added {
-    -fx-background-color: rgb(60, 170, 60);
-}
-
-.diff-pane .line-band.line-band-rule.diff-deleted {
-    -fx-background-color: rgb(210, 70, 70);
-}
-
-/* A diff shows two texts, not where the caret is in one: no breadcrumbs under its editors. */
-.diff-pane .code-editor > .editor-side-bars {
-    visibility: hidden;
-    -fx-managed: false;
 }

@@ -18,13 +18,13 @@
  */
 package org.netbeans.api.nbfx.editor;
 
-import javafx.beans.property.SimpleIntegerProperty;
 import java.util.List;
 import java.io.IOException;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanProperty;
+import javafx.beans.property.ReadOnlyDoubleWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleLongProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -50,6 +50,10 @@ import org.openide.util.lookup.Lookups;
  */
 public interface EditorDocument extends Lookup.Provider {
 
+    /** What {@link #topParagraphProperty()} is for a document that tells no top line: always zero. */
+    ObservableValue<Number> NO_TOP_PARAGRAPH = new ReadOnlyDoubleWrapper(0).getReadOnlyProperty();
+
+
     /**
      * The lookup of this editor, published as the global action context while its tab is active:
      * the document itself and the {@link FileObject} it edits, so consumers can read either.
@@ -63,9 +67,12 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
-     * Returns the file this document edits.
+     * Returns the file this document edits. A document that is the editor of no file - a diff,
+     * shown with {@link ContentManager#openDocument} - has none: whoever takes a document from the
+     * open ones, and not from a file, must expect {@code null}.
      *
-     * @return the backing {@link FileObject}, never {@code null}
+     * @return the backing {@link FileObject}, or {@code null} for a document that is the editor
+     *         of no file
      */
     FileObject getFileObject();
 
@@ -390,13 +397,14 @@ public interface EditorDocument extends Lookup.Provider {
 
     /**
      * Marks blocks of whole lines with {@code bands}, replacing those set before; an empty list
-     * removes them. The bands belong to this view of the document, follow its scrolling, and are
-     * styled by their style classes, as descendants of {@link #getNode()} with style class
-     * {@code line-band}: one region for each band, in the order given, the children of a node with
-     * style class {@code line-bands}. A region is placed over all the lines of its band, those out
-     * of view too - above or below what is shown, of which only the part over the text area is
-     * drawn - so that a view that draws beside the editor - the connectors of a diff - can follow
-     * the regions to where the lines are. The default does nothing.
+     * removes them. The bands belong to this view of the document, follow its scrolling and its
+     * text as it is edited, and are styled by their style classes, as descendants of
+     * {@link #getNode()} with style class {@code line-band}: one region for each band, in the order
+     * given, the children of a node with style class {@code line-bands}. A region is placed over
+     * all the lines of its band that the text has, those out of view too - above or below what is
+     * shown, of which only the part over the text area is drawn - so that a view that draws beside
+     * the editor can follow the regions to where the lines are. Must be called on the JavaFX
+     * Application Thread. The default does nothing.
      *
      * @param bands the bands to show
      * @since 1.4
@@ -408,20 +416,22 @@ public interface EditorDocument extends Lookup.Provider {
      * The place in the text at the top of what this view shows, kept up to date while it scrolls,
      * for views that keep several editors in step: the line there, counted from zero, plus the
      * fraction of that line that is scrolled off above - 12.5 when half of the thirteenth line is
-     * out of sight. The default is always zero.
+     * out of sight. It is the same observable every time it is asked for, read and changed on the
+     * JavaFX Application Thread. The default is one value that is always zero.
      *
      * @return the observable top position, never {@code null}
      * @since 1.4
      */
     default ObservableValue<Number> topParagraphProperty() {
-        return new SimpleIntegerProperty(0);
+        return NO_TOP_PARAGRAPH;
     }
 
     /**
      * Scrolls so that {@code position} is at the top, as far as the text allows, without moving
      * the caret: the line of its whole part, counted from zero, with the fraction of it that its
-     * fractional part says scrolled off; see {@link #topParagraphProperty()}. The default does
-     * nothing.
+     * fractional part says scrolled off; see {@link #topParagraphProperty()}. A text that is all
+     * in view stays where it is. Must be called on the JavaFX Application Thread. The default
+     * does nothing.
      *
      * @param position the place in the text to bring to the top
      * @since 1.4
