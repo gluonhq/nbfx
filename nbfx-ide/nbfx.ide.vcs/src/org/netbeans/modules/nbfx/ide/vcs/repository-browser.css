@@ -37,3 +37,22 @@
     -fx-text-fill: derive(-fx-text-base-color, 40%);
     -fx-padding: 12;
 }
+
+/* The dialogs of the branch actions; their padding and text areas are those of the Commit dialog (vcs.css). */
+
+/* The commit of the revision, in a box of its own. */
+.git-branch-dialog .git-revision-box {
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 1;
+    -fx-padding: 8;
+}
+
+/* What is shown and not asked for: no field to type in, though its text is selected and copied. */
+.git-branch-dialog .text-field.git-revision-info,
+.git-branch-dialog .text-field.git-revision-info:focused,
+.git-branch-dialog .text-area.git-revision-info,
+.git-branch-dialog .text-area.git-revision-info:focused {
+    -fx-background-color: -nbfx-border, -nbfx-canvas;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 0;
+}

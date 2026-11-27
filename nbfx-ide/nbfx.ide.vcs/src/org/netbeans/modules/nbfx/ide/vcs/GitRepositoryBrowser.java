@@ -33,6 +33,7 @@ import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
+import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -41,6 +42,8 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.netbeans.api.nbfx.project.OpenProject;
@@ -53,8 +56,9 @@ import org.openide.util.RequestProcessor;
  * The Git Repository Browser: the repositories of the open projects, but those closed here, each
  * with its branches, tags, stashes and remotes ({@link RepositoryTree}). It reads them with the {@code git} command line off
  * the FX thread, again whenever the projects change, the view is come back to or Refresh is chosen,
- * and keeps the rows that are still there as they were: expanded, and selected. A repository
- * is closed from its context menu.
+ * and keeps the rows that are still there as they were: expanded, and selected. The rows have
+ * their actions in their context menu ({@link GitBrowserActions}); a double click checks a branch or
+ * a tag out, and applies a stash.
  *
  * @since 1.4
  */
@@ -87,6 +91,7 @@ final class GitRepositoryBrowser extends StackPane {
     private volatile List<Path> requested = List.of();
     /** Reads the repositories; asked again before it ran, it runs once, for the last request. */
     private final RequestProcessor.Task reader = RP.create(this::read);
+    private final GitBrowserActions rowActions = new GitBrowserActions(this::changed);
     private final ContextMenu menu = new ContextMenu();
 
     GitRepositoryBrowser() {
@@ -95,6 +100,20 @@ final class GitRepositoryBrowser extends StackPane {
         tree.setShowRoot(false);
         tree.getStyleClass().add("git-repository-tree");
         tree.setCellFactory(view -> new RowCell());
+        // A branch or a tag opened is one checked out, and a stash one applied, as in NetBeans; a row
+        // with rows below opens those.
+        tree.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            TreeItem<RepositoryTree.Row> item = tree.getSelectionModel().getSelectedItem();
+            GitRepositoryInfo repository = repositoryOf(item);
+            if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2 && repository != null
+                    && event.getTarget() instanceof Node target && isInCell(target)) {
+                if (item.getValue().item() instanceof GitRepositoryInfo.Revision revision) {
+                    rowActions.checkout(repository, revision);
+                } else if (item.getValue().item() instanceof GitRepositoryInfo.Stash stash) {
+                    rowActions.apply(repository, stash);
+                }
+            }
+        });
         MenuItem refresh = new MenuItem(message("Git.refresh"), ToolIcons.view(ToolIcons.REFRESH));
         refresh.setOnAction(event -> reload());
         menu.getItems().add(refresh);
@@ -127,15 +146,50 @@ final class GitRepositoryBrowser extends StackPane {
 
     /** What can be done with the row of {@code item}, beside reading again: the entries of its menu. */
     List<MenuItem> actions(TreeItem<RepositoryTree.Row> item) {
+        GitRepositoryInfo repository = repositoryOf(item);
         int place = item == null ? -1 : tree.getRoot().getChildren().indexOf(item);
         if (place >= 0 && place < roots.size()) {
-            // A repository, also one that could not be read.
+            // A repository, also one that could not be read: that one is closed, and nothing else.
             Path root = roots.get(place);
+            List<MenuItem> items = new ArrayList<>();
+            if (repository != null) {
+                items.addAll(rowActions.items(repository));
+                items.add(new SeparatorMenuItem());
+            }
             MenuItem close = new MenuItem(message("Git.repository.close"));
             close.setOnAction(event -> close(root));
-            return List.of(close);
+            items.add(close);
+            return items;
+        }
+        if (repository != null && item.getValue().item() instanceof GitRepositoryInfo.Branch branch) {
+            return rowActions.items(repository, branch);
+        }
+        if (repository != null && item.getValue().item() instanceof GitRepositoryInfo.Tag tag) {
+            return rowActions.items(repository, tag);
+        }
+        if (repository != null && item.getValue().item() instanceof GitRepositoryInfo.Stash stash) {
+            return rowActions.items(repository, stash);
+        }
+        if (repository != null && item.getValue().kind() == RepositoryTree.Kind.STASHES) {
+            return rowActions.stashItems(repository);
+        }
+        if (repository != null && item.getValue().item() instanceof GitRepositoryInfo.Remote remote) {
+            return rowActions.items(repository, remote, item.getValue().kind());
+        }
+        if (repository != null && item.getValue().kind() == RepositoryTree.Kind.REMOTES) {
+            return rowActions.remoteItems(repository);
         }
         return List.of();
+    }
+
+    /** The repository {@code item} is a row of, or {@code null} for none, or one that is not read. */
+    private static GitRepositoryInfo repositoryOf(TreeItem<RepositoryTree.Row> item) {
+        for (TreeItem<RepositoryTree.Row> at = item; at != null; at = at.getParent()) {
+            if (at.getValue() != null && at.getValue().item() instanceof GitRepositoryInfo repository) {
+                return repository;
+            }
+        }
+        return null;
     }
 
     /** The tree, whose root is not shown: its children are the repositories. */
@@ -154,6 +208,15 @@ final class GitRepositoryBrowser extends StackPane {
         closed.removeAll(opened);
         available = List.copyOf(new LinkedHashSet<>(folders));
         showAvailable();
+    }
+
+    /**
+     * What an action did is shown: the repositories are read again, and the Projects and Files
+     * trees mark their files anew - a commit, a checkout or a stash leaves other files changed.
+     */
+    private void changed() {
+        roots.forEach(GitStatusCache.getDefault()::refresh);
+        reload();
     }
 
     /**
@@ -263,6 +326,16 @@ final class GitRepositoryBrowser extends StackPane {
         boolean none = rows.isEmpty();
         tree.setVisible(!none);
         empty.setVisible(none);
+    }
+
+    /** Whether {@code node} is in a row, and not in the empty space below the rows. */
+    private static boolean isInCell(Node node) {
+        for (Node at = node; at != null; at = at.getParent()) {
+            if (at instanceof TreeCell<?> cell) {
+                return !cell.isEmpty();
+            }
+        }
+        return false;
     }
 
     /** Whether {@code item} is in the tree, with every item above it expanded. */

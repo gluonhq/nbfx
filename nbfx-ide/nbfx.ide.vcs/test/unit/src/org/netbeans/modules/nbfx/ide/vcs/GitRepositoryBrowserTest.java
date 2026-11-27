@@ -97,11 +97,11 @@ public class GitRepositoryBrowserTest {
             return folder;
         });
         assertEquals(List.of(Kind.ACTIVE_BRANCH), JavaFxTestSupport.onFx(() -> kinds(local)));
-        // A repository is closed from its menu; the rows in it have nothing of their own there.
+        // A branch has its actions; a row that only holds others has none.
         JavaFxTestSupport.onFx(() -> {
-            assertTrue(browser.actions(local.getChildren().get(0)).isEmpty());
+            assertEquals(6, browser.actions(local.getChildren().get(0)).size());
             assertTrue(browser.actions(local).isEmpty());
-            assertEquals(1, browser.actions(repositories(browser).get(1)).size());
+            assertEquals(12, browser.actions(repositories(browser).get(1)).size());
             assertTrue(browser.actions(null).isEmpty());
         });
 
@@ -119,6 +119,13 @@ public class GitRepositoryBrowserTest {
             assertTrue(texts(local).toString(), texts(local).get(0).startsWith("feature - "));
             assertEquals(branch, selected(browser).key().substring("BRANCH:".length()));
             assertEquals(1, repository.getChildren().get(1).getChildren().size());
+            assertEquals(12, browser.actions(repository).size());
+            // The stashes have theirs, with none saved yet.
+            assertEquals(1, browser.actions(repository.getChildren().get(2)).size());
+            // And the remotes, with none added yet.
+            assertEquals(1, browser.actions(repository.getChildren().get(3)).size());
+            // The tag has its actions too.
+            assertEquals(5, browser.actions(repository.getChildren().get(1).getChildren().get(0)).size());
         });
 
         // A repository that is no longer among them goes, the other stays as it is.
@@ -154,7 +161,7 @@ public class GitRepositoryBrowserTest {
         await(() -> texts(browser.tree().getRoot()).get(1).startsWith("second ["));
 
         JavaFxTestSupport.onFx(() -> {
-            // Closed by its menu, also one that could not be read.
+            // Closed by its menu, also one that could not be read, which has nothing else in it.
             List<MenuItem> ofUnread = browser.actions(repositories(browser).get(2));
             assertEquals(List.of("Close Repository"), ofUnread.stream().map(MenuItem::getText).toList());
             ofUnread.get(0).fire();
