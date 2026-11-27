@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.scene.Node;
+import org.netbeans.api.nbfx.dialogs.ErrorReporter;
 import org.netbeans.api.nbfx.editor.FileIconProvider;
 import org.netbeans.modules.nbfx.ide.diff.DiffSource;
 import org.netbeans.modules.nbfx.ide.diff.DiffView;
@@ -46,6 +47,8 @@ final class GitDiff {
 
     private static final Logger LOG = Logger.getLogger(GitDiff.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-git-diff", 1);
+    /** The largest file compared: beyond it a diff side by side is of no use, and slow to make. */
+    static final long MOST_BYTES = 8L << 20;
 
     private GitDiff() {
     }
@@ -59,7 +62,8 @@ final class GitDiff {
     static void open(FileObject file) {
         File onDisk = file == null || !file.isData() ? null : FileUtil.toFile(file);
         Path folder = onDisk == null || onDisk.getParentFile() == null ? null : onDisk.getParentFile().toPath();
-        Path root = folder == null ? null : GitStatusCache.getDefault().rootOf(folder).orElse(null);
+        // Told from the .git entry of a parent, as the menu that leads here does.
+        Path root = folder == null ? null : GitMenus.workingTreeOf(folder.toFile());
         if (root == null) {
             return;
         }
@@ -67,16 +71,42 @@ final class GitDiff {
         RP.post(() -> {
             FileObject head;
             try {
-                // A file the last commit does not have is compared with nothing.
-                head = inMemory(file.getNameExt(), GitClient.headContent(root, path).orElse(""));
+                head = inMemory(file.getNameExt(), text(GitClient.headContent(root, path, StandardCharsets.UTF_8,
+                        MOST_BYTES, () -> false)));
             } catch (IOException ex) {
-                LOG.log(Level.INFO, "Cannot read HEAD:" + path, ex);
+                // Said, not shown as a diff with nothing on its left: that would be a new file.
+                LOG.log(Level.INFO, "Cannot compare HEAD:" + path, ex);
+                Platform.runLater(() -> ErrorReporter.report(message("Git.diff"), message("Git.diff.unreadable"),
+                        ex.getMessage(), null));
                 return;
             }
             Platform.runLater(() -> DiffView.open(file, file.getNameExt(), icon(file),
                     new DiffSource(message("Git.diff.head"), head),
                     new DiffSource(message("Git.diff.workingTree"), file)));
         });
+    }
+
+    /**
+     * The text to compare for what git has of a file: its text, or none for a file that is not
+     * there - one added since, on the older side of a comparison. Anything else is no text to
+     * compare, and is told as what it is.
+     *
+     * @throws IOException with what to tell the user, for content that is binary, too large, in
+     *         conflict, no file, no text in its charset, or that could not be read
+     */
+    static String text(GitContent content) throws IOException {
+        return switch (content) {
+            case GitContent.Text text -> text.text();
+            case GitContent.Missing missing -> "";
+            case GitContent.Binary binary -> throw new IOException(message("Git.diff.binary"));
+            case GitContent.TooLarge large -> throw new IOException(NbBundle.getMessage(GitDiff.class,
+                    "Git.diff.tooLarge", large.size(), large.limit()));
+            case GitContent.Unmerged unmerged -> throw new IOException(message("Git.diff.unmerged"));
+            case GitContent.NotAFile other -> throw new IOException(message("Git.diff.notAFile"));
+            case GitContent.Malformed malformed -> throw new IOException(NbBundle.getMessage(GitDiff.class,
+                    "Git.diff.malformed", malformed.charset()));
+            case GitContent.Failed failed -> throw new IOException(failed.message());
+        };
     }
 
     /** A file in memory named {@code name}, so that an editor colours it as the one on disk, holding {@code text}. */

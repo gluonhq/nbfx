@@ -61,12 +61,25 @@
     -fx-background-color: -nbfx-editor-button-selected-hover;
 }
 
+/* Reached with the keyboard: the ring of the focused button, inside its 20px. */
+.tool-bar.git-toolbar > .container > .git-tool-button:focus-visible {
+    -fx-border-color: -nbfx-accent;
+    -fx-border-width: 1;
+    -fx-border-radius: 3;
+    -fx-padding: 1;
+}
+
 .tool-bar.git-toolbar > .container > .git-tool-button:disabled {
     -fx-opacity: 0.4;
 }
 
 .tool-bar.git-toolbar > .container > .git-branch {
     -fx-text-fill: derive(-fx-text-base-color, 30%);
+    -fx-padding: 0 4 0 8;
+}
+
+.tool-bar.git-toolbar > .container > .git-notice {
+    -fx-text-fill: -nbfx-editor-text-error;
     -fx-padding: 0 4 0 8;
 }
 

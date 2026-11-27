@@ -121,6 +121,44 @@ public class GitMenusTest {
         assertNull(GitInitDialog.folder("  "));
     }
 
+    @Test
+    public void aFileOutsideItsProjectIsNotGivenTheFolderOfThatProject() throws Exception {
+        File project = plainFolder();
+        File elsewhere = temp.newFolder("elsewhere");
+        File inside = new File(project, "readme.txt");
+        File outside = new File(elsewhere, "notes.txt");
+        Files.writeString(inside.toPath(), "text");
+        Files.writeString(outside.toPath(), "text");
+
+        // In the project: its folder. Outside it: the file's own, not that of a project it is no part of.
+        assertEquals(project.toPath(), GitMenus.proposedRoot(fileObject(inside), project.toPath()));
+        assertEquals(elsewhere.toPath(), GitMenus.proposedRoot(fileObject(outside), project.toPath()));
+    }
+
+    @Test
+    public void showChangesIsOfTheProjectOfTheFileOrOfItsWorkingTree() throws Exception {
+        File repository = plainFolder();
+        File project = new File(repository, "app");
+        File loose = new File(repository, "docs");
+        Files.createDirectories(project.toPath().resolve("src"));
+        Files.createDirectories(loose.toPath());
+        Files.createDirectories(repository.toPath().resolve(".git"));
+        File source = new File(project, "src/App.java");
+        File page = new File(loose, "index.md");
+        Files.writeString(source.toPath(), "class App {}");
+        Files.writeString(page.toPath(), "text");
+
+        assertEquals(repository.toPath(), GitMenus.workingTreeOf(page));
+        // A file of the project: the changes of the project.
+        assertEquals(project.toPath(), GitMenus.changesFolder(fileObject(source), project.toPath()));
+        // A file of no project, and one outside the project it is said to be of: those of its working tree.
+        assertEquals(repository.toPath(), GitMenus.changesFolder(fileObject(page), null));
+        assertEquals(repository.toPath(), GitMenus.changesFolder(fileObject(page), project.toPath()));
+        // Nothing to go by: nothing, not what was shown before.
+        assertNull(GitMenus.changesFolder(null, null));
+        assertNull(GitMenus.workingTreeOf(temp.getRoot().getParentFile() == null ? null : new File("/")));
+    }
+
     private File plainFolder() throws Exception {
         File project = temp.newFolder("project");
         Assume.assumeFalse("the temporary folder is inside a Git working tree", GitMenus.inWorkingTree(project));

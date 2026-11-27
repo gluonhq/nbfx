@@ -1,4 +1,6 @@
+# nbfx-ide/nbfx.api.diff
 # nbfx-ide/nbfx.api.project
+# nbfx-ide/nbfx.api.vcs
 # nbfx-platform/nbfx.api.actions
 # nbfx-platform/nbfx.api.editor
 # nbfx-platform/nbfx.api.layer
@@ -39,6 +41,10 @@ org.netbeans.api.nbfx.completion.CompletionItem
 org.netbeans.api.nbfx.completion.CompletionProvider
 org.netbeans.api.nbfx.completion.SimpleCompletionItem
 org.netbeans.api.nbfx.css.CssTokens
+org.netbeans.api.nbfx.diff.Diff
+org.netbeans.api.nbfx.diff.DiffOptions
+org.netbeans.api.nbfx.diff.DiffResult
+org.netbeans.api.nbfx.diff.Difference
 org.netbeans.api.nbfx.editor.BreadcrumbsElements
 org.netbeans.api.nbfx.editor.CaretInfo
 org.netbeans.api.nbfx.editor.ContentManager
@@ -138,6 +144,8 @@ org.netbeans.api.nbfx.theme.ThemeTokenProvider
 org.netbeans.api.nbfx.theme.ThemeTokenRegistration
 org.netbeans.api.nbfx.theme.ThemeTokenRegistrations
 org.netbeans.api.nbfx.theme.ThemeTokenType
+org.netbeans.api.nbfx.vcs.VcsAnnotator
+org.netbeans.api.nbfx.vcs.VcsFileState
 org.netbeans.api.nbfx.view.ActiveComponent
 org.netbeans.api.nbfx.view.ActiveComponentContext
 org.netbeans.api.nbfx.view.ApplicationMenu
