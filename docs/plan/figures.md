@@ -7,7 +7,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | Figure | Value |
 |---|---|
 | nbfx modules | 67 |
-| nbfx source files | 779 |
+| nbfx source files | 781 |
 | modules exporting packages (`<public-packages>`) | 47 |
 | of those, subtree exports (`<subpackages>`) | 15 |
 | modules with `arch.xml` | 21 |
