@@ -140,10 +140,12 @@
     -fx-background-color: -nbfx-accent;
 }
 
-/* ScrollBars in TreeView, ComboBox, ... */
+/* ScrollBars in TreeView, ComboBox, ... and in TextArea */
 
 .virtual-flow > .scroll-bar:vertical,
-.virtual-flow > .scroll-bar:horizontal {
+.virtual-flow > .scroll-bar:horizontal,
+.text-area > .scroll-pane > .scroll-bar:vertical,
+.text-area > .scroll-pane > .scroll-bar:horizontal {
     -fx-padding: 0;
 }
 
@@ -151,18 +153,28 @@
 .virtual-flow > .scroll-bar:horizontal,
 .virtual-flow > .scroll-bar:horizontal:focused,
 .virtual-flow > .scroll-bar:vertical,
-.virtual-flow > .scroll-bar:vertical:focused {
+.virtual-flow > .scroll-bar:vertical:focused,
+.text-area > .scroll-pane > .corner,
+.text-area > .scroll-pane > .scroll-bar:horizontal,
+.text-area > .scroll-pane > .scroll-bar:horizontal:focused,
+.text-area > .scroll-pane > .scroll-bar:vertical,
+.text-area > .scroll-pane > .scroll-bar:vertical:focused {
     -fx-background-color: -nbfx-track;
 }
 
 .virtual-flow > .scroll-bar:vertical > .track,
 .virtual-flow > .scroll-bar:horizontal > .track,
-.virtual-flow > .corner {
+.virtual-flow > .corner,
+.text-area > .scroll-pane > .scroll-bar:vertical > .track,
+.text-area > .scroll-pane > .scroll-bar:horizontal > .track,
+.text-area > .scroll-pane > .corner {
     -fx-background-insets: 0;
 }
 
 .virtual-flow > .scroll-bar:horizontal > .track,
-.virtual-flow > .scroll-bar:vertical > .track {
+.virtual-flow > .scroll-bar:vertical > .track,
+.text-area > .scroll-pane > .scroll-bar:horizontal > .track,
+.text-area > .scroll-pane > .scroll-bar:vertical > .track {
     -fx-background-color: -nbfx-track;
     -fx-border-width: 0;
     -fx-background-radius: 0;
@@ -171,44 +183,58 @@
 }
 
 .virtual-flow > .scroll-bar:horizontal:focused > .track,
-.virtual-flow > .scroll-bar:vertical:focused > .track {
+.virtual-flow > .scroll-bar:vertical:focused > .track,
+.text-area > .scroll-pane > .scroll-bar:horizontal:focused > .track,
+.text-area > .scroll-pane > .scroll-bar:vertical:focused > .track {
     -fx-background-color: -nbfx-track-focused;
 }
 
 .virtual-flow > .scroll-bar:horizontal > .increment-button,
-.virtual-flow > .scroll-bar:horizontal > .decrement-button {
+.virtual-flow > .scroll-bar:horizontal > .decrement-button,
+.text-area > .scroll-pane > .scroll-bar:horizontal > .increment-button,
+.text-area > .scroll-pane > .scroll-bar:horizontal > .decrement-button {
     -fx-background-color: transparent;
     -fx-background-radius: 0em;
     -fx-padding: 5 0 5 0;
 }
 
 .virtual-flow > .scroll-bar:vertical > .increment-button,
-.virtual-flow > .scroll-bar:vertical > .decrement-button {
+.virtual-flow > .scroll-bar:vertical > .decrement-button,
+.text-area > .scroll-pane > .scroll-bar:vertical > .increment-button,
+.text-area > .scroll-pane > .scroll-bar:vertical > .decrement-button {
     -fx-background-color: transparent;
     -fx-background-radius: 0em;
     -fx-padding: 0 5 0 5;
 }
 
 .virtual-flow > .scroll-bar > .increment-button > .increment-arrow,
-.virtual-flow > .scroll-bar > .decrement-button > .decrement-arrow {
+.virtual-flow > .scroll-bar > .decrement-button > .decrement-arrow,
+.text-area > .scroll-pane > .scroll-bar > .increment-button > .increment-arrow,
+.text-area > .scroll-pane > .scroll-bar > .decrement-button > .decrement-arrow {
     -fx-shape: " ";
     -fx-padding: 0;
 }
 
 .virtual-flow > .scroll-bar:horizontal > .thumb,
-.virtual-flow > .scroll-bar:vertical > .thumb {
+.virtual-flow > .scroll-bar:vertical > .thumb,
+.text-area > .scroll-pane > .scroll-bar:horizontal > .thumb,
+.text-area > .scroll-pane > .scroll-bar:vertical > .thumb {
     -fx-background-color: transparent, -nbfx-thumb;
     -fx-background-insets: 0, 2;
     -fx-background-radius: 20;
 }
 
 .virtual-flow > .scroll-bar:horizontal:hover > .thumb,
-.virtual-flow > .scroll-bar:vertical:hover > .thumb {
+.virtual-flow > .scroll-bar:vertical:hover > .thumb,
+.text-area > .scroll-pane > .scroll-bar:horizontal:hover > .thumb,
+.text-area > .scroll-pane > .scroll-bar:vertical:hover > .thumb {
     -fx-background-color: transparent, -nbfx-thumb-hover;
 }
 
 .virtual-flow > .scroll-bar:horizontal:pressed > .thumb,
-.virtual-flow > .scroll-bar:vertical:pressed > .thumb {
+.virtual-flow > .scroll-bar:vertical:pressed > .thumb,
+.text-area > .scroll-pane > .scroll-bar:horizontal:pressed > .thumb,
+.text-area > .scroll-pane > .scroll-bar:vertical:pressed > .thumb {
     -fx-background-color: transparent, -nbfx-thumb-pressed;
 }
 
