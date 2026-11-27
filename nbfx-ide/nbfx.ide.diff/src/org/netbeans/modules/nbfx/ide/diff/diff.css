@@ -119,6 +119,13 @@
     -fx-background-color: -nbfx-diff-changed;
 }
 
+/* Under the mouse, or reached with the keyboard: outlined, as the current one is. */
+.diff-pane .diff-mark:hover,
+.diff-pane .diff-mark:focused {
+    -fx-border-color: -nbfx-accent;
+    -fx-border-width: 1;
+}
+
 .diff-pane .diff-mark.diff-current {
     -fx-border-color: -nbfx-text-strong;
     -fx-border-width: 1;

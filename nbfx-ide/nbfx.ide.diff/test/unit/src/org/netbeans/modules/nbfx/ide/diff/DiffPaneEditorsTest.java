@@ -30,7 +30,10 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Scene;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import javafx.stage.Stage;
@@ -192,6 +195,131 @@ public class DiffPaneEditorsTest {
             Thread.sleep(50);
         }
         assertEquals(count, (int) JavaFxTestSupport.onFx(() -> pane.connectors().size()));
+    }
+
+    @Test
+    public void goingToABlockPutsTheLeftTextBesideWhereTheRightOneLanded() throws Exception {
+        // Twenty lines, the last of them changed: the right text cannot bring that one to its top.
+        String same = "line\n".repeat(19);
+        DiffPane pane = pane(head("x\n" + same + "old\n"), working(same + "new\n"));
+        awaitComparison(pane);
+        Editor left = EDITORS.get(0);
+        Editor right = EDITORS.get(1);
+
+        JavaFxTestSupport.onFx(() -> {
+            right.lastTop = 5;
+            left.scrolledTo.clear();
+            right.scrolledTo.clear();
+            pane.select(1);
+
+            // Asked for the lines above the block, it lands where its text ends.
+            assertEquals(List.of(16.0), right.scrolledTo);
+            assertEquals(5.0, right.top.get(), 0);
+            // And the left one is put beside that, a line further for the line deleted at its top -
+            // not beside the place the right one was asked for and did not get to.
+            assertEquals(6.0, left.scrolledTo.get(left.scrolledTo.size() - 1), 1e-9);
+            assertFalse(left.scrolledTo.contains(17.0));
+        });
+    }
+
+    @Test
+    public void theKeysGoFromOneBlockToTheNextAndTheMarksAreNamedAndChosenWithTheKeyboard() throws Exception {
+        DiffPane pane = pane(head("a\nb\nc\nd\ne\n"), working("a\nx\nc\nd\ny\nz\n"));
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("1/2", pane.counter());
+            // Ctrl+Period and Ctrl+Comma, wherever in the diff the keyboard is.
+            pane.fireEvent(key(KeyCode.PERIOD, true));
+            assertEquals(1, pane.current());
+            pane.fireEvent(key(KeyCode.PERIOD, true));
+            assertEquals(1, pane.current());
+            pane.fireEvent(key(KeyCode.COMMA, true));
+            assertEquals(0, pane.current());
+            // Not the keys alone.
+            pane.fireEvent(key(KeyCode.PERIOD, false));
+            assertEquals(0, pane.current());
+            // The buttons are reached with Tab, and say what keys do the same.
+            assertTrue(pane.nextButton().isFocusTraversable());
+            assertTrue(pane.nextButton().getTooltip().getText().startsWith("Next Difference ("));
+
+            // The marks of the overview: named by what they go to, and chosen with Enter or Space.
+            List<Region> marks = pane.overview().marks();
+            assertEquals(2, marks.size());
+            assertEquals("Go to difference 2 of 2: Lines 5 to 6 changed", marks.get(1).getAccessibleText());
+            assertEquals(AccessibleRole.BUTTON, marks.get(1).getAccessibleRole());
+            assertTrue(marks.get(1).isFocusTraversable());
+            marks.get(1).fireEvent(key(KeyCode.ENTER, false));
+            assertEquals(1, pane.current());
+            marks.get(0).fireEvent(key(KeyCode.SPACE, false));
+            assertEquals(0, pane.current());
+            // Told which is the current one without being made again.
+            pane.select(1);
+            assertSame(marks.get(1), pane.overview().marks().get(1));
+            assertTrue(marks.get(1).getStyleClass().contains("diff-current"));
+            assertFalse(marks.get(0).getStyleClass().contains("diff-current"));
+        });
+    }
+
+    @Test
+    public void aComparisonMadeAgainStaysAtTheBlockWhereItWasAndGivesUpItsStripsWithNoBlock() throws Exception {
+        DiffPane pane = pane(head("a\nb\nc\nd\ne\n"), working("a\nb\nc\nd\nE\n"));
+        awaitComparison(pane);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(0, pane.current());
+            assertTrue(pane.stripsShown());
+        });
+
+        // Another block comes above the one the view is at: it is still at that one, now the second.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\nb\nc\nd\ne\n"), working("A\nb\nc\nd\nE\n")));
+        awaitComparison(pane);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(2, pane.differences().size());
+            assertEquals(1, pane.current());
+            assertEquals("2/2", pane.counter());
+        });
+
+        // No block left: nothing to join or to mark, and the strips give their room to the texts.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\n"), working("a\n")));
+        awaitComparison(pane);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(-1, pane.current());
+            assertEquals("", pane.counter());
+            assertFalse(pane.stripsShown());
+        });
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\n"), working("b\n")));
+        awaitComparison(pane);
+        assertTrue(JavaFxTestSupport.onFx(pane::stripsShown));
+    }
+
+    @Test
+    public void aClosedDiffLetsGoOfItsEditorsAndOfTheWindow() throws Exception {
+        DiffPane pane = pane(head("a\nb\n"), working("a\nx\n"));
+        JavaFxTestSupport.onFx(() -> {
+            Stage stage = new Stage();
+            stage.setScene(new Scene(pane, 600, 300));
+            stage.show();
+        });
+        awaitComparison(pane);
+        awaitConnectors(pane, 1);
+        Editor left = EDITORS.get(0);
+        assertTrue(JavaFxTestSupport.onFx(pane::connectorsListening));
+        assertEquals(List.of(List.of(true), List.of(true)), JavaFxTestSupport.onFx(() -> currentBands()));
+
+        // Closed, but still in the window, as a tab is while it is being closed.
+        JavaFxTestSupport.onFx(pane::dispose);
+
+        assertFalse(JavaFxTestSupport.onFx(pane::connectorsListening));
+        assertEquals(0, (int) JavaFxTestSupport.onFx(() -> pane.connectors().size()));
+        // A band that moves is no longer followed: nothing is drawn for it.
+        JavaFxTestSupport.onFx(() -> left.overlay.getChildren().forEach(region -> region.setLayoutY(40)));
+        Thread.sleep(200);
+        assertEquals(0, (int) JavaFxTestSupport.onFx(() -> pane.connectors().size()));
+        JavaFxTestSupport.hideWindows();
+    }
+
+    private static KeyEvent key(KeyCode code, boolean control) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, control, false, false);
     }
 
     @Test
@@ -359,6 +487,8 @@ public class DiffPaneEditorsTest {
         private final ReadOnlyBooleanWrapper selection = new ReadOnlyBooleanWrapper(false);
         private volatile int copied;
         private final List<Double> scrolledTo = new CopyOnWriteArrayList<>();
+        /** The furthest place this editor can have at its top; any, unless a test says. */
+        private volatile double lastTop = Double.MAX_VALUE;
         private volatile List<LineBand> bands = List.of();
         private volatile int focused;
         private volatile int disposed;
@@ -492,6 +622,8 @@ public class DiffPaneEditorsTest {
                         return null;
                     case "scrollToParagraph":
                         editor.scrolledTo.add((Double) args[0]);
+                        // As far as the text goes, as an editor lands.
+                        editor.top.set(Math.min((Double) args[0], editor.lastTop));
                         return null;
                     case "setLineBands":
                         editor.bands = new ArrayList<>((List<LineBand>) args[0]);

@@ -85,6 +85,39 @@ public class CodeEditorBandsTest {
     }
 
     @Test
+    public void aBandGoesAcrossTheLineNumbersOnWhicheverSideTheyAre() throws Exception {
+        CodeEditor editor = show(text(10));
+        setBands(editor, new LineBand(2, 2, "block"));
+        Bounds onTheLeft = band(editor, "block");
+        Bounds leftGutter = gutter(editor);
+
+        // On the left, as editors have them: the band starts with the numbers.
+        assertEquals(leftGutter.getMinX(), onTheLeft.getMinX(), 1);
+
+        // On the right, as the left of two texts side by side has them: it ends with them.
+        JavaFxTestSupport.onFx(() -> editor.gutterPositionProperty().set(javafx.geometry.HPos.RIGHT));
+        pulses(editor, 4);
+        Bounds onTheRight = band(editor, "block");
+        Bounds rightGutter = gutter(editor);
+        assertTrue("gutter at " + rightGutter, rightGutter.getMinX() > 100);
+        assertEquals(rightGutter.getMaxX(), onTheRight.getMaxX(), 1);
+        assertEquals(onTheLeft.getWidth(), onTheRight.getWidth(), 2);
+    }
+
+    /** Where the line numbers of {@code editor} are, in the overlay the bands are drawn in. */
+    private static Bounds gutter(CodeEditor editor) throws Exception {
+        return JavaFxTestSupport.onFx(() -> {
+            for (String side : List.of(".left-side", ".right-side")) {
+                Node gutter = editor.codeArea.lookup(side);
+                if (gutter != null && gutter.isVisible() && gutter.getScene() != null) {
+                    return overlay(editor).sceneToLocal(gutter.localToScene(gutter.getLayoutBounds()));
+                }
+            }
+            throw new AssertionError("no line numbers");
+        });
+    }
+
+    @Test
     public void aTextOfOneLineHasItsBandAndItsRulesAtThatLine() throws Exception {
         CodeEditor editor = show("only\n".strip());
         setBands(editor, new LineBand(0, 1, "only"), new LineBand(0, 0, "before"), new LineBand(1, 0, "after"));

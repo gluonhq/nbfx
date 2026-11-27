@@ -37,6 +37,10 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -71,6 +75,9 @@ final class DiffPane extends BorderPane {
 
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
+    /** Next and Previous Difference, as in NetBeans: Ctrl+Period and Ctrl+Comma, on every platform. */
+    static final KeyCombination NEXT_KEY = new KeyCodeCombination(KeyCode.PERIOD, KeyCombination.CONTROL_DOWN);
+    static final KeyCombination PREVIOUS_KEY = new KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN);
     /** The lines kept in view above the block gone to. */
     private static final int CONTEXT_LINES = 3;
 
@@ -78,11 +85,21 @@ final class DiffPane extends BorderPane {
     private DiffSource rightSource;
     private final Label summary = new Label();
     private final Label counter = heading("");
-    private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous");
-    private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
+    private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous", PREVIOUS_KEY);
+    private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next", NEXT_KEY);
     private final DiffConnectors connectors = new DiffConnectors();
     private final DiffOverview overview = new DiffOverview();
+    /** What holds the connectors, and what holds the overview: there while there are blocks to show. */
+    private final VBox strip = new VBox();
+    private final VBox edge = new VBox();
     private int current = -1;
+    /**
+     * The line of the right text at which the block the view is at starts, or -1 for none: kept
+     * while the texts are compared again, to be at the block that is there afterwards.
+     */
+    private int currentLine = -1;
+    /** Whether a comparison was asked for and its blocks are not shown yet. */
+    private boolean comparing;
     private EditorDocument left;
     private EditorDocument right;
     private List<Difference> differences = List.of();
@@ -108,7 +125,20 @@ final class DiffPane extends BorderPane {
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         setTop(bar);
+        strip.getStyleClass().add("diff-strip");
+        edge.getStyleClass().add("diff-edge");
         overview.setOnSelect(this::select);
+        // For who does not use the mouse: the keys NetBeans has for the next and the previous
+        // difference, wherever in the diff the keyboard is.
+        addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (NEXT_KEY.match(event)) {
+                go(true);
+                event.consume();
+            } else if (PREVIOUS_KEY.match(event)) {
+                go(false);
+                event.consume();
+            }
+        });
         select(-1);
         setSources(leftSource, rightSource);
     }
@@ -175,11 +205,9 @@ final class DiffPane extends BorderPane {
         // The connectors are of the editors that were: none until these are compared.
         connectors.show(left, right, List.of());
         VBox.setVgrow(connectors, Priority.ALWAYS);
-        VBox strip = new VBox(counter, connectors);
-        strip.getStyleClass().add("diff-strip");
+        strip.getChildren().setAll(counter, connectors);
         VBox.setVgrow(overview, Priority.ALWAYS);
-        VBox edge = new VBox(heading(""), overview);
-        edge.getStyleClass().add("diff-edge");
+        edge.getChildren().setAll(heading(""), overview);
         HBox sides = new HBox(side(leftSource, left, true), strip, side(rightSource, right, false), edge);
         sides.getStyleClass().add("diff-sides");
         setCenter(sides);
@@ -268,6 +296,16 @@ final class DiffPane extends BorderPane {
         return overview;
     }
 
+    /** Whether the connectors still listen to the editors or to the frames of the window; for tests. */
+    boolean connectorsListening() {
+        return connectors.isListening();
+    }
+
+    /** Whether the strip of the connectors and that of the overview are shown: there are blocks. */
+    boolean stripsShown() {
+        return strip.isVisible() && strip.isManaged() && edge.isVisible() && edge.isManaged();
+    }
+
     /** The connectors drawn between the two texts: one for each block in view. */
     List<Node> connectors() {
         return connectors.connectors();
@@ -295,6 +333,7 @@ final class DiffPane extends BorderPane {
             return;
         }
         summary.setText(message("Diff.loading"));
+        comparing = true;
         RP.post(() -> {
             DiffResult result;
             int rightLines;
@@ -342,6 +381,7 @@ final class DiffPane extends BorderPane {
 
     /** Releases the two editors, and gives up the comparison that runs. */
     void dispose() {
+        connectors.dispose();
         comparison.incrementAndGet();
         scrolling.unsubscribe();
         disposeEditors();
@@ -353,17 +393,25 @@ final class DiffPane extends BorderPane {
      */
     void select(int index) {
         current = index < 0 || index >= differences.size() ? -1 : index;
-        counter.setText(current < 0 ? "" : (current + 1) + "/" + differences.size());
+        if (current >= 0) {
+            currentLine = differences.get(current).rightStart();
+        } else if (!comparing) {
+            // No block to be at; while a comparison is awaited, the place is kept for its blocks.
+            currentLine = -1;
+        }
+        counter.setText(current < 0 ? ""
+                : NbBundle.getMessage(DiffPane.class, "Diff.counter", current + 1, differences.size()));
         previous.setDisable(current <= 0);
         next.setDisable(current < 0 || current >= differences.size() - 1);
         connectors.setCurrent(current);
         overview.setCurrent(current);
         if (current >= 0 && left != null && right != null) {
-            // The right side leads: it has the lines of the file as it is now. The left one is
-            // brought beside it here too, for a right one that is already where it is asked to go.
-            int top = Math.max(0, differences.get(current).rightStart() - CONTEXT_LINES);
-            right.scrollToParagraph(top);
-            left.scrollToParagraph(DiffLines.toLeft(differences, top));
+            // The right side leads: it has the lines of the file as it is now. The left one goes
+            // beside where the right one landed, not where it was asked to go - at the end of
+            // the text, or with a text that is all in view, it does not get there - and is
+            // brought there here too, for a right one that was already where it is asked to go.
+            right.scrollToParagraph(Math.max(0, differences.get(current).rightStart() - CONTEXT_LINES));
+            follow(right.topParagraphProperty().getValue().doubleValue());
         }
     }
 
@@ -375,6 +423,9 @@ final class DiffPane extends BorderPane {
     }
 
     private void show(List<Difference> found, int rightLines, String text) {
+        // Where the block the view was at starts, in the right text: by which it is found again.
+        int at = currentLine;
+        comparing = false;
         differences = found;
         summary.setText(text);
         // Said, not only shown: how the comparison ended, and on each side which lines differ and
@@ -390,8 +441,15 @@ final class DiffPane extends BorderPane {
             connectors.show(left, right, found);
         }
         overview.show(found, rightLines);
-        // At the first block, as when the diff opens; without moving the view when there is none.
-        select(found.isEmpty() ? -1 : Math.clamp(current, 0, found.size() - 1));
+        // Nothing to join or to mark without a block: the two texts take the room.
+        boolean none = found.isEmpty();
+        for (VBox holder : List.of(strip, edge)) {
+            holder.setVisible(!none);
+            holder.setManaged(!none);
+        }
+        // At the first block, as when the diff opens - or, compared again, at the block that is
+        // where the one the view was at was; without moving the view when there is none.
+        select(none ? -1 : at < 0 ? 0 : DiffLines.blockAt(found, at));
     }
 
     /**
@@ -437,13 +495,14 @@ final class DiffPane extends BorderPane {
         return heading;
     }
 
-    private static Button button(String icon, String key) {
+    private static Button button(String icon, String key, KeyCombination keys) {
         Button button = new Button();
         button.setGraphic(ToolIcons.view(icon));
-        button.setTooltip(new Tooltip(message(key)));
+        // Named for who does not see it, with the keys that do the same for who does not click.
+        button.setTooltip(new Tooltip(NbBundle.getMessage(DiffPane.class, "Diff.tooltip", message(key),
+                keys.getDisplayText())));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");
-        button.setFocusTraversable(false);
         return button;
     }
 

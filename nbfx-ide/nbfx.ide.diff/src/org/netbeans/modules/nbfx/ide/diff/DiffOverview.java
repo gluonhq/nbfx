@@ -21,19 +21,24 @@ package org.netbeans.modules.nbfx.ide.diff;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
+import javafx.scene.AccessibleRole;
 import javafx.scene.Cursor;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
 import org.netbeans.api.nbfx.diff.Difference;
+import org.openide.util.NbBundle;
 
 /**
  * The narrow strip at the right edge of a diff: a mark for each block that differs, placed by where
  * its lines are in the whole of the right text, so that all the blocks are seen at once however
- * long the text is. Clicking a mark goes to its block.
+ * long the text is. Clicking a mark goes to its block, as does choosing it with the keyboard.
  */
 final class DiffOverview extends Pane {
 
-    private static final double MIN_MARK_HEIGHT = 3;
+    /** High enough to be seen, and hit: a block of one line in a long text would be a hairline. */
+    private static final double MIN_MARK_HEIGHT = 4;
 
     private List<Difference> differences = List.of();
     private int lineCount = 1;
@@ -42,19 +47,52 @@ final class DiffOverview extends Pane {
 
     DiffOverview() {
         getStyleClass().add("diff-overview");
-        heightProperty().addListener(observable -> rebuild());
     }
 
-    /** Marks the blocks of {@code found} in a right text of {@code rightLineCount} lines. */
+    /**
+     * Marks the blocks of {@code found} in a right text of {@code rightLineCount} lines. The marks
+     * are made here, once for a comparison: they are placed as the strip is laid out, and told
+     * which is the current one, without being made again.
+     */
     void show(List<Difference> found, int rightLineCount) {
         differences = found;
         lineCount = Math.max(1, rightLineCount);
-        rebuild();
+        List<String> told = DiffLines.describeRight(found);
+        List<Region> marks = new ArrayList<>(found.size());
+        for (int i = 0; i < found.size(); i++) {
+            int index = i;
+            Region mark = new Region();
+            mark.getStyleClass().addAll("diff-mark", switch (found.get(i).kind()) {
+                case ADD -> DiffLines.ADDED;
+                case DELETE -> DiffLines.DELETED;
+                case CHANGE -> DiffLines.CHANGED;
+            });
+            mark.setManaged(false);
+            mark.setCursor(Cursor.HAND);
+            mark.setOnMouseClicked(event -> onSelect.accept(index));
+            // And for who does not use the mouse, or does not see the mark: reached with Tab,
+            // chosen with Enter or Space, and named by what it goes to.
+            String name = NbBundle.getMessage(DiffOverview.class, "Diff.mark", i + 1, found.size(), told.get(i));
+            mark.setFocusTraversable(true);
+            mark.setAccessibleRole(AccessibleRole.BUTTON);
+            mark.setAccessibleText(name);
+            Tooltip.install(mark, new Tooltip(name));
+            mark.setOnKeyPressed(event -> {
+                if (event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.SPACE) {
+                    onSelect.accept(index);
+                    event.consume();
+                }
+            });
+            marks.add(mark);
+        }
+        getChildren().setAll(marks);
+        mark();
+        requestLayout();
     }
 
     void setCurrent(int index) {
         current = index;
-        rebuild();
+        mark();
     }
 
     /** What a click on the mark of a block does with the index of that block. */
@@ -67,37 +105,28 @@ final class DiffOverview extends Pane {
         return getChildren().stream().map(Region.class::cast).toList();
     }
 
-    private void rebuild() {
-        List<Region> marks = new ArrayList<>(differences.size());
-        double height = getHeight();
-        for (int i = 0; i < differences.size(); i++) {
-            Difference difference = differences.get(i);
-            int index = i;
-            Region mark = new Region();
-            mark.getStyleClass().addAll("diff-mark", switch (difference.kind()) {
-                case ADD -> DiffLines.ADDED;
-                case DELETE -> DiffLines.DELETED;
-                case CHANGE -> DiffLines.CHANGED;
-            });
+    private void mark() {
+        List<Region> marks = marks();
+        for (int i = 0; i < marks.size(); i++) {
+            List<String> classes = marks.get(i).getStyleClass();
+            classes.remove("diff-current");
             if (i == current) {
-                mark.getStyleClass().add("diff-current");
+                classes.add("diff-current");
             }
-            mark.setManaged(false);
-            mark.setCursor(Cursor.HAND);
-            mark.setOnMouseClicked(event -> onSelect.accept(index));
-            double y = height * DiffLines.overviewStart(difference, lineCount);
-            double markHeight = Math.max(MIN_MARK_HEIGHT, height * DiffLines.overviewExtent(difference, lineCount));
-            mark.resizeRelocate(1, Math.min(y, Math.max(0, height - markHeight)), Math.max(0, getWidth() - 2), markHeight);
-            marks.add(mark);
         }
-        getChildren().setAll(marks);
     }
 
+    /** Places each mark by where its lines are in the whole of the right text, over the height there is. */
     @Override
     protected void layoutChildren() {
-        // The marks are placed by rebuild(); only their width follows the strip.
-        for (Region mark : marks()) {
-            mark.resize(Math.max(0, getWidth() - 2), mark.getHeight());
+        List<Region> marks = marks();
+        double height = getHeight();
+        for (int i = 0; i < marks.size() && i < differences.size(); i++) {
+            Difference difference = differences.get(i);
+            double y = height * DiffLines.overviewStart(difference, lineCount);
+            double markHeight = Math.max(MIN_MARK_HEIGHT, height * DiffLines.overviewExtent(difference, lineCount));
+            marks.get(i).resizeRelocate(1, Math.min(y, Math.max(0, height - markHeight)), Math.max(0, getWidth() - 2),
+                    markHeight);
         }
     }
 }
