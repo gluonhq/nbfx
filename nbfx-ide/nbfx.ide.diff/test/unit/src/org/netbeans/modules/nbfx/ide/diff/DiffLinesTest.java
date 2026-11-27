@@ -25,6 +25,7 @@ import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /** Verifies the bands of the two sides of a diff and the lines that stand beside each other. */
 public class DiffLinesTest {
@@ -76,9 +77,87 @@ public class DiffLinesTest {
     }
 
     @Test
+    public void aBlockOneSideHasNoLinesOfIsPassedWithTheLineNextToItAndNotInAJump() {
+        // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7
+        // The right text has nothing where g was deleted, before its line 7: the line above, f,
+        // takes it along - through f the left goes through f and g, at twice the pace.
+        assertEquals(5.0, DiffLines.toLeft(DIFFERENCES, 6.0), 1e-9);
+        assertEquals(6.0, DiffLines.toLeft(DIFFERENCES, 6.5), 1e-9);
+        assertEquals(7.0, DiffLines.toLeft(DIFFERENCES, 7.0), 1e-9);
+        // And the left text has nothing where y and z were added, before its line 5: through e,
+        // the line above, the right goes through e, y and z.
+        assertEquals(3.0, DiffLines.toRight(DIFFERENCES, 4.0), 1e-9);
+        assertEquals(4.5, DiffLines.toRight(DIFFERENCES, 4.5), 1e-9);
+        assertEquals(6.0, DiffLines.toRight(DIFFERENCES, 5.0), 1e-9);
+
+        // No jump anywhere: a small step on one side is never a leap on the other.
+        for (double place = 0; place < 8; place += 0.01) {
+            assertTrue("left jumps at " + place, DiffLines.toLeft(DIFFERENCES, place + 0.01)
+                    - DiffLines.toLeft(DIFFERENCES, place) <= 0.01 * 3 + 1e-9);
+            assertTrue("right jumps at " + place, DiffLines.toRight(DIFFERENCES, place + 0.01)
+                    - DiffLines.toRight(DIFFERENCES, place) <= 0.01 * 3 + 1e-9);
+            // And it never goes back.
+            assertTrue(DiffLines.toLeft(DIFFERENCES, place + 0.01) >= DiffLines.toLeft(DIFFERENCES, place) - 1e-9);
+        }
+    }
+
+    @Test
+    public void linesMissingAtTheTopOrRightAfterABlockArePassedWithTheLineBelow() {
+        // Deleted at the very top: the right text has no line above where they were.
+        List<Difference> top = Diff.compute(List.of("x", "y", "a", "b"), List.of("a", "b")).differences();
+        assertEquals(0.0, DiffLines.toLeft(top, 0.0), 1e-9);
+        assertEquals(1.5, DiffLines.toLeft(top, 0.5), 1e-9);
+        assertEquals(3.0, DiffLines.toLeft(top, 1.0), 1e-9);
+        assertEquals(3.5, DiffLines.toLeft(top, 1.5), 1e-9);
+        for (double place = 0; place < 2; place += 0.01) {
+            assertTrue("jumps at " + place,
+                    DiffLines.toLeft(top, place + 0.01) - DiffLines.toLeft(top, place) <= 0.01 * 3 + 1e-9);
+        }
+    }
+
+    @Test
+    public void theBlockTheViewWasAtIsFoundAgainByWhereItIs() {
+        // Blocks at right lines 2, 4-5 and 7.
+        assertEquals(0, DiffLines.blockAt(DIFFERENCES, 0));
+        assertEquals(0, DiffLines.blockAt(DIFFERENCES, 2));
+        assertEquals(1, DiffLines.blockAt(DIFFERENCES, 3));
+        assertEquals(1, DiffLines.blockAt(DIFFERENCES, 5));
+        assertEquals(2, DiffLines.blockAt(DIFFERENCES, 6));
+        // Below them all: the last one.
+        assertEquals(2, DiffLines.blockAt(DIFFERENCES, 100));
+        assertEquals(-1, DiffLines.blockAt(List.of(), 3));
+        // From no block, the first one going down and the last one going up.
+        assertEquals(0, DiffLines.step(-1, 3, true));
+        assertEquals(2, DiffLines.step(-1, 3, false));
+        assertEquals(-1, DiffLines.step(-1, 0, false));
+    }
+
+    @Test
     public void withoutDifferencesALineIsBesideItself() {
         assertEquals(5, DiffLines.toRight(List.of(), 5), 1e-9);
         assertEquals(5.5, DiffLines.toLeft(List.of(), 5.5), 1e-9);
+    }
+
+    @Test
+    public void stepsStopAtTheFirstAndTheLastBlock() {
+        assertEquals(1, DiffLines.step(0, 3, true));
+        assertEquals(2, DiffLines.step(2, 3, true));
+        assertEquals(0, DiffLines.step(0, 3, false));
+        assertEquals(1, DiffLines.step(2, 3, false));
+        // From nowhere, forward is the first block.
+        assertEquals(0, DiffLines.step(-1, 3, true));
+        assertEquals(-1, DiffLines.step(0, 0, true));
+    }
+
+    @Test
+    public void overviewPlacesABlockByItsLinesInTheRightText() {
+        Difference added = DIFFERENCES.get(1);
+
+        assertEquals(0.5, DiffLines.overviewStart(added, 8), 1e-9);
+        assertEquals(0.25, DiffLines.overviewExtent(added, 8), 1e-9);
+        // A deletion has no lines on the right: a mark of no extent, where they were.
+        assertEquals(0, DiffLines.overviewExtent(DIFFERENCES.get(2), 8), 1e-9);
+        assertEquals(1, DiffLines.overviewStart(new Difference(Difference.Kind.DELETE, 0, 1, 9, 0), 8), 1e-9);
     }
 
     private static List<Double> places(boolean toRight) {

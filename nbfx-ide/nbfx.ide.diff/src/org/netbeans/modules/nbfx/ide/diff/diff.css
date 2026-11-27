@@ -17,10 +17,30 @@
  * under the License.
  */
 
-.diff-pane > .diff-summary {
-    -fx-padding: 3 8 3 8;
-    -fx-text-fill: -nbfx-text-faint;
+.diff-pane > .diff-bar {
+    -fx-padding: 2 6 2 6;
+    -fx-spacing: 2;
     -fx-border-color: transparent transparent -nbfx-border transparent;
+}
+
+.diff-pane > .diff-bar > .diff-summary {
+    -fx-padding: 1 8 1 8;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-padding: 3;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.diff-pane > .diff-bar > .diff-tool-button:disabled {
+    -fx-opacity: 0.4;
 }
 
 .diff-pane .diff-heading {
@@ -30,7 +50,85 @@
 
 .diff-pane > .diff-sides {
     -fx-padding: 0;
-    -fx-background-insets: 0;
+}
+
+/* The strip of connectors between the editors, under the counter of the blocks. */
+.diff-pane .diff-strip {
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    /* At the sides only: a border above, even an unseen one, would set the counter a pixel lower
+       than the headings beside it. */
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 1 0 1;
+}
+
+.diff-pane .diff-strip > .diff-heading {
+    -fx-padding: 3 0 3 0;
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-pane .diff-connector {
+    -fx-stroke-width: 1;
+}
+
+/* Filled and outlined as the band it joins, so that the two read as one shape. */
+.diff-pane .diff-connector.diff-added {
+    -fx-fill: -nbfx-diff-added-bg;
+    -fx-stroke: -nbfx-diff-added;
+}
+
+.diff-pane .diff-connector.diff-deleted {
+    -fx-fill: -nbfx-diff-deleted-bg;
+    -fx-stroke: -nbfx-diff-deleted;
+    -fx-stroke-dash-array: 4 3;
+}
+
+.diff-pane .diff-connector.diff-changed {
+    -fx-fill: -nbfx-diff-changed-bg;
+    -fx-stroke: -nbfx-diff-changed;
+    -fx-stroke-dash-array: 1 3;
+}
+
+.diff-pane .diff-connector.diff-current {
+    -fx-stroke-width: 2;
+}
+
+/* The marks of all the blocks along the right edge. */
+.diff-pane .diff-edge {
+    -fx-min-width: 12;
+    -fx-pref-width: 12;
+    -fx-max-width: 12;
+    -fx-border-color: -nbfx-border;
+    -fx-border-width: 0 0 0 1;
+}
+
+.diff-pane .diff-edge > .diff-heading {
+    -fx-padding: 3 0 3 0;
+}
+
+.diff-pane .diff-mark.diff-added {
+    -fx-background-color: -nbfx-diff-added;
+}
+
+.diff-pane .diff-mark.diff-deleted {
+    -fx-background-color: -nbfx-diff-deleted;
+}
+
+.diff-pane .diff-mark.diff-changed {
+    -fx-background-color: -nbfx-diff-changed;
+}
+
+/* Under the mouse, or reached with the keyboard: outlined, as the current one is. */
+.diff-pane .diff-mark:hover,
+.diff-pane .diff-mark:focused {
+    -fx-border-color: -nbfx-accent;
+    -fx-border-width: 1;
+}
+
+.diff-pane .diff-mark.diff-current {
+    -fx-border-color: -nbfx-text-strong;
+    -fx-border-width: 1;
 }
 
 /*
@@ -55,35 +153,51 @@
 
 /*
  * The blocks that differ, as NetBeans colours them - added green, deleted red, changed blue - in the
- * colours of the theme, so that they are those of a dark one too. The colour is not all that tells
- * them apart: each kind has its own line along the top and the foot of the block - solid for added,
- * dashed for deleted, dotted for changed.
+ * colours the theme has for them: a fill that lets the text through, ruled above and below in the
+ * colour its connector is outlined with, so that the two read as one shape. The colour is not all
+ * that tells them apart: each kind has its own line - solid for added, dashed for deleted, dotted
+ * for changed.
  */
 .diff-pane .line-band {
-    -fx-opacity: 0.3;
     -fx-border-width: 1 0 1 0;
 }
 
 .diff-pane .line-band.diff-added {
-    -fx-background-color: -nbfx-output-success;
-    -fx-border-color: -nbfx-output-success;
+    -fx-background-color: -nbfx-diff-added-bg;
+    -fx-border-color: -nbfx-diff-added;
     -fx-border-style: solid;
 }
 
 .diff-pane .line-band.diff-deleted {
-    -fx-background-color: -nbfx-editor-text-error;
-    -fx-border-color: -nbfx-editor-text-error;
+    -fx-background-color: -nbfx-diff-deleted-bg;
+    -fx-border-color: -nbfx-diff-deleted;
     -fx-border-style: dashed;
 }
 
 .diff-pane .line-band.diff-changed {
-    -fx-background-color: -nbfx-accent;
-    -fx-border-color: -nbfx-accent;
+    -fx-background-color: -nbfx-diff-changed-bg;
+    -fx-border-color: -nbfx-diff-changed;
     -fx-border-style: dotted;
 }
 
-/* A rule where this side lacks the lines of the other: a line of the colour, at its full strength. */
+/* The block the view is at: ruled twice as thick, as its connector is outlined. */
+.diff-pane .line-band.diff-current {
+    -fx-border-width: 2 0 2 0;
+}
+
+/* A rule where this side lacks the lines of the other: a line of the colour of the outline. */
 .diff-pane .line-band.line-band-rule {
-    -fx-opacity: 1;
     -fx-border-width: 0;
+}
+
+.diff-pane .line-band.line-band-rule.diff-added {
+    -fx-background-color: -nbfx-diff-added;
+}
+
+.diff-pane .line-band.line-band-rule.diff-deleted {
+    -fx-background-color: -nbfx-diff-deleted;
+}
+
+.diff-pane .line-band.line-band-rule.diff-changed {
+    -fx-background-color: -nbfx-diff-changed;
 }

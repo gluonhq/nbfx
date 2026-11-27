@@ -47,6 +47,8 @@ final class LineBandsSupport {
 
     /** The height of a band of no lines: a rule where lines are missing. */
     private static final double RULE_HEIGHT = 2;
+    /** What the rich text area has its line numbers in, on the left of the text or on its right. */
+    private static final List<String> GUTTERS = List.of(".left-side", ".right-side");
     /** How many pulses a scroll asked for before the area is laid out is tried again. */
     private static final int LAYOUT_RETRIES = 3;
     /** How many pulses after a scroll the top line is measured again. */
@@ -339,12 +341,19 @@ final class LineBandsSupport {
             regions.forEach(region -> region.setVisible(false));
             return;
         }
-        // Across the gutter too, so that what is drawn beside the editor meets the band, not a gap.
-        Node gutter = codeArea.lookup(".left-side");
-        Bounds gutterView = gutter == null || !gutter.isVisible() ? null
-                : overlay.sceneToLocal(gutter.localToScene(gutter.getLayoutBounds()));
-        double bandX = gutterView == null ? view.getMinX() : Math.min(view.getMinX(), gutterView.getMinX());
-        double bandWidth = view.getMaxX() - bandX;
+        // Across the gutter too, on whichever side of the text it is, so that what is drawn beside
+        // the editor meets the band, not a gap.
+        double bandX = view.getMinX();
+        double bandEnd = view.getMaxX();
+        for (String side : GUTTERS) {
+            Node gutter = codeArea.lookup(side);
+            if (gutter != null && gutter.isVisible() && gutter.getScene() != null) {
+                Bounds gutterView = overlay.sceneToLocal(gutter.localToScene(gutter.getLayoutBounds()));
+                bandX = Math.min(bandX, gutterView.getMinX());
+                bandEnd = Math.max(bandEnd, gutterView.getMaxX());
+            }
+        }
+        double bandWidth = bandEnd - bandX;
         clip.setX(bandX);
         clip.setY(view.getMinY());
         clip.setWidth(bandWidth);

@@ -35,6 +35,9 @@
  *   -nbfx-output-*                  optional: Output window text by kind (text, error, warning,
  *                                   success, muted); they default to the tokens above, except
  *                                   -nbfx-output-success, a green a dark theme should set
+ *   -nbfx-diff-*                    optional: the blocks a diff marks (added, deleted, changed);
+ *                                   the outlines default to the tokens above, the fills
+ *                                   (-nbfx-diff-*-bg) are translucent values a dark theme should set
  *   -fx-*                           JavaFX Modena base colors for stock controls
  *
  * The Modena block (-fx-*) is optional: without it the stock controls keep their JavaFX defaults,

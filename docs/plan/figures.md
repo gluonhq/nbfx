@@ -7,7 +7,7 @@ Every number the plan states is derived here from the tree. Regenerate with
 | Figure | Value |
 |---|---|
 | nbfx modules | 69 |
-| nbfx source files | 794 |
+| nbfx source files | 796 |
 | modules exporting packages (`<public-packages>`) | 48 |
 | of those, subtree exports (`<subpackages>`) | 15 |
 | modules with `arch.xml` | 22 |
@@ -18,11 +18,11 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files constructing TreeView/TreeTableView/TableView/ListView | 26 |
 | files mentioning a TreeView/TreeTableView/TableView/ListView | 35 |
 | `.subscribe(` call sites | 166 |
-| files mentioning `dispose()` | 47 |
+| files mentioning `dispose()` | 48 |
 | modules importing `org.netbeans.api.java.source` | 5: nbfx.java.editor, nbfx.java.model, nbfx.java.navigation, nbfx.java.navigation.structure, nbfx.java.usages |
 | files importing `org.netbeans.api.java.source` | 46 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 62 |
-| files using `NbBundle` | 180 |
+| files using `NbBundle` | 181 |
 | `Bundle.properties` files | 69 |
 | test files | 120 |
 | modules with tests | 42 of 69 |
