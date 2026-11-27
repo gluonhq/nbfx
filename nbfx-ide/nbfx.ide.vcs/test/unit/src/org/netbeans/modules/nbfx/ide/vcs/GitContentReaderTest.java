@@ -361,22 +361,25 @@ public class GitContentReaderTest {
     }
 
     @Test
-    public void aDiffComparesTextOrNothingAndSaysWhatIsNeither() throws Exception {
-        assertEquals("text\n", GitDiff.text(new GitContent.Text("text\n", "aa", 5)));
-        // Not there: compared with nothing, as a file added since.
-        assertEquals("", GitDiff.text(new GitContent.Missing()));
-        // No text to compare: never an empty side, which would say the same.
-        for (GitContent content : List.of(new GitContent.Binary("aa", 5), new GitContent.TooLarge(9, 5),
-                new GitContent.Unmerged(), new GitContent.NotAFile("tree"), new GitContent.Malformed("UTF-8"),
-                new GitContent.Failed("fatal: what git said"))) {
-            IOException said = assertThrows(String.valueOf(content), IOException.class, () -> GitDiff.text(content));
-            assertFalse(String.valueOf(content), said.getMessage().isBlank());
-        }
-        assertEquals("fatal: what git said",
-                assertThrows(IOException.class, () -> GitDiff.text(new GitContent.Failed("fatal: what git said")))
-                        .getMessage());
-        assertTrue(assertThrows(IOException.class, () -> GitDiff.text(new GitContent.TooLarge(9, 5))).getMessage()
-                .contains("9"));
+    public void aFileOnDiskIsReadWithTheSameCareAsWhatGitHas() throws Exception {
+        // As it is on disk, not as git has it: no object id.
+        write("modified.txt", COMMITTED + "on disk\n");
+        assertEquals(new GitContent.Text(COMMITTED + "on disk\n", null, COMMITTED.length() + 8),
+                GitContentReader.workingTree(root.resolve("modified.txt"), UTF_8, LIMIT));
+        assertEquals(new GitContent.Missing(), GitContentReader.workingTree(root.resolve("gone.txt"), UTF_8, LIMIT));
+        assertEquals(new GitContent.NotAFile("tree"), GitContentReader.workingTree(root, UTF_8, LIMIT));
+
+        // Never committed, so never looked at by git: binary, too large, or no text in its charset.
+        Files.write(root.resolve("new.bin"), new byte[] {1, 2, 0, 3});
+        assertEquals(new GitContent.Binary(null, 4), GitContentReader.workingTree(root.resolve("new.bin"), UTF_8, LIMIT));
+        write("new-large.txt", "0123456789\n".repeat(1000));
+        assertEquals(new GitContent.TooLarge(11_000, 10_999),
+                GitContentReader.workingTree(root.resolve("new-large.txt"), UTF_8, 10_999));
+        Files.write(root.resolve("latin.txt"), "caf\u00e9\n".getBytes(ISO_8859_1));
+        assertEquals(new GitContent.Malformed("UTF-8"),
+                GitContentReader.workingTree(root.resolve("latin.txt"), UTF_8, LIMIT));
+        assertEquals("caf\u00e9\n", ((GitContent.Text) GitContentReader.workingTree(root.resolve("latin.txt"),
+                ISO_8859_1, LIMIT)).text());
     }
 
     private GitContent head(String path) {

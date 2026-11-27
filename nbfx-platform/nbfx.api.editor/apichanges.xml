@@ -38,12 +38,14 @@
                 <code>LineBand</code> and <code>EditorDocument.setLineBands(List)</code>, which
                 mark blocks of whole lines in one view;
                 <code>EditorDocument.topParagraphProperty()</code> and
-                <code>EditorDocument.scrollToParagraph(int)</code>, which keep several editors
+                <code>EditorDocument.scrollToParagraph(double)</code>, which keep several editors
                 scrolling in step; and <code>ContentManager.openDocument(EditorDocument, Node)</code>,
                 which shows in the editor area a document that is not the editor of a file. All
                 have default implementations. <code>EditorDocument.getFileObject()</code> is
                 <code>null</code> for such a document, where it was documented as never
-                <code>null</code>: code that takes a document from the open ones must check.
+                <code>null</code>: code that takes a document from the open ones must check. An
+                incompatible change in a minor version, made while the document API is
+                <code>devel</code> (see <code>arch.xml</code>), as the plan allows until it is not.
             </description>
             <class package="org.netbeans.api.nbfx.editor" name="ContentManager"/>
             <class package="org.netbeans.api.nbfx.editor" name="EditorDocument"/>

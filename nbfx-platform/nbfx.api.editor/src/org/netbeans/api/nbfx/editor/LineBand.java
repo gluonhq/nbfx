@@ -33,10 +33,10 @@ import java.util.Objects;
  */
 public record LineBand(int paragraph, int count, String styleClass) {
 
-    /** Checks that the band has a place and a style. */
+    /** Checks that the band has a place and a style, and ends at a line there can be. */
     public LineBand {
         Objects.requireNonNull(styleClass, "styleClass");
-        if (paragraph < 0 || count < 0) {
+        if (paragraph < 0 || count < 0 || paragraph > Integer.MAX_VALUE - count) {
             throw new IllegalArgumentException("paragraph " + paragraph + ", count " + count);
         }
     }

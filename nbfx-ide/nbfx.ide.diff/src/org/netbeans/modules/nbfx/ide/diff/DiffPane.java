@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.ide.diff;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -26,14 +28,14 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.SplitPane;
-import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -44,6 +46,8 @@ import org.netbeans.api.nbfx.diff.DiffResult;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
@@ -51,8 +55,8 @@ import org.openide.util.RequestProcessor;
 /**
  * Two texts side by side, as NetBeans' graphical diff: each in a read-only editor under its
  * heading, the blocks that differ marked - lines added, deleted and changed, and a rule where one
- * side lacks the lines of the other - and the two scrolled in step, so that the same lines stay
- * beside each other.
+ * side lacks the lines of the other - and the left one kept in step with the right one as that is
+ * scrolled, so that the same lines stay beside each other.
  * <p>
  * The texts are read and compared off the FX thread; until then, and when they are the same, the
  * line between the headings says so.
@@ -69,14 +73,8 @@ final class DiffPane extends BorderPane {
     private EditorDocument right;
     private List<Difference> differences = List.of();
     private Subscription scrolling = Subscription.EMPTY;
-    /**
-     * Whether the left editor is the one the user scrolls - the one last under the mouse, pressed
-     * or typed in - and the right one follows it; else the other way round. Only the leading
-     * editor is followed: the follower cannot always get to the line asked for - its text may be
-     * the shorter - and following it back would move the leader, which would be followed again,
-     * without end.
-     */
-    private boolean leftLeads;
+    /** The editor the keyboard is in, or was in last; the right one until the left one is gone into. */
+    private final ReadOnlyObjectWrapper<EditorDocument> activeEditor = new ReadOnlyObjectWrapper<>(this, "activeEditor");
     /**
      * Counts the comparisons asked for: the one that runs gives up as soon as another is asked
      * for, or the pane is disposed of, and what it found is not shown.
@@ -94,12 +92,12 @@ final class DiffPane extends BorderPane {
     }
 
     /**
-     * Shows {@code left} and {@code right} in place of the two texts shown, and compares them: what
+     * Shows {@code left} and {@code right} in place of the two sides shown, and compares them: what
      * a diff asked for again is of by now - another commit, the file staged since - is not what it
      * was of when its tab was opened. Must run on the JavaFX Application Thread.
      */
     void setSources(DiffSource left, DiffSource right) {
-        // The same files under the same headings keep their editors, and where they are scrolled to.
+        // Sides that show the same keep their editors, and where they are scrolled to.
         boolean same = left.equals(leftSource) && right.equals(rightSource);
         leftSource = Objects.requireNonNull(left);
         rightSource = Objects.requireNonNull(right);
@@ -109,26 +107,84 @@ final class DiffPane extends BorderPane {
         refresh();
     }
 
-    /** Puts an editor of each of the two files side by side, in place of those there were. */
+    /**
+     * Puts the two sides side by side, in place of those there were: an editor of the text of a
+     * side that has one - of no text for a side that is missing - and what there is to say of a
+     * side that cannot be compared. The new sides are made first and put in place together; if
+     * one cannot be made, what was made of the other is released, and the pane says so.
+     */
     private void showEditors() {
+        EditorService editors = Lookup.getDefault().lookup(EditorService.class);
+        EditorDocument newLeft = null;
+        EditorDocument newRight = null;
+        String failure = null;
+        try {
+            newLeft = editor(editors, leftSource);
+            newRight = editor(editors, rightSource);
+        } catch (IOException | RuntimeException ex) {
+            LOG.log(Level.INFO, "Cannot show " + leftSource.title() + " and " + rightSource.title(), ex);
+            if (newLeft != null) {
+                newLeft.dispose();
+            }
+            newLeft = null;
+            failure = message("Diff.failed");
+        }
         scrolling.unsubscribe();
         scrolling = Subscription.EMPTY;
         disposeEditors();
         differences = List.of();
-        EditorService editors = Lookup.getDefault().lookup(EditorService.class);
-        if (editors == null) {
+        left = newLeft;
+        right = newRight;
+        activeEditor.set(right != null ? right : left);
+        for (EditorDocument editor : new EditorDocument[] {left, right}) {
+            if (editor != null) {
+                // A diff shows two texts, not where the caret is in one: no breadcrumbs under them.
+                editor.showBreadcrumbsProperty().set(false);
+            }
+        }
+        if (failure != null) {
+            setCenter(notice(failure));
             return;
         }
-        left = editors.createPreviewDocument(leftSource.file());
-        right = editors.createPreviewDocument(rightSource.file());
-        // The line numbers of the left text next to those of the right one, as in NetBeans.
-        left.gutterPositionProperty().set(HPos.RIGHT);
-        SplitPane sides = new SplitPane(side(leftSource.title(), left.getNode(), true),
-                side(rightSource.title(), right.getNode(), false));
+        if (left != null) {
+            // The line numbers of the left text next to those of the right one, as in NetBeans.
+            left.gutterPositionProperty().set(HPos.RIGHT);
+        }
+        SplitPane sides = new SplitPane(side(leftSource, left, true), side(rightSource, right, false));
         sides.getStyleClass().add("diff-sides");
         setCenter(sides);
-        scrolling = left.topParagraphProperty().subscribe(top -> follow(top.intValue(), true))
-                .and(right.topParagraphProperty().subscribe(top -> follow(top.intValue(), false)));
+        if (left != null && right != null) {
+            // The right text leads, and the left one follows it; scrolled by itself, the left
+            // one moves alone, as in NetBeans - until the right one is scrolled again.
+            scrolling = right.topParagraphProperty().subscribe(top -> follow(top.doubleValue()));
+        }
+    }
+
+    /**
+     * An editor that shows the text of {@code source}, or {@code null} when it has none to show -
+     * it cannot be compared - or there is no editor to be had. It shows a copy of the text in
+     * memory, named as the file so that it is coloured as one: what is shown is what is compared,
+     * whatever becomes of the file meanwhile.
+     */
+    private static EditorDocument editor(EditorService editors, DiffSource source) throws IOException {
+        if (editors == null || !source.isComparable()) {
+            return null;
+        }
+        return editors.createPreviewDocument(inMemory(source.fileName(), source.text() == null ? "" : source.text()));
+    }
+
+    /** A file in memory named {@code name} that holds {@code text}. */
+    static FileObject inMemory(String name, String text) throws IOException {
+        FileObject file = FileUtil.createMemoryFileSystem().getRoot().createData(name);
+        try (OutputStream out = file.getOutputStream()) {
+            out.write(text.getBytes(StandardCharsets.UTF_8));
+        }
+        return file;
+    }
+
+    /** The editor the keyboard is in, or was in last: the one Copy is of. {@code null} with no editor. */
+    ObservableValue<EditorDocument> activeEditorProperty() {
+        return activeEditor.getReadOnlyProperty();
     }
 
     private void disposeEditors() {
@@ -140,6 +196,7 @@ final class DiffPane extends BorderPane {
         }
         left = null;
         right = null;
+        activeEditor.set(null);
     }
 
     /**
@@ -173,6 +230,13 @@ final class DiffPane extends BorderPane {
         long asked = comparison.incrementAndGet();
         DiffSource from = leftSource;
         DiffSource to = rightSource;
+        if (!from.isComparable() || !to.isComparable()) {
+            // Nothing to compare: said, with the side it is of, and not shown as no difference.
+            DiffSource unreadable = from.isComparable() ? to : from;
+            show(List.of(), NbBundle.getMessage(DiffPane.class, "Diff.unreadable", unreadable.title(),
+                    unreadable.problem()));
+            return;
+        }
         summary.setText(message("Diff.loading"));
         RP.post(() -> {
             DiffResult result;
@@ -180,12 +244,11 @@ final class DiffPane extends BorderPane {
                 if (asked != comparison.get()) {
                     return;
                 }
-                result = Diff.compute(Diff.lines(from.file().asText("UTF-8")), Diff.lines(to.file().asText("UTF-8")),
-                        DiffOptions.EXACT, () -> asked != comparison.get());
+                result = Diff.compute(from.lines(), to.lines(), DiffOptions.EXACT, () -> asked != comparison.get());
             } catch (CancellationException ex) {
                 return;
-            } catch (IOException | RuntimeException ex) {
-                LOG.log(Level.INFO, "Cannot compare " + from.file() + " and " + to.file(), ex);
+            } catch (RuntimeException ex) {
+                LOG.log(Level.INFO, "Cannot compare " + from.title() + " and " + to.title(), ex);
                 Platform.runLater(() -> {
                     if (asked == comparison.get()) {
                         show(List.of(), message("Diff.failed"));
@@ -195,12 +258,25 @@ final class DiffPane extends BorderPane {
             }
             Platform.runLater(() -> {
                 if (asked == comparison.get()) {
-                    List<Difference> found = result.differences();
-                    show(found, found.isEmpty() ? message("Diff.identical")
-                            : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size()));
+                    show(result.differences(), told(from, to, result.differences()));
                 }
             });
         });
+    }
+
+    /** What the line between the headings says of a comparison: what happened to the file, or how much differs. */
+    private static String told(DiffSource from, DiffSource to, List<Difference> found) {
+        if (from.isMissing() && to.isMissing()) {
+            return message("Diff.identical");
+        }
+        if (from.isMissing()) {
+            return message("Diff.added");
+        }
+        if (to.isMissing()) {
+            return message("Diff.deleted");
+        }
+        return found.isEmpty() ? message("Diff.identical")
+                : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size());
     }
 
     /** Releases the two editors, and gives up the comparison that runs. */
@@ -213,49 +289,70 @@ final class DiffPane extends BorderPane {
     private void show(List<Difference> found, String text) {
         differences = found;
         summary.setText(text);
+        // Said, not only shown: how the comparison ended, and on each side which lines differ and
+        // how - the colour of a band tells nobody who does not see it.
+        summary.setAccessibleText(text);
+        summary.notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
+        describe(left, leftSource, DiffLines.describeLeft(found));
+        describe(right, rightSource, DiffLines.describeRight(found));
         if (left != null && right != null) {
             left.setLineBands(DiffLines.leftBands(found));
             right.setLineBands(DiffLines.rightBands(found));
         }
     }
 
-    /** Brings beside the top line of the leading editor the line of the other that stands by it. */
-    private void follow(int top, boolean leftScrolled) {
-        if (leftScrolled != leftLeads || left == null || right == null) {
-            return;
-        }
-        if (leftScrolled) {
-            right.scrollToParagraph(DiffLines.toRight(differences, top));
-        } else {
+    /**
+     * Brings beside the place at the top of the right editor the place of the left one that
+     * stands by it - to a fraction of a line, so that the two move together and not one a line at
+     * a time. Only this way: the left one, which has no scroll bar of its own, is the one that is
+     * kept in step, and scrolling it does not move the right one.
+     */
+    private void follow(double top) {
+        if (left != null && right != null) {
             left.scrollToParagraph(DiffLines.toLeft(differences, top));
         }
     }
 
-    private VBox side(String title, Node editor, boolean isLeft) {
-        Label heading = new Label(title);
+    private VBox side(DiffSource source, EditorDocument document, boolean isLeft) {
+        Label heading = new Label(source.title());
         heading.getStyleClass().add("diff-heading");
         heading.setMaxWidth(Double.MAX_VALUE);
         heading.setAlignment(Pos.CENTER);
         // File names and revisions are data: an underscore in one must not become a mnemonic.
         heading.setMnemonicParsing(false);
+        // No text to show: what there is to say of this side, in its place.
+        Node editor = document != null ? document.getNode() : notice(source.isComparable() ? "" : source.problem());
         VBox.setVgrow(editor, Priority.ALWAYS);
         VBox side = new VBox(heading, editor);
-        side.getStyleClass().add("diff-side");
+        side.getStyleClass().addAll("diff-side", isLeft ? "diff-side-left" : "diff-side-right");
         side.setMinWidth(0);
-        // Before the editor sees them: whatever scrolls it - the wheel, its scroll bars, the keys -
-        // starts here.
-        side.addEventFilter(MouseEvent.MOUSE_ENTERED, event -> leftLeads = isLeft);
-        side.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> leftLeads = isLeft);
-        side.addEventFilter(ScrollEvent.ANY, event -> leftLeads = isLeft);
-        side.addEventFilter(KeyEvent.KEY_PRESSED, event -> leftLeads = isLeft);
-        // And the side the keyboard is given to - by the keys, or as the tab is chosen - leads
-        // before a key scrolls it.
-        side.focusWithinProperty().subscribe(focused -> {
-            if (focused) {
-                leftLeads = isLeft;
-            }
-        });
+        if (document != null) {
+            side.focusWithinProperty().subscribe(focused -> {
+                if (focused && (document == left || document == right)) {
+                    activeEditor.set(document);
+                }
+            });
+        }
         return side;
+    }
+
+    /** Has assistive technology say of the editor of {@code source} which of its lines differ. */
+    private static void describe(EditorDocument editor, DiffSource source, List<String> blocks) {
+        if (editor != null) {
+            editor.getNode().setAccessibleText(source.title());
+            editor.getNode().setAccessibleHelp(blocks.isEmpty() ? message("Diff.identical") : String.join("; ", blocks));
+        }
+    }
+
+    /** What is said where a text would be shown. */
+    private static Label notice(String text) {
+        Label notice = new Label(text);
+        notice.getStyleClass().add("diff-notice");
+        notice.setMnemonicParsing(false);
+        notice.setWrapText(true);
+        notice.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        notice.setAlignment(Pos.CENTER);
+        return notice;
     }
 
     private static String message(String key) {

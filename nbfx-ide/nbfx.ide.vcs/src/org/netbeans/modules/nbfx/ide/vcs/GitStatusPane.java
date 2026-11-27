@@ -395,7 +395,7 @@ final class GitStatusPane extends BorderPane {
             row.setOnMouseClicked(event -> {
                 if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2
                         && row.getItem() instanceof StatusRow.File changed) {
-                    open(changed);
+                    activate(changed);
                     event.consume();
                 }
             });
@@ -403,7 +403,7 @@ final class GitStatusPane extends BorderPane {
         });
         table.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER && selectedFile() != null) {
-                open(selectedFile());
+                activate(selectedFile());
                 event.consume();
             }
         });
@@ -424,7 +424,8 @@ final class GitStatusPane extends BorderPane {
         diff.setOnAction(event -> {
             StatusRow.File row = selectedFile();
             if (row != null) {
-                GitDiff.open(fileObject(row));
+                // A renamed file is compared with what it was called in the last commit.
+                GitDiff.open(fileObject(row), row.status().originalPath());
             }
         });
         MenuItem commitItem = new MenuItem(message("Git.commit.menu"));
@@ -437,8 +438,9 @@ final class GitStatusPane extends BorderPane {
             StatusRow.File row = selectedFile();
             FileObject file = row == null ? null : fileObject(row);
             open.setDisable(file == null || !file.isData());
-            // A deleted file has no working tree side to show.
-            diff.setDisable(!GitDiff.canDiff(file));
+            // A deleted file has no working tree side to show, and in another mode than that of
+            // the last commit and the working tree the diff would not be of what the row tells.
+            diff.setDisable(!GitDiff.canDiff(file, mode.get()));
         });
         return menu;
     }
@@ -473,6 +475,19 @@ final class GitStatusPane extends BorderPane {
     }
 
     /** Opens the file in the editor; a deleted file has nothing to open. */
+    /**
+     * What a double click or Enter on {@code row} does, as in NetBeans' Versioning window: shows
+     * what changed in the file - its diff - where one is offered, and else opens the file.
+     */
+    private void activate(StatusRow.File row) {
+        FileObject file = fileObject(row);
+        if (GitDiff.canDiff(file, mode.get())) {
+            GitDiff.open(file, row.status().originalPath());
+        } else {
+            open(row);
+        }
+    }
+
     private void open(StatusRow.File row) {
         FileObject file = fileObject(row);
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);

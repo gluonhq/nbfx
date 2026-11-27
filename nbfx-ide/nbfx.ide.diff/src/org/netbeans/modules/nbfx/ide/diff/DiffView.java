@@ -18,11 +18,11 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import javafx.scene.Node;
 import org.netbeans.api.nbfx.editor.ContentManager;
-import org.netbeans.api.nbfx.editor.EditorContext;
-import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
@@ -30,10 +30,14 @@ import org.openide.util.NbBundle;
  * Opens diff tabs in the editor area: two texts side by side with their differences marked. What
  * the two texts are - a file and its last commit, two revisions - is the caller's; this module
  * knows nothing of version control.
- *
- * @since 1.0
  */
 public final class DiffView {
+
+    /**
+     * The diffs that are open, by what they are of, from the moment they are asked for until
+     * their tab is closed. Read and changed on the JavaFX Application Thread only.
+     */
+    private static final Map<Object, DiffDocument> OPEN = new HashMap<>();
 
     private DiffView() {
     }
@@ -52,23 +56,29 @@ public final class DiffView {
      */
     public static void open(Object key, String name, Node icon, DiffSource left, DiffSource right) {
         Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(left, "left");
+        Objects.requireNonNull(right, "right");
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);
         if (content == null) {
             return;
         }
-        EditorContext context = Lookup.getDefault().lookup(EditorContext.class);
-        if (context != null) {
-            for (EditorDocument open : context.getDocuments()) {
-                if (open instanceof DiffDocument diff && diff.key().equals(key)) {
-                    // What it is of by now, not what it was of when it was opened.
-                    diff.pane().setSources(left, right);
-                    content.openDocument(diff, icon);
-                    return;
-                }
-            }
+        DiffDocument open = OPEN.get(key);
+        if (open != null) {
+            // What it is of by now, not what it was of when it was opened.
+            open.pane().setSources(left, right);
+            content.openDocument(open, icon);
+            return;
         }
         DiffDocument document = new DiffDocument(key, NbBundle.getMessage(DiffView.class, "Diff.title", name),
-                new DiffPane(left, right));
+                new DiffPane(left, right), () -> OPEN.remove(key));
+        // Known here from now on, not from when its tab is there: asked for twice in a row, before
+        // the editor area has it, a diff is still opened once.
+        OPEN.put(key, document);
         content.openDocument(document, icon);
+    }
+
+    /** The diff open for {@code key}, or {@code null}; for tests. */
+    static DiffDocument openFor(Object key) {
+        return OPEN.get(key);
     }
 }

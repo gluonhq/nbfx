@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
+import org.openide.util.NbBundle;
 
 /**
  * What the two editors of a diff view need of the differences, without a toolkit: the bands that
@@ -73,37 +74,71 @@ final class DiffLines {
     }
 
     /**
-     * The line of the right text beside line {@code left} of the left one: the same line where the
-     * texts agree; within a block, the line as far into the block of the other side, or its last.
+     * The place in the right text beside place {@code left} of the left one, a place being a line
+     * and the fraction of it passed: the same place where the texts agree; within a block, as far
+     * into the block of the other side, in proportion - a block of one line beside one of three is
+     * passed three times as fast - so that both sides leave the block together, and scrolling one
+     * moves the other without a jump.
      */
-    static int toRight(List<Difference> differences, int left) {
+    static double toRight(List<Difference> differences, double left) {
         int shift = 0;
         for (Difference difference : differences) {
             if (left < difference.leftStart()) {
                 break;
             }
             if (left < difference.leftEnd()) {
-                return difference.rightStart() + Math.min(left - difference.leftStart(),
-                        Math.max(0, difference.rightCount() - 1));
+                return difference.rightStart()
+                        + (left - difference.leftStart()) * difference.rightCount() / difference.leftCount();
             }
             shift = difference.rightEnd() - difference.leftEnd();
         }
         return Math.max(0, left + shift);
     }
 
-    /** The line of the left text beside line {@code right} of the right one; see {@link #toRight}. */
-    static int toLeft(List<Difference> differences, int right) {
+    /** The place in the left text beside place {@code right} of the right one; see {@link #toRight}. */
+    static double toLeft(List<Difference> differences, double right) {
         int shift = 0;
         for (Difference difference : differences) {
             if (right < difference.rightStart()) {
                 break;
             }
             if (right < difference.rightEnd()) {
-                return difference.leftStart() + Math.min(right - difference.rightStart(),
-                        Math.max(0, difference.leftCount() - 1));
+                return difference.leftStart()
+                        + (right - difference.rightStart()) * difference.leftCount() / difference.rightCount();
             }
             shift = difference.leftEnd() - difference.rightEnd();
         }
         return Math.max(0, right + shift);
+    }
+
+    /** What happened to the lines of the left text, block by block, in words: "Lines 3 to 4 changed". */
+    static List<String> describeLeft(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> NbBundle.getMessage(DiffLines.class, "Diff.told.addedAfter", difference.leftStart());
+                case DELETE -> lines("Diff.told.deleted", difference.leftStart(), difference.leftCount());
+                case CHANGE -> lines("Diff.told.changed", difference.leftStart(), difference.leftCount());
+            });
+        }
+        return told;
+    }
+
+    /** What happened to the lines of the right text, block by block, in words. */
+    static List<String> describeRight(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> lines("Diff.told.added", difference.rightStart(), difference.rightCount());
+                case DELETE -> NbBundle.getMessage(DiffLines.class, "Diff.told.deletedAfter", difference.rightStart());
+                case CHANGE -> lines("Diff.told.changed", difference.rightStart(), difference.rightCount());
+            });
+        }
+        return told;
+    }
+
+    /** The message of {@code key} for {@code count} lines from {@code start}, counted from one for the reader. */
+    private static String lines(String key, int start, int count) {
+        return NbBundle.getMessage(DiffLines.class, key, start + 1, start + count, count);
     }
 }

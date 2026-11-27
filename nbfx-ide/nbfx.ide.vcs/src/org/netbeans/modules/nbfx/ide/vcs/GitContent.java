@@ -19,8 +19,8 @@
 package org.netbeans.modules.nbfx.ide.vcs;
 
 /**
- * What git has of a file at some point - the last commit, the index: its text, or why there is none
- * to compare. Each reason is told apart, as each is said differently to the user.
+ * What there is of a file at some point - in the last commit, in the index, on disk in the
+ * working tree: its text, or why there is none to compare. Each reason is told apart, as each is said differently to the user.
  * <p>
  * The content is that of the object git stores, read by its id: not what a filter or a
  * {@code working-tree-encoding} attribute makes of it on checkout. None of this says whether the
@@ -35,7 +35,8 @@ sealed interface GitContent {
      * The content of a text file, decoded with the charset asked for.
      *
      * @param text the text
-     * @param objectId the id of the blob it was read from: the same id is the same content
+     * @param objectId the id of the blob it was read from: the same id is the same content;
+     *        {@code null} for the text of a file in the working tree, which git has not stored
      * @param size the size of the blob, in bytes
      */
     record Text(String text, String objectId, long size) implements GitContent {
@@ -53,7 +54,7 @@ sealed interface GitContent {
      * The file is there and is not text, as git tells it without attributes: it has a NUL among
      * its first bytes. A text in UTF-16 is binary by that rule, as it is for git.
      *
-     * @param objectId the id of the blob
+     * @param objectId the id of the blob; {@code null} for a file in the working tree
      * @param size the size of the blob, in bytes
      */
     record Binary(String objectId, long size) implements GitContent {

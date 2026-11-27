@@ -18,26 +18,27 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
-import java.io.OutputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
+import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
 import javafx.scene.layout.Region;
 import org.junit.Before;
 import org.junit.Test;
+import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.editor.LineBand;
 import org.netbeans.junit.MockServices;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -62,18 +63,17 @@ public class DiffPaneEditorsTest {
     }
 
     @Test
-    public void theTwoEditorsAreMarkedAndTheLeftOneHasItsLineNumbersByTheOther() throws Exception {
-        FileObject from = inMemory("a\nb\nc\n");
-        FileObject to = inMemory("a\nx\nc\nd\n");
-        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", from),
-                new DiffSource("Working Tree", to)));
+    public void theTwoEditorsShowWhatIsComparedAndAreMarked() throws Exception {
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\nd\n"));
         awaitComparison(pane);
 
         assertEquals(2, EDITORS.size());
         Editor left = EDITORS.get(0);
         Editor right = EDITORS.get(1);
-        assertSame(from, left.file);
-        assertSame(to, right.file);
+        // Each shows the text of its side - a copy of it, named as the file to be coloured as one.
+        assertEquals("a\nb\nc\n", left.file.asText("UTF-8"));
+        assertEquals("a\nx\nc\nd\n", right.file.asText("UTF-8"));
+        assertEquals("A.txt", left.file.getNameExt());
         assertEquals(HPos.RIGHT, left.gutter.get());
         assertEquals(HPos.LEFT, right.gutter.get());
         // A changed line on both sides, and on the right the line added, with a rule on the left.
@@ -85,26 +85,21 @@ public class DiffPaneEditorsTest {
 
     @Test
     public void aDiffAskedForAgainShowsWhatItIsOfByNow() throws Exception {
-        FileObject working = inMemory("a\nx\nc\n");
-        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", inMemoryOrFail("a\nb\nc\n")),
-                new DiffSource("Working Tree", working)));
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
         awaitComparison(pane);
         assertEquals(1, JavaFxTestSupport.onFx(pane::differences).size());
         Editor oldLeft = EDITORS.get(0);
         Editor oldRight = EDITORS.get(1);
 
         // Committed since: the last commit has what the working tree has.
-        FileObject committed = inMemory("a\nx\nc\n");
-        JavaFxTestSupport.onFx(() -> pane.setSources(new DiffSource("HEAD", committed),
-                new DiffSource("Working Tree", working)));
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\nx\nc\n"), working("a\nx\nc\n")));
         awaitComparison(pane);
 
         assertTrue(JavaFxTestSupport.onFx(pane::differences).isEmpty());
         assertEquals("No differences", JavaFxTestSupport.onFx(pane::summary));
-        // New editors, of the new files; the old ones are released, and no mark is left.
+        // New editors, of the new texts; the old ones are released, and no mark is left.
         assertEquals(4, EDITORS.size());
-        assertSame(committed, EDITORS.get(2).file);
-        assertNotSame(oldLeft, EDITORS.get(2));
+        assertEquals("a\nx\nc\n", EDITORS.get(2).file.asText("UTF-8"));
         assertEquals(1, oldLeft.disposed);
         assertEquals(1, oldRight.disposed);
         assertEquals(List.of(), EDITORS.get(2).bands);
@@ -112,30 +107,150 @@ public class DiffPaneEditorsTest {
     }
 
     @Test
-    public void theSameSourcesKeepTheirEditors() throws Exception {
-        FileObject from = inMemory("a\n");
-        FileObject to = inMemory("b\n");
-        DiffSource left = new DiffSource("HEAD", from);
-        DiffSource right = new DiffSource("Working Tree", to);
-        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(left, right));
+    public void sidesThatShowTheSameKeepTheirEditors() throws Exception {
+        DiffPane pane = pane(head("a\n"), working("b\n"));
         awaitComparison(pane);
 
-        // The file changed on disk meanwhile: compared again, in the editors that are there.
-        try (OutputStream out = to.getOutputStream()) {
-            out.write("a\n".getBytes(StandardCharsets.UTF_8));
-        }
-        JavaFxTestSupport.onFx(() -> pane.setSources(new DiffSource("HEAD", from), new DiffSource("Working Tree", to)));
+        // Read again and found as it was: the same texts, whoever made the sources.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\n"), working("b\n")));
         awaitComparison(pane);
 
         assertEquals(2, EDITORS.size());
         assertEquals(0, EDITORS.get(0).disposed);
-        assertTrue(JavaFxTestSupport.onFx(pane::differences).isEmpty());
+        assertEquals(1, JavaFxTestSupport.onFx(pane::differences).size());
+    }
+
+    @Test
+    public void aMissingSideHasAnEditorOfNoTextAndAnUnreadableOneHasNone() throws Exception {
+        DiffPane added = pane(DiffSource.missing("HEAD", "A.txt"), working("new\n"));
+        awaitComparison(added);
+
+        // No file on the left: an editor with nothing in it, and the rule where the lines go.
+        assertEquals(2, EDITORS.size());
+        assertEquals("", EDITORS.get(0).file.asText("UTF-8"));
+        assertEquals(DiffLines.leftBands(added.differences()), EDITORS.get(0).bands);
+        assertEquals(1, EDITORS.get(0).bands.size());
+
+        EDITORS.clear();
+        DiffPane binary = pane(head("text\n"), DiffSource.unreadable("Working Tree", "A.txt", "A binary file."));
+        // Only the side with a text has an editor; nothing is marked in it.
+        assertEquals(1, EDITORS.size());
+        assertEquals("text\n", EDITORS.get(0).file.asText("UTF-8"));
+        assertEquals(List.of(), EDITORS.get(0).bands);
+        assertEquals("Working Tree: A binary file.", JavaFxTestSupport.onFx(binary::summary));
+        // And the tab still takes the keyboard without one.
+        JavaFxTestSupport.onFx(() -> new DiffDocument("key", "A.txt [ Diff ]", binary).requestFocus());
+        JavaFxTestSupport.onFx(binary::dispose);
+        assertEquals(1, EDITORS.get(0).disposed);
+    }
+
+    @Test
+    public void theLeftTextFollowsTheRightOneAndNotTheOtherWayRound() throws Exception {
+        // A line added on the right after the second: from there on the left is a line behind.
+        DiffPane pane = pane(head("a\nb\nc\nd\n"), working("a\nb\nx\nc\nd\n"));
+        awaitComparison(pane);
+        Editor left = EDITORS.get(0);
+        Editor right = EDITORS.get(1);
+        JavaFxTestSupport.onFx(() -> {
+            left.scrolledTo.clear();
+            right.scrolledTo.clear();
+
+            // The right one scrolled: the left one is brought beside it, to the fraction of a line.
+            right.top.set(1.5);
+            right.top.set(4.25);
+            assertEquals(List.of(1.5, 3.25), left.scrolledTo);
+            assertEquals(List.of(), right.scrolledTo);
+
+            // The left one scrolled by itself, with the wheel: the right one stays where it is.
+            left.top.set(2);
+            left.top.set(0);
+            assertEquals(List.of(), right.scrolledTo);
+            assertEquals(List.of(1.5, 3.25), left.scrolledTo);
+
+            // Until the right one is scrolled again, which brings the left one back beside it.
+            right.top.set(4);
+            assertEquals(List.of(1.5, 3.25, 3.0), left.scrolledTo);
+        });
+    }
+
+    @Test
+    public void copyIsOfTheTextTheKeyboardIsIn() throws Exception {
+        DiffPane pane = pane(head("left\n"), working("right\n"));
+        DiffDocument document = JavaFxTestSupport.onFx(() -> new DiffDocument("key", "A.txt [ Diff ]", pane));
+        Editor left = EDITORS.get(0);
+        Editor right = EDITORS.get(1);
+
+        JavaFxTestSupport.onFx(() -> {
+            // The right text at first; nothing selected, nothing to copy.
+            assertFalse(document.hasSelectionProperty().get());
+            assertEquals("", document.getSelectedText());
+
+            right.selection.set(true);
+            assertTrue(document.hasSelectionProperty().get());
+            assertEquals("selected in right", document.getSelectedText());
+            document.copy();
+            assertEquals(1, right.copied);
+            assertEquals(0, left.copied);
+
+            // Nothing is cut from a diff, or pasted into one.
+            document.cut();
+            document.paste();
+            assertFalse(document.editableProperty().get());
+            // A diff shows two texts, not where the caret is in one.
+            assertFalse(left.breadcrumbs.get());
+            assertFalse(right.breadcrumbs.get());
+        });
+    }
+
+    @Test
+    public void whatDiffersIsSaidAndNotOnlyColoured() throws Exception {
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\nd\n"));
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("HEAD", EDITORS.get(0).node.getAccessibleText());
+            assertEquals("Line 2 changed; Lines added after line 3", EDITORS.get(0).node.getAccessibleHelp());
+            assertEquals("Working Tree", EDITORS.get(1).node.getAccessibleText());
+            assertEquals("Line 2 changed; Line 4 added", EDITORS.get(1).node.getAccessibleHelp());
+        });
+        // Compared again and found the same: said so.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\n"), working("a\n")));
+        awaitComparison(pane);
+        assertEquals("No differences", JavaFxTestSupport.onFx(() -> EDITORS.get(2).node.getAccessibleHelp()));
+    }
+
+    @Test
+    public void aDiffAskedForTwiceInARowIsOpenedOnce() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        Content.OPENED.clear();
+        Object key = new Object();
+
+        JavaFxTestSupport.onFx(() -> {
+            // Before the editor area has shown the first: it is still the one opened.
+            DiffView.open(key, "A.txt", null, head("a\n"), working("b\n"));
+            DiffView.open(key, "A.txt", null, head("a\n"), working("c\n"));
+        });
+
+        assertEquals(2, Content.OPENED.size());
+        assertSame(Content.OPENED.get(0), Content.OPENED.get(1));
+        DiffDocument document = (DiffDocument) Content.OPENED.get(0);
+        assertEquals("A.txt [ Diff ]", document.getTitle());
+        // And it shows what was asked for last.
+        awaitComparison(document.pane());
+        assertEquals("c\n", EDITORS.get(EDITORS.size() - 1).file.asText("UTF-8"));
+
+        // Closed, it is forgotten: asked for again, another one is opened.
+        JavaFxTestSupport.onFx(document::dispose);
+        assertEquals(null, JavaFxTestSupport.onFx(() -> DiffView.openFor(key)));
+        JavaFxTestSupport.onFx(() -> DiffView.open(key, "A.txt", null, head("a\n"), working("b\n")));
+        assertEquals(3, Content.OPENED.size());
+        assertNotSame(document, Content.OPENED.get(2));
+        JavaFxTestSupport.onFx(() -> Content.OPENED.get(2).dispose());
     }
 
     @Test
     public void theTabGivesTheKeyboardToTheTextComparedTo() throws Exception {
-        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", inMemoryOrFail("a\n")),
-                new DiffSource("Working Tree", inMemoryOrFail("b\n"))));
+        DiffPane pane = pane(head("a\n"), working("b\n"));
         DiffDocument document = new DiffDocument("key", "A.txt [ Diff ]", pane);
 
         JavaFxTestSupport.onFx(document::requestFocus);
@@ -147,8 +262,7 @@ public class DiffPaneEditorsTest {
     @Test
     public void aComparisonNobodyWaitsForIsNotShownAndTheEditorsAreReleased() throws Exception {
         DiffPane pane = JavaFxTestSupport.onFx(() -> {
-            DiffPane made = new DiffPane(new DiffSource("HEAD", inMemoryOrFail("a\n")),
-                    new DiffSource("Working Tree", inMemoryOrFail("b\n")));
+            DiffPane made = new DiffPane(head("a\n"), working("b\n"));
             // Before the comparison asked for on making it has run.
             made.dispose();
             return made;
@@ -162,6 +276,18 @@ public class DiffPaneEditorsTest {
         assertFalse(EDITORS.get(0).bands.size() > 0);
     }
 
+    private static DiffSource head(String text) {
+        return DiffSource.of("HEAD", "A.txt", text);
+    }
+
+    private static DiffSource working(String text) {
+        return DiffSource.of("Working Tree", "A.txt", text);
+    }
+
+    private static DiffPane pane(DiffSource left, DiffSource right) throws Exception {
+        return JavaFxTestSupport.onFx(() -> new DiffPane(left, right));
+    }
+
     private static void awaitComparison(DiffPane pane) throws Exception {
         for (int i = 0; i < 100; i++) {
             if (!"Comparing...".equals(JavaFxTestSupport.onFx(pane::summary))) {
@@ -172,27 +298,16 @@ public class DiffPaneEditorsTest {
         throw new AssertionError("the files were not compared");
     }
 
-    private static FileObject inMemoryOrFail(String text) {
-        try {
-            return inMemory(text);
-        } catch (Exception ex) {
-            throw new AssertionError(ex);
-        }
-    }
-
-    private static FileObject inMemory(String text) throws Exception {
-        FileObject file = FileUtil.createMemoryFileSystem().getRoot().createData("A.txt");
-        try (OutputStream out = file.getOutputStream()) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
-        }
-        return file;
-    }
-
     /** What an editor made for the pane was told. */
     private static final class Editor {
         private final FileObject file;
         private final Region node = new Region();
         private final ObjectProperty<HPos> gutter = new SimpleObjectProperty<>(HPos.LEFT);
+        private final SimpleDoubleProperty top = new SimpleDoubleProperty(0);
+        private final SimpleBooleanProperty breadcrumbs = new SimpleBooleanProperty(true);
+        private final ReadOnlyBooleanWrapper selection = new ReadOnlyBooleanWrapper(false);
+        private volatile int copied;
+        private final List<Double> scrolledTo = new CopyOnWriteArrayList<>();
         private volatile List<LineBand> bands = List.of();
         private volatile int focused;
         private volatile int disposed;
@@ -200,6 +315,78 @@ public class DiffPaneEditorsTest {
 
         Editor(FileObject file) {
             this.file = file;
+        }
+    }
+
+    /** An editor area that keeps the documents it is told to open, and shows none. */
+    public static final class Content implements ContentManager {
+
+        static final List<EditorDocument> OPENED = new CopyOnWriteArrayList<>();
+
+        @Override
+        public void openDocument(EditorDocument document, javafx.scene.Node graphic) {
+            OPENED.add(document);
+        }
+
+        @Override
+        public void openFile(FileObject file, javafx.scene.Node graphic) {
+        }
+
+        @Override
+        public void openFile(FileObject file, int start, int end) {
+        }
+
+        @Override
+        public void closeAll() {
+        }
+
+        @Override
+        public List<EditorDocument> getMainPaneDocuments() {
+            return List.of();
+        }
+
+        @Override
+        public javafx.beans.value.ObservableValue<EditorDocument> mainPaneActiveDocument() {
+            return new SimpleObjectProperty<>();
+        }
+
+        @Override
+        public FileObject getActiveFile() {
+            return null;
+        }
+
+        @Override
+        public void selectFile(FileObject file) {
+        }
+
+        @Override
+        public void focusActiveEditor() {
+        }
+
+        @Override
+        public void closeFile(FileObject file) {
+        }
+
+        @Override
+        public void closeDocument(EditorDocument document) {
+        }
+
+        @Override
+        public EditorDocument cloneDocument(EditorDocument document) {
+            return null;
+        }
+
+        @Override
+        public EditorDocument documentForFile(FileObject file) {
+            return null;
+        }
+
+        @Override
+        public void deleteFile(FileObject file) {
+        }
+
+        @Override
+        public void deleteFolder(FileObject folder) {
         }
     }
 
@@ -217,6 +404,20 @@ public class DiffPaneEditorsTest {
                         return file;
                     case "gutterPositionProperty":
                         return editor.gutter;
+                    case "topParagraphProperty":
+                        return editor.top;
+                    case "showBreadcrumbsProperty":
+                        return editor.breadcrumbs;
+                    case "hasSelectionProperty":
+                        return editor.selection.getReadOnlyProperty();
+                    case "getSelectedText":
+                        return editor.selection.get() ? "selected in " + editor.file.asText("UTF-8").strip() : "";
+                    case "copy":
+                        editor.copied++;
+                        return null;
+                    case "scrollToParagraph":
+                        editor.scrolledTo.add((Double) args[0]);
+                        return null;
                     case "setLineBands":
                         editor.bands = new ArrayList<>((List<LineBand>) args[0]);
                         return null;

@@ -508,8 +508,8 @@ public class CodeEditor implements EditorDocument {
     }
 
     @Override
-    public void scrollToParagraph(int paragraph) {
-        lineBands.scrollTo(paragraph);
+    public void scrollToParagraph(double position) {
+        lineBands.scrollTo(position);
     }
 
     @Override

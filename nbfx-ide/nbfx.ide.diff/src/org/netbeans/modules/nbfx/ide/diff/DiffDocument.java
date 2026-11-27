@@ -40,12 +40,22 @@ final class DiffDocument implements EditorDocument {
     private final Object key;
     private final String title;
     private final DiffPane pane;
+    private final Runnable onDispose;
     private final ReadOnlyBooleanWrapper never = new ReadOnlyBooleanWrapper(this, "never", false);
+    private final ReadOnlyBooleanWrapper hasSelection = new ReadOnlyBooleanWrapper(this, "hasSelection", false);
 
     DiffDocument(Object key, String title, DiffPane pane) {
+        this(key, title, pane, () -> { });
+    }
+
+    /** @param onDispose run when the tab of the diff is closed */
+    DiffDocument(Object key, String title, DiffPane pane, Runnable onDispose) {
         this.key = Objects.requireNonNull(key);
         this.title = Objects.requireNonNull(title);
         this.pane = Objects.requireNonNull(pane);
+        this.onDispose = Objects.requireNonNull(onDispose);
+        // Of the text the keyboard is in, or was last: what Copy takes.
+        hasSelection.bind(pane.activeEditorProperty().flatMap(EditorDocument::hasSelectionProperty).orElse(false));
     }
 
     /** What this diff is of: opening a diff with the same key shows this one again. */
@@ -95,8 +105,19 @@ final class DiffDocument implements EditorDocument {
     public void redo() {
     }
 
+    /** Copies what is selected in the text the keyboard is in; nothing is cut from or pasted into a diff. */
     @Override
     public void copy() {
+        EditorDocument active = pane.activeEditorProperty().getValue();
+        if (active != null) {
+            active.copy();
+        }
+    }
+
+    @Override
+    public String getSelectedText() {
+        EditorDocument active = pane.activeEditorProperty().getValue();
+        return active == null ? "" : active.getSelectedText();
     }
 
     @Override
@@ -119,7 +140,7 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public ReadOnlyBooleanProperty hasSelectionProperty() {
-        return never.getReadOnlyProperty();
+        return hasSelection.getReadOnlyProperty();
     }
 
     @Override
@@ -148,6 +169,8 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public void dispose() {
+        hasSelection.unbind();
         pane.dispose();
+        onDispose.run();
     }
 }

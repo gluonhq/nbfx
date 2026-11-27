@@ -26,6 +26,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -160,6 +161,51 @@ final class GitContentReader {
         return entries;
     }
 
+    /**
+     * The content {@code file} has on disk, in the working tree, told as that of the commit and
+     * the index is and with the same care: nothing is read of a file larger than
+     * {@code maxBytes}, a binary file is no text, and bytes that are no text in {@code charset}
+     * are not made one. Its text has no object id: git has not stored it.
+     */
+    static GitContent workingTree(Path file, Charset charset, long maxBytes) {
+        Objects.requireNonNull(charset, "charset");
+        try {
+            if (!Files.exists(file)) {
+                return new GitContent.Missing();
+            }
+            if (!Files.isRegularFile(file)) {
+                return new GitContent.NotAFile(Files.isDirectory(file) ? "tree" : "other");
+            }
+            long limit = Math.min(maxBytes, MOST_BYTES);
+            long size = Files.size(file);
+            if (size > limit) {
+                return new GitContent.TooLarge(size, limit);
+            }
+            byte[] bytes = Files.readAllBytes(file);
+            if (bytes.length > limit) {
+                // Grown since it was measured.
+                return new GitContent.TooLarge(bytes.length, limit);
+            }
+            return decoded(bytes, null, charset);
+        } catch (IOException | RuntimeException ex) {
+            return new GitContent.Failed(String.valueOf(ex.getMessage()));
+        }
+    }
+
+    /** {@code bytes} as text in {@code charset}, or what they are instead: binary, or no text in it. */
+    private static GitContent decoded(byte[] bytes, String objectId, Charset charset) {
+        if (isBinary(bytes)) {
+            return new GitContent.Binary(objectId, bytes.length);
+        }
+        try {
+            String text = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();
+            return new GitContent.Text(text, objectId, bytes.length);
+        } catch (CharacterCodingException ex) {
+            return new GitContent.Malformed(charset.name());
+        }
+    }
+
     /** Whether the branch checked out has no commit yet, as in a repository just made. */
     private static boolean isUnborn(Path root, BooleanSupplier cancelled) {
         GitClient.Output branch = GitClient.run(root, LITERAL, cancelled, "symbolic-ref", "--quiet", "HEAD");
@@ -220,16 +266,7 @@ final class GitContentReader {
             if (bytes == null) {
                 return new GitContent.TooLarge(size[0], limit);
             }
-            if (isBinary(bytes)) {
-                return new GitContent.Binary(entry.objectId(), bytes.length);
-            }
-            try {
-                String text = charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
-                        .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString();
-                return new GitContent.Text(text, entry.objectId(), bytes.length);
-            } catch (CharacterCodingException ex) {
-                return new GitContent.Malformed(charset.name());
-            }
+            return decoded(bytes, entry.objectId(), charset);
         } catch (IOException ex) {
             String error = "";
             try {
