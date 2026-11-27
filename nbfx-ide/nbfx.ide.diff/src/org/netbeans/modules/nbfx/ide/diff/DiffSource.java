@@ -18,22 +18,76 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.List;
 import java.util.Objects;
-import org.openide.filesystems.FileObject;
+import org.netbeans.api.nbfx.diff.Diff;
 
 /**
- * One of the two texts a diff view compares: a file, on disk or in memory, and what the view calls
- * it above its text - "HEAD", "Modified In Working Tree".
+ * One of the two sides a diff view compares, as it was when the diff was asked for: a snapshot.
+ * The view shows this text and compares this text - not a file that may be edited, saved or read
+ * in another encoding meanwhile - so that the blocks it marks are those of the text beside them.
+ * <p>
+ * A side is one of three things, and says which:
+ * <ul>
+ * <li>a <em>text</em>, already read and decoded by whoever made the source, who knows where it
+ * comes from and in what charset; an empty text is a file with nothing in it, of one empty
+ * line;</li>
+ * <li><em>missing</em>: there is no file on this side - the file was added since, or deleted -
+ * which is compared as no lines at all;</li>
+ * <li><em>unreadable</em>: there is something on this side that is no text to compare - a binary
+ * file, one too large, one that could not be read - with what to tell the user of it. Nothing is
+ * compared then.</li>
+ * </ul>
+ * Two sources are equal when they would show the same: a view asked again for a diff of equal
+ * sources keeps what it shows.
  *
- * @param title the heading of this side
- * @param file the file whose text is shown; its name tells the editor how to colour it
- * @since 1.0
+ * @param title the heading of this side: "HEAD", "Working Tree"
+ * @param fileName the name of the file, by which an editor tells how to colour the text
+ * @param text the text; {@code null} for a side that is missing or unreadable
+ * @param problem why there is no text to compare, for the user to read; {@code null} for a side
+ *        that has a text or is missing
  */
-public record DiffSource(String title, FileObject file) {
+public record DiffSource(String title, String fileName, String text, String problem) {
 
-    /** Both are required. */
+    /** Checks that the title and the name are there, and that the side is one of the three. */
     public DiffSource {
         Objects.requireNonNull(title, "title");
-        Objects.requireNonNull(file, "file");
+        Objects.requireNonNull(fileName, "fileName");
+        if (text != null && problem != null) {
+            throw new IllegalArgumentException("a side with a text has no problem to tell");
+        }
+    }
+
+    /** A side with {@code text}; an empty text is an empty file. */
+    public static DiffSource of(String title, String fileName, String text) {
+        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null);
+    }
+
+    /** A side with no file on it. */
+    public static DiffSource missing(String title, String fileName) {
+        return new DiffSource(title, fileName, null, null);
+    }
+
+    /** A side with no text to compare, for the reason {@code problem} tells the user. */
+    public static DiffSource unreadable(String title, String fileName, String problem) {
+        return new DiffSource(title, fileName, null, Objects.requireNonNull(problem, "problem"));
+    }
+
+    /** Whether there is no file on this side. */
+    public boolean isMissing() {
+        return text == null && problem == null;
+    }
+
+    /** Whether this side can be compared: it has a text, or is missing. */
+    public boolean isComparable() {
+        return problem == null;
+    }
+
+    /**
+     * The lines compared: those of the text, as an editor shows them - one empty line for an
+     * empty text - and none for a side that is missing.
+     */
+    public List<String> lines() {
+        return text == null ? List.of() : Diff.lines(text);
     }
 }

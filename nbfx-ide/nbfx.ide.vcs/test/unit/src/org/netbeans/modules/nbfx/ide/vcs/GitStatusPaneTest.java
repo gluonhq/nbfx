@@ -19,8 +19,8 @@
 package org.netbeans.modules.nbfx.ide.vcs;
 
 import javafx.scene.layout.VBox;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.input.MouseButton;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.control.TextField;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.MenuItem;
@@ -49,6 +49,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -149,7 +150,8 @@ public class GitStatusPaneTest {
     public void messageReplacesTheTable() throws Exception {
         JavaFxTestSupport.onFx(() -> {
             GitStatusPane pane = new GitStatusPane(VcsCompareMode.HEAD_VS_WORKING_TREE, Flavour.TREE);
-            assertEquals("No changes", ((Label) pane.table().getPlaceholder()).getText());
+            assertEquals("No changes between HEAD and the working tree",
+                    ((Label) pane.table().getPlaceholder()).getText());
             pane.setStatus(ROOT, STATUS);
 
             pane.setMessage("Not a Git repository");
@@ -159,7 +161,11 @@ public class GitStatusPaneTest {
             // The status that was shown before the message is shown again.
             pane.setStatus(ROOT, STATUS);
             assertEquals(4, rows(pane).size());
-            assertEquals("No changes", ((Label) pane.table().getPlaceholder()).getText());
+            // What a mode without changes reads is of that mode: the others may hold some.
+            pane.modeProperty().set(VcsCompareMode.HEAD_VS_INDEX);
+            assertEquals("No staged changes", ((Label) pane.table().getPlaceholder()).getText());
+            pane.modeProperty().set(VcsCompareMode.INDEX_VS_WORKING_TREE);
+            assertEquals("No changes that are not staged", ((Label) pane.table().getPlaceholder()).getText());
         });
     }
 
@@ -187,18 +193,23 @@ public class GitStatusPaneTest {
     }
 
     @Test
-    public void contextMenuOffersOpenDiffAndCommit() throws Exception {
+    public void contextMenuOffersOpenDiffRefreshAndCommitAll() throws Exception {
         JavaFxTestSupport.onFx(() -> {
             GitStatusPane pane = new GitStatusPane(VcsCompareMode.HEAD_VS_WORKING_TREE, Flavour.TREE);
             AtomicInteger committed = new AtomicInteger();
+            AtomicInteger refreshed = new AtomicInteger();
             pane.setOnCommit(committed::incrementAndGet);
+            pane.setOnRefresh(refreshed::incrementAndGet);
             pane.setStatus(ROOT, STATUS);
             ContextMenu menu = pane.table().getContextMenu();
-            assertEquals(List.of("Open", "Diff", "", "Commit..."), menu.getItems().stream()
+            // The commit is of every change, not of the row the menu opened on, and says so.
+            assertEquals(List.of("Open", "Diff", "", "Refresh", "Commit All..."), menu.getItems().stream()
                     .map(item -> item instanceof SeparatorMenuItem ? "" : item.getText()).toList());
             MenuItem open = menu.getItems().get(0);
             MenuItem diff = menu.getItems().get(1);
-            MenuItem commit = menu.getItems().get(3);
+            MenuItem commit = menu.getItems().get(4);
+            menu.getItems().get(3).fire();
+            assertEquals(1, refreshed.get());
 
             // A folder has nothing to open or compare; a file that is not on disk has nothing to
             // open, but its diff shows what is gone.
@@ -221,21 +232,71 @@ public class GitStatusPaneTest {
     }
 
     @Test
-    public void pressOnTheToolBarFocusesTheTable() throws Exception {
+    public void toolBarIsReachedAndUsedWithTheKeyboard() throws Exception {
         JavaFxTestSupport.onFx(() -> {
             GitStatusPane pane = new GitStatusPane(VcsCompareMode.HEAD_VS_WORKING_TREE, Flavour.TREE);
+            AtomicInteger refreshed = new AtomicInteger();
+            pane.setOnRefresh(refreshed::incrementAndGet);
             TextField elsewhere = new TextField();
             Stage stage = new Stage();
             stage.setScene(new Scene(new VBox(elsewhere, pane), 600, 300));
             stage.show();
             elsewhere.requestFocus();
-            assertFalse(pane.table().isFocused());
 
-            Node button = ((ToolBar) pane.getTop()).getItems().get(0);
-            Event.fireEvent(button, new MouseEvent(MouseEvent.MOUSE_PRESSED, 5, 5, 5, 5, MouseButton.PRIMARY, 1,
-                    false, false, false, false, true, false, false, false, false, false, null));
-            assertTrue(pane.table().isFocused());
+            // Every button is a stop of the focus traversal and tells assistive technology what it is.
+            List<ButtonBase> buttons = buttons(pane);
+            for (ButtonBase button : buttons) {
+                assertTrue(button.getAccessibleText(), button.isFocusTraversable());
+                assertFalse(button.getAccessibleText().isBlank());
+            }
+            // With the focus, the key that presses a button runs it; the focus stays where it was put.
+            ButtonBase refresh = buttons.get(5);
+            refresh.requestFocus();
+            assertTrue(refresh.isFocused());
+            Event.fireEvent(refresh, new KeyEvent(KeyEvent.KEY_PRESSED, " ", " ", KeyCode.SPACE,
+                    false, false, false, false));
+            Event.fireEvent(refresh, new KeyEvent(KeyEvent.KEY_RELEASED, " ", " ", KeyCode.SPACE,
+                    false, false, false, false));
+            assertEquals(1, refreshed.get());
+            assertTrue(refresh.isFocused());
+            assertTrue("the focus is in the view", pane.isFocusWithin());
         });
+    }
+
+    @Test
+    public void commitTellsWhyThereIsNothingToCommit() throws Exception {
+        JavaFxTestSupport.onFx(() -> {
+            GitStatusPane pane = new GitStatusPane(VcsCompareMode.HEAD_VS_WORKING_TREE, Flavour.TREE);
+            ButtonBase commit = buttons(pane).get(6);
+            assertEquals("Commit All", commit.getAccessibleText());
+
+            pane.setCommitDisabled(true, "Resolve the conflicted files before committing");
+            assertTrue(commit.isDisabled());
+            assertEquals("Resolve the conflicted files before committing", commit.getAccessibleText());
+            assertEquals("Resolve the conflicted files before committing", commit.getTooltip().getText());
+            Label notice = (Label) ((ToolBar) pane.getTop()).getItems().stream()
+                    .filter(item -> item.getStyleClass().contains("git-notice")).findFirst().orElseThrow();
+            assertTrue(notice.isVisible());
+            assertEquals("Resolve the conflicted files before committing", notice.getText());
+
+            pane.setCommitDisabled(false, null);
+            assertFalse(commit.isDisabled());
+            assertEquals("Commit All", commit.getAccessibleText());
+            assertFalse(notice.isVisible());
+        });
+    }
+
+    @Test
+    public void aRenamedFileTellsWhereItComesFrom() {
+        VcsFileStatus moved = new VcsFileStatus("src/New.java", "src/Old.java", VcsChangeKind.RENAMED, null, false);
+        assertEquals("src/Old.java \u2192 src/New.java", GitStatusPane.movedFrom(
+                new StatusRow.File("New.java", "src/New.java", moved, VcsChangeKind.RENAMED)));
+        // Renamed and then deleted, it is a deleted file where it was: there is no path it moved to.
+        VcsFileStatus gone = new VcsFileStatus("src/New.java", "src/Old.java", VcsChangeKind.RENAMED,
+                VcsChangeKind.DELETED, false);
+        assertNull(GitStatusPane.movedFrom(
+                new StatusRow.File("Old.java", "src/Old.java", gone, VcsChangeKind.DELETED)));
+        assertNull(GitStatusPane.movedFrom(new StatusRow.Folder("src", "src")));
     }
 
     /** The rows as "name|status|path", indented by their depth; a folder ends with a slash. */

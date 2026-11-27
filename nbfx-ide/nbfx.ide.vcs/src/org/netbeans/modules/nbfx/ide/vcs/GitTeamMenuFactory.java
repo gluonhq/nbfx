@@ -96,6 +96,9 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
 
         @Override
         public ObservableList<MenuItem> items() {
+            // Whoever takes the items sees them as they are now, whether or not the menu it puts
+            // them in tells when it opens.
+            refresh();
             return items;
         }
 

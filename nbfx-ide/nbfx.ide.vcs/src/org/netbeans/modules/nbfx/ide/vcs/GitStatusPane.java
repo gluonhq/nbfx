@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
-import javafx.scene.input.MouseEvent;
 import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ContextMenu;
@@ -111,6 +110,8 @@ final class GitStatusPane extends BorderPane {
     private final TreeItem<StatusRow> root = new TreeItem<>(new StatusRow.Folder("", ""));
     private final Label branch = new Label();
     private final Label placeholder = new Label();
+    /** Why there is nothing to commit, when the rows do not tell: a conflict to resolve first. */
+    private final Label notice = new Label();
     private final Button commit;
     /** The folders the user collapsed, by path, so that a refresh keeps them collapsed. */
     private final Set<String> collapsed = new HashSet<>();
@@ -129,7 +130,7 @@ final class GitStatusPane extends BorderPane {
         getStyleClass().add("git-view");
         getStylesheets().add(Objects.requireNonNull(GitStatusPane.class.getResource("vcs.css")).toExternalForm());
 
-        commit = button(GitIcons.COMMIT, "Git.commit", () -> onCommit.run());
+        commit = button(GitIcons.COMMIT, "Git.commit.all", () -> onCommit.run());
         commit.setDisable(true);
         setTop(createToolBar());
         createTable();
@@ -211,6 +212,20 @@ final class GitStatusPane extends BorderPane {
         commit.setDisable(disabled);
     }
 
+    /**
+     * As {@link #setCommitDisabled(boolean)}, with the reason there is nothing to commit, which the
+     * button and the place of the branch tell; {@code null} for none worth telling.
+     */
+    void setCommitDisabled(boolean disabled, String reason) {
+        commit.setDisable(disabled);
+        String text = reason == null ? message("Git.commit.all") : reason;
+        commit.getTooltip().setText(text);
+        commit.setAccessibleText(text);
+        notice.setText(reason == null ? "" : reason);
+        notice.setVisible(reason != null);
+        notice.setManaged(reason != null);
+    }
+
     /** The text next to the buttons: the branch. */
     void setBranch(String text) {
         branch.setText(text);
@@ -282,16 +297,15 @@ final class GitStatusPane extends BorderPane {
         HBox.setHgrow(spacer, Priority.ALWAYS);
         branch.getStyleClass().add("git-branch");
 
+        notice.getStyleClass().add("git-notice");
+        notice.setVisible(false);
+        notice.setManaged(false);
+
+        // The buttons take the focus, by Tab and by a click: every one is reached without the mouse,
+        // and a click on one brings the focus into the view as a click on a row does.
         ToolBar bar = new ToolBar(headVsWorking, headVsIndex, indexVsWorking, new Separator(),
-                list, tree, new Separator(), refresh, commit, spacer, branch);
+                list, tree, new Separator(), refresh, commit, notice, spacer, branch);
         bar.getStyleClass().add("git-toolbar");
-        // The buttons take no focus, so a click on them would leave it in another window of the IDE:
-        // give it to the table, as a click on a row does.
-        bar.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
-            if (!table.isFocused()) {
-                table.requestFocus();
-            }
-        });
         return bar;
     }
 
@@ -330,7 +344,6 @@ final class GitStatusPane extends BorderPane {
         button.setTooltip(new Tooltip(message(tooltipKey)));
         button.setAccessibleText(message(tooltipKey));
         button.getStyleClass().add("git-tool-button");
-        button.setFocusTraversable(false);
     }
 
     // -- table ---------------------------------------------------------------------------------
@@ -382,7 +395,7 @@ final class GitStatusPane extends BorderPane {
             row.setOnMouseClicked(event -> {
                 if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() == 2
                         && row.getItem() instanceof StatusRow.File changed) {
-                    open(changed);
+                    activate(changed);
                     event.consume();
                 }
             });
@@ -390,13 +403,16 @@ final class GitStatusPane extends BorderPane {
         });
         table.setOnKeyPressed(event -> {
             if (event.getCode() == KeyCode.ENTER && selectedFile() != null) {
-                open(selectedFile());
+                activate(selectedFile());
                 event.consume();
             }
         });
     }
 
-    /** Open, Diff and Commit, the actions of NetBeans' menu that the view has. */
+    /**
+     * Open, Diff, Refresh and Commit All, the actions of NetBeans' menu that the view has. The
+     * commit is of every change the view shows, not of the selected rows, and is named so.
+     */
     private ContextMenu createContextMenu() {
         MenuItem open = new MenuItem(message("Git.open"));
         open.setOnAction(event -> {
@@ -415,7 +431,9 @@ final class GitStatusPane extends BorderPane {
         MenuItem commitItem = new MenuItem(message("Git.commit.menu"));
         commitItem.setOnAction(event -> onCommit.run());
         commitItem.disableProperty().bind(commit.disableProperty());
-        ContextMenu menu = new ContextMenu(open, diff, new SeparatorMenuItem(), commitItem);
+        MenuItem refreshItem = new MenuItem(message("Git.refresh"));
+        refreshItem.setOnAction(event -> onRefresh.run());
+        ContextMenu menu = new ContextMenu(open, diff, new SeparatorMenuItem(), refreshItem, commitItem);
         menu.setOnShowing(event -> {
             StatusRow.File row = selectedFile();
             FileObject file = row == null ? null : fileObject(row);
@@ -435,7 +453,8 @@ final class GitStatusPane extends BorderPane {
         List<StatusTree.Node> nodes = flavour.get() == Flavour.TREE
                 ? StatusTree.tree(status, mode.get()) : StatusTree.list(status, mode.get());
         root.getChildren().setAll(nodes.stream().map(this::item).toList());
-        placeholder.setText(message != null ? message : message("Git.status.clean"));
+        // Nothing in this mode is not nothing at all: the other modes may hold changes.
+        placeholder.setText(message != null ? message : message("Git.status.clean." + mode.get().name()));
     }
 
     private TreeItem<StatusRow> item(StatusTree.Node node) {
@@ -455,6 +474,20 @@ final class GitStatusPane extends BorderPane {
     }
 
     /** Opens the file in the editor; a deleted file has nothing to open. */
+    /**
+     * What a double click or Enter on {@code row} does, as in NetBeans' Versioning window: shows
+     * what changed in the file - its diff - where one is offered, and else opens the file.
+     */
+    private void activate(StatusRow.File row) {
+        if (repository != null) {
+            // In the mode of the table, so that the diff shows the change the row tells of; a
+            // deleted file too, whose diff shows what is gone.
+            GitDiff.open(repository, row.path(), row.name(), icon(row), mode.get());
+        } else {
+            open(row);
+        }
+    }
+
     private void open(StatusRow.File row) {
         FileObject file = fileObject(row);
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);
@@ -494,6 +527,16 @@ final class GitStatusPane extends BorderPane {
         };
     }
 
+    /** Where a renamed or copied file comes from and where it is now, or {@code null} for any other row. */
+    static String movedFrom(StatusRow row) {
+        if (row instanceof StatusRow.File changed && changed.status().originalPath() != null
+                && (changed.kind() == VcsChangeKind.RENAMED || changed.kind() == VcsChangeKind.COPIED)) {
+            return NbBundle.getMessage(GitStatusPane.class, "Git.moved",
+                    changed.status().originalPath(), changed.status().path());
+        }
+        return null;
+    }
+
     static String label(VcsChangeKind kind) {
         return message("Git.kind." + kind.name());
     }
@@ -519,9 +562,13 @@ final class GitStatusPane extends BorderPane {
             if (empty || row == null) {
                 setText(null);
                 setGraphic(null);
+                setTooltip(null);
             } else {
                 setText(row.name());
                 setGraphic(icon(row));
+                String moved = movedFrom(row);
+                setTooltip(moved == null ? null : new Tooltip(moved));
+                setAccessibleText(moved == null ? row.name() : row.name() + ", " + moved);
             }
         }
     }

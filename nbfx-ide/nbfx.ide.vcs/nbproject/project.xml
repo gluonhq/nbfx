@@ -42,6 +42,15 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
+                    <code-name-base>org.netbeans.modules.queries</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency>
+                        <release-version>1</release-version>
+                        <specification-version>1.77</specification-version>
+                    </run-dependency>
+                </dependency>
+                <dependency>
                     <code-name-base>org.openide.filesystems</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
@@ -117,7 +126,7 @@
                     <code-name-base>org.netbeans.modules.nbfx.ide.diff</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
-                    <run-dependency><specification-version>1.1</specification-version></run-dependency>
+                    <run-dependency/>
                 </dependency>
             </module-dependencies>
             <test-dependencies>
@@ -136,11 +145,13 @@
                         <code-name-base>org.netbeans.modules.nbfx.test.fx</code-name-base>
                         <compile-dependency/>
                     </test-dependency>
+                    <test-dependency>
+                        <code-name-base>org.netbeans.modules.nbfx.api.diff</code-name-base>
+                        <compile-dependency/>
+                    </test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages>
-                <subpackages>org.netbeans.modules.nbfx.ide.vcs</subpackages>
-            </public-packages>
+            <public-packages/>
         </data>
     </configuration>
 </project>

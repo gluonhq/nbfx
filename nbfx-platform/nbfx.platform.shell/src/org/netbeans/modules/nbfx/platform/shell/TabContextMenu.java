@@ -171,7 +171,7 @@ public final class TabContextMenu {
             newGroup.setDisable(!inArea || count <= 1);
             collapseGroup.setDisable(!inArea || collapseTargetOf(pane) == null);
             File file = toFile(fileOf(tab));
-            clone.setDisable(NbfxTabPane.documentOf(tab) == null);
+            clone.setDisable(!EditorSplit.canClone(NbfxTabPane.documentOf(tab)));
             selectInProjects.setDisable(file == null);
             copyPath.setDisable(file == null);
             openInSystem.setDisable(file == null);

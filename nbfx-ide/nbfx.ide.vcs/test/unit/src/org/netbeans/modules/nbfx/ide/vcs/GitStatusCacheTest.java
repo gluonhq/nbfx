@@ -133,16 +133,56 @@ public class GitStatusCacheTest {
     }
 
     @Test
-    public void aFailedReadLeavesNothingMarked() throws Exception {
+    public void aFailedReadKeepsTheLastStatus() throws Exception {
         onDisk.set(status(modified("src/Changed.java")));
         cache.statusOf(source.resolve("Changed.java"));
         awaitRead();
 
+        // Git busy, or its index locked: nothing says the changes are gone.
         onDisk.set(null);
+        cache.read(root);
+
+        assertTrue(cache.statusOf(source.resolve("Changed.java")).isPresent());
+        assertEquals(1, changes.get());
+
+        onDisk.set(VcsStatus.CLEAN);
         cache.read(root);
 
         assertEquals(Optional.empty(), cache.statusOf(source.resolve("Changed.java")));
         assertEquals(2, changes.get());
+    }
+
+    @Test
+    public void aFolderNoLongerAWorkingTreeIsForgotten() throws Exception {
+        onDisk.set(status(modified("src/Changed.java")));
+        cache.statusOf(source.resolve("Changed.java"));
+        awaitRead();
+
+        Files.delete(root.resolve(".git"));
+        onDisk.set(null);
+        cache.read(root);
+
+        assertEquals(2, changes.get());
+        assertFalse(cache.isTracked(root));
+        assertEquals(Optional.empty(), cache.statusOf(source.resolve("Changed.java")));
+        // Not read again for a change in it, nor when the IDE comes back.
+        int readSoFar = reads.get();
+        cache.refresh(source);
+        cache.refreshAll();
+        Thread.sleep(900);
+        assertEquals(readSoFar, reads.get());
+    }
+
+    @Test
+    public void aFolderNotAskedAboutYetIsAnsweredFromTheRepositoryAboveIt() throws Exception {
+        Path deep = Files.createDirectories(source.resolve("com/example"));
+        onDisk.set(status(modified("src/com/example/Deep.java")));
+        cache.conflictsWithin(root, true);
+        awaitRead();
+
+        // At once: the row of a folder just expanded is drawn with its state.
+        assertEquals(Optional.of(false), cache.conflictsWithin(deep, false));
+        assertEquals(1, reads.get());
     }
 
     @Test

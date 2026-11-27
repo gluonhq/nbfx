@@ -89,6 +89,11 @@
     /* Output window: the result of a build that passed; the other kinds follow the tokens above */
     -nbfx-output-success: #859900;
 
+    /* Diff: the fill of a block, its outline colour let through; the outlines follow the tokens above */
+    -nbfx-diff-added-bg: #8599004D;
+    -nbfx-diff-deleted-bg: #DC322F4D;
+    -nbfx-diff-changed-bg: #268BD24D;
+
     /* Syntax colors, tuned for the dark editor surface */
     -nbfx-code-keyword: #859900;
     -nbfx-code-keyword-directive: #D33682;

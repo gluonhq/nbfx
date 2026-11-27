@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -53,6 +54,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import org.netbeans.api.nbfx.editor.SavedDocument;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
@@ -100,6 +102,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private boolean sized;
     private DiffMode mode;
     private DiffPane pane;
+    /** The editor the keyboard is in, or was in last, of the diff shown; of none while there is none. */
+    private final ReadOnlyObjectWrapper<EditorDocument> activeEditor = new ReadOnlyObjectWrapper<>(this, "activeEditor");
     /** Set while the table is filled: the selection is acted on once, when it is. */
     private boolean filling;
     private long listing;
@@ -377,6 +381,21 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         });
     }
 
+    /** To the text compared to of the diff shown; to the table of the files while there is none. */
+    @Override
+    public void focusEditor() {
+        if (pane != null) {
+            pane.focusEditor();
+        } else {
+            requestFocus();
+        }
+    }
+
+    @Override
+    public ObservableValue<EditorDocument> activeEditorProperty() {
+        return activeEditor.getReadOnlyProperty();
+    }
+
     @Override
     public SavedDocument savedState() {
         return provider.savedState(mode);
@@ -493,7 +512,9 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             pane.dispose();
         }
         pane = shown;
+        activeEditor.unbind();
         if (pane == null) {
+            activeEditor.set(null);
             previous.setDisable(true);
             next.setDisable(true);
             summary.setText("");
@@ -503,6 +524,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             previous.disableProperty().bind(pane.previousButton().disableProperty());
             next.disableProperty().bind(pane.nextButton().disableProperty());
             summary.textProperty().bind(pane.summaryProperty());
+            activeEditor.bind(pane.activeEditorProperty());
             holder.getChildren().setAll(pane);
         }
     }

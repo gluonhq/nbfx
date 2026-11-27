@@ -18,9 +18,6 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -28,8 +25,6 @@ import javafx.scene.layout.Region;
 import org.junit.Test;
 import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
-import org.openide.filesystems.FileObject;
-import org.openide.filesystems.FileUtil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -289,15 +284,6 @@ public class DiffBrowserTest {
     private static DiffEntry entry(String name, String location, String status, DiffEntry.Kind kind,
             String left, String right) {
         return new DiffEntry(name, location, status, kind, null,
-                () -> new DiffPair(new DiffSource("HEAD", inMemory(name, left)),
-                        new DiffSource("Working Tree", inMemory(name, right))));
-    }
-
-    private static FileObject inMemory(String name, String text) throws IOException {
-        FileObject file = FileUtil.createMemoryFileSystem().getRoot().createData(name);
-        try (OutputStream out = file.getOutputStream()) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
-        }
-        return file;
+                () -> new DiffPair(DiffSource.of("HEAD", name, left), DiffSource.of("Working Tree", name, right)));
     }
 }

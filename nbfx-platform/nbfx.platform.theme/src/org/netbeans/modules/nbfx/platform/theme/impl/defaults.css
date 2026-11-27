@@ -132,4 +132,16 @@
     -nbfx-output-warning: -nbfx-editor-squiggle-warning;
     -nbfx-output-success: #1E9347;
     -nbfx-output-muted: -nbfx-text-faint;
+
+    /*
+     * The blocks a diff marks, by kind: the colour of their outline, which follows the theme
+     * through its own tokens, and the fill of the block, the same colour let through - a value,
+     * as a token cannot be made translucent, which the dark themes override.
+     */
+    -nbfx-diff-added: -nbfx-output-success;
+    -nbfx-diff-deleted: -nbfx-editor-text-error;
+    -nbfx-diff-changed: -nbfx-accent;
+    -nbfx-diff-added-bg: #1E934747;
+    -nbfx-diff-deleted-bg: #C6282842;
+    -nbfx-diff-changed-bg: #2775BF42;
 }
