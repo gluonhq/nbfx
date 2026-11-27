@@ -30,7 +30,7 @@ import org.openide.util.lookup.ServiceProvider;
 /**
  * The version control submenu on the files, folders and projects of the Projects and Files views, as
  * in NetBeans. In a Git working tree it is Git &#9656; Show Changes, which opens the Git status
- * window; outside one it is Versioning &#9656; Initialize Git Repository..., which creates one.
+ * window, and Show History, which opens the history of the node in a tab; outside one it is Versioning &#9656; Initialize Git Repository..., which creates one.
  *
  * @since 1.2
  */
@@ -66,7 +66,10 @@ public final class GitMenuContributor implements FileContextMenuContributor {
                 view.show(file);
             }
         });
-        return new Menu(message("Git.menu"), null, showChanges);
+        MenuItem showHistory = new MenuItem(message("Git.history.menu"));
+        // The history of the clicked node: of the file, or of all in the folder or the project.
+        showHistory.setOnAction(event -> GitHistoryView.show(file));
+        return new Menu(message("Git.menu"), null, showChanges, showHistory);
     }
 
     private static Menu versioningMenu(FileObject file) {

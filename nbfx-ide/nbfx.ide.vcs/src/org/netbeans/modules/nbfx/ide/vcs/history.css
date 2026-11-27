@@ -51,13 +51,14 @@
     -fx-text-fill: derive(-fx-text-base-color, 30%);
 }
 
+/* The chevron of the trees (the theme's tree-disclosure-node arrow): right when closed, down when opened. */
 .git-history-list .git-history-arrow {
-    -fx-background-color: -fx-text-base-color;
-    -fx-shape: "M 0 0 L 4 4 L 0 8 Z";
+    -fx-background-color: -nbfx-icon-subtle;
+    -fx-shape: "M4.974 3.174C5.208 2.94 5.592 2.94 5.826 3.174L9.426 6.774C9.66 7.008 9.66 7.392 9.426 7.626L5.826 11.226C5.592 11.46 5.208 11.46 4.974 11.226 4.74 10.992 4.74 10.608 4.974 10.374L8.154 7.2 4.974 4.026C4.74 3.792 4.74 3.408 4.974 3.174Z";
     -fx-min-width: 5;
     -fx-max-width: 5;
-    -fx-min-height: 8;
-    -fx-max-height: 8;
+    -fx-min-height: 8.5;
+    -fx-max-height: 8.5;
 }
 
 .git-history-list .git-history-arrow:expanded {
@@ -122,6 +123,29 @@
 }
 
 /* Search Options */
+
+/*
+ * The same chevron, drawn pointing down: the skin of the pane turns its arrow itself, to the right
+ * when the pane is collapsed.
+ */
+.git-history-options > .title > .arrow-button > .arrow,
+.git-history-options:focused > .title > .arrow-button > .arrow {
+    -fx-background-color: -nbfx-icon-subtle;
+    -fx-background-insets: 0;
+    -fx-shape: "M3.174 4.974C2.94 5.208 2.94 5.592 3.174 5.826L6.774 9.426C7.008 9.66 7.392 9.66 7.626 9.426L11.226 5.826C11.46 5.592 11.46 5.208 11.226 4.974 10.992 4.74 10.608 4.74 10.374 4.974L7.2 8.154 4.026 4.974C3.792 4.74 3.408 4.74 3.174 4.974Z";
+    -fx-min-width: 8.5;
+    -fx-max-width: 8.5;
+    -fx-min-height: 5;
+    -fx-max-height: 5;
+    -fx-padding: 0;
+    /* Not the glow the default look gives the arrow of a focused pane. */
+    -fx-effect: null;
+}
+
+/* Reached with the keyboard, the chevron takes the accent colour instead. */
+.git-history-options:focus-visible > .title > .arrow-button > .arrow {
+    -fx-background-color: -nbfx-accent;
+}
 .git-history-options > .title {
     -fx-background-color: transparent;
     -fx-border-color: -nbfx-border transparent transparent transparent;
