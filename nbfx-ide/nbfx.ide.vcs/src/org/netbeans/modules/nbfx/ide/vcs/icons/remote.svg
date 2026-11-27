@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!-- A remote repository: NetBeans' repository.svg with the arrows of its remote.png -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" version="1.1" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="arrowFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FBB673"/><stop offset="1" stop-color="#E9761C"/>
+    </linearGradient>
+    <!-- Points up; turned around for the way in. -->
+    <g id="up">
+      <path d="M4 0 L8 4.5 H6 V8.5 H2 V4.5 H0 Z" fill="url(#arrowFace)" stroke="#A54B0C" stroke-width="0.8" stroke-linejoin="round"/>
+    </g>
+  </defs>
+  <g transform="translate(0 1.5) scale(0.9)">
+    <path fill="#EAEAEA" d="M8,1c-3.314,0-6,1.119-6,2.5v9c0,1.381,2.686,2.5,6,2.5s6-1.119,6-2.5V3.5c0-1.381-2.686-2.5-6-2.5Z"/>
+    <path opacity="0.33" d="M8,1c-3.314,0-6,1.119-6,2.5v9c0,1.381,2.686,2.5,6,2.5s6-1.119,6-2.5V3.5c0-1.381-2.686-2.5-6-2.5ZM13,9.768c-.846.67-2.706,1.232-5,1.232s-4.154-.562-5-1.232v-2.387c1.075.674,2.912,1.119,5,1.119s3.925-.445,5-1.119v2.387ZM13,6.768c-.846.67-2.706,1.232-5,1.232s-4.154-.562-5-1.232v-2.411c1.063.686,2.893,1.144,5,1.144s3.937-.458,5-1.144v2.411ZM8,2c3.281,0,5,1.114,5,1.5v.245c-.824.68-2.678,1.255-5,1.255s-4.176-.575-5-1.255v-.245c0-.386,1.719-1.5,5-1.5ZM8,14c-3.281,0-5-1.114-5-1.5v-2.119c1.075.674,2.912,1.119,5,1.119s3.925-.445,5-1.119v2.119c0,.386-1.719,1.5-5,1.5Z"/>
+  </g>
+  <use xlink:href="#up" transform="translate(1 0.6) scale(0.85)"/>
+  <use xlink:href="#up" transform="translate(15.4 15.4) rotate(180) scale(0.85)"/>
+</svg>

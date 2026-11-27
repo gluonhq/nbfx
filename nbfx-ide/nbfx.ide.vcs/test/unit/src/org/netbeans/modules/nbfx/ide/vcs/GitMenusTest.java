@@ -99,10 +99,12 @@ public class GitMenusTest {
             return created;
         });
 
-        assertEquals(List.of("Show Changes", "Git"), items.stream().map(MenuItem::getText).toList());
+        assertEquals(List.of("Show Changes", "Repository", "Git"), items.stream().map(MenuItem::getText).toList());
         assertFalse(items.get(0).isVisible());
-        assertTrue(items.get(1).isVisible());
-        assertEquals(List.of("Initialize Repository..."), texts((Menu) items.get(1)));
+        assertFalse(items.get(1).isVisible());
+        assertEquals(List.of("Repository Browser"), texts((Menu) items.get(1)));
+        assertTrue(items.get(2).isVisible());
+        assertEquals(List.of("Initialize Repository..."), texts((Menu) items.get(2)));
     }
 
     @Test
