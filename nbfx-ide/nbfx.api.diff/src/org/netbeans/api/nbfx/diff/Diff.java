@@ -69,9 +69,11 @@ public final class Diff {
      * lines repeat, and nothing here limits either: a caller that compares texts of any size does
      * it off the thread it draws on, decides how large a text it compares at all, and cancels the
      * comparison nobody waits for any more. {@code cancelled} is asked before the lines are looked
-     * at and then every few hundred steps of every part of the comparison - telling the lines that
-     * are the same apart, ordering them, the search, and the making of the blocks - on the calling
-     * thread, and must answer at once.
+     * at and then every few hundred steps of every loop of the comparison - over the lines, over
+     * the characters of a line when options leave some out, over the pairs of lines the search
+     * goes through, and over the blocks it makes - on the calling thread, and must answer at once.
+     * It is not asked within the few single steps that take the texts as a whole: copying each
+     * list of lines once, and the copy and the check of the blocks that the result makes.
      *
      * @param left the lines of the text compared from
      * @param right the lines of the text compared to
@@ -87,16 +89,21 @@ public final class Diff {
         Objects.requireNonNull(right, "right");
         Objects.requireNonNull(options, "options");
         Objects.requireNonNull(cancelled, "cancelled");
+        HuntDiff.Poll poll = new HuntDiff.Poll(cancelled);
         // Before the lines are looked at: copying and checking them takes time too.
-        if (cancelled.getAsBoolean()) {
-            throw new CancellationException();
-        }
-        return new DiffResult(HuntDiff.diff(lines(left, "left"), lines(right, "right"), options, cancelled));
+        poll.now();
+        List<Difference> differences = HuntDiff.diff(lines(left, "left", poll), lines(right, "right", poll),
+                options, poll);
+        // The result then takes its copy of the blocks and checks their order, in one go.
+        poll.now();
+        return new DiffResult(differences);
     }
 
-    private static String[] lines(List<String> lines, String side) {
+    private static String[] lines(List<String> lines, String side, HuntDiff.Poll poll) {
         String[] array = lines.toArray(String[]::new);
+        poll.now();
         for (int i = 0; i < array.length; i++) {
+            poll.step();
             if (array[i] == null) {
                 throw new NullPointerException(side + " line " + i);
             }

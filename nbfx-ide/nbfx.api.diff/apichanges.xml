@@ -37,7 +37,7 @@
                 Adds <code>Diff</code>, which compares two texts line by line, its
                 <code>DiffOptions</code>, and the <code>DiffResult</code> it answers with: the
                 <code>Difference</code> blocks of added, deleted and changed lines. A comparison
-                can be cancelled, before it starts and in every part of it; the options leave
+                can be cancelled, before it starts and in every loop of it; the options leave
                 out, together, what each leaves out, and letters are compared whatever their
                 case one for one. A result checks that its blocks are in order.
             </description>

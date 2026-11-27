@@ -24,7 +24,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -209,19 +212,99 @@ public class GitContentReaderTest {
     @Test
     public void whatGitConvertsOnCheckoutIsStoredAsUtf8() throws Exception {
         write(".gitattributes", "*.latin working-tree-encoding=ISO-8859-1\n");
-        Files.write(root.resolve("text.latin"), "café\n".getBytes(ISO_8859_1));
-        Files.write(root.resolve("plain.txt"), "café\n".getBytes(ISO_8859_1));
+        Files.write(root.resolve("text.latin"), "caf\u00e9\n".getBytes(ISO_8859_1));
+        Files.write(root.resolve("plain.txt"), "caf\u00e9\n".getBytes(ISO_8859_1));
         git("add", "-A");
         git("commit", "--quiet", "-m", "converted");
 
         // The file in the working tree is ISO-8859-1 either way; only one is stored as it is.
-        assertEquals(UTF_8, GitClient.storedCharset(root, "text.latin", ISO_8859_1));
-        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "plain.txt", ISO_8859_1));
-        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "no such file.txt", ISO_8859_1));
-        assertEquals("café\n", ((GitContent.Text) GitClient.headContent(root, "text.latin",
-                GitClient.storedCharset(root, "text.latin", ISO_8859_1), LIMIT, () -> false)).text());
-        assertEquals("café\n", ((GitContent.Text) GitClient.headContent(root, "plain.txt",
-                GitClient.storedCharset(root, "plain.txt", ISO_8859_1), LIMIT, () -> false)).text());
+        assertEquals(UTF_8, GitClient.storedCharset(root, "text.latin", ISO_8859_1, true));
+        assertEquals(UTF_8, GitClient.storedCharset(root, "text.latin", ISO_8859_1, false));
+        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "plain.txt", ISO_8859_1, true));
+        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "no such file.txt", ISO_8859_1, true));
+        assertEquals("caf\u00e9\n", ((GitContent.Text) GitClient.headContent(root, "text.latin",
+                GitClient.storedCharset(root, "text.latin", ISO_8859_1, true), LIMIT, () -> false)).text());
+        assertEquals("caf\u00e9\n", ((GitContent.Text) GitClient.headContent(root, "plain.txt",
+                GitClient.storedCharset(root, "plain.txt", ISO_8859_1, true), LIMIT, () -> false)).text());
+    }
+
+    @Test
+    public void theCharsetIsThatOfWhenTheContentWasStored() throws Exception {
+        // Committed as it is, in ISO-8859-1, before any attribute said otherwise.
+        Files.write(root.resolve("text.latin"), "caf\u00e9\n".getBytes(ISO_8859_1));
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "as it is");
+        write(".gitattributes", "*.latin working-tree-encoding=ISO-8859-1\n");
+
+        // An attribute only in the working tree changes nothing of what git has.
+        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "text.latin", ISO_8859_1, true));
+        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "text.latin", ISO_8859_1, false));
+
+        // Staged with the attribute, the index has it converted; the commit still has not.
+        git("add", ".gitattributes");
+        git("add", "--renormalize", ".");
+        assertEquals(UTF_8, GitClient.storedCharset(root, "text.latin", ISO_8859_1, false));
+        assertEquals(ISO_8859_1, GitClient.storedCharset(root, "text.latin", ISO_8859_1, true));
+        assertEquals("caf\u00e9\n", ((GitContent.Text) GitClient.indexContent(root, "text.latin",
+                GitClient.storedCharset(root, "text.latin", ISO_8859_1, false), LIMIT, () -> false)).text());
+        assertEquals("caf\u00e9\n", ((GitContent.Text) GitClient.headContent(root, "text.latin",
+                GitClient.storedCharset(root, "text.latin", ISO_8859_1, true), LIMIT, () -> false)).text());
+        // Read with the charset of the other, the commit is no text - which is why it matters.
+        assertEquals(new GitContent.Malformed("UTF-8"), head("text.latin"));
+    }
+
+    @Test
+    public void aPathIsMatchedByItsBytes() {
+        byte[] invalid = {'1', '0', '0', '6', '4', '4', ' ', 'b', 'l', 'o', 'b', ' ', 'a', 'a', '\t',
+            'n', (byte) 0xFF, '.', 't', 'x', 't', 0};
+        byte[] valid = "100644 blob bb\tn\ufffd.txt\u0000100644 blob cc\tdocs/n\ufffd.txt\u0000"
+                .getBytes(UTF_8);
+        byte[] listing = new byte[invalid.length + valid.length];
+        System.arraycopy(invalid, 0, listing, 0, invalid.length);
+        System.arraycopy(valid, 0, listing, invalid.length, valid.length);
+
+        // A name that is no UTF-8 would be read as the one with the replacement character.
+        List<String[]> entries = GitContentReader.entries(listing, "n\ufffd.txt");
+
+        assertEquals(1, entries.size());
+        assertEquals(List.of("100644", "blob", "bb"), List.of(entries.get(0)));
+        assertTrue(GitContentReader.entries(listing, "n.txt").isEmpty());
+        assertTrue(GitContentReader.entries(new byte[0], "n.txt").isEmpty());
+    }
+
+    @Test
+    public void askedForWithoutALimitAFileIsReadUpToWhatCanBeHeld() throws Exception {
+        // Asked for without a limit, the limit is what can be read at all.
+        GitContent.Text text = (GitContent.Text) GitClient.headContent(root, "modified.txt", UTF_8, Long.MAX_VALUE,
+                () -> false);
+        assertEquals(COMMITTED, text.text());
+        assertTrue(GitContentReader.MOST_BYTES < Integer.MAX_VALUE);
+    }
+
+    @Test(timeout = 20_000)
+    public void aReadThatIsWaitedForEndsItsGitWhenGivenUp() throws Exception {
+        // A git that waits to be asked, and so writes nothing: a read of it never ends by itself.
+        Process waiting = GitClient.start(root, Map.of(), "cat-file", "--batch");
+        Future<byte[]> reading = GitClient.READERS.submit(() -> waiting.getInputStream().readAllBytes());
+        int[] asked = new int[1];
+
+        assertThrows(CancellationException.class, () -> GitClient.await(reading, waiting, () -> ++asked[0] == 3));
+
+        assertEquals(3, asked[0]);
+        assertTrue(waiting.waitFor(10, TimeUnit.SECONDS));
+        assertFalse(waiting.isAlive());
+
+        // And when the thread that waits is interrupted, which it stays.
+        Process other = GitClient.start(root, Map.of(), "cat-file", "--batch");
+        Future<byte[]> otherReading = GitClient.READERS.submit(() -> other.getInputStream().readAllBytes());
+        Thread.currentThread().interrupt();
+        try {
+            assertThrows(CancellationException.class, () -> GitClient.await(otherReading, other, () -> false));
+            assertTrue(Thread.currentThread().isInterrupted());
+        } finally {
+            Thread.interrupted();
+        }
+        assertTrue(other.waitFor(10, TimeUnit.SECONDS));
     }
 
     @Test

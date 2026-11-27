@@ -67,13 +67,14 @@
       comparison. The blocks are checked against the texts: that they lead from one to the other,
       and, against a plain longest-common-subsequence table, that they keep as many lines as the
       texts have in common - for every pair of small texts, for random ones with many repeated
-      lines, and under the options. The API is under development until the MVP freeze, after
-      which API signature tests (<code>sigtest</code>) are enabled.
+      lines, and under every combination of the options. The API is <b>devel</b> until the diff
+      view has landed; API signature tests (<code>sigtest</code>) are enabled when it is no
+      longer.
     </p>
   </answer>
 
   <answer id="arch-time">
-    <p>Not applicable; the API is small and under development.</p>
+    <p>Not applicable; the API is small and <b>devel</b> until the diff view has landed.</p>
   </answer>
 
   <answer id="arch-where">
@@ -82,8 +83,8 @@
 
   <answer id="compat-deprecation">
     <p>
-      The API is under development until the MVP freeze; incompatible changes are allowed before
-      then and documented in <code>apichanges.xml</code> afterwards.
+      The API is <b>devel</b> until its first consumer, the diff view, has landed; incompatible
+      changes are allowed until then and documented in <code>apichanges.xml</code> afterwards.
     </p>
   </answer>
 
@@ -121,7 +122,9 @@
       and nothing in the engine limits their size: a view runs it off its drawing thread, decides
       how large a text it compares, and cancels a comparison nobody waits for through the
       <code>BooleanSupplier</code> of <code>Diff.compute</code>, which is asked before the
-      comparison starts and throughout every part of it.
+      comparison starts and in every loop of it - over lines, characters, pairs of lines and
+      blocks - but not within the single copy of each list of lines nor the check the result
+      makes of its blocks.
     </p>
   </answer>
 

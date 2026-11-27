@@ -121,12 +121,18 @@ final class GitClient {
     /**
      * The charset of what git stores of the file at {@code path}, whose text in the working tree
      * is in {@code working}: that one, unless the file has a {@code working-tree-encoding}
-     * attribute, with which git converts it on checkout and stores it as UTF-8.
+     * attribute, with which git converts it on checkout and stores it as UTF-8. The attribute is
+     * read where the content is: from the attributes of the last commit for
+     * {@link #headContent}, from those in the index for {@link #indexContent} - not from the
+     * working tree, whose attributes may have changed since.
+     *
+     * @param committed whether the content is that of the last commit, not of the index
      */
-    static Charset storedCharset(Path root, String path, Charset working) {
-        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr", "-z",
-                "working-tree-encoding", "--", path);
-        // "<path> NUL <attribute> NUL <value> NUL"
+    static Charset storedCharset(Path root, String path, Charset working, boolean committed) {
+        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr",
+                committed ? "--source=HEAD" : "--cached", "-z", "working-tree-encoding", "--", path);
+        // "<path> NUL <attribute> NUL <value> NUL"; no commit yet, or a git that knows no
+        // "--source", is no attribute.
         String[] fields = new String(attribute.output(), StandardCharsets.UTF_8).split("\u0000");
         boolean converted = attribute.exitCode() == 0 && fields.length == 3
                 && !List.of("unspecified", "unset", "set").contains(fields[2]);

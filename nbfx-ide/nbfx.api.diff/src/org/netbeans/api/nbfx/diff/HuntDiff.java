@@ -40,19 +40,19 @@ final class HuntDiff {
     private HuntDiff() {
     }
 
-    static List<Difference> diff(String[] left, String[] right, DiffOptions options, BooleanSupplier cancelled) {
-        Poll poll = new Poll(cancelled);
+    static List<Difference> diff(String[] left, String[] right, DiffOptions options, Poll poll) {
         poll.now();
         int[] common = commonLines(left, right, options, poll);
-        return merged(differences(common, left.length, right.length, poll));
+        return merged(differences(common, left.length, right.length, poll), poll);
     }
 
     /**
      * Asks whether the comparison is still wanted, and gives it up when it is not. It is asked in
-     * every loop over the lines - a text of repeated lines makes some of them long - but passes
-     * the question on only now and then, as the answer may cost more than a step of the loop.
+     * every loop - over the lines, of which a text of repeated lines makes some long, and over the
+     * characters of a line, which may be the whole text - but passes the question on only now and
+     * then, as the answer may cost more than a step of the loop.
      */
-    private static final class Poll {
+    static final class Poll {
 
         private static final int EVERY = 0xFF;
         private final BooleanSupplier cancelled;
@@ -147,8 +147,8 @@ final class HuntDiff {
         for (int i = 0; i < lines.length; i++) {
             poll.step();
             String line = normalized(lines[i], options.ignoreLeadingAndTrailingWhitespace(),
-                    options.ignoreInnerWhitespace());
-            normalized[i] = options.ignoreCase() ? caseFolded(line) : line;
+                    options.ignoreInnerWhitespace(), poll);
+            normalized[i] = options.ignoreCase() ? caseFolded(line, poll) : line;
         }
         return normalized;
     }
@@ -158,9 +158,10 @@ final class HuntDiff {
      * letter, so that no letter becomes two - a sharp s is not "ss", though its capital is a sharp
      * s - and a dotless i stays what it is. The sigma that ends a word is a sigma.
      */
-    static String caseFolded(String line) {
+    static String caseFolded(String line, Poll poll) {
         StringBuilder folded = null;
         for (int i = 0; i < line.length();) {
+            poll.step();
             int letter = line.codePointAt(i);
             int lower = letter == FINAL_SIGMA ? SIGMA : Character.toLowerCase(letter);
             if (lower != letter && folded == null) {
@@ -180,14 +181,16 @@ final class HuntDiff {
      * {@link Character#isWhitespace(int)} says, at the edges and within alike; a line of nothing
      * else is all edge.
      */
-    private static String normalized(String line, boolean ignoreEdges, boolean ignoreInner) {
+    private static String normalized(String line, boolean ignoreEdges, boolean ignoreInner, Poll poll) {
         int length = line.length();
         int first = 0;
         while (first < length && Character.isWhitespace(line.codePointAt(first))) {
+            poll.step();
             first += Character.charCount(line.codePointAt(first));
         }
         int last = length;
         while (last > first && Character.isWhitespace(line.codePointBefore(last))) {
+            poll.step();
             last -= Character.charCount(line.codePointBefore(last));
         }
         StringBuilder result = new StringBuilder(length);
@@ -195,8 +198,14 @@ final class HuntDiff {
             result.append(line, 0, first);
         }
         if (ignoreInner) {
-            line.substring(first, last).codePoints().filter(c -> !Character.isWhitespace(c))
-                    .forEach(result::appendCodePoint);
+            for (int i = first; i < last;) {
+                poll.step();
+                int character = line.codePointAt(i);
+                if (!Character.isWhitespace(character)) {
+                    result.appendCodePoint(character);
+                }
+                i += Character.charCount(character);
+            }
         } else {
             result.append(line, first, last);
         }
@@ -272,6 +281,7 @@ final class HuntDiff {
         while (start1 <= n) {
             poll.step();
             while (start1 <= n && common[start1] == start2) {
+                poll.step();
                 start1++;
                 start2++;
             }
@@ -282,6 +292,7 @@ final class HuntDiff {
                 // Lines the second text does not have.
                 int end1 = start1 + 1;
                 while (end1 <= n && common[end1] < start2) {
+                    poll.step();
                     end1++;
                 }
                 differences.add(new Difference(Difference.Kind.DELETE, start1 - 1, end1 - start1, start2 - 1, 0));
@@ -301,9 +312,10 @@ final class HuntDiff {
     }
 
     /** Makes one change of a deletion and the addition that takes its place. */
-    private static List<Difference> merged(List<Difference> differences) {
+    private static List<Difference> merged(List<Difference> differences, Poll poll) {
         List<Difference> merged = new ArrayList<>(differences.size());
         for (Difference difference : differences) {
+            poll.step();
             Difference last = merged.isEmpty() ? null : merged.getLast();
             if (last != null && last.kind() == Difference.Kind.DELETE
                     && difference.kind() == Difference.Kind.ADD

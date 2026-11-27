@@ -27,6 +27,9 @@ import java.nio.charset.Charset;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -53,7 +56,11 @@ final class GitContentReader {
 
     /** How far into a file git looks for a NUL to call it binary. */
     private static final int BINARY_DETECTION_BYTES = 8000;
-    private static final int POLL_MILLIS = 50;
+    /** The largest content read, whatever is asked for: what an array can hold. */
+    static final long MOST_BYTES = Integer.MAX_VALUE - 8;
+    /** How git ends when it is asked of an object it does not have, and what it says of {@code HEAD} then. */
+    private static final int NO_SUCH_OBJECT = 128;
+    private static final String NO_HEAD = "Not a valid object name HEAD";
     /** Paths are meant as written: a {@code *} or a {@code :} in a name is part of the name. */
     private static final Map<String, String> LITERAL = Map.of("GIT_LITERAL_PATHSPECS", "1", "LC_ALL", "C");
 
@@ -68,7 +75,8 @@ final class GitContentReader {
      * The content the file at {@code path}, relative to {@code root}, has in the last commit.
      *
      * @param charset what the bytes git stores spell text in; see {@link GitClient#storedCharset}
-     * @param maxBytes the largest file to read; a larger one is {@link GitContent.TooLarge}
+     * @param maxBytes the largest file to read; a larger one is {@link GitContent.TooLarge}, as is
+     *        one of more than {@link #MOST_BYTES}, the limit it is then told with
      * @param cancelled whether the content is no longer wanted; asked while git is waited for
      * @throws CancellationException when {@code cancelled} answered {@code true}, or the thread
      *         was interrupted, which it stays
@@ -79,15 +87,15 @@ final class GitContentReader {
         GitClient.Output listed = GitClient.run(root, LITERAL, cancelled, "ls-tree", "-z", "--full-tree", "HEAD",
                 "--", path);
         if (listed.exitCode() != 0) {
-            // No commit yet is no content, and no failure; a branch that cannot be read is one.
-            return isUnborn(root, cancelled) ? new GitContent.Missing() : failed(listed);
+            // No commit yet is no content, and no failure - but only when that is what git said:
+            // a command that could not run, or a branch that cannot be read, is a failure.
+            boolean noHead = listed.exitCode() == NO_SUCH_OBJECT && listed.error().contains(NO_HEAD);
+            return noHead && isUnborn(root, cancelled) ? new GitContent.Missing() : failed(listed);
         }
         Entry entry = null;
-        for (String record : text(listed).split("\u0000")) {
-            // "<mode> <type> <id>\t<path>"
-            int tab = record.indexOf('\t');
-            String[] fields = tab < 0 ? new String[0] : record.substring(0, tab).split(" ");
-            if (fields.length == 3 && record.substring(tab + 1).equals(path)) {
+        for (String[] fields : entries(listed.output(), path)) {
+            // "<mode> <type> <id>"
+            if (fields.length == 3) {
                 entry = new Entry(fields[1], fields[2]);
             }
         }
@@ -109,11 +117,9 @@ final class GitContentReader {
         }
         Entry entry = null;
         boolean unmerged = false;
-        for (String record : text(listed).split("\u0000")) {
-            // "<mode> <id> <stage>\t<path>", and for a folder the files in it, which are not it.
-            int tab = record.indexOf('\t');
-            String[] fields = tab < 0 ? new String[0] : record.substring(0, tab).split(" ");
-            if (fields.length != 3 || !record.substring(tab + 1).equals(path)) {
+        // "<mode> <id> <stage>"; for a folder git lists the files in it, which are not it.
+        for (String[] fields : entries(listed.output(), path)) {
+            if (fields.length != 3) {
                 continue;
             }
             if ("0".equals(fields[2])) {
@@ -127,6 +133,31 @@ final class GitContentReader {
             return unmerged ? new GitContent.Unmerged() : new GitContent.Missing();
         }
         return read(root, entry, charset, maxBytes, cancelled);
+    }
+
+    /**
+     * The fields before the tab of the records of {@code listing} - {@code NUL}-ended, each
+     * "{@code <fields> TAB <path>}" - that are of {@code path} exactly. The paths are compared as
+     * the bytes they are: a name that is no UTF-8 is not taken for the one it would be read as.
+     */
+    static List<String[]> entries(byte[] listing, String path) {
+        byte[] wanted = path.getBytes(StandardCharsets.UTF_8);
+        List<String[]> entries = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i <= listing.length; i++) {
+            if (i < listing.length && listing[i] != 0) {
+                continue;
+            }
+            int tab = start;
+            while (tab < i && listing[tab] != '\t') {
+                tab++;
+            }
+            if (tab < i && Arrays.equals(listing, tab + 1, i, wanted, 0, wanted.length)) {
+                entries.add(new String(listing, start, tab - start, StandardCharsets.US_ASCII).split(" "));
+            }
+            start = i + 1;
+        }
+        return entries;
     }
 
     /** Whether the branch checked out has no commit yet, as in a repository just made. */
@@ -155,6 +186,10 @@ final class GitContentReader {
         } catch (IOException ex) {
             return new GitContent.Failed(String.valueOf(ex.getMessage()));
         }
+        // No more than can be held at once, whatever the caller would take.
+        long limit = Math.min(maxBytes, MOST_BYTES);
+        // What git says beside its answer explains a failure, and is read for that only: an
+        // answer that is whole needs none of it, and is not doubted for it.
         Future<String> said = GitClient.READERS.submit(
                 () -> new String(process.getErrorStream().readAllBytes(), StandardCharsets.UTF_8));
         // The answer is read as it comes: its first line says how large the object is, and the
@@ -171,7 +206,7 @@ final class GitContentReader {
                 throw new IOException("Unexpected answer of git cat-file: " + String.join(" ", header));
             }
             size[0] = Long.parseLong(header[2]);
-            if (size[0] > maxBytes || size[0] > Integer.MAX_VALUE - 8) {
+            if (size[0] > limit) {
                 return null;
             }
             byte[] bytes = in.readNBytes((int) size[0]);
@@ -183,7 +218,7 @@ final class GitContentReader {
         try {
             byte[] bytes = GitClient.await(answer, process, cancelled);
             if (bytes == null) {
-                return new GitContent.TooLarge(size[0], maxBytes);
+                return new GitContent.TooLarge(size[0], limit);
             }
             if (isBinary(bytes)) {
                 return new GitContent.Binary(entry.objectId(), bytes.length);
@@ -201,6 +236,7 @@ final class GitContentReader {
                 error = said.get(1, TimeUnit.SECONDS).strip();
             } catch (InterruptedException interrupted) {
                 Thread.currentThread().interrupt();
+                throw new CancellationException();
             } catch (ExecutionException | TimeoutException unread) {
                 // What failed says enough.
             }

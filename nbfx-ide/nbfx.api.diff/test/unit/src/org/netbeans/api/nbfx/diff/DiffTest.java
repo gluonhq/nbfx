@@ -145,21 +145,55 @@ public class DiffTest {
             left.add("  Line " + i);
             right.add("line  " + (i + 1));
         }
-        DiffOptions loose = new DiffOptions(true, true, true);
-        // How often a whole comparison asks: it is given up at each of those times.
-        int[] asked = new int[1];
-        assertFalse(Diff.compute(left, right, loose, () -> ++asked[0] < 0).isIdentical());
-        int times = asked[0];
         // Telling the lines apart, ordering them, the search and the blocks ask each in turn.
+        int times = assertGivenUpWheneverAsked(left, right, new DiffOptions(true, true, true));
         assertTrue("asked " + times + " times", times > 40);
+    }
 
-        for (int at = 1; at <= times; at++) {
+    @Test
+    public void aComparisonIsGivenUpWhateverTheTextsAre() {
+        DiffOptions loose = new DiffOptions(true, true, true);
+        // One line that is the whole text: the time goes into its characters.
+        String line = " Word\t".repeat(50_000);
+        assertTrue(assertGivenUpWheneverAsked(List.of(line), List.of(line.toUpperCase(Locale.ROOT)), loose) > 1_000);
+
+        // The same lines throughout: one long run of lines kept, and no block.
+        List<String> same = new ArrayList<>();
+        List<String> other = new ArrayList<>();
+        for (int i = 0; i < 100_000; i++) {
+            same.add("line " + i);
+            other.add("another " + i);
+        }
+        assertTrue(assertGivenUpWheneverAsked(same, same, DiffOptions.EXACT) > 1_000);
+        // No line in common: one block of all of them, found at the very end.
+        int times = assertGivenUpWheneverAsked(same, other, DiffOptions.EXACT);
+        assertTrue(times > 1_000);
+        // Many small blocks: given up while they are made, and while they are joined.
+        List<String> everyOther = new ArrayList<>(same);
+        for (int i = 0; i < everyOther.size(); i += 2) {
+            everyOther.set(i, "changed " + i);
+        }
+        assertTrue(assertGivenUpWheneverAsked(same, everyOther, DiffOptions.EXACT) > 1_000);
+    }
+
+    /**
+     * Checks that a comparison is given up at the times it asks - all of them when they are few,
+     * else the first, the last and some between - and at exactly that time; returns how many times
+     * a whole comparison asks.
+     */
+    private static int assertGivenUpWheneverAsked(List<String> left, List<String> right, DiffOptions options) {
+        int[] asked = new int[1];
+        Diff.compute(left, right, options, () -> ++asked[0] < 0);
+        int times = asked[0];
+        int stride = Math.max(1, times / 60);
+        for (int at = 1; at <= times; at = at == times ? times + 1 : Math.min(times, at + stride)) {
             int last = at;
             int[] count = new int[1];
-            assertThrows("asked " + at, CancellationException.class,
-                    () -> Diff.compute(left, right, loose, () -> ++count[0] == last));
+            assertThrows("asked " + at + " of " + times, CancellationException.class,
+                    () -> Diff.compute(left, right, options, () -> ++count[0] == last));
             assertEquals(at, count[0]);
         }
+        return times;
     }
 
     @Test(timeout = 20_000)
@@ -271,13 +305,16 @@ public class DiffTest {
 
     @Test
     public void withOptionsTheLinesKeptAreTheSameAsTheOptionsTellIt() {
-        DiffOptions loose = new DiffOptions(true, true, true);
         Random random = new Random(20261128);
-        for (int round = 0; round < 300; round++) {
-            List<String> left = variants(randomLines(random, 40, 4), random);
-            List<String> right = variants(randomLines(random, 40, 4), random);
+        // Every combination of the three options.
+        for (int flags = 0; flags < 8; flags++) {
+            DiffOptions options = new DiffOptions((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+            for (int round = 0; round < 120; round++) {
+                List<String> left = variants(randomLines(random, 40, 4), random);
+                List<String> right = variants(randomLines(random, 40, 4), random);
 
-            assertKeepsTheMost(left, right, loose);
+                assertKeepsTheMost(left, right, options);
+            }
         }
     }
 
@@ -323,30 +360,55 @@ public class DiffTest {
         return longest[left.size()][right.size()];
     }
 
-    /** What two lines share when they are the same under {@code options}, worked out apart from the engine. */
+    /**
+     * What two lines share when they are the same under {@code options}, worked out apart from the
+     * engine and another way: the line cut in its three parts first - the white space it starts
+     * with, what is between, the white space it ends with - by {@link Character#isWhitespace(int)},
+     * as the options are documented, and each letter lowered on its own.
+     */
     private static String key(String line, DiffOptions options) {
-        String key = line;
-        if (options.ignoreLeadingAndTrailingWhitespace()) {
-            key = key.strip();
+        int[] characters = line.codePoints().toArray();
+        int start = 0;
+        while (start < characters.length && Character.isWhitespace(characters[start])) {
+            start++;
         }
-        if (options.ignoreInnerWhitespace()) {
-            String inner = key.strip();
-            int start = key.indexOf(inner);
-            key = key.substring(0, start) + inner.replace(" ", "").replace("\t", "") + key.substring(start + inner.length());
+        int end = characters.length;
+        while (end > start && Character.isWhitespace(characters[end - 1])) {
+            end--;
         }
-        return options.ignoreCase() ? key.toLowerCase(Locale.ROOT) : key;
+        List<Integer> key = new ArrayList<>();
+        for (int i = 0; i < characters.length; i++) {
+            boolean edge = i < start || i >= end;
+            boolean space = Character.isWhitespace(characters[i]);
+            if (edge && options.ignoreLeadingAndTrailingWhitespace() || !edge && space && options.ignoreInnerWhitespace()) {
+                continue;
+            }
+            int character = characters[i];
+            if (options.ignoreCase()) {
+                character = character == 0x3C2 ? 0x3C3 : Character.toLowerCase(character);
+            }
+            key.add(character);
+        }
+        return key.toString();
     }
 
-    /** {@code lines}, each written one of the ways a loose comparison takes for the same. */
+    /**
+     * {@code lines}, each written one of several ways that some options take for the same and
+     * others do not: in capitals, with white space around or within - a tab, an em space - and
+     * with letters that are not ASCII.
+     */
     private static List<String> variants(List<String> lines, Random random) {
         List<String> variants = new ArrayList<>();
         for (String line : lines) {
-            String word = line + " " + line;
-            variants.add(switch (random.nextInt(4)) {
+            String word = line + "\u00e9 " + line + "\u03c3";
+            variants.add(switch (random.nextInt(7)) {
                 case 0 -> word;
                 case 1 -> "  " + word.toUpperCase(Locale.ROOT);
-                case 2 -> line + "\t " + line + " ";
-                default -> line + line;
+                case 2 -> line + "\u00e9\t " + line + "\u03c3 ";
+                case 3 -> line + "\u00e9" + line + "\u03c3";
+                case 4 -> "\u2003" + line + "\u00c9\u2003" + line + "\u03c2\u2003";
+                case 5 -> word + "\u00a0";
+                default -> line + "\u00c9 " + line + "\u03a3";
             });
         }
         return variants;
