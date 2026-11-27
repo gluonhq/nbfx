@@ -32,7 +32,7 @@
             <version major="1" minor="4"/>
             <date day="25" month="11" year="2026"/>
             <author login="jpereda"/>
-            <compatibility addition="yes" semantic="compatible"/>
+            <compatibility addition="yes" semantic="incompatible"/>
             <description>
                 What a view of two texts side by side needs of its editors: adds
                 <code>LineBand</code> and <code>EditorDocument.setLineBands(List)</code>, which
@@ -41,7 +41,9 @@
                 <code>EditorDocument.scrollToParagraph(int)</code>, which keep several editors
                 scrolling in step; and <code>ContentManager.openDocument(EditorDocument, Node)</code>,
                 which shows in the editor area a document that is not the editor of a file. All
-                have default implementations.
+                have default implementations. <code>EditorDocument.getFileObject()</code> is
+                <code>null</code> for such a document, where it was documented as never
+                <code>null</code>: code that takes a document from the open ones must check.
             </description>
             <class package="org.netbeans.api.nbfx.editor" name="ContentManager"/>
             <class package="org.netbeans.api.nbfx.editor" name="EditorDocument"/>

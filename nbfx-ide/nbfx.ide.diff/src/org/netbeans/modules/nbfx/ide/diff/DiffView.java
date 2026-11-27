@@ -40,8 +40,8 @@ public final class DiffView {
 
     /**
      * Shows the differences between {@code left} and {@code right} in a tab titled
-     * "{@code name} [ Diff ]". A diff open with the same {@code key} is brought to the front and
-     * compared again, not opened twice. Must run on the JavaFX Application Thread.
+     * "{@code name} [ Diff ]". A diff open with the same {@code key} is brought to the front, not
+     * opened twice, and shows {@code left} and {@code right} in place of what it showed. Must run on the JavaFX Application Thread.
      *
      * @param key what the diff is of, by {@code equals}: the file, or the file and what it is
      *        compared with
@@ -60,7 +60,8 @@ public final class DiffView {
         if (context != null) {
             for (EditorDocument open : context.getDocuments()) {
                 if (open instanceof DiffDocument diff && diff.key().equals(key)) {
-                    diff.pane().refresh();
+                    // What it is of by now, not what it was of when it was opened.
+                    diff.pane().setSources(left, right);
                     content.openDocument(diff, icon);
                     return;
                 }

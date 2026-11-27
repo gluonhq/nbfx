@@ -21,9 +21,12 @@ package org.netbeans.modules.nbfx.ide.diff;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
+import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
@@ -36,6 +39,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.util.Subscription;
 import org.netbeans.api.nbfx.diff.Diff;
+import org.netbeans.api.nbfx.diff.DiffOptions;
 import org.netbeans.api.nbfx.diff.DiffResult;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.EditorDocument;
@@ -58,8 +62,8 @@ final class DiffPane extends BorderPane {
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
 
-    private final DiffSource leftSource;
-    private final DiffSource rightSource;
+    private DiffSource leftSource;
+    private DiffSource rightSource;
     private final Label summary = new Label();
     private EditorDocument left;
     private EditorDocument right;
@@ -73,30 +77,81 @@ final class DiffPane extends BorderPane {
      * without end.
      */
     private boolean leftLeads;
-    private long comparison;
+    /**
+     * Counts the comparisons asked for: the one that runs gives up as soon as another is asked
+     * for, or the pane is disposed of, and what it found is not shown.
+     */
+    private final AtomicLong comparison = new AtomicLong();
 
     DiffPane(DiffSource leftSource, DiffSource rightSource) {
-        this.leftSource = Objects.requireNonNull(leftSource);
-        this.rightSource = Objects.requireNonNull(rightSource);
         getStyleClass().add("diff-pane");
         getStylesheets().add(Objects.requireNonNull(DiffPane.class.getResource("diff.css")).toExternalForm());
         summary.getStyleClass().add("diff-summary");
         summary.setMaxWidth(Double.MAX_VALUE);
         summary.setAlignment(Pos.CENTER);
         setTop(summary);
+        setSources(leftSource, rightSource);
+    }
 
-        EditorService editors = Lookup.getDefault().lookup(EditorService.class);
-        if (editors != null) {
-            left = editors.createPreviewDocument(leftSource.file());
-            right = editors.createPreviewDocument(rightSource.file());
-            SplitPane sides = new SplitPane(side(leftSource.title(), left.getNode(), true),
-                    side(rightSource.title(), right.getNode(), false));
-            sides.getStyleClass().add("diff-sides");
-            setCenter(sides);
-            scrolling = left.topParagraphProperty().subscribe(top -> follow(top.intValue(), true))
-                    .and(right.topParagraphProperty().subscribe(top -> follow(top.intValue(), false)));
+    /**
+     * Shows {@code left} and {@code right} in place of the two texts shown, and compares them: what
+     * a diff asked for again is of by now - another commit, the file staged since - is not what it
+     * was of when its tab was opened. Must run on the JavaFX Application Thread.
+     */
+    void setSources(DiffSource left, DiffSource right) {
+        // The same files under the same headings keep their editors, and where they are scrolled to.
+        boolean same = left.equals(leftSource) && right.equals(rightSource);
+        leftSource = Objects.requireNonNull(left);
+        rightSource = Objects.requireNonNull(right);
+        if (!same) {
+            showEditors();
         }
         refresh();
+    }
+
+    /** Puts an editor of each of the two files side by side, in place of those there were. */
+    private void showEditors() {
+        scrolling.unsubscribe();
+        scrolling = Subscription.EMPTY;
+        disposeEditors();
+        differences = List.of();
+        EditorService editors = Lookup.getDefault().lookup(EditorService.class);
+        if (editors == null) {
+            return;
+        }
+        left = editors.createPreviewDocument(leftSource.file());
+        right = editors.createPreviewDocument(rightSource.file());
+        // The line numbers of the left text next to those of the right one, as in NetBeans.
+        left.gutterPositionProperty().set(HPos.RIGHT);
+        SplitPane sides = new SplitPane(side(leftSource.title(), left.getNode(), true),
+                side(rightSource.title(), right.getNode(), false));
+        sides.getStyleClass().add("diff-sides");
+        setCenter(sides);
+        scrolling = left.topParagraphProperty().subscribe(top -> follow(top.intValue(), true))
+                .and(right.topParagraphProperty().subscribe(top -> follow(top.intValue(), false)));
+    }
+
+    private void disposeEditors() {
+        if (left != null) {
+            left.dispose();
+        }
+        if (right != null) {
+            right.dispose();
+        }
+        left = null;
+        right = null;
+    }
+
+    /**
+     * Gives the keyboard to the text compared to, the one on the right - the file as it is now -
+     * so that the keys scroll the diff as soon as its tab is chosen.
+     */
+    void focusEditor() {
+        if (right != null) {
+            right.requestFocus();
+        } else {
+            requestFocus();
+        }
     }
 
     /** The differences shown; empty until the texts are compared, and when they are the same. */
@@ -109,26 +164,37 @@ final class DiffPane extends BorderPane {
         return summary.getText();
     }
 
-    /** Reads the two texts again, compares them and marks the blocks. */
+    /**
+     * Reads the two texts again, compares them and marks the blocks. A comparison still running is
+     * given up: all the panes compare on one thread, and what nobody waits for must not hold up
+     * what somebody does.
+     */
     void refresh() {
-        long asked = ++comparison;
+        long asked = comparison.incrementAndGet();
+        DiffSource from = leftSource;
+        DiffSource to = rightSource;
         summary.setText(message("Diff.loading"));
         RP.post(() -> {
             DiffResult result;
             try {
-                result = Diff.compute(Diff.lines(leftSource.file().asText("UTF-8")),
-                        Diff.lines(rightSource.file().asText("UTF-8")));
+                if (asked != comparison.get()) {
+                    return;
+                }
+                result = Diff.compute(Diff.lines(from.file().asText("UTF-8")), Diff.lines(to.file().asText("UTF-8")),
+                        DiffOptions.EXACT, () -> asked != comparison.get());
+            } catch (CancellationException ex) {
+                return;
             } catch (IOException | RuntimeException ex) {
-                LOG.log(Level.INFO, "Cannot compare " + leftSource.file() + " and " + rightSource.file(), ex);
+                LOG.log(Level.INFO, "Cannot compare " + from.file() + " and " + to.file(), ex);
                 Platform.runLater(() -> {
-                    if (asked == comparison) {
+                    if (asked == comparison.get()) {
                         show(List.of(), message("Diff.failed"));
                     }
                 });
                 return;
             }
             Platform.runLater(() -> {
-                if (asked == comparison) {
+                if (asked == comparison.get()) {
                     List<Difference> found = result.differences();
                     show(found, found.isEmpty() ? message("Diff.identical")
                             : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size()));
@@ -137,16 +203,11 @@ final class DiffPane extends BorderPane {
         });
     }
 
-    /** Releases the two editors. */
+    /** Releases the two editors, and gives up the comparison that runs. */
     void dispose() {
-        comparison++;
+        comparison.incrementAndGet();
         scrolling.unsubscribe();
-        if (left != null) {
-            left.dispose();
-        }
-        if (right != null) {
-            right.dispose();
-        }
+        disposeEditors();
     }
 
     private void show(List<Difference> found, String text) {
@@ -187,6 +248,13 @@ final class DiffPane extends BorderPane {
         side.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> leftLeads = isLeft);
         side.addEventFilter(ScrollEvent.ANY, event -> leftLeads = isLeft);
         side.addEventFilter(KeyEvent.KEY_PRESSED, event -> leftLeads = isLeft);
+        // And the side the keyboard is given to - by the keys, or as the tab is chosen - leads
+        // before a key scrolls it.
+        side.focusWithinProperty().subscribe(focused -> {
+            if (focused) {
+                leftLeads = isLeft;
+            }
+        });
         return side;
     }
 

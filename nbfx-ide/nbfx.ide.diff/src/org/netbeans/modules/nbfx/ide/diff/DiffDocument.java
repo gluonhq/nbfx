@@ -143,7 +143,7 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public void requestFocus() {
-        pane.requestFocus();
+        pane.focusEditor();
     }
 
     @Override

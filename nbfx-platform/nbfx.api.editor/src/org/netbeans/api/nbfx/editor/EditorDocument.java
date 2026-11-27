@@ -63,9 +63,12 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
-     * Returns the file this document edits.
+     * Returns the file this document edits. A document that is the editor of no file - a diff,
+     * shown with {@link ContentManager#openDocument} - has none: whoever takes a document from the
+     * open ones, and not from a file, must expect {@code null}.
      *
-     * @return the backing {@link FileObject}, never {@code null}
+     * @return the backing {@link FileObject}, or {@code null} for a document that is the editor
+     *         of no file
      */
     FileObject getFileObject();
 
