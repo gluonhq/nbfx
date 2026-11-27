@@ -1,0 +1,164 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/* Git History view */
+
+.git-history-bar {
+    -fx-padding: 4 8 4 8;
+    -fx-spacing: 6;
+    -fx-alignment: center-left;
+    -fx-border-color: transparent transparent -nbfx-border transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.git-history-list {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.git-history-list .list-cell {
+    -fx-padding: 1 8 1 4;
+}
+
+/* A commit: its id and who made it when, over the first line of its message. */
+.git-history-list .list-cell.git-history-commit {
+    -fx-padding: 3 8 3 4;
+    -fx-background-color: -nbfx-border, -nbfx-surface;
+    -fx-background-insets: 0, 1 0 0 0;
+}
+
+.git-history-list .git-history-summary {
+    -fx-font-weight: bold;
+}
+
+.git-history-list .git-history-who {
+    -fx-text-fill: derive(-fx-text-base-color, 30%);
+}
+
+/* The chevron of the trees (the theme's tree-disclosure-node arrow): right when closed, down when opened. */
+.git-history-list .git-history-arrow {
+    -fx-background-color: -nbfx-icon-subtle;
+    -fx-shape: "M4.974 3.174C5.208 2.94 5.592 2.94 5.826 3.174L9.426 6.774C9.66 7.008 9.66 7.392 9.426 7.626L5.826 11.226C5.592 11.46 5.208 11.46 4.974 11.226 4.74 10.992 4.74 10.608 4.974 10.374L8.154 7.2 4.974 4.026C4.74 3.792 4.74 3.408 4.974 3.174Z";
+    -fx-min-width: 5;
+    -fx-max-width: 5;
+    -fx-min-height: 8.5;
+    -fx-max-height: 8.5;
+}
+
+.git-history-list .git-history-arrow:expanded {
+    -fx-rotate: 90;
+}
+
+.git-history-list .git-history-arrow-box {
+    -fx-min-width: 16;
+    -fx-max-width: 16;
+    -fx-alignment: center;
+    -fx-padding: 4 0 0 0;
+}
+
+/*
+ * A file of a commit: how it changed, in the colour of the change, and where it is. The letter keeps
+ * its colour on a selected row while the list is not focused.
+ */
+.git-history-list .list-cell.git-history-file {
+    -fx-padding: 1 8 1 24;
+}
+
+.git-history-list .git-history-kind {
+    -fx-font-weight: bold;
+    -fx-min-width: 18;
+}
+
+.git-history-list .git-history-kind:vcs-added,
+.git-history-list .list-cell:filled:selected .git-history-kind:vcs-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.git-history-list .git-history-kind:vcs-modified,
+.git-history-list .list-cell:filled:selected .git-history-kind:vcs-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.git-history-list .git-history-kind:vcs-deleted,
+.git-history-list .list-cell:filled:selected .git-history-kind:vcs-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.git-history-list .git-history-folder {
+    -fx-text-fill: derive(-fx-text-base-color, 30%);
+}
+
+.git-history-list .list-cell.git-history-more {
+    -fx-padding: 4 8 4 24;
+}
+
+/* On the selection bar every text is the one that reads on it. */
+.git-history-list:focused .list-cell:filled:selected .label {
+    -fx-text-fill: -nbfx-on-accent;
+}
+
+.git-history-list:focused .list-cell:filled:selected .git-history-arrow {
+    -fx-background-color: -nbfx-on-accent;
+}
+
+.git-history-empty {
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-padding: 12;
+}
+
+/* Search Options */
+
+/*
+ * The same chevron, drawn pointing down: the skin of the pane turns its arrow itself, to the right
+ * when the pane is collapsed.
+ */
+.git-history-options > .title > .arrow-button > .arrow,
+.git-history-options:focused > .title > .arrow-button > .arrow {
+    -fx-background-color: -nbfx-icon-subtle;
+    -fx-background-insets: 0;
+    -fx-shape: "M3.174 4.974C2.94 5.208 2.94 5.592 3.174 5.826L6.774 9.426C7.008 9.66 7.392 9.66 7.626 9.426L11.226 5.826C11.46 5.592 11.46 5.208 11.226 4.974 10.992 4.74 10.608 4.74 10.374 4.974L7.2 8.154 4.026 4.974C3.792 4.74 3.408 4.74 3.174 4.974Z";
+    -fx-min-width: 8.5;
+    -fx-max-width: 8.5;
+    -fx-min-height: 5;
+    -fx-max-height: 5;
+    -fx-padding: 0;
+    /* Not the glow the default look gives the arrow of a focused pane. */
+    -fx-effect: null;
+}
+
+/* Reached with the keyboard, the chevron takes the accent colour instead. */
+.git-history-options:focus-visible > .title > .arrow-button > .arrow {
+    -fx-background-color: -nbfx-accent;
+}
+.git-history-options > .title {
+    -fx-background-color: transparent;
+    -fx-border-color: -nbfx-border transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.git-history-options > .content {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-padding: 4 12 8 12;
+}
+
+.git-history-options .git-history-hint {
+    -fx-text-fill: derive(-fx-text-base-color, 40%);
+    -fx-font-size: 0.9em;
+}

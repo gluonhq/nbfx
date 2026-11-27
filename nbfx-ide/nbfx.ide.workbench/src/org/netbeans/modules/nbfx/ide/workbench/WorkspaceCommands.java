@@ -67,14 +67,16 @@ final class WorkspaceCommands {
         registry.register(new RunnableCommand(IdeActionIds.SELECT_IN_PROJECTS, message("CTL_SelectInProjectsCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT1, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
                     EditorDocument document = active == null ? null : active.getValue();
-                    if (document != null) {
+                    // A document that is no file's editor - a diff - has nothing to select.
+                    if (document != null && document.getFileObject() != null) {
                         selectInProjects.accept(document.getFileObject());
                     }
                 }, disabled));
         registry.register(new RunnableCommand(IdeActionIds.SELECT_IN_FILES, message("CTL_SelectInFilesCommand"),
                 new KeyCodeCombination(KeyCode.DIGIT2, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN), () -> {
                     EditorDocument document = active == null ? null : active.getValue();
-                    if (document != null) {
+                    // A document that is no file's editor - a diff - has nothing to select.
+                    if (document != null && document.getFileObject() != null) {
                         selectInFiles.accept(document.getFileObject());
                     }
                 }, disabled));

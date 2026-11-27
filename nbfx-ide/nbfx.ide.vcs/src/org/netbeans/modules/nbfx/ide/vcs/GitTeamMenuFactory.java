@@ -41,8 +41,8 @@ import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The Git entries of the Team menu, as in NetBeans: Show Changes while the selected project is in a
- * Git working tree, and Git &#9656; Initialize Repository... while it is not.
+ * The Git entries of the Team menu, as in NetBeans: Show Changes and Show History while the selected
+ * project is in a Git working tree, and Git &#9656; Initialize Repository... while it is not.
  *
  * @since 1.2
  */
@@ -56,16 +56,18 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
     }
 
     /**
-     * Both entries, one of them visible. They are told apart again when the selection changes and
-     * when the menu opens, as a repository can be made or removed outside the IDE.
+     * All the entries, those of a repository or the one without visible. They are told apart again
+     * when the selection changes and when the menu opens, as a repository can be made or removed
+     * outside the IDE.
      */
     static final class TeamMenu implements DynamicMenu {
 
         private final MenuItem showChanges = new MenuItem(message("CTL_SelectGitCommand"),
                 GitIcons.menuView(GitIcons.SHOW_CHANGES));
+        private final MenuItem showHistory = new MenuItem(message("Git.history.menu"));
         private final MenuItem initialize = new MenuItem(message("Git.init.menu"));
         private final Menu git = new Menu(message("Git.menu"), null, initialize);
-        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, git);
+        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, showHistory, git);
         private final List<Lookup.Result<?>> contextResults = new ArrayList<>();
         private final LookupListener contextListener = event -> Platform.runLater(this::refresh);
         private final EventHandler<Event> showing = event -> refresh();
@@ -78,6 +80,7 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
                     view.show(ProjectContext.selectedProject());
                 }
             });
+            showHistory.setOnAction(event -> GitHistoryView.show(ProjectContext.selectedProject()));
             initialize.setOnAction(event -> GitInitDialog.show(GitMenus.folderOf(ProjectContext.selectedProject()),
                     this::refresh));
             ActionContext context = ActionContext.getDefault();
@@ -107,12 +110,13 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
             follow(null);
         }
 
-        /** Shows the entry that fits the selected project. */
+        /** Shows the entries that fit the selected project. */
         void refresh() {
             OpenProject project = ProjectContext.selectedProject();
             Path folder = GitMenus.folderOf(project);
             boolean repository = folder != null && GitMenus.inWorkingTree(folder.toFile());
             showChanges.setVisible(repository);
+            showHistory.setVisible(repository);
             git.setVisible(!repository);
         }
 
