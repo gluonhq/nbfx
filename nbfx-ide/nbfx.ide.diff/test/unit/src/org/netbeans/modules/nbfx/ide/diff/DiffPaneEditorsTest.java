@@ -23,13 +23,17 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.geometry.HPos;
+import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.Region;
+import javafx.stage.Stage;
 import org.junit.Before;
 import org.junit.Test;
 import org.netbeans.api.nbfx.editor.ContentManager;
@@ -142,6 +146,52 @@ public class DiffPaneEditorsTest {
         JavaFxTestSupport.onFx(() -> new DiffDocument("key", "A.txt [ Diff ]", binary).requestFocus());
         JavaFxTestSupport.onFx(binary::dispose);
         assertEquals(1, EDITORS.get(0).disposed);
+    }
+
+    @Test
+    public void everyBlockIsJoinedAcrossTheTwoTexts() throws Exception {
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\nd\n"));
+        JavaFxTestSupport.onFx(() -> {
+            Stage stage = new Stage();
+            stage.setScene(new Scene(pane, 600, 300));
+            stage.show();
+        });
+        awaitComparison(pane);
+
+        // Drawn from the regions the editors made for the bands of this comparison.
+        awaitConnectors(pane, 2);
+        assertEquals("1/2", JavaFxTestSupport.onFx(pane::counter));
+        // The block the view is at is marked on both sides as well as between them, and no other.
+        assertEquals(List.of(List.of(true, false), List.of(true, false)), JavaFxTestSupport.onFx(() -> currentBands()));
+        JavaFxTestSupport.onFx(() -> pane.select(1));
+        assertEquals(List.of(List.of(false, true), List.of(false, true)), JavaFxTestSupport.onFx(() -> currentBands()));
+
+        // Compared again: joined anew, to the regions made anew.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\nb\nc\n"), working("a\nb\nc\nd\ne\n")));
+        awaitComparison(pane);
+        awaitConnectors(pane, 1);
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\n"), working("a\n")));
+        awaitComparison(pane);
+        awaitConnectors(pane, 0);
+        JavaFxTestSupport.hideWindows();
+    }
+
+    /** For each of the two editors made last, which of its bands are marked as of the current block. */
+    private static List<List<Boolean>> currentBands() {
+        return EDITORS.subList(EDITORS.size() - 2, EDITORS.size()).stream()
+                .map(editor -> editor.overlay.getChildren().stream()
+                        .map(region -> region.getStyleClass().contains("diff-current")).toList())
+                .toList();
+    }
+
+    private static void awaitConnectors(DiffPane pane, int count) throws Exception {
+        for (int i = 0; i < 100; i++) {
+            if (JavaFxTestSupport.onFx(() -> pane.connectors().size()) == count) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        assertEquals(count, (int) JavaFxTestSupport.onFx(() -> pane.connectors().size()));
     }
 
     @Test
@@ -301,7 +351,8 @@ public class DiffPaneEditorsTest {
     /** What an editor made for the pane was told. */
     private static final class Editor {
         private final FileObject file;
-        private final Region node = new Region();
+        private final Pane overlay = new Pane();
+        private final Pane node = new Pane(overlay);
         private final ObjectProperty<HPos> gutter = new SimpleObjectProperty<>(HPos.LEFT);
         private final SimpleDoubleProperty top = new SimpleDoubleProperty(0);
         private final SimpleBooleanProperty breadcrumbs = new SimpleBooleanProperty(true);
@@ -313,8 +364,32 @@ public class DiffPaneEditorsTest {
         private volatile int disposed;
         private EditorDocument document;
 
+        /** Places {@code regions} after the layout of the next frame the editor is shown in. */
+        void place(List<Region> regions) {
+            Scene scene = node.getScene();
+            if (scene == null) {
+                Platform.runLater(() -> {
+                    if (overlay.getChildren().containsAll(regions) && disposed == 0) {
+                        place(regions);
+                    }
+                });
+                return;
+            }
+            Runnable[] once = new Runnable[1];
+            once[0] = () -> {
+                scene.removePostLayoutPulseListener(once[0]);
+                for (int i = 0; i < regions.size(); i++) {
+                    regions.get(i).resizeRelocate(0, 20 * i, 50, 10);
+                    regions.get(i).setVisible(true);
+                }
+            };
+            scene.addPostLayoutPulseListener(once[0]);
+            Platform.requestNextPulse();
+        }
+
         Editor(FileObject file) {
             this.file = file;
+            overlay.getStyleClass().add("line-bands");
         }
     }
 
@@ -420,6 +495,20 @@ public class DiffPaneEditorsTest {
                         return null;
                     case "setLineBands":
                         editor.bands = new ArrayList<>((List<LineBand>) args[0]);
+                        // As an editor does: a region for each band, new ones each time, under
+                        // the node that what is drawn beside the editor finds them by.
+                        List<Region> regions = new ArrayList<>();
+                        for (int i = 0; i < editor.bands.size(); i++) {
+                            Region region = new Region();
+                            region.setManaged(false);
+                            region.setVisible(false);
+                            regions.add(region);
+                        }
+                        editor.overlay.getChildren().setAll(regions);
+                        // Placed and shown as an editor does it: in a frame, once the editor is
+                        // laid out where it is - until then a band is nowhere, and nothing is
+                        // joined to it.
+                        editor.place(regions);
                         return null;
                     case "requestFocus":
                         editor.focused++;

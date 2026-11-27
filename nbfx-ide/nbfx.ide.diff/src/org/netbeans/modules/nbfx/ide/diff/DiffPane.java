@@ -268,6 +268,11 @@ final class DiffPane extends BorderPane {
         return overview;
     }
 
+    /** The connectors drawn between the two texts: one for each block in view. */
+    List<Node> connectors() {
+        return connectors.connectors();
+    }
+
     /** The text of the line above the headings. */
     String summary() {
         return summary.getText();
@@ -379,15 +384,14 @@ final class DiffPane extends BorderPane {
         describe(left, leftSource, DiffLines.describeLeft(found));
         describe(right, rightSource, DiffLines.describeRight(found));
         if (left != null && right != null) {
+            left.setLineBands(DiffLines.leftBands(found));
+            right.setLineBands(DiffLines.rightBands(found));
+            // After the bands: the connectors join the regions the editors have just made for them.
             connectors.show(left, right, found);
         }
         overview.show(found, rightLines);
         // At the first block, as when the diff opens; without moving the view when there is none.
         select(found.isEmpty() ? -1 : Math.clamp(current, 0, found.size() - 1));
-        if (left != null && right != null) {
-            left.setLineBands(DiffLines.leftBands(found));
-            right.setLineBands(DiffLines.rightBands(found));
-        }
     }
 
     /**

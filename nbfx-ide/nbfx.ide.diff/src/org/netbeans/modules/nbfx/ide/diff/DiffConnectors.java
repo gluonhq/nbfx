@@ -97,6 +97,9 @@ final class DiffConnectors extends Pane {
     private List<Difference> differences = List.of();
     private List<LineBand> leftBands = List.of();
     private List<LineBand> rightBands = List.of();
+    /** The style class of what is drawn of the block the view is at. */
+    private static final String CURRENT = "diff-current";
+
     private List<Region> leftRegions = List.of();
     private List<Region> rightRegions = List.of();
     private List<Shape> shapes = List.of();
@@ -144,19 +147,31 @@ final class DiffConnectors extends Pane {
         requestRedraw();
     }
 
-    /** Draws the block of that index as the current one; -1 for none. */
+    /** Draws the block of that index - its connector and its bands - as the current one; -1 for none. */
     void setCurrent(int index) {
         current = index;
         mark();
     }
 
+    /**
+     * Marks the current block with the style class {@code diff-current}: its connector, and the
+     * band of each side it joins, so that the block the view is at reads as one shape too.
+     */
     private void mark() {
         for (int i = 0; i < shapes.size(); i++) {
-            List<String> classes = shapes.get(i).path().getStyleClass();
-            classes.remove("diff-current");
-            if (i == current) {
-                classes.add("diff-current");
+            mark(shapes.get(i).path().getStyleClass(), i == current);
+        }
+        for (List<Region> regions : List.of(leftRegions, rightRegions)) {
+            for (int i = 0; i < regions.size(); i++) {
+                mark(regions.get(i).getStyleClass(), i == current);
             }
+        }
+    }
+
+    private static void mark(List<String> classes, boolean isCurrent) {
+        classes.remove(CURRENT);
+        if (isCurrent) {
+            classes.add(CURRENT);
         }
     }
 
