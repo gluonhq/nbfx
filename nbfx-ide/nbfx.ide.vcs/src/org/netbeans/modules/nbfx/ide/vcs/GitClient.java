@@ -20,13 +20,20 @@ package org.netbeans.modules.nbfx.ide.vcs;
 
 import java.nio.file.Files;
 import java.io.IOException;
-import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
 import org.openide.util.NbBundle;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
@@ -45,6 +52,11 @@ final class GitClient {
      */
     record Result(int exitCode, String output) {
     }
+
+    /** The threads that read what a command writes while it is waited for. */
+    static final ExecutorService READERS = Executors.newVirtualThreadPerTaskExecutor();
+    /** How long a wait for a command lasts before it is asked whether it is still wanted. */
+    private static final int POLL_MILLIS = 50;
 
     private GitClient() {
     }
@@ -79,6 +91,52 @@ final class GitClient {
         } catch (IllegalArgumentException ex) {
             throw new IOException(ex.getMessage(), ex);
         }
+    }
+
+    /**
+     * The content the file at {@code path}, relative to {@code root}, has in the last commit; see
+     * {@link GitContentReader#head}. A file not in the commit, a binary one, one too large, and a
+     * failure to read are each told as what they are.
+     *
+     * @param charset what the bytes git stores spell text in; see {@link #storedCharset}
+     * @param maxBytes the largest file to read
+     * @param cancelled whether the content is no longer wanted
+     * @throws CancellationException when it was cancelled, or the thread interrupted
+     */
+    static GitContent headContent(Path root, String path, Charset charset, long maxBytes,
+            BooleanSupplier cancelled) {
+        return GitContentReader.head(root, path, charset, maxBytes, cancelled);
+    }
+
+    /**
+     * The content the file at {@code path}, relative to {@code root}, has in the index - what the
+     * next commit takes - as {@link #headContent} tells that of the commit; see
+     * {@link GitContentReader#index}.
+     */
+    static GitContent indexContent(Path root, String path, Charset charset, long maxBytes,
+            BooleanSupplier cancelled) {
+        return GitContentReader.index(root, path, charset, maxBytes, cancelled);
+    }
+
+    /**
+     * The charset of what git stores of the file at {@code path}, whose text in the working tree
+     * is in {@code working}: that one, unless the file has a {@code working-tree-encoding}
+     * attribute, with which git converts it on checkout and stores it as UTF-8. The attribute is
+     * read where the content is: from the attributes of the last commit for
+     * {@link #headContent}, from those in the index for {@link #indexContent} - not from the
+     * working tree, whose attributes may have changed since.
+     *
+     * @param committed whether the content is that of the last commit, not of the index
+     */
+    static Charset storedCharset(Path root, String path, Charset working, boolean committed) {
+        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr",
+                committed ? "--source=HEAD" : "--cached", "-z", "working-tree-encoding", "--", path);
+        // "<path> NUL <attribute> NUL <value> NUL"; no commit yet, or a git that knows no
+        // "--source", is no attribute.
+        String[] fields = new String(attribute.output(), StandardCharsets.UTF_8).split("\u0000");
+        boolean converted = attribute.exitCode() == 0 && fields.length == 3
+                && !List.of("unspecified", "unset", "set").contains(fields[2]);
+        return converted ? StandardCharsets.UTF_8 : working;
     }
 
     /** Creates a repository in {@code dir}, as {@code git init}. */
@@ -150,35 +208,110 @@ final class GitClient {
 
     /** As {@link #result(Path, String...)}, with {@code environment} added to that of the command. */
     static Result result(Path dir, Map<String, String> environment, String... args) {
+        Output output = run(dir, environment, args);
+        // Read as is: the status records end with a NUL and their paths may hold any other character.
+        return new Result(output.exitCode(), output.exitCode() == 0 || output.error().isBlank()
+                ? new String(output.output(), StandardCharsets.UTF_8) : output.error());
+    }
+
+    /** What a command wrote, as bytes, what it said beside it, and its exit code. */
+    record Output(int exitCode, byte[] output, String error) {
+    }
+
+    /**
+     * Runs a command to its end. A thread interrupted while it waits ends the command, stays
+     * interrupted, and gets a failure for a result.
+     */
+    private static Output run(Path dir, Map<String, String> environment, String... args) {
+        try {
+            return run(dir, environment, () -> false, args);
+        } catch (CancellationException ex) {
+            return new Output(1, new byte[0], "Interrupted");
+        }
+    }
+
+    /**
+     * Runs a command to its end, unless {@code cancelled} says meanwhile that its result is no
+     * longer wanted, or the thread is interrupted: the command is then ended. What cannot be read
+     * of its output is a failure, never an output with less in it.
+     *
+     * @throws CancellationException when cancelled or interrupted; the thread stays interrupted
+     */
+    static Output run(Path dir, Map<String, String> environment, BooleanSupplier cancelled, String... args) {
+        // Not started for a result nobody wants.
+        if (cancelled.getAsBoolean()) {
+            throw new CancellationException();
+        }
+        Process process;
+        try {
+            process = start(dir, environment, args);
+        } catch (IOException ex) {
+            return new Output(1, new byte[0], String.valueOf(ex.getMessage()));
+        }
+        // Both read while the command writes: one that fills a stream waits for it to be read.
+        Future<byte[]> error = READERS.submit(() -> process.getErrorStream().readAllBytes());
+        Future<byte[]> output = READERS.submit(() -> process.getInputStream().readAllBytes());
+        try {
+            byte[] written = await(output, process, cancelled);
+            String said = new String(await(error, process, cancelled), StandardCharsets.UTF_8);
+            while (!process.waitFor(POLL_MILLIS, TimeUnit.MILLISECONDS)) {
+                if (cancelled.getAsBoolean()) {
+                    throw new CancellationException();
+                }
+            }
+            return new Output(process.exitValue(), written, said);
+        } catch (IOException ex) {
+            return new Output(1, new byte[0], NbBundle.getMessage(GitClient.class, "Git.output.unread",
+                    String.valueOf(ex.getMessage())));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException();
+        } finally {
+            // Ended if it still runs: after a cancellation, or what could not be read.
+            process.destroyForcibly();
+            error.cancel(true);
+            output.cancel(true);
+        }
+    }
+
+    /** Starts {@code git} with {@code args} in {@code dir}. */
+    static Process start(Path dir, Map<String, String> environment, String... args) throws IOException {
         List<String> command = new ArrayList<>(args.length + 3);
         command.add("git");
         command.add("-C");
         command.add(dir.toString());
         command.addAll(List.of(args));
-        try {
-            ProcessBuilder builder = new ProcessBuilder(command);
-            builder.environment().putAll(environment);
-            Process process = builder.start();
-            // Read while the output is: a command that fills one stream waits for it to be read.
-            CompletableFuture<String> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
-            // Read as is: the status records end with a NUL and their paths may hold any other character.
-            String output = read(process.getInputStream());
-            int exitCode = process.waitFor();
-            String said = error.join();
-            return new Result(exitCode, exitCode == 0 || said.isBlank() ? output : said);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            return new Result(1, "Interrupted");
-        } catch (IOException ex) {
-            return new Result(1, ex.getMessage());
-        }
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.environment().putAll(environment);
+        return builder.start();
     }
 
-    private static String read(InputStream stream) {
-        try (InputStream in = stream) {
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException ex) {
-            return "";
+    /**
+     * What {@code reading} reads of {@code process}, waited for while asking whether it is still
+     * wanted: when it is not, or the thread is interrupted, the process is ended, which ends the
+     * read too.
+     *
+     * @throws IOException when the read failed
+     * @throws CancellationException when cancelled or interrupted; the thread stays interrupted
+     */
+    static <T> T await(Future<T> reading, Process process, BooleanSupplier cancelled) throws IOException {
+        while (true) {
+            try {
+                return reading.get(POLL_MILLIS, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException ex) {
+                if (cancelled.getAsBoolean()) {
+                    process.destroyForcibly();
+                    reading.cancel(true);
+                    throw new CancellationException();
+                }
+            } catch (ExecutionException ex) {
+                throw ex.getCause() instanceof IOException failed ? failed : new IOException(ex.getCause());
+            } catch (InterruptedException ex) {
+                process.destroyForcibly();
+                reading.cancel(true);
+                Thread.currentThread().interrupt();
+                throw new CancellationException();
+            }
         }
     }
 }

@@ -89,6 +89,7 @@ nb.cluster.nbfx-ide.depends=\
         nb.cluster.ide,\
         nb.cluster.java
 nb.cluster.nbfx-ide=\
+        nbfx.api.diff,\
         nbfx.api.project,\
         nbfx.api.usages,\
         nbfx.api.vcs,\
