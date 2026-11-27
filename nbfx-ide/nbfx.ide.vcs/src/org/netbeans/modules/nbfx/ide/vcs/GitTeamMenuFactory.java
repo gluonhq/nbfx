@@ -41,8 +41,9 @@ import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The Git entries of the Team menu, as in NetBeans: Show Changes while the selected project is in a
- * Git working tree, and Git &#9656; Initialize Repository... while it is not.
+ * The Git entries of the Team menu, as in NetBeans: Show Changes and Repository &#9656; Repository
+ * Browser while the selected project is in a Git working tree, and Git &#9656; Initialize
+ * Repository... while it is not.
  *
  * @since 1.2
  */
@@ -56,8 +57,9 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
     }
 
     /**
-     * Both entries, one of them visible. They are told apart again when the selection changes and
-     * when the menu opens, as a repository can be made or removed outside the IDE.
+     * All the entries, those of a repository or the one without visible. They are told apart again
+     * when the selection changes and when the menu opens, as a repository can be made or removed
+     * outside the IDE.
      */
     static final class TeamMenu implements DynamicMenu {
 
@@ -65,7 +67,9 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
                 GitIcons.menuView(GitIcons.SHOW_CHANGES));
         private final MenuItem initialize = new MenuItem(message("Git.init.menu"));
         private final Menu git = new Menu(message("Git.menu"), null, initialize);
-        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, git);
+        private final MenuItem browser = new MenuItem(message("Git.browser.menu"));
+        private final Menu repository = new Menu(message("Git.repository.menu"), null, browser);
+        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, repository, git);
         private final List<Lookup.Result<?>> contextResults = new ArrayList<>();
         private final LookupListener contextListener = event -> Platform.runLater(this::refresh);
         private final EventHandler<Event> showing = event -> refresh();
@@ -74,6 +78,12 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
         TeamMenu() {
             showChanges.setOnAction(event -> {
                 GitStatusViewProvider view = GitStatusViewProvider.instance();
+                if (view != null) {
+                    view.show(ProjectContext.selectedProject());
+                }
+            });
+            browser.setOnAction(event -> {
+                GitRepositoryBrowserProvider view = GitRepositoryBrowserProvider.instance();
                 if (view != null) {
                     view.show(ProjectContext.selectedProject());
                 }
@@ -107,13 +117,14 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
             follow(null);
         }
 
-        /** Shows the entry that fits the selected project. */
+        /** Shows the entries that fit the selected project. */
         void refresh() {
             OpenProject project = ProjectContext.selectedProject();
             Path folder = GitMenus.folderOf(project);
-            boolean repository = folder != null && GitMenus.inWorkingTree(folder.toFile());
-            showChanges.setVisible(repository);
-            git.setVisible(!repository);
+            boolean versioned = folder != null && GitMenus.inWorkingTree(folder.toFile());
+            showChanges.setVisible(versioned);
+            repository.setVisible(versioned);
+            git.setVisible(!versioned);
         }
 
         private void follow(Menu menu) {

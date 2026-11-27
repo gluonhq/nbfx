@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!-- The tags of a repository: redrawn from NetBeans' tags.png -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" version="1.1" viewBox="0 0 16 16">
+  <defs>
+    <linearGradient id="tagEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#4D78BD"/><stop offset="1" stop-color="#203E9F"/>
+    </linearGradient>
+    <linearGradient id="tagFace" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6DA5E2"/><stop offset="1" stop-color="#2E6EC2"/>
+    </linearGradient>
+    <g id="tag">
+      <path fill-rule="evenodd" fill="url(#tagEdge)" d="M9 0 H16 V7 L7 16 H4 L0 12 V9 Z M12 2 V4 H14 V2 Z"/>
+      <path fill-rule="evenodd" fill="url(#tagFace)" d="M9.4 1 H15 V6.6 L6.6 15 H4.4 L1 11.6 V9.4 Z M11 1 V5 H15 V1 Z"/>
+      <path fill-rule="evenodd" fill="#5077BB" d="M11 1 H15 V5 H11 Z M12 2 V4 H14 V2 Z"/>
+      <path d="M10 1.5 L1.5 10" fill="none" stroke="#B4D1F0" stroke-width="1"/>
+    </g>
+  </defs>
+  <use xlink:href="#tag" transform="translate(3 3) scale(0.8125)" opacity="0.45"/>
+  <use xlink:href="#tag" transform="scale(0.8125)"/>
+</svg>
