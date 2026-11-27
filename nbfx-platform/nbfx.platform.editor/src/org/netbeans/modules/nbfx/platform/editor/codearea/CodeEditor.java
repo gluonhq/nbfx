@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.platform.editor.codearea;
 
+import org.netbeans.api.nbfx.editor.LineBand;
+import java.util.List;
 import org.netbeans.api.nbfx.editor.CaretInfo;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorSettings;
@@ -92,6 +94,7 @@ public class CodeEditor implements EditorDocument {
 
     private final MarkLineNumberDecorator lineDecorator;
     private final LineHighlightSupport lineHighlight;
+    private final LineBandsSupport lineBands;
     private final BreadcrumbsSupport breadcrumbs;
     /** Find in this view; {@code null} for a preview. Package-private for tests. */
     final SearchSupport search;
@@ -155,7 +158,8 @@ public class CodeEditor implements EditorDocument {
         WordSelectionSupport.install(codeArea);
 
         lineHighlight = new LineHighlightSupport(codeArea);
-        StackPane areaWrapper = new StackPane(codeArea, lineHighlight.overlay());
+        lineBands = new LineBandsSupport(codeArea);
+        StackPane areaWrapper = new StackPane(codeArea, lineBands.overlay(), lineHighlight.overlay());
         areaWrapper.getStyleClass().add("code-area-wrapper");
         rootPane = new BorderPane(areaWrapper);
         rootPane.getStyleClass().add("code-editor");
@@ -352,6 +356,7 @@ public class CodeEditor implements EditorDocument {
             search.dispose();
         }
         lineHighlight.dispose();
+        lineBands.dispose();
         buffer.model.removeListener(styleListener);
         Scene scene = rootPane.getScene();
         if (scene != null) {
@@ -490,6 +495,21 @@ public class CodeEditor implements EditorDocument {
         }
         TextPos pos = codeArea.getTextPosition(top.getX(), top.getY());
         return pos == null ? getCaretParagraph() : pos.index();
+    }
+
+    @Override
+    public void setLineBands(List<LineBand> bands) {
+        lineBands.setBands(bands);
+    }
+
+    @Override
+    public ObservableValue<Number> topParagraphProperty() {
+        return lineBands.topParagraphProperty();
+    }
+
+    @Override
+    public void scrollToParagraph(double position) {
+        lineBands.scrollTo(position);
     }
 
     @Override

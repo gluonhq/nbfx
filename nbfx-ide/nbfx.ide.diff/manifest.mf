@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+OpenIDE-Module: org.netbeans.modules.nbfx.ide.diff
+OpenIDE-Module-Localizing-Bundle: org/netbeans/modules/nbfx/ide/diff/Bundle.properties
+OpenIDE-Module-Java-Dependencies: Java > 25
+

@@ -30,7 +30,7 @@ import org.openide.util.lookup.ServiceProvider;
 /**
  * The version control submenu on the files, folders and projects of the Projects and Files views, as
  * in NetBeans. In a Git working tree it is Git &#9656; Show Changes, which opens the Git status
- * window; outside one it is Versioning &#9656; Initialize Git Repository..., which creates one.
+ * window, and for a file Git &#9656; Diff, which shows what changed in it since the last commit; outside one it is Versioning &#9656; Initialize Git Repository..., which creates one.
  *
  * @since 1.2
  */
@@ -66,7 +66,13 @@ public final class GitMenuContributor implements FileContextMenuContributor {
                 view.show(file);
             }
         });
-        return new Menu(message("Git.menu"), null, showChanges);
+        Menu menu = new Menu(message("Git.menu"), null, showChanges);
+        if (GitDiff.canDiff(file)) {
+            MenuItem diff = new MenuItem(message("Git.diff"));
+            diff.setOnAction(event -> GitDiff.open(file));
+            menu.getItems().add(diff);
+        }
+        return menu;
     }
 
     private static Menu versioningMenu(FileObject file) {

@@ -806,7 +806,8 @@ public final class SessionRestorer {
     }
 
     private static String pathOf(FileObject fo) {
-        File f = FileUtil.toFile(fo);
+        // A document that is no file's editor - a diff - has none, and is not restored.
+        File f = fo == null ? null : FileUtil.toFile(fo);
         return f != null ? f.getAbsolutePath() : null;
     }
 

@@ -193,7 +193,7 @@ public class GitStatusPaneTest {
     }
 
     @Test
-    public void contextMenuOffersOpenRefreshAndCommitAll() throws Exception {
+    public void contextMenuOffersOpenDiffRefreshAndCommitAll() throws Exception {
         JavaFxTestSupport.onFx(() -> {
             GitStatusPane pane = new GitStatusPane(VcsCompareMode.HEAD_VS_WORKING_TREE, Flavour.TREE);
             AtomicInteger committed = new AtomicInteger();
@@ -203,20 +203,23 @@ public class GitStatusPaneTest {
             pane.setStatus(ROOT, STATUS);
             ContextMenu menu = pane.table().getContextMenu();
             // The commit is of every change, not of the row the menu opened on, and says so.
-            assertEquals(List.of("Open", "", "Refresh", "Commit All..."), menu.getItems().stream()
+            assertEquals(List.of("Open", "Diff", "", "Refresh", "Commit All..."), menu.getItems().stream()
                     .map(item -> item instanceof SeparatorMenuItem ? "" : item.getText()).toList());
             MenuItem open = menu.getItems().get(0);
-            MenuItem commit = menu.getItems().get(3);
-            menu.getItems().get(2).fire();
+            MenuItem diff = menu.getItems().get(1);
+            MenuItem commit = menu.getItems().get(4);
+            menu.getItems().get(3).fire();
             assertEquals(1, refreshed.get());
 
-            // A folder, and a file that is not on disk, have nothing to open.
+            // A folder, and a file that is not on disk, have nothing to open or compare.
             pane.table().getSelectionModel().select(0);
             menu.getOnShowing().handle(null);
             assertTrue(open.isDisable());
+            assertTrue(diff.isDisable());
             pane.table().getSelectionModel().select(1);
             menu.getOnShowing().handle(null);
             assertTrue(open.isDisable());
+            assertTrue(diff.isDisable());
 
             // Commit follows the tool bar button.
             assertTrue(commit.isDisable());

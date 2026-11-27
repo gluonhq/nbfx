@@ -50,9 +50,18 @@ public final class EditorSplit {
         return tab != null && tab.getProperties().get(SPLIT_KEY) != null;
     }
 
-    /** Whether {@code tab} holds a document that can be split. */
+    /** Whether {@code tab} holds a document that can be split: one that can be cloned. */
     public static boolean canSplit(Tab tab) {
-        return NbfxTabPane.documentOf(tab) != null;
+        return canClone(NbfxTabPane.documentOf(tab));
+    }
+
+    /**
+     * Whether {@code document} can be shown twice - cloned, or split - which the editor of a file
+     * can and a document that is the editor of no file - a diff - cannot: what it would share
+     * with its clone is the text of a file.
+     */
+    public static boolean canClone(EditorDocument document) {
+        return document != null && document.getFileObject() != null;
     }
 
     /**

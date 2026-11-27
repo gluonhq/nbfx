@@ -23,6 +23,8 @@ import org.netbeans.api.nbfx.progress.Cancellation;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbElement;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsContext;
 import org.netbeans.api.nbfx.breadcrumbs.BreadcrumbsProvider;
+import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.lookup.ServiceProvider;
 
 import java.util.List;
@@ -42,6 +44,12 @@ public final class JavaBreadcrumbsProvider extends CachingBreadcrumbsProvider {
 
     @Override
     public List<BreadcrumbElement> scan(BreadcrumbsContext context, Cancellation cancellation) {
+        FileObject file = context.fileObject();
+        if (FileUtil.toFile(file) == null && FileUtil.getArchiveFile(file) == null) {
+            // On no disk and in no archive - the text of an earlier revision in a diff: it belongs
+            // to no project, so there is no class path to parse it with.
+            return List.of();
+        }
         return JavaBreadcrumbsScanner.scan(context, cancellation);
     }
 }
