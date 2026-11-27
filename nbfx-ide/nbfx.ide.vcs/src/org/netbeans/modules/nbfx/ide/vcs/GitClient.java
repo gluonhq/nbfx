@@ -20,14 +20,20 @@ package org.netbeans.modules.nbfx.ide.vcs;
 
 import java.nio.file.Files;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.BooleanSupplier;
 import org.openide.util.NbBundle;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
@@ -47,8 +53,10 @@ final class GitClient {
     record Result(int exitCode, String output) {
     }
 
-    /** How far into a file git looks for a NUL to call it binary. */
-    private static final int BINARY_DETECTION_BYTES = 8000;
+    /** The threads that read what a command writes while it is waited for. */
+    static final ExecutorService READERS = Executors.newVirtualThreadPerTaskExecutor();
+    /** How long a wait for a command lasts before it is asked whether it is still wanted. */
+    private static final int POLL_MILLIS = 50;
 
     private GitClient() {
     }
@@ -86,51 +94,43 @@ final class GitClient {
     }
 
     /**
-     * The content the file at {@code path}, relative to {@code root}, has in the last commit, read
-     * as {@code charset} - git stores bytes, and what they spell is for the caller to know, as it
-     * knows the encoding of the file in the working tree. A file not in the commit - a new file -
-     * a binary one and a failure to read are each told as what they are.
+     * The content the file at {@code path}, relative to {@code root}, has in the last commit; see
+     * {@link GitContentReader#head}. A file not in the commit, a binary one, one too large, and a
+     * failure to read are each told as what they are.
+     *
+     * @param charset what the bytes git stores spell text in; see {@link #storedCharset}
+     * @param maxBytes the largest file to read
+     * @param cancelled whether the content is no longer wanted
+     * @throws CancellationException when it was cancelled, or the thread interrupted
      */
-    static GitContent headContent(Path root, String path, Charset charset) {
-        return content(root, "HEAD:" + path, charset);
+    static GitContent headContent(Path root, String path, Charset charset, long maxBytes,
+            BooleanSupplier cancelled) {
+        return GitContentReader.head(root, path, charset, maxBytes, cancelled);
     }
 
     /**
      * The content the file at {@code path}, relative to {@code root}, has in the index - what the
-     * next commit takes - as {@link #headContent(Path, String, Charset)} tells that of the commit.
+     * next commit takes - as {@link #headContent} tells that of the commit; see
+     * {@link GitContentReader#index}.
      */
-    static GitContent indexContent(Path root, String path, Charset charset) {
-        return content(root, ":" + path, charset);
+    static GitContent indexContent(Path root, String path, Charset charset, long maxBytes,
+            BooleanSupplier cancelled) {
+        return GitContentReader.index(root, path, charset, maxBytes, cancelled);
     }
 
-    private static GitContent content(Path root, String object, Charset charset) {
-        // Asked first whether it is there: git says nothing and exits with 1 when it is not, and
-        // says why with another code when it cannot tell - no repository, no git.
-        Output named = run(root, Map.of(), "rev-parse", "--quiet", "--verify", object);
-        if (named.exitCode() == 1 && named.error().isBlank()) {
-            return new GitContent.Missing();
-        }
-        if (named.exitCode() != 0) {
-            return new GitContent.Failed(named.error().strip());
-        }
-        // Not textconv, not a pager: the bytes as they are stored.
-        Output shown = run(root, Map.of(), "--no-pager", "show", "--no-textconv", object);
-        if (shown.exitCode() != 0) {
-            return new GitContent.Failed(shown.error().strip());
-        }
-        byte[] bytes = shown.output();
-        return isBinary(bytes) ? new GitContent.Binary() : new GitContent.Text(new String(bytes, charset));
-    }
-
-    /** As git tells a binary file from a text one: by a NUL among its first bytes. */
-    static boolean isBinary(byte[] content) {
-        int looked = Math.min(content.length, BINARY_DETECTION_BYTES);
-        for (int i = 0; i < looked; i++) {
-            if (content[i] == 0) {
-                return true;
-            }
-        }
-        return false;
+    /**
+     * The charset of what git stores of the file at {@code path}, whose text in the working tree
+     * is in {@code working}: that one, unless the file has a {@code working-tree-encoding}
+     * attribute, with which git converts it on checkout and stores it as UTF-8.
+     */
+    static Charset storedCharset(Path root, String path, Charset working) {
+        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr", "-z",
+                "working-tree-encoding", "--", path);
+        // "<path> NUL <attribute> NUL <value> NUL"
+        String[] fields = new String(attribute.output(), StandardCharsets.UTF_8).split("\u0000");
+        boolean converted = attribute.exitCode() == 0 && fields.length == 3
+                && !List.of("unspecified", "unset", "set").contains(fields[2]);
+        return converted ? StandardCharsets.UTF_8 : working;
     }
 
     /** Creates a repository in {@code dir}, as {@code git init}. */
@@ -209,37 +209,103 @@ final class GitClient {
     }
 
     /** What a command wrote, as bytes, what it said beside it, and its exit code. */
-    private record Output(int exitCode, byte[] output, String error) {
+    record Output(int exitCode, byte[] output, String error) {
     }
 
+    /**
+     * Runs a command to its end. A thread interrupted while it waits ends the command, stays
+     * interrupted, and gets a failure for a result.
+     */
     private static Output run(Path dir, Map<String, String> environment, String... args) {
+        try {
+            return run(dir, environment, () -> false, args);
+        } catch (CancellationException ex) {
+            return new Output(1, new byte[0], "Interrupted");
+        }
+    }
+
+    /**
+     * Runs a command to its end, unless {@code cancelled} says meanwhile that its result is no
+     * longer wanted, or the thread is interrupted: the command is then ended. What cannot be read
+     * of its output is a failure, never an output with less in it.
+     *
+     * @throws CancellationException when cancelled or interrupted; the thread stays interrupted
+     */
+    static Output run(Path dir, Map<String, String> environment, BooleanSupplier cancelled, String... args) {
+        // Not started for a result nobody wants.
+        if (cancelled.getAsBoolean()) {
+            throw new CancellationException();
+        }
+        Process process;
+        try {
+            process = start(dir, environment, args);
+        } catch (IOException ex) {
+            return new Output(1, new byte[0], String.valueOf(ex.getMessage()));
+        }
+        // Both read while the command writes: one that fills a stream waits for it to be read.
+        Future<byte[]> error = READERS.submit(() -> process.getErrorStream().readAllBytes());
+        Future<byte[]> output = READERS.submit(() -> process.getInputStream().readAllBytes());
+        try {
+            byte[] written = await(output, process, cancelled);
+            String said = new String(await(error, process, cancelled), StandardCharsets.UTF_8);
+            while (!process.waitFor(POLL_MILLIS, TimeUnit.MILLISECONDS)) {
+                if (cancelled.getAsBoolean()) {
+                    throw new CancellationException();
+                }
+            }
+            return new Output(process.exitValue(), written, said);
+        } catch (IOException ex) {
+            return new Output(1, new byte[0], NbBundle.getMessage(GitClient.class, "Git.output.unread",
+                    String.valueOf(ex.getMessage())));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new CancellationException();
+        } finally {
+            // Ended if it still runs: after a cancellation, or what could not be read.
+            process.destroyForcibly();
+            error.cancel(true);
+            output.cancel(true);
+        }
+    }
+
+    /** Starts {@code git} with {@code args} in {@code dir}. */
+    static Process start(Path dir, Map<String, String> environment, String... args) throws IOException {
         List<String> command = new ArrayList<>(args.length + 3);
         command.add("git");
         command.add("-C");
         command.add(dir.toString());
         command.addAll(List.of(args));
-        try {
-            ProcessBuilder builder = new ProcessBuilder(command);
-            builder.environment().putAll(environment);
-            Process process = builder.start();
-            // Read while the output is: a command that fills one stream waits for it to be read.
-            CompletableFuture<byte[]> error = CompletableFuture.supplyAsync(() -> read(process.getErrorStream()));
-            byte[] output = read(process.getInputStream());
-            int exitCode = process.waitFor();
-            return new Output(exitCode, output, new String(error.join(), StandardCharsets.UTF_8));
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            return new Output(1, new byte[0], "Interrupted");
-        } catch (IOException ex) {
-            return new Output(1, new byte[0], String.valueOf(ex.getMessage()));
-        }
+        ProcessBuilder builder = new ProcessBuilder(command);
+        builder.environment().putAll(environment);
+        return builder.start();
     }
 
-    private static byte[] read(InputStream stream) {
-        try (InputStream in = stream) {
-            return in.readAllBytes();
-        } catch (IOException ex) {
-            return new byte[0];
+    /**
+     * What {@code reading} reads of {@code process}, waited for while asking whether it is still
+     * wanted: when it is not, or the thread is interrupted, the process is ended, which ends the
+     * read too.
+     *
+     * @throws IOException when the read failed
+     * @throws CancellationException when cancelled or interrupted; the thread stays interrupted
+     */
+    static <T> T await(Future<T> reading, Process process, BooleanSupplier cancelled) throws IOException {
+        while (true) {
+            try {
+                return reading.get(POLL_MILLIS, TimeUnit.MILLISECONDS);
+            } catch (TimeoutException ex) {
+                if (cancelled.getAsBoolean()) {
+                    process.destroyForcibly();
+                    reading.cancel(true);
+                    throw new CancellationException();
+                }
+            } catch (ExecutionException ex) {
+                throw ex.getCause() instanceof IOException failed ? failed : new IOException(ex.getCause());
+            } catch (InterruptedException ex) {
+                process.destroyForcibly();
+                reading.cancel(true);
+                Thread.currentThread().interrupt();
+                throw new CancellationException();
+            }
         }
     }
 }

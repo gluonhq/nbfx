@@ -56,6 +56,10 @@ public record Difference(Kind kind, int leftStart, int leftCount, int rightStart
             throw new IllegalArgumentException("negative line or count: " + leftStart + ", " + leftCount + ", "
                     + rightStart + ", " + rightCount);
         }
+        if (leftStart > Integer.MAX_VALUE - leftCount || rightStart > Integer.MAX_VALUE - rightCount) {
+            throw new IllegalArgumentException("a block that ends past the last line there can be: " + leftStart
+                    + ", " + leftCount + ", " + rightStart + ", " + rightCount);
+        }
         boolean fits = switch (kind) {
             case ADD -> leftCount == 0 && rightCount > 0;
             case DELETE -> leftCount > 0 && rightCount == 0;

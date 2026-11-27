@@ -27,6 +27,9 @@ import java.util.function.BooleanSupplier;
 /**
  * Compares two texts line by line. It knows nothing of files, version control or views: the lines
  * come from wherever the caller has them, and what is done with the result is the caller's.
+ * <p>
+ * Under development until its first consumer, the diff view, has landed: it may change
+ * incompatibly until then.
  *
  * @since 1.0
  */
@@ -65,7 +68,9 @@ public final class Diff {
      * time a comparison takes grows with the number of lines of both texts and with how often their
      * lines repeat, and nothing here limits either: a caller that compares texts of any size does
      * it off the thread it draws on, decides how large a text it compares at all, and cancels the
-     * comparison nobody waits for any more. {@code cancelled} is asked often, on the calling
+     * comparison nobody waits for any more. {@code cancelled} is asked before the lines are looked
+     * at and then every few hundred steps of every part of the comparison - telling the lines that
+     * are the same apart, ordering them, the search, and the making of the blocks - on the calling
      * thread, and must answer at once.
      *
      * @param left the lines of the text compared from
@@ -82,6 +87,10 @@ public final class Diff {
         Objects.requireNonNull(right, "right");
         Objects.requireNonNull(options, "options");
         Objects.requireNonNull(cancelled, "cancelled");
+        // Before the lines are looked at: copying and checking them takes time too.
+        if (cancelled.getAsBoolean()) {
+            throw new CancellationException();
+        }
         return new DiffResult(HuntDiff.diff(lines(left, "left"), lines(right, "right"), options, cancelled));
     }
 
@@ -101,10 +110,17 @@ public final class Diff {
      * text has one empty line. Two texts split this way differ in the last line when only one of
      * them ends with a line ending.
      *
+     * <p>
+     * The line endings themselves are not kept: two texts that differ only in them - one with
+     * {@code \n}, the other with {@code \r\n} - have the same lines, and a caller that shows such a
+     * change, or a missing last line ending as git words it, tells it from the texts.
+     *
      * @param text the text to split
      * @return its lines, without their line endings; at least one
+     * @throws NullPointerException when {@code text} is {@code null}
      */
     public static List<String> lines(String text) {
+        Objects.requireNonNull(text, "text");
         List<String> lines = new ArrayList<>();
         int start = 0;
         int length = text.length();

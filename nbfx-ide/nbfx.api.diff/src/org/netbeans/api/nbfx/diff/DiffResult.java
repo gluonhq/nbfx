@@ -29,12 +29,30 @@ import java.util.List;
  */
 public record DiffResult(List<Difference> differences) {
 
-    /** Takes a copy of the blocks. */
+    /**
+     * Takes a copy of the blocks, and checks that they are in order and that none starts before
+     * the one above it ends, on either side.
+     *
+     * @throws IllegalArgumentException when they are not
+     */
     public DiffResult {
         differences = List.copyOf(differences);
+        Difference above = null;
+        for (Difference difference : differences) {
+            if (above != null && (difference.leftStart() < above.leftEnd()
+                    || difference.rightStart() < above.rightEnd())) {
+                throw new IllegalArgumentException(difference + " starts before " + above + " ends");
+            }
+            above = difference;
+        }
     }
 
-    /** Whether the two texts have the same lines. */
+    /**
+     * Whether the comparison found no difference: the two texts have the same lines, as the
+     * {@link DiffOptions} it was made with tell lines to be the same. With options that ignore
+     * case or white space this is not that the texts are equal, which a caller that needs to know
+     * asks of the texts.
+     */
     public boolean isIdentical() {
         return differences.isEmpty();
     }
