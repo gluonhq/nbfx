@@ -26,6 +26,8 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import javafx.scene.layout.Region;
+import org.netbeans.junit.MockServices;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -39,6 +41,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -53,6 +56,12 @@ public class DiffEditingTest {
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder();
+
+    /** With the editors of the editor module, and no stand-in another test left in their place. */
+    @Before
+    public void realEditors() {
+        MockServices.setServices();
+    }
 
     @Test
     public void aFileOnDiskIsEditedAndComparedAgainAsItChanges() throws Exception {
@@ -72,7 +81,7 @@ public class DiffEditingTest {
             assertEquals("1 difference", pane.summary());
             assertTrue(pane.editor().isModified());
             assertFalse(pane.revertAllButton().isDisable());
-            assertEquals(1, pane.connectors().revertButtons().size());
+            assertEquals(1, pane.revertButtons().size());
             // Not saved: the file is as it was.
             assertEquals("a\nb\nc\n", read(file));
             pane.dispose();
@@ -81,17 +90,27 @@ public class DiffEditingTest {
 
     @Test
     public void aTextInMemoryIsNotEdited() throws Exception {
-        FileObject left = inMemory("App.txt", "a\n");
-        FileObject right = inMemory("App.txt", "b\n");
-        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", left), new DiffSource("Index", right)));
-        until(() -> pane.differences().size() == 1);
+        // A text that is only shown; and a file on disk whose source does not say it is edited.
+        File file = onDisk("Shown.txt", "b\n");
+        for (DiffSource right : List.of(DiffSource.of("Index", "App.txt", "b\n"),
+                DiffSource.of("Working Tree", "Shown.txt", "b\n"))) {
+            DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "App.txt", "a\n"), right));
+            until(() -> pane.differences().size() == 1);
+            assertNotEdited(pane);
+        }
+        assertEquals("b\n", read(file));
+    }
+
+    private static void assertNotEdited(DiffPane pane) throws Exception {
 
         JavaFxTestSupport.onFx(() -> {
             assertFalse(pane.isEditable());
             assertNull(pane.editor());
             assertTrue(pane.revertAllButton().isDisable());
+            assertTrue(pane.revertButtons().stream().noneMatch(javafx.scene.Node::isVisible));
             pane.revert(0);
             pane.revertAll();
+            assertEquals(1, pane.differences().size());
             pane.dispose();
         });
     }
@@ -102,7 +121,7 @@ public class DiffEditingTest {
         DiffPane pane = pane("a\nb\nc\nd\n", file);
         until(() -> pane.differences().size() == 2);
 
-        JavaFxTestSupport.onFx(() -> pane.connectors().revertButtons().get(1).fire());
+        JavaFxTestSupport.onFx(() -> pane.revertButtons().get(1).fire());
         until(() -> pane.differences().size() == 1);
         JavaFxTestSupport.onFx(() -> {
             assertTrue(pane.editor().isModified());
@@ -136,7 +155,7 @@ public class DiffEditingTest {
             }
 
             @Override
-            public List<DiffEntry> entries(DiffMode mode) {
+            public List<DiffEntry> entries(DiffMode mode, BooleanSupplier cancelled) {
                 return List.of(entry(first, "old a\n"), entry(second, "old b\n"));
             }
         };
@@ -174,14 +193,15 @@ public class DiffEditingTest {
 
     private DiffEntry entry(File file, String committed) {
         return new DiffEntry(file.getName(), file.getName(), "Modified", DiffEntry.Kind.MODIFIED, null,
-                () -> new DiffPair(new DiffSource("HEAD", inMemory(file.getName(), committed)),
-                        new DiffSource("Working Tree", onDisk(file))));
+                cancelled -> new DiffPair(DiffSource.of("HEAD", file.getName(), committed),
+                        DiffSource.editable("Working Tree", onDisk(file), read(file))));
     }
 
     private DiffPane pane(String left, File right) throws Exception {
-        FileObject from = inMemory(right.getName(), left);
         FileObject to = onDisk(right);
-        return JavaFxTestSupport.onFx(() -> new DiffPane(new DiffSource("HEAD", from), new DiffSource("Working Tree", to)));
+        String onDisk = read(right);
+        return JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", right.getName(), left),
+                DiffSource.editable("Working Tree", to, onDisk)));
     }
 
     private File onDisk(String name, String text) throws IOException {
@@ -225,14 +245,6 @@ public class DiffEditingTest {
         }
     }
 
-    private static FileObject inMemory(String name, String text) throws IOException {
-        FileObject file = FileUtil.createMemoryFileSystem().getRoot().createData(name);
-        try (OutputStream out = file.getOutputStream()) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
-        }
-        return file;
-    }
-
     private static void until(BooleanSupplier settled) throws Exception {
         for (int i = 0; i < 100; i++) {
             if (JavaFxTestSupport.onFx(() -> settled.getAsBoolean())) {
@@ -241,5 +253,97 @@ public class DiffEditingTest {
             Thread.sleep(50);
         }
         throw new AssertionError("the diff did not get there");
+    }
+
+    @Test
+    public void theFileEditedKeepsItsEditorWhenTheDiffIsAskedForAgainAndIsComparedAsItsEditorHasIt() throws Exception {
+        File file = onDisk("App.txt", "a\nb\nc\n");
+        FileObject onDisk = onDisk(file);
+        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "App.txt", "a\nb\nc\n"),
+                DiffSource.editable("Working Tree", onDisk, "a\nb\nc\n")));
+        until(() -> "No differences".equals(pane.summary()));
+        EditorDocument editor = JavaFxTestSupport.onFx(pane::editor);
+        assertNotNull(editor);
+
+        // Typed, and not saved: what is compared is what the editor holds, not what was read.
+        JavaFxTestSupport.onFx(() -> assertTrue(editor.replaceRange(2, 3, "x")));
+        until(() -> pane.differences().size() == 1);
+        JavaFxTestSupport.onFx(() -> assertTrue(pane.unified(), pane.unified().contains("-b\n+x\n")));
+
+        // Asked for again, the file read as it is on disk - without the edit - and the commit
+        // another one: the editor stays, with the edit, and that is what is compared.
+        JavaFxTestSupport.onFx(() -> pane.setSources(DiffSource.of("HEAD", "App.txt", "a\nx\nc\n"),
+                DiffSource.editable("Working Tree", onDisk, read(file))));
+        until(() -> "No differences".equals(pane.summary()));
+        JavaFxTestSupport.onFx(() -> {
+            assertSame(editor, pane.editor());
+            assertTrue(editor.isModified());
+            assertTrue(pane.isEditable());
+        });
+
+        // Another file in its place is another editor, and the side of a text only shown is none.
+        File other = onDisk("Other.txt", "o\n");
+        FileObject otherOnDisk = onDisk(other);
+        JavaFxTestSupport.onFx(() -> pane.setSources(DiffSource.of("HEAD", "Other.txt", "o\n"),
+                DiffSource.editable("Working Tree", otherOnDisk, "o\n")));
+        until(() -> "No differences".equals(pane.summary()));
+        JavaFxTestSupport.onFx(() -> {
+            assertNotNull(pane.editor());
+            assertTrue(pane.editor() != editor);
+            pane.setSources(DiffSource.of("HEAD", "Other.txt", "o\n"), DiffSource.of("Index", "Other.txt", "o\n"));
+            assertNull(pane.editor());
+            assertFalse(pane.isEditable());
+            pane.dispose();
+        });
+        // Nothing was saved.
+        assertEquals("a\nb\nc\n", read(file));
+    }
+
+    @Test
+    public void howTheLinesOfAFileEditedEndIsToldByTheFileNotByItsEditor() throws Exception {
+        // The same lines, ended as Windows ends them, on both sides: nothing differs.
+        File same = onDisk("Same.txt", "a\r\nb\r\n");
+        FileObject sameOnDisk = onDisk(same);
+        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "Same.txt", "a\r\nb\r\n"),
+                DiffSource.editable("Working Tree", sameOnDisk, "a\r\nb\r\n")));
+        until(() -> !"Comparing...".equals(pane.summary()));
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("No differences", pane.summary());
+            pane.dispose();
+        });
+
+        // Committed with one ending, on disk with the other: said, though no line differs.
+        DiffPane ends = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "Same.txt", "a\nb\n"),
+                DiffSource.editable("Working Tree", sameOnDisk, "a\r\nb\r\n")));
+        until(() -> !"Comparing...".equals(ends.summary()));
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("Only line endings differ: LF in HEAD, CRLF in Working Tree", ends.summary());
+            ends.dispose();
+        });
+    }
+
+    @Test
+    public void theTabOfADiffHandsWhatChangesATextToTheSideEditedAndCopyToTheSideTheKeyboardIsIn() throws Exception {
+        File file = onDisk("App.txt", "a\nx\n");
+        DiffPane pane = pane("a\nb\n", file);
+        until(() -> pane.differences().size() == 1);
+        DiffDocument document = JavaFxTestSupport.onFx(() -> new DiffDocument("key", "App.txt [ Diff ]", pane));
+
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(document.editableProperty().get());
+            assertFalse(document.isModified());
+            assertSame(pane.editor(), pane.editorProperty().getValue());
+            // The editors of the file show the same text: this tab is one of them.
+            assertTrue(document.sharesContentWith(pane.editor()));
+            pane.revertAllButton().fire();
+            assertTrue(document.isModified());
+            save(document);
+            assertFalse(document.isModified());
+            assertEquals("a\nb\n", read(file));
+            document.dispose();
+            // Closed: no side is edited, and nothing is left to save.
+            assertNull(pane.editorProperty().getValue());
+            assertFalse(document.isModified());
+        });
     }
 }

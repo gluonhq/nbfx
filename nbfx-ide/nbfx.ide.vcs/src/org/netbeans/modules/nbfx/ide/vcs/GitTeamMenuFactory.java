@@ -96,6 +96,9 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
 
         @Override
         public ObservableList<MenuItem> items() {
+            // Whoever takes the items sees them as they are now, whether or not the menu it puts
+            // them in tells when it opens.
+            refresh();
             return items;
         }
 
@@ -112,7 +115,8 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
             Path folder = GitMenus.folderOf(project);
             boolean repository = folder != null && GitMenus.inWorkingTree(folder.toFile());
             showChanges.setVisible(repository);
-            diff.setVisible(repository);
+            // Shown for what choosing it would compare: the file in the context, or the project.
+            diff.setVisible(diffTarget() != null);
             git.setVisible(!repository);
         }
 

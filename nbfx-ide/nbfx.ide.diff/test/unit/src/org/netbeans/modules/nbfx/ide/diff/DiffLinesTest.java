@@ -44,6 +44,16 @@ public class DiffLinesTest {
     }
 
     @Test
+    public void theBlocksOfEachSideAreToldInWords() {
+        // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7   (told from one)
+        assertEquals(List.of("Lines 3 to 4 changed", "Lines added after line 5", "Line 7 deleted"),
+                DiffLines.describeLeft(DIFFERENCES));
+        assertEquals(List.of("Line 3 changed", "Lines 5 to 6 added", "Lines deleted after line 7"),
+                DiffLines.describeRight(DIFFERENCES));
+        assertEquals(List.of(), DiffLines.describeLeft(List.of()));
+    }
+
+    @Test
     public void sameLinesStandBesideEachOther() {
         // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7
         // Two changed lines beside one are passed at half the pace; a deleted one is passed in no time.
@@ -64,6 +74,62 @@ public class DiffLinesTest {
         // No jump on leaving a block: just before its end is just before the end of the other.
         assertEquals(3.0, DiffLines.toRight(DIFFERENCES, 3.999), 1e-2);
         assertEquals(5.0, DiffLines.toLeft(DIFFERENCES, 5.999), 1e-9);
+    }
+
+    @Test
+    public void aBlockOneSideHasNoLinesOfIsPassedWithTheLineNextToItAndNotInAJump() {
+        // left:  a0 b1 c2 d3 e4 f5 g6 h7      right: a0 b1 x2 e3 y4 z5 f6 h7
+        // The right text has nothing where g was deleted, before its line 7: the line above, f,
+        // takes it along - through f the left goes through f and g, at twice the pace.
+        assertEquals(5.0, DiffLines.toLeft(DIFFERENCES, 6.0), 1e-9);
+        assertEquals(6.0, DiffLines.toLeft(DIFFERENCES, 6.5), 1e-9);
+        assertEquals(7.0, DiffLines.toLeft(DIFFERENCES, 7.0), 1e-9);
+        // And the left text has nothing where y and z were added, before its line 5: through e,
+        // the line above, the right goes through e, y and z.
+        assertEquals(3.0, DiffLines.toRight(DIFFERENCES, 4.0), 1e-9);
+        assertEquals(4.5, DiffLines.toRight(DIFFERENCES, 4.5), 1e-9);
+        assertEquals(6.0, DiffLines.toRight(DIFFERENCES, 5.0), 1e-9);
+
+        // No jump anywhere: a small step on one side is never a leap on the other.
+        for (double place = 0; place < 8; place += 0.01) {
+            assertTrue("left jumps at " + place, DiffLines.toLeft(DIFFERENCES, place + 0.01)
+                    - DiffLines.toLeft(DIFFERENCES, place) <= 0.01 * 3 + 1e-9);
+            assertTrue("right jumps at " + place, DiffLines.toRight(DIFFERENCES, place + 0.01)
+                    - DiffLines.toRight(DIFFERENCES, place) <= 0.01 * 3 + 1e-9);
+            // And it never goes back.
+            assertTrue(DiffLines.toLeft(DIFFERENCES, place + 0.01) >= DiffLines.toLeft(DIFFERENCES, place) - 1e-9);
+        }
+    }
+
+    @Test
+    public void linesMissingAtTheTopOrRightAfterABlockArePassedWithTheLineBelow() {
+        // Deleted at the very top: the right text has no line above where they were.
+        List<Difference> top = Diff.compute(List.of("x", "y", "a", "b"), List.of("a", "b")).differences();
+        assertEquals(0.0, DiffLines.toLeft(top, 0.0), 1e-9);
+        assertEquals(1.5, DiffLines.toLeft(top, 0.5), 1e-9);
+        assertEquals(3.0, DiffLines.toLeft(top, 1.0), 1e-9);
+        assertEquals(3.5, DiffLines.toLeft(top, 1.5), 1e-9);
+        for (double place = 0; place < 2; place += 0.01) {
+            assertTrue("jumps at " + place,
+                    DiffLines.toLeft(top, place + 0.01) - DiffLines.toLeft(top, place) <= 0.01 * 3 + 1e-9);
+        }
+    }
+
+    @Test
+    public void theBlockTheViewWasAtIsFoundAgainByWhereItIs() {
+        // Blocks at right lines 2, 4-5 and 7.
+        assertEquals(0, DiffLines.blockAt(DIFFERENCES, 0));
+        assertEquals(0, DiffLines.blockAt(DIFFERENCES, 2));
+        assertEquals(1, DiffLines.blockAt(DIFFERENCES, 3));
+        assertEquals(1, DiffLines.blockAt(DIFFERENCES, 5));
+        assertEquals(2, DiffLines.blockAt(DIFFERENCES, 6));
+        // Below them all: the last one.
+        assertEquals(2, DiffLines.blockAt(DIFFERENCES, 100));
+        assertEquals(-1, DiffLines.blockAt(List.of(), 3));
+        // From no block, the first one going down and the last one going up.
+        assertEquals(0, DiffLines.step(-1, 3, true));
+        assertEquals(2, DiffLines.step(-1, 3, false));
+        assertEquals(-1, DiffLines.step(-1, 0, false));
     }
 
     @Test
@@ -111,6 +177,21 @@ public class DiffLinesTest {
         // The names of the texts are not lines deleted and added; no diff, no bands.
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("--- a", "+++ b")));
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("")));
+    }
+
+    @Test
+    public void whatIsSaidOfTheEndOfALineIsPartOfItsBand() {
+        List<String> lines = List.of("--- a", "+++ b", "@@ -1,2 +1,2 @@", " a", "-b", "\\ No newline at end of file", "+b",
+                "+c", "\\ No newline at end of file", " d");
+
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 2, DiffLines.DELETED),
+                new LineBand(6, 3, DiffLines.ADDED)), DiffLines.unifiedBands(lines));
+        // Said of a line the texts share, it is no band of its own.
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED)), DiffLines.unifiedBands(
+                List.of("--- a", "+++ b", "@@ -1,1 +1,1 @@", " a", "\\ No newline at end of file")));
+        // The lines of the block that starts at a line: deleted, added, and what is said of their ends.
+        assertEquals(5, DiffLines.unifiedBlockLength(lines, 4));
+        assertEquals(0, DiffLines.unifiedBlockLength(lines, 3));
     }
 
     @Test

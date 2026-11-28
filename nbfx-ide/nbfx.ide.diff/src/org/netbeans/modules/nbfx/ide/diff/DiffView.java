@@ -18,12 +18,15 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.logging.Logger;
+import java.util.logging.Level;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import javafx.scene.Node;
 import org.netbeans.api.nbfx.editor.ContentManager;
-import org.netbeans.api.nbfx.editor.EditorContext;
-import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.openide.util.Lookup;
 import org.openide.util.NbBundle;
 
@@ -32,21 +35,26 @@ import org.openide.util.NbBundle;
  * the two texts are - a file and its last commit, two revisions - is the caller's; this module
  * knows nothing of version control.
  * <p>
- * The text on the right is edited in the diff when its {@link DiffSource#file() file} is one on
- * disk that can be written, as in an editor of that file and sharing its text with them; a block
- * of it, or all of it, can be reverted to the text on the left. Any other text is only shown.
- *
- * @since 1.0
+ * The text on the right is edited in the diff when its {@link DiffSource} says so - it is of a
+ * file on disk that can be written - as in an editor of that file and sharing its text with them;
+ * a block of it, or all of it, can be reverted to the text on the left. Any other text is only
+ * shown.
  */
 public final class DiffView {
+
+    /**
+     * The diffs that are open, by what they are of, from the moment they are asked for until
+     * their tab is closed. Read and changed on the JavaFX Application Thread only.
+     */
+    private static final Map<Object, DiffDocument> OPEN = new HashMap<>();
 
     private DiffView() {
     }
 
     /**
      * Shows the differences between {@code left} and {@code right} in a tab titled
-     * "{@code name} [ Diff ]". A diff open with the same {@code key} is brought to the front and
-     * compared again, not opened twice. Must run on the JavaFX Application Thread.
+     * "{@code name} [ Diff ]". A diff open with the same {@code key} is brought to the front, not
+     * opened twice, and shows {@code left} and {@code right} in place of what it showed. Must run on the JavaFX Application Thread.
      *
      * @param key what the diff is of, by {@code equals}: the file, or the file and what it is
      *        compared with
@@ -58,14 +66,24 @@ public final class DiffView {
     public static void open(Object key, String name, Node icon, DiffSource left, DiffSource right) {
         Objects.requireNonNull(left, "left");
         Objects.requireNonNull(right, "right");
-        open(key, name, icon, () -> new DiffDocument(key, title(name), new DiffPane(left, right)));
+        open(key, name, icon, onDispose -> new DiffDocument(key, title(name), new DiffPane(left, right), onDispose),
+                // What it is of by now, not what it was of when it was opened.
+                open -> {
+                    if (open.content() instanceof DiffPane pane) {
+                        pane.setSources(left, right);
+                    } else {
+                        open.content().refresh();
+                    }
+                });
     }
 
     /**
      * Shows the diff of what {@code provider} has in a tab titled "{@code name} [ Diff ]": the ways
      * it can compare as toggles, its files in a table when it lists them, and the two texts of the
-     * file selected. A diff open with the same {@code key} is brought to the front and refreshed,
-     * in the way to compare it is in. Must run on the JavaFX Application Thread.
+     * file selected. A diff open with the same {@code key} is brought to the front and compared
+     * again, in the way to compare asked for - or the one it is in, for {@code null}; it keeps the
+     * provider it was opened with, and {@code provider} is {@linkplain DiffProvider#dispose()
+     * disposed of} at once, unused. Must run on the JavaFX Application Thread.
      *
      * @param key what the diff is of, by {@code equals}: the file or the folder
      * @param name the name in the title of the tab
@@ -73,38 +91,65 @@ public final class DiffView {
      * @param provider what differs, and how it can be compared
      * @param mode the way to compare the diff opens in - one of the provider's - or {@code null}
      *        for its first
-     * @since 1.1
      */
     public static void open(Object key, String name, Node icon, DiffProvider provider, DiffMode mode) {
         Objects.requireNonNull(provider, "provider");
-        open(key, name, icon, () -> {
+        open(key, name, icon, onDispose -> {
             DiffBrowser browser = new DiffBrowser(provider, mode);
             // As the last diff was left: a list or a tree, and the columns.
             DiffSettings.attach(browser);
-            return new DiffDocument(key, title(name), browser);
+            return new DiffDocument(key, title(name), browser, onDispose);
+        }, open -> {
+            // Asked for again, and maybe in another way to compare: that is the one it shows.
+            DiffProvider used = null;
+            if (open.content() instanceof DiffBrowser browser) {
+                browser.show(mode);
+                used = browser.provider();
+            } else {
+                open.content().refresh();
+            }
+            if (provider != used) {
+                // The diff that is open keeps the provider it has; this one was made for nothing.
+                try {
+                    provider.dispose();
+                } catch (RuntimeException ex) {
+                    Logger.getLogger(DiffView.class.getName()).log(Level.INFO, "The provider could not be released", ex);
+                }
+            }
         });
     }
 
-    private static void open(Object key, String name, Node icon, Supplier<DiffDocument> factory) {
+    /**
+     * Brings the diff open for {@code key} to the front, after {@code again} had it show what it
+     * is of by now, or opens the one {@code factory} makes, given what to run when its tab is
+     * closed.
+     */
+    private static void open(Object key, String name, Node icon, Function<Runnable, DiffDocument> factory,
+            Consumer<DiffDocument> again) {
         Objects.requireNonNull(key, "key");
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);
         if (content == null) {
             return;
         }
-        EditorContext context = Lookup.getDefault().lookup(EditorContext.class);
-        if (context != null) {
-            for (EditorDocument open : context.getDocuments()) {
-                if (open instanceof DiffDocument diff && diff.key().equals(key)) {
-                    diff.content().refresh();
-                    content.openDocument(diff, icon);
-                    return;
-                }
-            }
+        DiffDocument open = OPEN.get(key);
+        if (open != null) {
+            again.accept(open);
+            content.openDocument(open, icon);
+            return;
         }
-        content.openDocument(factory.get(), icon);
+        DiffDocument document = factory.apply(() -> OPEN.remove(key));
+        // Known here from now on, not from when its tab is there: asked for twice in a row, before
+        // the editor area has it, a diff is still opened once.
+        OPEN.put(key, document);
+        content.openDocument(document, icon);
     }
 
     private static String title(String name) {
         return NbBundle.getMessage(DiffView.class, "Diff.title", name);
+    }
+
+    /** The diff open for {@code key}, or {@code null}; for tests. */
+    static DiffDocument openFor(Object key) {
+        return OPEN.get(key);
     }
 }

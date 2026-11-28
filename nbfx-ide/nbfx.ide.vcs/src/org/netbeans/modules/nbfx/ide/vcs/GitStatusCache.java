@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
@@ -36,9 +37,9 @@ import org.openide.util.RequestProcessor;
 
 /**
  * The last read status of the Git repositories that were asked about, so that a view can ask for the
- * state of a file on every row it draws. A question never reads the disk beyond finding the
- * repository of a folder once: the status of a repository not read yet is read in the background,
- * and the listeners are told when it is known or has changed.
+ * state of a file on every row it draws. A question never reads the disk: the repository of a
+ * folder is found, and its status read, in the background, and the listeners are told when it is
+ * known or has changed.
  * <p>
  * A repository is read again when {@link #refresh(Path) asked}; what asks - a file changed in the
  * IDE, the window getting the focus back, a commit - is {@link GitStatusTriggers}.
@@ -60,11 +61,14 @@ final class GitStatusCache {
 
     private final Reader reader;
     private final RequestProcessor processor = new RequestProcessor("nbfx-git-status", 1);
-    /** The repository root of each folder asked about; empty for a folder outside any working tree. */
+    /** The repository root found for each folder asked about; empty for a folder outside any working tree. */
     private final Map<Path, Optional<Path>> roots = new ConcurrentHashMap<>();
     private final Map<Path, Snapshot> snapshots = new ConcurrentHashMap<>();
     private final Map<Path, RequestProcessor.Task> reads = new ConcurrentHashMap<>();
     private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
+    /** The folders asked about whose repository is still to be found, or to be found again. */
+    private final Set<Path> unresolved = ConcurrentHashMap.newKeySet();
+    private final RequestProcessor.Task resolver = processor.create(this::resolve);
 
     /**
      * The status of a repository: its changed files by absolute path, and the folders that hold
@@ -132,31 +136,69 @@ final class GitStatusCache {
 
     /** The last read status of the repository {@code folder} is in, or {@code null}; see {@link #statusOf}. */
     private Snapshot snapshotOf(Path folder) {
-        Path root = rootOf(folder).orElse(null);
-        if (root == null) {
-            return null;
-        }
-        Snapshot snapshot = snapshots.get(root);
-        if (snapshot == null) {
-            // Marked so that the rows drawn until the read ends do not ask for it again.
-            if (snapshots.putIfAbsent(root, Snapshot.UNKNOWN) == null) {
-                schedule(root, 0);
+        Optional<Path> known = roots.get(folder);
+        Path root;
+        if (known == null) {
+            // Found out in the background; until then, the repository it is known to be below.
+            if (unresolved.add(folder)) {
+                resolver.schedule(0);
             }
-            return null;
+            root = trackedRootOf(folder);
+        } else {
+            root = known.orElse(null);
         }
-        return snapshot;
+        return root == null ? null : snapshots.get(root);
     }
 
-    /** The root of the working tree {@code folder} is in, told from the {@code .git} entry of a parent. */
-    Optional<Path> rootOf(Path folder) {
-        return roots.computeIfAbsent(folder, asked -> {
-            for (File parent = asked.toFile(); parent != null; parent = parent.getParentFile()) {
-                if (new File(parent, ".git").exists()) {
-                    return Optional.of(parent.toPath());
-                }
+    /** The deepest repository asked about that {@code folder} is in, or {@code null}: nothing is read. */
+    private Path trackedRootOf(Path folder) {
+        Path deepest = null;
+        for (Path root : snapshots.keySet()) {
+            if (folder.startsWith(root) && (deepest == null || root.getNameCount() > deepest.getNameCount())) {
+                deepest = root;
             }
-            return Optional.empty();
-        });
+        }
+        return deepest;
+    }
+
+    /**
+     * The root of the working tree {@code folder} is in, told from the {@code .git} entry of a
+     * parent - a folder for a repository, a file for a worktree or a submodule. Reads the disk.
+     */
+    static Optional<Path> findRoot(Path folder) {
+        for (File parent = folder.toFile(); parent != null; parent = parent.getParentFile()) {
+            if (new File(parent, ".git").exists()) {
+                return Optional.of(parent.toPath());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Finds the repository of the folders asked about, in the background: a repository found for the
+     * first time is read, and the listeners are told when a folder turns out to be in another
+     * repository, or in none, than the one it was answered from.
+     */
+    private void resolve() {
+        boolean changed = false;
+        for (Path folder : List.copyOf(unresolved)) {
+            unresolved.remove(folder);
+            Optional<Path> answered = roots.get(folder);
+            if (answered == null) {
+                answered = Optional.ofNullable(trackedRootOf(folder));
+            }
+            Optional<Path> found = findRoot(folder);
+            roots.put(folder, found);
+            if (found.isPresent() && snapshots.putIfAbsent(found.get(), Snapshot.UNKNOWN) == null) {
+                // The listeners are told when it is read.
+                schedule(found.get(), 0);
+            } else if (!found.equals(answered)) {
+                changed = true;
+            }
+        }
+        if (changed) {
+            fireChanged();
+        }
     }
 
     /** Whether the status of the repository at {@code root} was asked for, and so is kept up to date. */
@@ -165,49 +207,82 @@ final class GitStatusCache {
     }
 
     /**
-     * Reads again, shortly, the repository {@code folder} is in, if it is one that was asked about;
-     * calls in quick succession make one read.
+     * Reads again, shortly, the repositories asked about that {@code folder} is in; calls in quick
+     * succession make one read. Reads no disk itself.
      */
     void refresh(Path folder) {
-        Path root = folder == null ? null : rootOf(folder).orElse(null);
-        if (root != null && isTracked(root)) {
-            schedule(root, REFRESH_DELAY_MILLIS);
+        if (folder == null) {
+            return;
+        }
+        for (Path root : snapshots.keySet()) {
+            if (folder.startsWith(root)) {
+                schedule(root, REFRESH_DELAY_MILLIS);
+            }
         }
     }
 
     /**
-     * Reads again, shortly, every repository asked about, and forgets which folder is in which: a
-     * repository may have been made or removed outside the IDE. The listeners are told only of what
-     * the reads find changed; a folder that has become a working tree is found when next asked about.
+     * Reads again, shortly, every repository asked about, and finds out again which folder is in
+     * which: a repository may have been made or removed outside the IDE. Until then the folders are
+     * answered as before, and the listeners are told only of what is found changed.
      */
     void refreshAll() {
-        roots.clear();
-        snapshots.keySet().forEach(root -> schedule(root, REFRESH_DELAY_MILLIS));
+        refreshAll(REFRESH_DELAY_MILLIS);
     }
 
     /**
-     * As {@link #refreshAll()}, and has the views ask again now: a repository was made in the IDE, so
-     * files that were in no working tree are in one.
+     * As {@link #refreshAll()}, at once: a repository was made in the IDE, so files that were in no
+     * working tree are in one.
      */
     void repositoriesChanged() {
-        refreshAll();
-        fireChanged();
+        refreshAll(0);
     }
 
-    /** Reads the repository at {@code root} now, on this thread. */
+    private void refreshAll(int delayMillis) {
+        if (!roots.isEmpty()) {
+            unresolved.addAll(roots.keySet());
+            resolver.schedule(delayMillis);
+        }
+        snapshots.keySet().forEach(root -> schedule(root, delayMillis));
+    }
+
+    /**
+     * Reads the repository at {@code root} now, on this thread, if it is one asked about. When the
+     * read fails the last status read is kept - git may be busy, or its index locked, and nothing
+     * says the changes are gone - unless the folder is no longer a working tree, which is forgotten.
+     */
     void read(Path root) {
+        Snapshot previous = snapshots.get(root);
+        if (previous == null) {
+            return;
+        }
         Snapshot read;
         try {
             read = Snapshot.of(root, reader.read(root));
         } catch (IOException | RuntimeException ex) {
-            // No longer a repository, or git failed: nothing to mark.
-            LOG.log(Level.FINE, "No git status for " + root, ex);
-            read = Snapshot.of(root, VcsStatus.CLEAN);
+            if (findRoot(root).filter(root::equals).isPresent()) {
+                LOG.log(Level.INFO, "git status failed for {0}, the last one read is kept: {1}",
+                        new Object[] {root, ex.getMessage()});
+                LOG.log(Level.FINE, null, ex);
+            } else {
+                forget(root);
+            }
+            return;
         }
-        Snapshot previous = snapshots.put(root, read);
-        if (previous == null || !read.status().equals(previous.status())) {
+        // Not put back if forgotten meanwhile.
+        if (snapshots.replace(root, read) != null && !read.status().equals(previous.status())) {
             fireChanged();
         }
+    }
+
+    /** Stops keeping the status of {@code root}, no longer a working tree, and of the folders in it. */
+    private void forget(Path root) {
+        LOG.log(Level.FINE, "No longer a git working tree: {0}", root);
+        snapshots.remove(root);
+        reads.remove(root);
+        // In a repository further up, or in none: found out when next asked about.
+        roots.values().removeIf(found -> found.filter(root::equals).isPresent());
+        fireChanged();
     }
 
     void addChangeListener(Runnable listener) {

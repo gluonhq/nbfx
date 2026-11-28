@@ -34,13 +34,14 @@ import org.netbeans.modules.nbfx.ide.vcs.model.VcsCompareMode;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 import org.netbeans.modules.nbfx.project.context.ProjectContext;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.prefs.Preferences;
 import javafx.application.Platform;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
@@ -53,9 +54,10 @@ import org.openide.util.NbPreferences;
 import org.openide.util.RequestProcessor;
 
 /**
- * The Git view: the selected project's branch and changed files in a {@link GitStatusPane}, with
- * Refresh and Commit. It runs the {@code git} command line off the FX thread and hands the result to
- * the pane; the compare mode and the tree or list view are remembered between sessions.
+ * The Git view: the branch of the project it was opened for and the files changed in its folder -
+ * not those of the other projects of its repository - in a {@link GitStatusPane}, with Refresh and
+ * Commit, which takes those changes. It runs the {@code git} command line off the FX thread and hands
+ * the result to the pane; the compare mode and the tree or list view are remembered between sessions.
  *
  * @since 1.0
  */
@@ -68,15 +70,35 @@ final class GitStatusView extends BorderPane {
     private static final String KEY_COLUMNS = "status.columns";
     /** The folder of the project shown, so that the view restored at start-up shows it again. */
     private static final String KEY_PROJECT = "status.project";
+    /** How long a read waits for another to be asked for, in milliseconds: one read serves them all. */
+    private static final int READ_DELAY = 100;
+
+    /** A folder whose changes the view shows, and what its tab calls it. */
+    private record Target(Path folder, String name) {
+    }
+
+    /** A read asked for: of what, and which one of {@link #reads}. */
+    private record Request(Target target, long read) {
+    }
 
     private final Preferences preferences = NbPreferences.forModule(GitStatusView.class);
     /** Kept, as a lookup result is only weakly held by the context and would lose its listener. */
     private final List<Lookup.Result<?>> contextResults = new ArrayList<>();
-    /** The project whose changes are shown, on the FX thread; {@code null} until one is known. */
-    private OpenProject project;
+    /** The folder whose changes are shown, on the FX thread; {@code null} until one is known. */
+    private Target target;
     private final ReadOnlyStringWrapper title = new ReadOnlyStringWrapper(message("Git.title"));
     private final GitStatusPane pane = new GitStatusPane(
             stored(KEY_MODE, VcsCompareMode.HEAD_VS_WORKING_TREE), stored(KEY_FLAVOUR, GitStatusPane.Flavour.TREE));
+    /** Counts the reads asked for: what an earlier one found is not shown over a later one. */
+    private final AtomicLong reads = new AtomicLong();
+    /** The folder the rows are of, which is what Commit commits; {@code null} without rows read. */
+    private Path shown;
+    /** How many files a commit of {@link #shown} takes. */
+    private int shownChanges;
+    /** The last read asked for; the reader takes it when it runs. */
+    private volatile Request request;
+    /** Reads the status; asked again before it ran, it runs once, for the last request. */
+    private final RequestProcessor.Task reader = RP.create(this::read);
 
     GitStatusView() {
         pane.modeProperty().subscribe(mode -> preferences.put(KEY_MODE, mode.name()));
@@ -94,9 +116,11 @@ final class GitStatusView extends BorderPane {
         ActionContext context = ActionContext.getDefault();
         if (context != null) {
             LookupListener listener = event -> {
-                if (project == null) {
-                    Platform.runLater(this::reload);
-                }
+                Platform.runLater(() -> {
+                    if (target == null) {
+                        reload();
+                    }
+                });
             };
             for (Class<?> type : List.of(FileObject.class, EditorDocument.class, OpenProject.class)) {
                 Lookup.Result<?> result = context.lookupResult(type);
@@ -118,77 +142,116 @@ final class GitStatusView extends BorderPane {
         return title.getReadOnlyProperty();
     }
 
-    /** Shows the changes of {@code shown} from now on; {@code null} keeps the project and refreshes. */
-    void show(OpenProject shown) {
-        if (shown != null) {
-            project = shown;
-            preferences.put(KEY_PROJECT, shown.getPath());
+    /** Shows the changes of {@code project} from now on; {@code null} keeps what is shown and refreshes. */
+    void show(OpenProject project) {
+        Path folder = GitMenus.folderOf(project);
+        show(folder, folder == null ? null : project.getDisplayName());
+    }
+
+    /**
+     * Shows the changes in {@code folder} from now on, a project folder or one of a repository without
+     * a project; {@code null} keeps what is shown and refreshes.
+     *
+     * @param name what the tab calls the folder
+     */
+    void show(Path folder, String name) {
+        if (folder != null) {
+            target = new Target(folder, name == null ? String.valueOf(folder.getFileName()) : name);
+            // Kept, so that the view restored at start-up shows it again.
+            preferences.put(KEY_PROJECT, folder.toString());
         }
         reload();
     }
 
     /**
-     * Reads the git status of the project off the FX thread and fills the table: the changes in the
-     * project folder, not those of the other projects of its repository.
+     * Reads the git status of the folder off the FX thread and fills the table: the changes in that
+     * folder, not those of the other projects of its repository. Asked several times in a row, as
+     * when the focus comes and goes, it reads once. Must run on the JavaFX Application Thread.
      */
     void reload() {
-        if (project == null) {
-            // The one shown in the last session, if it is open - it may not be yet at start-up, and
-            // is asked for again when the selection changes - else the one selected.
-            project = storedProject();
-            if (project == null) {
-                project = ProjectContext.selectedProject();
-                if (project != null) {
-                    preferences.put(KEY_PROJECT, project.getPath());
-                }
+        if (target == null) {
+            // The project shown in the last session, if it is open - it may not be yet at start-up,
+            // and is asked for again when the selection changes - else the one selected.
+            OpenProject stored = storedProject();
+            OpenProject shown = stored != null ? stored : ProjectContext.selectedProject();
+            Path folder = GitMenus.folderOf(shown);
+            target = folder == null ? null : new Target(folder, shown.getDisplayName());
+            if (target != null && stored == null) {
+                preferences.put(KEY_PROJECT, folder.toString());
             }
         }
-        OpenProject project = this.project;
-        Path dir = project == null ? null : Paths.get(project.getPath());
-        if (dir == null) {
+        long read = reads.incrementAndGet();
+        // Nothing to commit until it is read again: the rows may be out of date.
+        pane.setCommitDisabled(true);
+        if (target == null) {
+            request = null;
             show("", message("Git.noProject"));
             return;
         }
-        RP.post(() -> {
-            try {
-                if (!GitClient.isRepository(dir)) {
-                    Platform.runLater(() -> show("", message("Git.notRepository")));
-                    return;
-                }
-                Path root = GitClient.rootOf(dir);
-                String branchName = GitClient.branch(root);
-                VcsStatus status = GitClient.status(dir);
-                // Commit takes every change, staged or not, whatever the table compares.
-                boolean nothingToCommit = status.files(VcsCompareMode.HEAD_VS_WORKING_TREE).isEmpty();
-                String repositoryName = root.getFileName() == null ? root.toString() : root.getFileName().toString();
-                Platform.runLater(() -> {
-                    if (project != this.project) {
-                        // Opened for another project meanwhile: that read follows.
-                        return;
-                    }
-                    title.set(NbBundle.getMessage(GitStatusView.class, "Git.title.repository",
-                            project.getDisplayName(), repositoryName, branchName));
-                    pane.setBranch(message("Git.branch") + ": " + branchName);
-                    pane.setStatus(root, status);
-                    pane.setCommitDisabled(nothingToCommit);
-                });
-            } catch (RuntimeException | java.io.IOException ex) {
-                Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
-                        message("Git.error"), ex.getMessage(), ex));
-            }
-        });
+        if (shown != null && !target.folder().equals(shown)) {
+            // Another folder: the rows of the last one are not its changes.
+            show("", "");
+        }
+        request = new Request(target, read);
+        reader.schedule(READ_DELAY);
     }
 
-    /** No repository to show: the reason in place of the table. */
-    private void show(String branch, String text) {
-        if (!Platform.isFxApplicationThread()) {
-            Platform.runLater(() -> show(branch, text));
+    private void read() {
+        Request asked = request;
+        if (asked == null || asked.read() != reads.get()) {
+            // Asked again meanwhile: that read follows.
             return;
         }
+        long read = asked.read();
+        Path dir = asked.target().folder();
+        try {
+            if (!GitClient.isRepository(dir)) {
+                Platform.runLater(() -> {
+                    if (read == reads.get()) {
+                        show("", message("Git.notRepository"));
+                    }
+                });
+                return;
+            }
+            Path root = GitClient.rootOf(dir);
+            String branchName = GitClient.branch(root);
+            VcsStatus status = GitClient.status(dir);
+            // Commit takes every change, staged or not, whatever the table compares.
+            int changes = status.files(VcsCompareMode.HEAD_VS_WORKING_TREE).size();
+            // Staging a conflicted file would call its conflict resolved, markers and all.
+            boolean conflicts = status.hasConflicts();
+            String repositoryName = root.getFileName() == null ? root.toString() : root.getFileName().toString();
+            Platform.runLater(() -> {
+                if (read != reads.get()) {
+                    // Asked again while this was read: that read follows.
+                    return;
+                }
+                shown = dir;
+                shownChanges = changes;
+                title.set(NbBundle.getMessage(GitStatusView.class, "Git.title.repository",
+                        asked.target().name(), repositoryName, branchName));
+                pane.setBranch(message("Git.branch") + ": " + branchName);
+                pane.setStatus(root, status);
+                pane.setCommitDisabled(changes == 0 || conflicts, conflicts ? message("Git.commit.conflicts") : null);
+            });
+        } catch (RuntimeException | java.io.IOException ex) {
+            Platform.runLater(() -> {
+                if (read == reads.get()) {
+                    // What was shown is not known to hold any more.
+                    show("", message("Git.error"));
+                    ErrorReporter.report(message("Git.title"), message("Git.error"), ex.getMessage(), ex);
+                }
+            });
+        }
+    }
+
+    /** No changes to show, and so none to commit: the reason in place of the table. */
+    private void show(String branch, String text) {
+        shown = null;
         title.set(message("Git.title"));
         pane.setBranch(branch);
         pane.setMessage(text);
-        pane.setCommitDisabled(true);
+        pane.setCommitDisabled(true, null);
     }
 
     /** The open project of the folder kept in the preferences, or {@code null}. */
@@ -236,7 +299,8 @@ final class GitStatusView extends BorderPane {
     }
 
     private void commitDialog() {
-        Path dir = selectedProject();
+        // What is committed is what the rows show, whatever is selected by now.
+        Path dir = shown;
         if (dir == null) {
             return;
         }
@@ -251,14 +315,21 @@ final class GitStatusView extends BorderPane {
         dialogPane.getStylesheets().add(
                 Objects.requireNonNull(GitStatusView.class.getResource("vcs.css")).toExternalForm());
         dialogPane.getStyleClass().add("git-commit");
-        ButtonType commitType = new ButtonType(message("Git.commit"), ButtonData.OK_DONE);
+        ButtonType commitType = new ButtonType(message("Git.commit.all"), ButtonData.OK_DONE);
         dialogPane.getButtonTypes().addAll(commitType, ButtonType.CANCEL);
         TextArea messageArea = new TextArea();
         messageArea.setPromptText(message("Git.commit.message"));
         messageArea.setPrefRowCount(5);
         messageArea.setWrapText(true);
         VBox.setVgrow(messageArea, Priority.ALWAYS);
-        dialogPane.setContent(new VBox(messageArea));
+        // What the commit takes: every change of the folder, whatever rows are selected or compared.
+        Label scope = new Label(NbBundle.getMessage(GitStatusView.class, "Git.commit.scope", shownChanges,
+                dir.getFileName() == null ? dir.toString() : dir.getFileName().toString()));
+        scope.setWrapText(true);
+        scope.getStyleClass().add("git-commit-scope");
+        VBox content = new VBox(scope, messageArea);
+        content.setSpacing(8);
+        dialogPane.setContent(content);
         // Nothing to commit without a message.
         dialogPane.lookupButton(commitType).disableProperty().bind(
                 messageArea.textProperty().map(String::isBlank));
@@ -272,14 +343,8 @@ final class GitStatusView extends BorderPane {
 
     private void commit(Path dir, String message) {
         RP.post(() -> {
-            // The changes of the project: the table shows no others.
-            GitClient.Result add = GitClient.addAll(dir);
-            if (add.exitCode() != 0) {
-                Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
-                        message("Git.error"), add.output(), null));
-                return;
-            }
-            GitClient.Result commit = GitClient.commit(dir, message);
+            // The changes of the folder: the table shows no others. Read again, they may hold a conflict by now.
+            GitClient.Result commit = GitClient.commitAll(dir, message);
             if (commit.exitCode() != 0) {
                 Platform.runLater(() -> ErrorReporter.report(message("Git.title"),
                         message("Git.error"), commit.output(), null));
@@ -288,10 +353,6 @@ final class GitStatusView extends BorderPane {
             GitStatusCache.getDefault().refresh(dir);
             Platform.runLater(this::reload);
         });
-    }
-
-    private Path selectedProject() {
-        return project == null ? null : Paths.get(project.getPath());
     }
 
     private static String message(String key) {

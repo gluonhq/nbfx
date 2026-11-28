@@ -34,14 +34,21 @@ interface DiffContent {
     /** Releases the editors. */
     void dispose();
 
-    /** What opens the diff again in a later session, or {@code null} when it is not restored. */
-    default SavedDocument savedState() {
-        return null;
-    }
+    /**
+     * Gives the keyboard to the text compared to, so that the keys scroll the diff as soon as its
+     * tab is chosen.
+     */
+    void focusEditor();
 
     /**
-     * The editor of the side that is edited in the diff shown, which the tab hands what is asked
-     * of it - undo, paste, find; holds {@code null} when neither side is.
+     * The editor the keyboard is in, or was in last, of the two texts shown: the one Copy is of.
+     * Its value is {@code null} while no text is shown.
+     */
+    ObservableValue<EditorDocument> activeEditorProperty();
+
+    /**
+     * The editor of the side that is edited in the diff shown, which the tab hands what changes a
+     * text - undo, cut, paste - and what is saved; its value is {@code null} while neither side is.
      */
     default ObservableValue<EditorDocument> editorProperty() {
         return new SimpleObjectProperty<>(null);
@@ -54,5 +61,10 @@ interface DiffContent {
 
     /** Writes the edits made in this diff to their files. */
     default void save() throws IOException {
+    }
+
+    /** What opens the diff again in a later session, or {@code null} when it is not restored. */
+    default SavedDocument savedState() {
+        return null;
     }
 }

@@ -19,13 +19,17 @@
 package org.netbeans.api.nbfx.diff;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
+import java.util.concurrent.CancellationException;
 import org.junit.Test;
 import org.netbeans.api.nbfx.diff.Difference.Kind;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /** Verifies the blocks the line comparison finds, and that they always lead from one text to the other. */
@@ -93,6 +97,162 @@ public class DiffTest {
     }
 
     @Test
+    public void optionsTogetherLeaveOutWhatEachDoes() {
+        // U+2003, an em space: white space, but none of the ASCII ones.
+        String em = "\u2003";
+        List<String> indented = List.of(em + "a" + em + "b" + em, "   ");
+        DiffOptions edges = new DiffOptions(false, false, true);
+        DiffOptions inner = new DiffOptions(false, true, false);
+        DiffOptions both = new DiffOptions(false, true, true);
+
+        assertTrue(Diff.compute(indented, List.of("a" + em + "b", ""), edges).isIdentical());
+        assertTrue(Diff.compute(indented, List.of(em + "ab" + em, "   "), inner).isIdentical());
+        assertFalse(Diff.compute(indented, List.of("ab", ""), inner).isIdentical());
+        assertFalse(Diff.compute(indented, List.of("ab", ""), edges).isIdentical());
+        assertTrue(Diff.compute(indented, List.of("ab", ""), both).isIdentical());
+        assertTrue(Diff.compute(indented, List.of(" a b ", "\t"), both).isIdentical());
+    }
+
+    @Test
+    public void whatIsToCompareMustBeThere() {
+        List<String> lines = List.of("a");
+        assertEquals("left", assertThrows(NullPointerException.class,
+                () -> Diff.compute(null, lines)).getMessage());
+        assertEquals("right", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, null)).getMessage());
+        assertEquals("options", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, lines, null)).getMessage());
+        assertEquals("right line 1", assertThrows(NullPointerException.class,
+                () -> Diff.compute(lines, java.util.Arrays.asList("a", null))).getMessage());
+    }
+
+    @Test
+    public void aComparisonNobodyWaitsForIsGivenUpBeforeItStarts() {
+        // Whatever the size of the texts, none included.
+        for (List<String> lines : List.of(List.<String>of(), List.of("a"), List.of("a", "b", "c"))) {
+            int[] asked = new int[1];
+            assertThrows(CancellationException.class,
+                    () -> Diff.compute(lines, lines, DiffOptions.EXACT, () -> ++asked[0] > 0));
+            assertEquals(1, asked[0]);
+        }
+    }
+
+    @Test
+    public void aComparisonIsGivenUpInEveryPartOfIt() {
+        List<String> left = new ArrayList<>();
+        List<String> right = new ArrayList<>();
+        for (int i = 0; i < 2000; i++) {
+            left.add("  Line " + i);
+            right.add("line  " + (i + 1));
+        }
+        // Telling the lines apart, ordering them, the search and the blocks ask each in turn.
+        int times = assertGivenUpWheneverAsked(left, right, new DiffOptions(true, true, true));
+        assertTrue("asked " + times + " times", times > 40);
+    }
+
+    @Test
+    public void aComparisonIsGivenUpWhateverTheTextsAre() {
+        DiffOptions loose = new DiffOptions(true, true, true);
+        // One line that is the whole text: the time goes into its characters.
+        String line = " Word\t".repeat(50_000);
+        assertTrue(assertGivenUpWheneverAsked(List.of(line), List.of(line.toUpperCase(Locale.ROOT)), loose) > 1_000);
+
+        // The same lines throughout: one long run of lines kept, and no block.
+        List<String> same = new ArrayList<>();
+        List<String> other = new ArrayList<>();
+        for (int i = 0; i < 100_000; i++) {
+            same.add("line " + i);
+            other.add("another " + i);
+        }
+        assertTrue(assertGivenUpWheneverAsked(same, same, DiffOptions.EXACT) > 1_000);
+        // No line in common: one block of all of them, found at the very end.
+        int times = assertGivenUpWheneverAsked(same, other, DiffOptions.EXACT);
+        assertTrue(times > 1_000);
+        // Many small blocks: given up while they are made, and while they are joined.
+        List<String> everyOther = new ArrayList<>(same);
+        for (int i = 0; i < everyOther.size(); i += 2) {
+            everyOther.set(i, "changed " + i);
+        }
+        assertTrue(assertGivenUpWheneverAsked(same, everyOther, DiffOptions.EXACT) > 1_000);
+    }
+
+    /**
+     * Checks that a comparison is given up at the times it asks - all of them when they are few,
+     * else the first, the last and some between - and at exactly that time; returns how many times
+     * a whole comparison asks.
+     */
+    private static int assertGivenUpWheneverAsked(List<String> left, List<String> right, DiffOptions options) {
+        int[] asked = new int[1];
+        Diff.compute(left, right, options, () -> ++asked[0] < 0);
+        int times = asked[0];
+        int stride = Math.max(1, times / 60);
+        for (int at = 1; at <= times; at = at == times ? times + 1 : Math.min(times, at + stride)) {
+            int last = at;
+            int[] count = new int[1];
+            assertThrows("asked " + at + " of " + times, CancellationException.class,
+                    () -> Diff.compute(left, right, options, () -> ++count[0] == last));
+            assertEquals(at, count[0]);
+        }
+        return times;
+    }
+
+    @Test(timeout = 20_000)
+    public void aLineRepeatedManyTimesIsComparedInTimeAndGivenUpInTime() {
+        // Blank lines, braces: every one of them is the same as every other.
+        List<String> few = List.of("a", "", "b");
+        List<String> many = Collections.nCopies(400_000, "");
+
+        assertEquals(List.of(new Difference(Kind.DELETE, 0, 1, 0, 0), new Difference(Kind.CHANGE, 2, 1, 1, 399_999)),
+                Diff.compute(few, many).differences());
+        // The other way round, whichever of the blank lines is the one kept.
+        assertKeepsTheMost(many, few, DiffOptions.EXACT);
+
+        // Both sides of it: the search then has every pair of lines to go through.
+        List<String> repeated = Collections.nCopies(3_000, "}");
+        assertTrue(Diff.compute(repeated, repeated).isIdentical());
+        List<String> endless = Collections.nCopies(200_000, "}");
+        int[] asked = new int[1];
+        assertThrows(CancellationException.class,
+                () -> Diff.compute(endless, endless, DiffOptions.EXACT, () -> ++asked[0] > 2_000));
+    }
+
+    @Test
+    public void lettersAreTheSameWhateverTheirCaseOneForOne() {
+        DiffOptions ignoreCase = new DiffOptions(true, false, false);
+
+        assertTrue(same("Done", "DONE", ignoreCase));
+        assertTrue(same("\u00c9t\u00e9", "\u00e9T\u00c9", ignoreCase));
+        // A sharp s and its capital, but not the two letters it is written with in capitals.
+        assertTrue(same("stra\u00dfe", "STRA\u1e9eE", ignoreCase));
+        assertFalse(same("stra\u00dfe", "STRASSE", ignoreCase));
+        // A dotless i is no i; a sigma is one wherever it stands in its word.
+        assertFalse(same("\u0131", "i", ignoreCase));
+        assertTrue(same("\u039f\u03a3", "\u03bf\u03c2", ignoreCase));
+        // Letters beyond the first plane: Deseret long I, capital and small.
+        assertTrue(same("\ud801\udc00", "\ud801\udc28", ignoreCase));
+        assertFalse(same("\ud801\udc00", "\ud801\udc28", DiffOptions.EXACT));
+    }
+
+    @Test
+    public void whatAResultIsMadeOfMustBeInOrder() {
+        Difference first = new Difference(Kind.CHANGE, 2, 2, 2, 1);
+        new DiffResult(List.of(first, new Difference(Kind.ADD, 4, 0, 3, 1)));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new DiffResult(List.of(first, new Difference(Kind.ADD, 3, 0, 3, 1))));
+        assertThrows(IllegalArgumentException.class,
+                () -> new DiffResult(List.of(first, new Difference(Kind.DELETE, 4, 1, 2, 0))));
+        assertThrows(IllegalArgumentException.class,
+                () -> new DiffResult(List.of(new Difference(Kind.ADD, 4, 0, 3, 1), first)));
+        // A block cannot end past the last line there can be.
+        assertThrows(IllegalArgumentException.class,
+                () -> new Difference(Kind.DELETE, Integer.MAX_VALUE, 1, 0, 0));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Difference(Kind.ADD, 0, 0, 2, Integer.MAX_VALUE));
+        assertEquals("text", assertThrows(NullPointerException.class, () -> Diff.lines(null)).getMessage());
+    }
+
+    @Test
     public void linesAreSplitAsAnEditorShowsThem() {
         assertEquals(List.of("a", "b"), Diff.lines("a\nb"));
         assertEquals(List.of("a", "b", ""), Diff.lines("a\nb\n"));
@@ -116,6 +276,144 @@ public class DiffTest {
         }
     }
 
+    @Test
+    public void asManyLinesAreKeptAsTheTextsHaveInCommon() {
+        // Leading from one text to the other is not enough: deleting all and adding all does too.
+        // Every pair of texts of up to five lines over two letters, and larger ones at random.
+        List<List<String>> small = new ArrayList<>();
+        for (int length = 0; length <= 5; length++) {
+            for (int bits = 0; bits < 1 << length; bits++) {
+                List<String> lines = new ArrayList<>();
+                for (int i = 0; i < length; i++) {
+                    lines.add((bits >> i & 1) == 0 ? "a" : "b");
+                }
+                small.add(lines);
+            }
+        }
+        for (List<String> left : small) {
+            for (List<String> right : small) {
+                assertKeepsTheMost(left, right, DiffOptions.EXACT);
+            }
+        }
+        Random random = new Random(20261127);
+        for (int round = 0; round < 300; round++) {
+            assertKeepsTheMost(randomLines(random, 60, 6), randomLines(random, 60, 6), DiffOptions.EXACT);
+            // Many lines of few kinds: most of them repeat.
+            assertKeepsTheMost(randomLines(random, 80, 2), randomLines(random, 80, 2), DiffOptions.EXACT);
+        }
+    }
+
+    @Test
+    public void withOptionsTheLinesKeptAreTheSameAsTheOptionsTellIt() {
+        Random random = new Random(20261128);
+        // Every combination of the three options.
+        for (int flags = 0; flags < 8; flags++) {
+            DiffOptions options = new DiffOptions((flags & 1) != 0, (flags & 2) != 0, (flags & 4) != 0);
+            for (int round = 0; round < 120; round++) {
+                List<String> left = variants(randomLines(random, 40, 4), random);
+                List<String> right = variants(randomLines(random, 40, 4), random);
+
+                assertKeepsTheMost(left, right, options);
+            }
+        }
+    }
+
+    /**
+     * Checks the blocks of a comparison against the lines themselves: the blocks are in order and
+     * within the texts, the lines between them are the same as {@code options} tell it, pair by
+     * pair, and they are as many as the longest sequence of lines the texts have in common.
+     */
+    private static void assertKeepsTheMost(List<String> left, List<String> right, DiffOptions options) {
+        List<Difference> differences = Diff.compute(left, right, options).differences();
+        String told = left + " -> " + right + " by " + differences;
+        List<String> leftKeys = left.stream().map(line -> key(line, options)).toList();
+        List<String> rightKeys = right.stream().map(line -> key(line, options)).toList();
+        int kept = 0;
+        int leftAt = 0;
+        int rightAt = 0;
+        for (Difference difference : differences) {
+            assertTrue(told, difference.leftStart() >= leftAt && difference.rightStart() >= rightAt);
+            assertTrue(told, difference.leftEnd() <= left.size() && difference.rightEnd() <= right.size());
+            assertEquals(told, difference.leftStart() - leftAt, difference.rightStart() - rightAt);
+            for (; leftAt < difference.leftStart(); leftAt++, rightAt++, kept++) {
+                assertEquals(told, leftKeys.get(leftAt), rightKeys.get(rightAt));
+            }
+            leftAt = difference.leftEnd();
+            rightAt = difference.rightEnd();
+        }
+        assertEquals(told, left.size() - leftAt, right.size() - rightAt);
+        for (; leftAt < left.size(); leftAt++, rightAt++, kept++) {
+            assertEquals(told, leftKeys.get(leftAt), rightKeys.get(rightAt));
+        }
+        assertEquals(told, longestCommon(leftKeys, rightKeys), kept);
+    }
+
+    /** The length of the longest common subsequence, found the plain way: a table of every pair. */
+    private static int longestCommon(List<String> left, List<String> right) {
+        int[][] longest = new int[left.size() + 1][right.size() + 1];
+        for (int i = 1; i <= left.size(); i++) {
+            for (int j = 1; j <= right.size(); j++) {
+                longest[i][j] = left.get(i - 1).equals(right.get(j - 1)) ? longest[i - 1][j - 1] + 1
+                        : Math.max(longest[i - 1][j], longest[i][j - 1]);
+            }
+        }
+        return longest[left.size()][right.size()];
+    }
+
+    /**
+     * What two lines share when they are the same under {@code options}, worked out apart from the
+     * engine and another way: the line cut in its three parts first - the white space it starts
+     * with, what is between, the white space it ends with - by {@link Character#isWhitespace(int)},
+     * as the options are documented, and each letter lowered on its own.
+     */
+    private static String key(String line, DiffOptions options) {
+        int[] characters = line.codePoints().toArray();
+        int start = 0;
+        while (start < characters.length && Character.isWhitespace(characters[start])) {
+            start++;
+        }
+        int end = characters.length;
+        while (end > start && Character.isWhitespace(characters[end - 1])) {
+            end--;
+        }
+        List<Integer> key = new ArrayList<>();
+        for (int i = 0; i < characters.length; i++) {
+            boolean edge = i < start || i >= end;
+            boolean space = Character.isWhitespace(characters[i]);
+            if (edge && options.ignoreLeadingAndTrailingWhitespace() || !edge && space && options.ignoreInnerWhitespace()) {
+                continue;
+            }
+            int character = characters[i];
+            if (options.ignoreCase()) {
+                character = character == 0x3C2 ? 0x3C3 : Character.toLowerCase(character);
+            }
+            key.add(character);
+        }
+        return key.toString();
+    }
+
+    /**
+     * {@code lines}, each written one of several ways that some options take for the same and
+     * others do not: in capitals, with white space around or within - a tab, an em space - and
+     * with letters that are not ASCII.
+     */
+    private static List<String> variants(List<String> lines, Random random) {
+        List<String> variants = new ArrayList<>();
+        for (String line : lines) {
+            String word = line + "\u00e9 " + line + "\u03c3";
+            variants.add(switch (random.nextInt(7)) {
+                case 0 -> word;
+                case 1 -> "  " + word.toUpperCase(Locale.ROOT);
+                case 2 -> line + "\u00e9\t " + line + "\u03c3 ";
+                case 3 -> line + "\u00e9" + line + "\u03c3";
+                case 4 -> "\u2003" + line + "\u00c9\u2003" + line + "\u03c2\u2003";
+                case 5 -> word + "\u00a0";
+                default -> line + "\u00c9 " + line + "\u03a3";
+            });
+        }
+        return variants;
+    }
+
     /** {@code left} with the blocks replaced by the lines of {@code right} they name; checks their order. */
     private static List<String> applied(List<String> left, List<String> right, List<Difference> differences) {
         List<String> result = new ArrayList<>();
@@ -133,12 +431,21 @@ public class DiffTest {
 
     private static List<String> randomLines(Random random) {
         // Few distinct lines, so that the texts share many and repeat some.
-        int count = random.nextInt(12);
+        return randomLines(random, 12, 5);
+    }
+
+    /** Fewer than {@code most} lines of {@code kinds} kinds. */
+    private static List<String> randomLines(Random random, int most, int kinds) {
+        int count = random.nextInt(most);
         List<String> lines = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
-            lines.add(String.valueOf((char) ('a' + random.nextInt(5))));
+            lines.add(String.valueOf((char) ('a' + random.nextInt(kinds))));
         }
         return lines;
+    }
+
+    private static boolean same(String left, String right, DiffOptions options) {
+        return Diff.compute(List.of(left), List.of(right), options).isIdentical();
     }
 
     private static List<Difference> diff(String left, String right) {

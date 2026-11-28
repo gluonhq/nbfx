@@ -20,11 +20,11 @@ package org.netbeans.api.nbfx.diff;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 
 /**
  * The line comparison of {@link Diff}: the Hunt-McIlroy longest common subsequence, ported from the
@@ -34,27 +34,60 @@ import java.util.regex.Pattern;
  */
 final class HuntDiff {
 
-    private static final Pattern SPACES = Pattern.compile("(\\s+)");
+    private static final int FINAL_SIGMA = 0x3C2;
+    private static final int SIGMA = 0x3C3;
 
     private HuntDiff() {
     }
 
-    static List<Difference> diff(String[] left, String[] right, DiffOptions options) {
-        int[] common = commonLines(left, right, options);
-        return merged(differences(common, left.length, right.length));
+    static List<Difference> diff(String[] left, String[] right, DiffOptions options, Poll poll) {
+        poll.now();
+        int[] common = commonLines(left, right, options, poll);
+        return merged(differences(common, left.length, right.length, poll), poll);
+    }
+
+    /**
+     * Asks whether the comparison is still wanted, and gives it up when it is not. It is asked in
+     * every loop - over the lines, of which a text of repeated lines makes some long, and over the
+     * characters of a line, which may be the whole text - but passes the question on only now and
+     * then, as the answer may cost more than a step of the loop.
+     */
+    static final class Poll {
+
+        private static final int EVERY = 0xFF;
+        private final BooleanSupplier cancelled;
+        private int steps;
+
+        Poll(BooleanSupplier cancelled) {
+            this.cancelled = cancelled;
+        }
+
+        /** Asks now. */
+        void now() {
+            if (cancelled.getAsBoolean()) {
+                throw new CancellationException();
+            }
+        }
+
+        /** Counts a step, and asks after enough of them. */
+        void step() {
+            if ((++steps & EVERY) == 0) {
+                now();
+            }
+        }
     }
 
     /**
      * For each line of {@code lines1}, counted from one, the line of {@code lines2} it is the same
      * as in the longest common subsequence, or zero.
      */
-    private static int[] commonLines(String[] lines1, String[] lines2, DiffOptions options) {
+    private static int[] commonLines(String[] lines1, String[] lines2, DiffOptions options, Poll poll) {
         int m = lines1.length;
         int n = lines2.length;
         if (options.ignoreCase() || options.ignoreInnerWhitespace()
                 || options.ignoreLeadingAndTrailingWhitespace()) {
-            lines1 = normalized(lines1, options);
-            lines2 = normalized(lines2, options);
+            lines1 = normalized(lines1, options, poll);
+            lines2 = normalized(lines2, options, poll);
         }
 
         // The lines of the second text <1, n>, sorted, so that equal lines are neighbours.
@@ -62,20 +95,33 @@ final class HuntDiff {
         for (int i = 1; i <= n; i++) {
             sorted[i] = new Line(i, lines2[i - 1]);
         }
-        Arrays.sort(sorted, 1, n + 1, Comparator.comparing(Line::text));
+        // The sort is given up from its comparator: it is most of the time of a text of long lines.
+        Arrays.sort(sorted, 1, n + 1, (one, other) -> {
+            poll.step();
+            return one.text().compareTo(other.text());
+        });
+        poll.now();
 
         int[] equivalenceLines = new int[n + 1];
         boolean[] equivalence = new boolean[n + 1];
+        // Where the lines equal to a text start among the sorted ones: found once for each text,
+        // not looked for again for every line of the first text that has it.
+        Map<String, Integer> firstOfEqual = new HashMap<>();
+        equivalenceLines[0] = 0;
+        equivalence[0] = true;
         for (int i = 1; i <= n; i++) {
+            poll.step();
             Line line = sorted[i];
             equivalenceLines[i] = line.number();
             equivalence[i] = i == n || !line.text().equals(sorted[i + 1].text());
+            if (equivalence[i - 1]) {
+                firstOfEqual.put(line.text(), i);
+            }
         }
-        equivalenceLines[0] = 0;
-        equivalence[0] = true;
         int[] equivalenceAssoc = new int[m + 1];
         for (int i = 1; i <= m; i++) {
-            equivalenceAssoc[i] = findAssoc(lines1[i - 1], sorted, equivalence);
+            poll.step();
+            equivalenceAssoc[i] = firstOfEqual.getOrDefault(lines1[i - 1], 0);
         }
 
         Candidate[] candidates = new Candidate[Math.min(m, n) + 2];
@@ -83,77 +129,90 @@ final class HuntDiff {
         candidates[1] = new Candidate(m + 1, n + 1, null);
         int k = 0;
         for (int i = 1; i <= m; i++) {
+            poll.step();
             if (equivalenceAssoc[i] != 0) {
-                k = merge(candidates, k, i, equivalenceLines, equivalence, equivalenceAssoc[i]);
+                k = merge(candidates, k, i, equivalenceLines, equivalence, equivalenceAssoc[i], poll);
             }
         }
         int[] common = new int[m + 2];
         for (Candidate c = candidates[k]; c != null; c = c.previous()) {
+            poll.step();
             common[c.a()] = c.b();
         }
         return common;
     }
 
-    private static String[] normalized(String[] lines, DiffOptions options) {
+    private static String[] normalized(String[] lines, DiffOptions options, Poll poll) {
         String[] normalized = new String[lines.length];
         for (int i = 0; i < lines.length; i++) {
-            String line = lines[i];
-            if (options.ignoreLeadingAndTrailingWhitespace() && options.ignoreInnerWhitespace()) {
-                line = SPACES.matcher(line).replaceAll("");
-            } else if (options.ignoreLeadingAndTrailingWhitespace()) {
-                line = line.strip();
-            } else if (options.ignoreInnerWhitespace()) {
-                line = withoutInnerSpaces(line);
-            }
-            if (options.ignoreCase()) {
-                line = line.toUpperCase(Locale.ROOT);
-            }
-            normalized[i] = line;
+            poll.step();
+            String line = normalized(lines[i], options.ignoreLeadingAndTrailingWhitespace(),
+                    options.ignoreInnerWhitespace(), poll);
+            normalized[i] = options.ignoreCase() ? caseFolded(line, poll) : line;
         }
         return normalized;
     }
 
-    private static String withoutInnerSpaces(String line) {
-        Matcher matcher = SPACES.matcher(line);
-        StringBuilder result = new StringBuilder();
-        while (matcher.find()) {
-            if (matcher.start() == 0 || matcher.end() == line.length()) {
-                matcher.appendReplacement(result, "$1");
-            } else {
-                matcher.appendReplacement(result, "");
+    /**
+     * {@code line} with each letter in the form that its cases share: its lower case, letter by
+     * letter, so that no letter becomes two - a sharp s is not "ss", though its capital is a sharp
+     * s - and a dotless i stays what it is. The sigma that ends a word is a sigma.
+     */
+    static String caseFolded(String line, Poll poll) {
+        StringBuilder folded = null;
+        for (int i = 0; i < line.length();) {
+            poll.step();
+            int letter = line.codePointAt(i);
+            int lower = letter == FINAL_SIGMA ? SIGMA : Character.toLowerCase(letter);
+            if (lower != letter && folded == null) {
+                folded = new StringBuilder(line.length()).append(line, 0, i);
             }
+            if (folded != null) {
+                folded.appendCodePoint(lower);
+            }
+            i += Character.charCount(letter);
         }
-        matcher.appendTail(result);
+        return folded == null ? line : folded.toString();
+    }
+
+    /**
+     * {@code line} without the white space the options leave out: each option takes its own part
+     * of the line, so that both together take what either does. White space is what
+     * {@link Character#isWhitespace(int)} says, at the edges and within alike; a line of nothing
+     * else is all edge.
+     */
+    private static String normalized(String line, boolean ignoreEdges, boolean ignoreInner, Poll poll) {
+        int length = line.length();
+        int first = 0;
+        while (first < length && Character.isWhitespace(line.codePointAt(first))) {
+            poll.step();
+            first += Character.charCount(line.codePointAt(first));
+        }
+        int last = length;
+        while (last > first && Character.isWhitespace(line.codePointBefore(last))) {
+            poll.step();
+            last -= Character.charCount(line.codePointBefore(last));
+        }
+        StringBuilder result = new StringBuilder(length);
+        if (!ignoreEdges) {
+            result.append(line, 0, first);
+        }
+        if (ignoreInner) {
+            for (int i = first; i < last;) {
+                poll.step();
+                int character = line.codePointAt(i);
+                if (!Character.isWhitespace(character)) {
+                    result.appendCodePoint(character);
+                }
+                i += Character.charCount(character);
+            }
+        } else {
+            result.append(line, first, last);
+        }
+        if (!ignoreEdges) {
+            result.append(line, last, length);
+        }
         return result.toString();
-    }
-
-    private static int findAssoc(String line1, Line[] sorted, boolean[] equivalence) {
-        int index = binarySearch(sorted, line1, 1, sorted.length - 1);
-        if (index < 1) {
-            return 0;
-        }
-        int lastGood = 0;
-        for (; index >= 1 && sorted[index].text().equals(line1); index--) {
-            if (equivalence[index - 1]) {
-                lastGood = index;
-            }
-        }
-        return lastGood;
-    }
-
-    private static int binarySearch(Line[] lines, String key, int low, int high) {
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
-            int comparison = lines[mid].text().compareTo(key);
-            if (comparison < 0) {
-                low = mid + 1;
-            } else if (comparison > 0) {
-                high = mid - 1;
-            } else {
-                return mid;
-            }
-        }
-        return -(low + 1);
     }
 
     private static int binarySearch(Candidate[] candidates, int key, int low, int high) {
@@ -172,10 +231,12 @@ final class HuntDiff {
     }
 
     private static int merge(Candidate[] candidates, int k, int i, int[] equivalenceLines,
-            boolean[] equivalence, int p) {
+            boolean[] equivalence, int p, Poll poll) {
         int r = 0;
         Candidate c = candidates[0];
         while (true) {
+            // As long as the lines of the second text equal to this one are many.
+            poll.step();
             int j = equivalenceLines[p];
             int s = binarySearch(candidates, j, r, k);
             if (s >= 0) {
@@ -213,12 +274,14 @@ final class HuntDiff {
      * The additions and deletions between the common lines; {@code common} counts lines from one,
      * the blocks from zero.
      */
-    private static List<Difference> differences(int[] common, int n, int m) {
+    private static List<Difference> differences(int[] common, int n, int m, Poll poll) {
         List<Difference> differences = new ArrayList<>();
         int start1 = 1;
         int start2 = 1;
         while (start1 <= n) {
+            poll.step();
             while (start1 <= n && common[start1] == start2) {
+                poll.step();
                 start1++;
                 start2++;
             }
@@ -229,6 +292,7 @@ final class HuntDiff {
                 // Lines the second text does not have.
                 int end1 = start1 + 1;
                 while (end1 <= n && common[end1] < start2) {
+                    poll.step();
                     end1++;
                 }
                 differences.add(new Difference(Difference.Kind.DELETE, start1 - 1, end1 - start1, start2 - 1, 0));
@@ -248,9 +312,10 @@ final class HuntDiff {
     }
 
     /** Makes one change of a deletion and the addition that takes its place. */
-    private static List<Difference> merged(List<Difference> differences) {
+    private static List<Difference> merged(List<Difference> differences, Poll poll) {
         List<Difference> merged = new ArrayList<>(differences.size());
         for (Difference difference : differences) {
+            poll.step();
             Difference last = merged.isEmpty() ? null : merged.getLast();
             if (last != null && last.kind() == Difference.Kind.DELETE
                     && difference.kind() == Difference.Kind.ADD

@@ -28,6 +28,7 @@ import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
 import org.netbeans.modules.nbfx.ide.vcs.model.VcsStatus;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 /** Which files the diff of a folder lists, and how it colours them. */
@@ -83,5 +84,135 @@ public class GitDiffTest {
 
     private static List<String> paths(String scope, VcsCompareMode mode) {
         return GitDiff.changedWithin(STATUS, scope, mode).stream().map(VcsFileStatus::path).toList();
+    }
+
+    @Test
+    public void theModeOfTheNextDiffIsTheOneTheUserChoseNotTheOneADiffWasOpenedIn() throws Exception {
+        java.util.prefs.Preferences preferences = org.openide.util.NbPreferences.forModule(GitDiff.class);
+        String before = preferences.get("diff.mode", null);
+        try {
+            preferences.remove("diff.mode");
+            assertEquals(VcsCompareMode.HEAD_VS_WORKING_TREE, GitDiff.lastMode());
+            java.nio.file.Path folder = java.nio.file.Files.createTempDirectory("nbfx-diff-mode");
+            try {
+                GitDiff.Provider provider = new GitDiff.Provider(folder, "a.txt", true);
+                // The three ways to compare, in their order, each told by what it compares.
+                assertEquals(java.util.List.of("HEAD_VS_WORKING_TREE", "HEAD_VS_INDEX", "INDEX_VS_WORKING_TREE"),
+                        provider.modes().stream().map(org.netbeans.modules.nbfx.ide.diff.DiffMode::id).toList());
+                assertEquals("HEAD_VS_INDEX", provider.mode(VcsCompareMode.HEAD_VS_INDEX).id());
+
+                // Listing in a mode - as a diff opened in it, compared again or restored does -
+                // leaves the mode of the next diff alone, whether it can be listed or not.
+                try {
+                    provider.entries(provider.mode(VcsCompareMode.INDEX_VS_WORKING_TREE), () -> false);
+                } catch (java.io.IOException noRepository) {
+                    // Not what is tested here.
+                }
+                assertEquals(VcsCompareMode.HEAD_VS_WORKING_TREE, GitDiff.lastMode());
+
+                // The user's choice of one is kept.
+                provider.modeChosen(provider.mode(VcsCompareMode.HEAD_VS_INDEX));
+                assertEquals(VcsCompareMode.HEAD_VS_INDEX, GitDiff.lastMode());
+            } finally {
+                java.nio.file.Files.delete(folder);
+            }
+        } finally {
+            if (before == null) {
+                preferences.remove("diff.mode");
+            } else {
+                preferences.put("diff.mode", before);
+            }
+        }
+    }
+
+    @Test
+    public void aFolderListsWhatTheModeListsUnderThePathsItListsThem() {
+        VcsFileStatus moved = new VcsFileStatus("b/Moved.java", "a/Moved.java", VcsChangeKind.RENAMED, null, false);
+        VcsFileStatus undone = new VcsFileStatus("b/Gone.java", "a/Gone.java", VcsChangeKind.RENAMED,
+                VcsChangeKind.DELETED, false);
+        VcsFileStatus copy = new VcsFileStatus("b/Copy.java", "a/Kept.java", VcsChangeKind.COPIED, null, false);
+        VcsFileStatus replaced = new VcsFileStatus("a/Back.java", null, VcsChangeKind.DELETED, null, false);
+        VcsFileStatus untracked = new VcsFileStatus("a/Back.java", null, null, VcsChangeKind.UNTRACKED, false);
+        VcsStatus status = new VcsStatus(List.of(moved, undone, copy, replaced, untracked));
+
+        for (VcsCompareMode mode : VcsCompareMode.values()) {
+            // Whatever the folder, never a file the mode does not list, and each under its path there.
+            List<String> all = GitDiff.changedWithin(status, "", mode).stream().map(file -> file.path(mode)).toList();
+            assertEquals(mode.name(), status.files(mode).stream().map(file -> file.path(mode)).sorted().toList(), all);
+        }
+        // Renamed in the index and deleted from disk: what is gone is the file the last commit has.
+        assertEquals(List.of("a/Back.java", "a/Gone.java", "b/Copy.java", "b/Moved.java"),
+                within(status, "", VcsCompareMode.HEAD_VS_WORKING_TREE));
+        // Out of the index with a file in its place: one row, not two.
+        assertEquals(1, GitDiff.changedWithin(status, "a", VcsCompareMode.HEAD_VS_WORKING_TREE).stream()
+                .filter(file -> file.path().equals("a/Back.java")).count());
+
+        // Moved to another folder: a change of the one it left and of the one it is in.
+        assertEquals(List.of("a/Back.java", "b/Gone.java", "b/Moved.java"),
+                within(status, "a", VcsCompareMode.HEAD_VS_INDEX));
+        assertEquals(List.of("b/Copy.java", "b/Gone.java", "b/Moved.java"),
+                within(status, "b", VcsCompareMode.HEAD_VS_INDEX));
+        // What it was copied from is no part of a copy: not listed in the folder of its source.
+        assertFalse(within(status, "a", VcsCompareMode.HEAD_VS_INDEX).contains("b/Copy.java"));
+        // Between the index and the disk nothing was renamed: by the path in the index alone.
+        assertEquals(List.of("a/Back.java"), within(status, "a", VcsCompareMode.INDEX_VS_WORKING_TREE));
+        assertEquals(List.of("b/Gone.java"), within(status, "b", VcsCompareMode.INDEX_VS_WORKING_TREE));
+
+        // In the last commit a renamed file is under its old name; a copied one is not in it at all.
+        assertEquals("a/Moved.java", GitDiff.headPath(moved, VcsCompareMode.HEAD_VS_INDEX));
+        assertEquals("a/Gone.java", GitDiff.headPath(undone, VcsCompareMode.HEAD_VS_WORKING_TREE));
+        assertEquals("b/Copy.java", GitDiff.headPath(copy, VcsCompareMode.HEAD_VS_INDEX));
+        assertEquals("a/Back.java", GitDiff.headPath(replaced, VcsCompareMode.HEAD_VS_INDEX));
+    }
+
+    private static List<String> within(VcsStatus status, String scope, VcsCompareMode mode) {
+        return GitDiff.changedWithin(status, scope, mode).stream().map(file -> file.path(mode)).toList();
+    }
+
+    @Test
+    public void theDiffOfOneFileHasNoTableAndTheOneOfAFolderHas() {
+        assertFalse(new GitDiff.Provider(Path.of("/repo"), "src/A.java", true).listed());
+        assertTrue(new GitDiff.Provider(Path.of("/repo"), "src", false).listed());
+    }
+
+    @Test
+    public void aSavedDiffIsOpenedAgainWhateverItsNameAndOnlyIfItIsReadWhole() throws Exception {
+        Path root = java.nio.file.Files.createTempDirectory("nbfx-diff-restore").toRealPath();
+        try {
+            java.nio.file.Files.createDirectory(root.resolve(".git"));
+            java.nio.file.Files.createDirectory(root.resolve("src"));
+            // A deleted file, and a name with a line break in it: the path is the rest of the state.
+            Path gone = root.resolve("src").resolve("two\nlines.txt");
+            assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, gone)));
+            assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.INDEX_VS_WORKING_TREE, false, root.resolve("src"))));
+
+            // Saved as a file, and a folder by now: not the diff that was saved.
+            assertFalse(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, root.resolve("src"))));
+
+            // A link to a folder is a file to git: the diff of it is restored.
+            Path link = root.resolve("link");
+            boolean linked = true;
+            try {
+                java.nio.file.Files.createSymbolicLink(link, root.resolve("src"));
+            } catch (UnsupportedOperationException | java.io.IOException ex) {
+                linked = false;
+            }
+            if (linked) {
+                try {
+                    assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, link)));
+                } finally {
+                    java.nio.file.Files.delete(link);
+                }
+            }
+
+            // Neither a file nor a folder; and a path that is not whole.
+            assertFalse(GitDiff.restore("HEAD_VS_INDEX\nlink\n" + root.resolve("src")));
+            assertFalse(GitDiff.restore("HEAD_VS_INDEX\nfolder\nsrc"));
+            assertFalse(GitDiff.restore("HEAD_VS_INDEX\nfolder\n" + root.resolve("src") + "\u0000"));
+        } finally {
+            java.nio.file.Files.delete(root.resolve("src"));
+            java.nio.file.Files.delete(root.resolve(".git"));
+            java.nio.file.Files.delete(root);
+        }
     }
 }

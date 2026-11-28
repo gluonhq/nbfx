@@ -26,15 +26,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.scene.input.KeyEvent;
+import javafx.beans.binding.Bindings;
 import javafx.application.Platform;
+import javafx.beans.value.ObservableValue;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.property.SimpleBooleanProperty;
-import javafx.beans.property.SimpleObjectProperty;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
@@ -55,9 +57,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
-import javafx.util.Subscription;
-import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.SavedDocument;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.util.NbBundle;
 import org.openide.util.RequestProcessor;
@@ -100,33 +101,46 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
     private final Button refresh = button(ToolIcons.REFRESH, "Diff.refresh");
     private final Button revertAll = button(DiffIcons.revertAll(), "Diff.revertAll");
-    /** The editor of the side edited in the diff shown; holds {@code null} when neither is. */
-    private final SimpleObjectProperty<EditorDocument> editor = new SimpleObjectProperty<>();
-    private final SimpleBooleanProperty modified = new SimpleBooleanProperty();
+    /** The editor of the side edited in the diff shown; of none while neither is. */
+    private final ReadOnlyObjectWrapper<EditorDocument> editor = new ReadOnlyObjectWrapper<>(this, "editor");
+    private final ReadOnlyBooleanWrapper modified = new ReadOnlyBooleanWrapper(this, "modified", false);
     /**
      * The editors of the files edited here and left without saving, kept though not shown: their
      * edits would be lost with the last editor of the file. Released when saved, or with the tab.
      */
     private final List<EditorDocument> unsaved = new ArrayList<>();
-    private Subscription edits = Subscription.EMPTY;
     /** The table over the diff, or {@code null} when the provider lists no files. */
     private SplitPane split;
     /** Whether the table was given the height of its rows: once, then it is the user's to size. */
     private boolean sized;
     private DiffMode mode;
+    /** Set while a mode is selected because it was asked for with the diff, not chosen by the user. */
+    private boolean settingMode;
     private DiffPane pane;
     /** Whether the diff shown last was on its Textual tab. */
     private boolean textual;
+    /** The editor the keyboard is in, or was in last, of the diff shown; of none while there is none. */
+    private final ReadOnlyObjectWrapper<EditorDocument> activeEditor = new ReadOnlyObjectWrapper<>(this, "activeEditor");
     /** Set while the table is filled: the selection is acted on once, when it is. */
     private boolean filling;
-    private long listing;
-    private long loading;
+    /** Counts what is asked of the provider: an answer to an earlier question is not shown, nor waited for. */
+    private final AtomicLong listing = new AtomicLong();
+    private final AtomicLong loading = new AtomicLong();
+    /** What is said in place of the table and the diff when there is no file to list. */
+    private final Label empty = new Label();
     /** What was asked off the FX thread and is not answered yet. */
     private int busy;
+    /** Whether anything is: what is shown may not be what there is, and says so. */
+    private final ReadOnlyBooleanWrapper waiting = new ReadOnlyBooleanWrapper(this, "waiting");
+    /**
+     * Where the keyboard waits for a diff, sent here while there was none to take it; {@code null}
+     * when it does not. The next diff takes it, if it is still there.
+     */
+    private Node parked;
 
     DiffBrowser(DiffProvider provider, DiffMode initial) {
         this.provider = Objects.requireNonNull(provider);
-        List<DiffMode> modes = provider.modes();
+        List<DiffMode> modes = modesOf(provider);
         mode = initial != null && modes.contains(initial) ? initial : modes.isEmpty() ? null : modes.getFirst();
         getStyleClass().add("diff-browser");
         getStylesheets().add(Objects.requireNonNull(DiffBrowser.class.getResource("diff.css")).toExternalForm());
@@ -141,7 +155,6 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             toggle.setTooltip(new Tooltip(offered.title()));
             toggle.setAccessibleText(offered.title());
             toggle.getStyleClass().add("diff-tool-button");
-            toggle.setFocusTraversable(false);
             toggle.setUserData(offered);
             toggle.setToggleGroup(group);
             toggle.setSelected(offered.equals(mode));
@@ -153,6 +166,14 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 group.selectToggle(was);
             } else if (!now.getUserData().equals(mode)) {
                 mode = (DiffMode) now.getUserData();
+                if (!settingMode) {
+                    // Chosen by the user, not asked for with the diff: what the provider may keep.
+                    try {
+                        provider.modeChosen(mode);
+                    } catch (RuntimeException ex) {
+                        LOG.log(Level.INFO, "The provider could not take the mode chosen", ex);
+                    }
+                }
                 refresh();
             }
         });
@@ -160,7 +181,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         if (!toggles.isEmpty()) {
             bar.getChildren().add(new Separator(Orientation.VERTICAL));
         }
-        if (provider.listed()) {
+        boolean listed = listed(provider);
+        if (listed) {
             ToggleGroup flavours = new ToggleGroup();
             listToggle.setToggleGroup(flavours);
             treeToggle.setToggleGroup(flavours);
@@ -185,14 +207,25 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 pane.revertAll();
             }
         });
+        // Of the file shown, as it is edited and saved; those left with edits tell of theirs.
+        editor.flatMap(EditorDocument::modifiedProperty).subscribe(now -> updateModified());
         previous.setOnAction(event -> fire(true));
         next.setOnAction(event -> fire(false));
         refresh.setOnAction(event -> refresh());
         setTop(bar);
+        // The keys of the next and the previous difference, wherever in the tab the keyboard is:
+        // in the table of the files and on the buttons as in the two texts.
+        addEventFilter(KeyEvent.KEY_PRESSED, event -> {
+            if (DiffPane.NEXT_KEY.match(event) || DiffPane.PREVIOUS_KEY.match(event)) {
+                fire(DiffPane.PREVIOUS_KEY.match(event));
+                event.consume();
+            }
+        });
 
         placeholder.getStyleClass().add("diff-placeholder");
         holder.getChildren().add(placeholder);
-        if (provider.listed()) {
+        empty.getStyleClass().add("diff-placeholder");
+        if (listed) {
             buildTable();
             split = new SplitPane(table, holder);
             split.setOrientation(Orientation.VERTICAL);
@@ -339,6 +372,27 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         return table;
     }
 
+    /**
+     * Compares as {@code asked} from now on, and compares again: the diff that is open was asked
+     * for again, in that way. The mode is one of another provider of the same diff, so it is told
+     * by its id; one the provider does not have, or {@code null}, leaves the mode as it is.
+     */
+    void show(DiffMode asked) {
+        ToggleButton toggle = asked == null ? null : toggles.stream()
+                .filter(offered -> ((DiffMode) offered.getUserData()).id().equals(asked.id())).findFirst().orElse(null);
+        if (toggle == null || toggle.isSelected()) {
+            refresh();
+            return;
+        }
+        settingMode = true;
+        try {
+            // Selecting it compares again, as the user's choice of it does.
+            toggle.setSelected(true);
+        } finally {
+            settingMode = false;
+        }
+    }
+
     /** The way to compare chosen, or {@code null} when the provider has none. */
     DiffMode mode() {
         return mode;
@@ -353,6 +407,10 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         return previous;
     }
 
+    Button nextButton() {
+        return next;
+    }
+
     Button refreshButton() {
         return refresh;
     }
@@ -362,9 +420,24 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         return pane;
     }
 
+    /** What is said in place of the diff while there is none: that it is on its way, or why not. */
+    String placeholderText() {
+        return placeholder.getText();
+    }
+
     /** The text beside the buttons: of the diff shown, or why there is none. */
     String summary() {
         return summary.getText();
+    }
+
+    private void busy(int change) {
+        busy += change;
+        waiting.set(busy > 0);
+    }
+
+    /** The provider the files and their texts are asked of. */
+    DiffProvider provider() {
+        return provider;
     }
 
     /** Whether the provider was asked and has not answered, or the texts of a file are being read. */
@@ -375,14 +448,29 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     /** Asks the provider again, and shows again the file that was selected if it is still there. */
     @Override
     public void refresh() {
-        long asked = ++listing;
+        long asked = listing.incrementAndGet();
+        // The texts being read are of the list before this one, and maybe of another mode: not shown.
+        loading.incrementAndGet();
         DiffMode compared = mode;
-        busy++;
+        busy(1);
+        if (pane == null) {
+            // Nothing shown yet, or nothing left to show: said to be on its way.
+            placeholder.setText(message("Diff.loading"));
+        }
         RP.post(() -> {
+            if (asked != listing.get()) {
+                // Asked again meanwhile, or closed: not asked of the provider at all.
+                Platform.runLater(() -> busy(-1));
+                return;
+            }
             List<DiffEntry> found;
             String failure = null;
             try {
-                found = List.copyOf(provider.entries(compared));
+                found = List.copyOf(provider.entries(compared, () -> asked != listing.get()));
+            } catch (CancellationException ex) {
+                // Given up because it is no longer wanted: nothing to show, nor to say.
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot list what differs", ex);
                 found = List.of();
@@ -391,27 +479,53 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             List<DiffEntry> entries = found;
             String why = failure;
             Platform.runLater(() -> {
-                busy--;
-                if (asked == listing) {
+                busy(-1);
+                if (asked == listing.get()) {
                     list(entries, why);
                 }
             });
         });
     }
 
+    /**
+     * To the text compared to of the diff shown. While there is none, to the table of the files -
+     * or to Refresh, where there is no table - and on to the diff when it comes.
+     */
+    @Override
+    public void focusEditor() {
+        if (pane != null) {
+            pane.focusEditor();
+        } else {
+            // No diff yet - asked for, or none to show: the keyboard waits where it can be used,
+            // and goes to the text compared to when there is one.
+            park();
+        }
+    }
+
+    @Override
+    public ObservableValue<EditorDocument> activeEditorProperty() {
+        return activeEditor.getReadOnlyProperty();
+    }
+
     @Override
     public SavedDocument savedState() {
-        return provider.savedState(mode);
+        try {
+            return provider.savedState(mode);
+        } catch (RuntimeException ex) {
+            // Asked as the session is kept: a provider that fails is not restored, and nothing else is lost.
+            LOG.log(Level.INFO, "The provider could not tell how to open its diff again", ex);
+            return null;
+        }
     }
 
     @Override
     public ObservableValue<EditorDocument> editorProperty() {
-        return editor;
+        return editor.getReadOnlyProperty();
     }
 
     @Override
     public ObservableValue<Boolean> modifiedProperty() {
-        return modified;
+        return modified.getReadOnlyProperty();
     }
 
     /** Writes the edits of the file shown and of those left without saving. */
@@ -427,10 +541,13 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 failed = failed == null ? ex : failed;
             }
         }
-        if (editor.get() != null) {
-            editor.get().save();
+        try {
+            if (pane != null) {
+                pane.save();
+            }
+        } finally {
+            updateModified();
         }
-        updateModified();
         if (failed != null) {
             throw failed;
         }
@@ -445,17 +562,6 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         return revertAll;
     }
 
-    @Override
-    public void dispose() {
-        listing++;
-        loading++;
-        show((DiffPane) null, "");
-        // The tab is closed: the user was asked, and what is left was not to be saved.
-        unsaved.forEach(EditorDocument::dispose);
-        unsaved.clear();
-        updateModified();
-    }
-
     private void updateModified() {
         EditorDocument shown = editor.get();
         modified.set(shown != null && shown.isModified() || unsaved.stream().anyMatch(EditorDocument::isModified));
@@ -467,7 +573,53 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             left.dispose();
         } else {
             unsaved.add(left);
-            left.modifiedProperty().subscribe(this::updateModified);
+            left.modifiedProperty().subscribe(now -> updateModified());
+        }
+    }
+
+    @Override
+    public void dispose() {
+        listing.incrementAndGet();
+        loading.incrementAndGet();
+        try {
+            show((DiffPane) null, "");
+        } finally {
+            // The tab is closed: the user was asked, and what is left was not to be saved.
+            List<EditorDocument> left = List.copyOf(unsaved);
+            unsaved.clear();
+            updateModified();
+            for (EditorDocument kept : left) {
+                try {
+                    kept.dispose();
+                } catch (RuntimeException ex) {
+                    LOG.log(Level.INFO, "An editor kept for its edits could not be released", ex);
+                }
+            }
+            try {
+                provider.dispose();
+            } catch (RuntimeException ex) {
+                LOG.log(Level.INFO, "The provider could not be released", ex);
+            }
+        }
+    }
+
+    /** The modes of {@code provider}; none for one that fails to tell. */
+    private static List<DiffMode> modesOf(DiffProvider provider) {
+        try {
+            return List.copyOf(provider.modes());
+        } catch (RuntimeException ex) {
+            LOG.log(Level.INFO, "The provider could not tell its ways to compare", ex);
+            return List.of();
+        }
+    }
+
+    /** Whether {@code provider} lists its files; it does, for one that fails to tell. */
+    private static boolean listed(DiffProvider provider) {
+        try {
+            return provider.listed();
+        } catch (RuntimeException ex) {
+            LOG.log(Level.INFO, "The provider could not tell whether it lists its files", ex);
+            return true;
         }
     }
 
@@ -489,11 +641,23 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 }
             });
         }
+        // With no file to list there is no table to show either: one line says so, or what failed.
+        if (split != null) {
+            empty.setText(failure != null ? failure : message("Diff.noChanges"));
+            boolean waitedInTable = parked == table && found.isEmpty();
+            setCenter(found.isEmpty() ? empty : split);
+            if (waitedInTable) {
+                // The table it waited in is gone with its files.
+                park();
+            }
+        }
         if (now == null) {
-            loading++;
+            loading.incrementAndGet();
             show((DiffPane) null, failure != null ? failure : message("Diff.noChanges"));
-        } else if (was == null || now != was) {
-            load(now);
+        } else {
+            // The file that was shown, compared again where it is; another one, in its place.
+            load(now, was != null && pane != null && now.name().equals(was.name())
+                    && now.location().equals(was.location()));
         }
     }
 
@@ -542,25 +706,48 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     }
 
     private void load(DiffEntry entry) {
-        long asked = ++loading;
-        busy++;
+        load(entry, false);
+    }
+
+    /**
+     * Reads the two texts of {@code entry} and shows them.
+     *
+     * @param inPlace whether they are the texts of the file shown, read again: the diff that is
+     *        there takes them, and stays where it is scrolled to, at the block it is at; else the
+     *        diff shown gives way at once to the word that another is on its way
+     */
+    private void load(DiffEntry entry, boolean inPlace) {
+        long asked = loading.incrementAndGet();
+        busy(1);
+        if (!inPlace) {
+            show((DiffPane) null, message("Diff.loading"));
+        }
         RP.post(() -> {
+            if (asked != loading.get()) {
+                Platform.runLater(() -> busy(-1));
+                return;
+            }
             DiffPair pair = null;
             try {
-                pair = entry.loader().load();
+                pair = entry.loader().load(() -> asked != loading.get());
+            } catch (CancellationException ex) {
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot read " + entry.location(), ex);
             }
             DiffPair read = pair;
             Platform.runLater(() -> {
-                busy--;
-                if (asked != loading) {
+                busy(-1);
+                if (asked != loading.get()) {
                     return;
                 }
                 if (read == null) {
                     show((DiffPane) null, message("Diff.failed"));
+                } else if (inPlace && pane != null) {
+                    pane.setSources(read.left(), read.right(), read.note());
                 } else {
-                    show(new DiffPane(read.left(), read.right(), false), "");
+                    show(new DiffPane(read.left(), read.right(), read.note(), false), "");
                 }
             });
         });
@@ -569,26 +756,29 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     /** Shows {@code shown} in place of the diff before, or {@code why} there is none. */
     private void show(DiffPane shown, String why) {
         if (pane != null) {
+            if (shown != pane && holds(pane)) {
+                // The keyboard was in the diff that goes: it waits for the one that comes.
+                park();
+            }
             // The next file is shown as this one was: side by side, or as a unified diff.
             textual = pane.isTextual();
             previous.disableProperty().unbind();
             next.disableProperty().unbind();
             summary.textProperty().unbind();
             revertAll.disableProperty().unbind();
-            edits.unsubscribe();
-            edits = Subscription.EMPTY;
+            editor.unbind();
+            editor.set(null);
+            // Edited and not saved: its editor is kept, or the edits would go with it.
             EditorDocument left = pane.disposeKeepingEdits();
             if (left != null) {
                 keep(left);
             }
         }
         pane = shown;
-        editor.set(pane == null ? null : pane.editor());
-        if (editor.get() != null) {
-            edits = editor.get().modifiedProperty().subscribe(this::updateModified);
-        }
         updateModified();
+        activeEditor.unbind();
         if (pane == null) {
+            activeEditor.set(null);
             previous.setDisable(true);
             next.setDisable(true);
             revertAll.setDisable(true);
@@ -596,13 +786,47 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             placeholder.setText(why);
             holder.getChildren().setAll(placeholder);
         } else {
-            previous.disableProperty().bind(pane.previousButton().disableProperty());
-            next.disableProperty().bind(pane.nextButton().disableProperty());
-            summary.textProperty().bind(pane.summaryProperty());
-            revertAll.disableProperty().bind(pane.revertAllButton().disableProperty());
+            DiffPane now = pane;
+            // While the provider is asked again or the texts are read again, what is shown is of
+            // before: said so beside the buttons, and not stepped through.
+            previous.disableProperty().bind(waiting.or(now.previousButton().disableProperty()));
+            next.disableProperty().bind(waiting.or(now.nextButton().disableProperty()));
+            summary.textProperty().bind(Bindings.createStringBinding(
+                    () -> waiting.get() ? message("Diff.loading") : now.summaryProperty().get(),
+                    waiting, now.summaryProperty()));
+            revertAll.disableProperty().bind(waiting.or(now.revertAllButton().disableProperty()));
+            editor.bind(now.editorProperty());
             pane.setTextual(textual);
+            activeEditor.bind(pane.activeEditorProperty());
             holder.getChildren().setAll(pane);
+            if (parked != null) {
+                Node waitedAt = parked;
+                parked = null;
+                Node owner = getScene() == null ? null : getScene().getFocusOwner();
+                // Still where it was left to wait: not where the user put it since.
+                if (getScene() != null && (owner == null || owner == waitedAt)) {
+                    pane.focusEditor();
+                }
+            }
         }
+    }
+
+    /** Whether the keyboard is in {@code part} of this diff. */
+    private boolean holds(Node part) {
+        Node owner = getScene() == null ? null : getScene().getFocusOwner();
+        while (owner != null && owner != part) {
+            owner = owner.getParent();
+        }
+        return owner != null;
+    }
+
+    /**
+     * Has the keyboard wait for the diff to come where it can be used meanwhile: in the table of
+     * the files, or on Refresh where no table is shown.
+     */
+    private void park() {
+        parked = split != null && getCenter() == split ? table : refresh;
+        parked.requestFocus();
     }
 
     private void fire(boolean back) {
@@ -710,7 +934,6 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         button.setTooltip(new Tooltip(message(key)));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");
-        button.setFocusTraversable(false);
         return button;
     }
 
@@ -724,7 +947,6 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         button.setTooltip(new Tooltip(message(key)));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");
-        button.setFocusTraversable(false);
         return button;
     }
 

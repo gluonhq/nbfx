@@ -20,15 +20,22 @@ package org.netbeans.modules.nbfx.ide.vcs;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 import javafx.scene.Node;
 import org.netbeans.api.nbfx.editor.FileIconProvider;
 import org.netbeans.api.nbfx.editor.SavedDocument;
+import org.netbeans.api.queries.FileEncodingQuery;
 import org.netbeans.modules.nbfx.ide.diff.DiffEntry;
 import org.netbeans.modules.nbfx.ide.diff.DiffMode;
 import org.netbeans.modules.nbfx.ide.diff.DiffPair;
@@ -52,12 +59,24 @@ import org.openide.util.lookup.ServiceProvider;
  * tab compares the last commit, the index and the working tree two by two, as the Git window does:
  * {@code HEAD} with the working tree at first, or the way asked for. Of a folder it lists the files
  * that differ, to choose from; of a file, that file alone, as NetBeans does.
+ * <p>
+ * Whatever is compared, both sides are read off the FX thread and by the same rules - no more than
+ * {@link #MOST_BYTES}, no binary file, no bytes that are no text in the charset of the file - into
+ * the snapshots the diff view shows and compares. A file that is on one side only is missing on
+ * the other, which is not the same as empty; a file that was renamed is compared with what it was
+ * called in the commit; a side that cannot be compared says why in the diff itself.
  *
  * @since 1.4
  */
 final class GitDiff {
 
     private static final String KEY_MODE = "diff.mode";
+    /** The largest file compared: beyond it a diff side by side is of no use, and slow to make. */
+    static final long MOST_BYTES = 8L << 20;
+
+    /** The two sides of the diff of a file between the last commit and the working tree, as read. */
+    record Sides(DiffSource head, DiffSource workingTree) {
+    }
 
     private GitDiff() {
     }
@@ -90,12 +109,30 @@ final class GitDiff {
         } catch (IllegalArgumentException ex) {
             return false;
         }
+        // The path is the last of the three, and whole: with the line breaks a name may have.
+        if (!"file".equals(lines[1]) && !"folder".equals(lines[1])) {
+            return false;
+        }
         boolean single = "file".equals(lines[1]);
-        Path target = Path.of(lines[2]);
+        Path target;
+        try {
+            target = Path.of(lines[2]);
+        } catch (InvalidPathException ex) {
+            return false;
+        }
+        if (!target.isAbsolute()) {
+            return false;
+        }
+        if (single && Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+            // What was a file is a folder by now: not the diff that was saved. A link to a folder
+            // is a file to git, and its diff is restored.
+            return false;
+        }
         // A file may be gone - deleted, its diff shows what it held - but not its folder.
         Path folder = single ? target.getParent() : target;
+        // Told from the .git entry of a parent, as the menu that leads to a diff does.
         Path root = folder == null || !folder.toFile().isDirectory() ? null
-                : GitStatusCache.getDefault().rootOf(folder).orElse(null);
+                : GitMenus.workingTreeOf(folder.toFile());
         if (root == null) {
             return false;
         }
@@ -144,7 +181,7 @@ final class GitDiff {
     static void open(FileObject file) {
         File onDisk = file == null ? null : FileUtil.toFile(file);
         File folder = onDisk == null ? null : file.isData() ? onDisk.getParentFile() : onDisk;
-        Path root = folder == null ? null : GitStatusCache.getDefault().rootOf(folder.toPath()).orElse(null);
+        Path root = folder == null ? null : GitMenus.workingTreeOf(folder);
         if (root == null) {
             return;
         }
@@ -171,10 +208,23 @@ final class GitDiff {
      */
     static List<VcsFileStatus> changedWithin(VcsStatus status, String scope, VcsCompareMode mode) {
         String prefix = scope.isEmpty() ? "" : scope + "/";
-        return status.files().stream()
-                .filter(file -> file.path().startsWith(prefix) && file.change(mode).isPresent())
-                .sorted(Comparator.comparing(VcsFileStatus::path))
+        // As the mode sees them: what the status view lists in it, under the paths it lists them.
+        return status.files(mode).stream()
+                .filter(file -> file.path(mode).startsWith(prefix)
+                        // Moved out of the folder: gone from it, which is a change of the folder.
+                        || mode != VcsCompareMode.INDEX_VS_WORKING_TREE && headPath(file, mode).startsWith(prefix))
+                .sorted(Comparator.comparing(file -> file.path(mode)))
                 .toList();
+    }
+
+    /**
+     * Where the last commit has the file {@code mode} lists as {@code file}: under the name it
+     * was renamed from, for a renamed one. A copy is a new file, with nothing in the last commit
+     * to compare it to, whatever it was copied from.
+     */
+    static String headPath(VcsFileStatus file, VcsCompareMode mode) {
+        boolean renamed = file.staged() == VcsChangeKind.RENAMED || file.unstaged() == VcsChangeKind.RENAMED;
+        return renamed && file.originalPath() != null ? file.originalPath() : file.path(mode);
     }
 
     /** How a diff view colours a file changed as {@code kind}. */
@@ -188,33 +238,51 @@ final class GitDiff {
     }
 
     /** What the diff tab of one file, or of a folder, of a repository shows. */
-    private static final class Provider implements DiffProvider {
-
-        private static final List<String> ICONS = List.of(GitIcons.HEAD_VS_WORKING_TREE, GitIcons.HEAD_VS_INDEX,
-                GitIcons.INDEX_VS_WORKING_TREE);
+    static final class Provider implements DiffProvider {
 
         private final Path root;
         private final String scope;
         private final boolean single;
-        private final List<DiffMode> modes = new ArrayList<>();
+        /** The ways to compare, by what they compare, in the order they are offered in. */
+        private final Map<VcsCompareMode, DiffMode> modes = new EnumMap<>(VcsCompareMode.class);
 
         Provider(Path root, String scope, boolean single) {
             this.root = root;
             this.scope = scope;
             this.single = single;
             for (VcsCompareMode mode : VcsCompareMode.values()) {
-                String icon = ICONS.get(mode.ordinal());
-                modes.add(new DiffMode(mode.name(), message("Git.mode." + mode.name()), () -> GitIcons.view(icon)));
+                String icon = modeIcon(mode);
+                modes.put(mode, new DiffMode(mode.name(), message("Git.mode." + mode.name()), () -> GitIcons.view(icon)));
             }
         }
 
+        private static String modeIcon(VcsCompareMode mode) {
+            return switch (mode) {
+                case HEAD_VS_WORKING_TREE -> GitIcons.HEAD_VS_WORKING_TREE;
+                case HEAD_VS_INDEX -> GitIcons.HEAD_VS_INDEX;
+                case INDEX_VS_WORKING_TREE -> GitIcons.INDEX_VS_WORKING_TREE;
+            };
+        }
+
         DiffMode mode(VcsCompareMode mode) {
-            return modes.get(mode.ordinal());
+            return modes.get(mode);
         }
 
         @Override
         public List<DiffMode> modes() {
-            return List.copyOf(modes);
+            return List.copyOf(modes.values());
+        }
+
+        /** The diff of one file is of that file: no table to choose it from. */
+        @Override
+        public boolean listed() {
+            return !single;
+        }
+
+        /** The mode the user chose is the one the next diff opened from a menu compares as. */
+        @Override
+        public void modeChosen(DiffMode chosen) {
+            NbPreferences.forModule(GitDiff.class).put(KEY_MODE, chosen.id());
         }
 
         @Override
@@ -224,29 +292,32 @@ final class GitDiff {
         }
 
         @Override
-        public List<DiffEntry> entries(DiffMode chosen) throws IOException {
+        public List<DiffEntry> entries(DiffMode chosen, BooleanSupplier cancelled) throws IOException {
             VcsCompareMode mode = VcsCompareMode.valueOf(chosen.id());
-            // Asked for as the diff opens, as a mode is chosen and on Refresh: the mode in use.
-            NbPreferences.forModule(GitDiff.class).put(KEY_MODE, mode.name());
-            VcsStatus status = GitClient.status(root);
+            VcsStatus status = GitClient.status(root, cancelled);
             if (single) {
                 // The file asked for, changed in this mode or not: the same on both sides then.
-                VcsFileStatus file = status.files().stream()
-                        .filter(changed -> changed.path().equals(scope)).findFirst().orElse(null);
+                VcsFileStatus file = status.files(mode).stream()
+                        .filter(changed -> changed.path(mode).equals(scope)).findFirst().orElse(null);
                 return List.of(entry(scope, file, mode));
             }
-            return changedWithin(status, scope, mode).stream().map(file -> entry(file.path(), file, mode)).toList();
+            return changedWithin(status, scope, mode).stream().map(file -> entry(file.path(mode), file, mode)).toList();
         }
 
         private DiffEntry entry(String path, VcsFileStatus file, VcsCompareMode mode) {
             String name = path.substring(path.lastIndexOf('/') + 1);
             VcsChangeKind kind = file == null ? null : file.change(mode).orElse(null);
-            // A renamed file is in the last commit under its old name.
-            String committed = file != null && file.originalPath() != null ? file.originalPath() : path;
+            // A renamed file is in the last commit under its old name; a copied one is not in it.
+            String committed = file == null ? path : headPath(file, mode);
             return new DiffEntry(name, path, kind == null ? "" : message("Git.kind." + kind.name()),
-                    entryKind(kind), () -> fileIcon(path), () -> new DiffPair(
-                            mode == VcsCompareMode.INDEX_VS_WORKING_TREE ? index(name, path) : head(name, committed),
-                            mode == VcsCompareMode.HEAD_VS_INDEX ? index(name, path) : workingTree(name, path)));
+                    entryKind(kind), () -> fileIcon(path),
+                    cancelled -> {
+                        // Not wanted before it starts: neither git nor the disk is asked anything.
+                        if (cancelled.getAsBoolean()) {
+                            throw new CancellationException();
+                        }
+                        return pair(root, path, committed, mode, workingCharset(root.resolve(path)), cancelled);
+                    });
         }
 
         /** The icon of the file on disk; none for one that is gone. */
@@ -255,33 +326,133 @@ final class GitDiff {
             FileObject file = onDisk.isFile() ? FileUtil.toFileObject(onDisk) : null;
             return file == null ? null : icon(file);
         }
-
-        /** A file the last commit does not have is compared as an empty one; so is one not in the index. */
-        private DiffSource head(String name, String path) throws IOException {
-            return new DiffSource(message("Git.diff.head"), inMemory(name, GitClient.headContent(root, path).orElse("")),
-                    path);
-        }
-
-        private DiffSource index(String name, String path) throws IOException {
-            return new DiffSource(message("Git.diff.index"), inMemory(name, GitClient.indexContent(root, path).orElse("")),
-                    path);
-        }
-
-        /** The file on disk, so that the diff shows it as it is saved; an empty one when it is gone. */
-        private DiffSource workingTree(String name, String path) throws IOException {
-            File onDisk = root.resolve(path).toFile();
-            FileObject file = onDisk.isFile() ? FileUtil.toFileObject(onDisk) : null;
-            return new DiffSource(message("Git.diff.workingTree"), file != null ? file : inMemory(name, ""), path);
-        }
     }
 
-    /** A file in memory named {@code name}, so that an editor colours it as the one on disk, holding {@code text}. */
-    static FileObject inMemory(String name, String text) throws IOException {
-        FileObject file = FileUtil.createMemoryFileSystem().getRoot().createData(name);
-        try (OutputStream out = file.getOutputStream()) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
+    /**
+     * The charset the text of {@code file} is in, in the working tree: the one the editor reads it
+     * in. A file that is gone - deleted, or only in the index - is taken to be in the charset the
+     * files beside it are in: what its project says of the nearest folder that is still there,
+     * and UTF-8 when nothing says. May read the disk: not for the FX thread.
+     */
+    static Charset workingCharset(Path file) {
+        for (Path at = file; at != null; at = at.getParent()) {
+            File onDisk = at.toFile();
+            if (at == file ? onDisk.isFile() : onDisk.isDirectory()) {
+                FileObject found = FileUtil.toFileObject(onDisk);
+                return found == null ? StandardCharsets.UTF_8 : FileEncodingQuery.getEncoding(found);
+            }
         }
-        return file;
+        return StandardCharsets.UTF_8;
+    }
+
+    /**
+     * Reads the two sides of the diff of a file as {@code mode} compares them. Reads the disk and
+     * runs git: not for the FX thread.
+     *
+     * @param root the root of the working tree
+     * @param path the path of the file relative to {@code root}, with {@code /} between its folders
+     * @param headPath its path in the last commit: {@code path}, or where it was renamed from
+     * @param mode which two of the last commit, the index and the working tree are compared
+     * @param working the charset of its text in the working tree
+     * @param cancelled whether the diff is no longer wanted
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static DiffPair pair(Path root, String path, String headPath, VcsCompareMode mode, Charset working,
+            BooleanSupplier cancelled) {
+        String name = path.substring(path.lastIndexOf('/') + 1);
+        boolean fromIndex = mode == VcsCompareMode.INDEX_VS_WORKING_TREE;
+        boolean toIndex = mode == VcsCompareMode.HEAD_VS_INDEX;
+        GitContent from = fromIndex ? index(root, path, working, cancelled) : head(root, headPath, working, cancelled);
+        GitContent to = toIndex ? index(root, path, working, cancelled)
+                : GitContentReader.workingTree(root.resolve(path), working, MOST_BYTES, cancelled);
+        DiffSource left = source(message(fromIndex ? "Git.diff.index" : "Git.diff.head"), name, from)
+                .withPath(fromIndex ? path : headPath);
+        DiffSource right = toIndex ? source(message("Git.diff.index"), name, to).withPath(path)
+                : workingTree(root, name, path, to);
+        return new DiffPair(left, right, modeNote(root, from, to, !toIndex, cancelled));
+    }
+
+    /**
+     * What to say of the modes of the two sides when they differ - a file made one that can be
+     * run, or a link - which their texts do not show; {@code null} when they are the same or one
+     * is not known. The mode of a file on disk counts only where git counts it.
+     */
+    static String modeNote(Path root, GitContent from, GitContent to, boolean onDisk, BooleanSupplier cancelled) {
+        if (!(from instanceof GitContent.Text before) || !(to instanceof GitContent.Text after)
+                || before.mode() == null || after.mode() == null || before.mode().equals(after.mode())) {
+            return null;
+        }
+        if (onDisk && !GitContentReader.LINK_MODE.equals(before.mode())
+                && !GitContentReader.LINK_MODE.equals(after.mode()) && !GitClient.tracksFileMode(root, cancelled)) {
+            // core.fileMode is off: whether the file can be run is not a change to git.
+            return null;
+        }
+        return NbBundle.getMessage(GitDiff.class, "Git.diff.mode", before.mode(), after.mode());
+    }
+
+    /** The two sides of the diff of {@code file} between the last commit and the working tree; see {@link #pair}. */
+    static Sides sides(Path root, Path file, String path, String headPath, Charset working,
+            BooleanSupplier cancelled) {
+        DiffPair pair = pair(root, path, headPath, VcsCompareMode.HEAD_VS_WORKING_TREE, working, cancelled);
+        return new Sides(pair.left(), pair.right());
+    }
+
+    /** What the last commit has of the file: in the charset git stores it in. */
+    private static GitContent head(Path root, String path, Charset working, BooleanSupplier cancelled) {
+        Charset stored = GitClient.storedCharset(root, path, working, true, cancelled);
+        return GitClient.headContent(root, path, stored, MOST_BYTES, cancelled);
+    }
+
+    /** What the index has of the file: what the next commit takes. */
+    private static GitContent index(Path root, String path, Charset working, BooleanSupplier cancelled) {
+        Charset stored = GitClient.storedCharset(root, path, working, false, cancelled);
+        return GitClient.indexContent(root, path, stored, MOST_BYTES, cancelled);
+    }
+
+    /**
+     * The working tree side: the file itself, to edit in the diff, when it is a file with a text
+     * on disk - not a link, which is where it points to and not what is there - and else what
+     * there is to show of it.
+     */
+    private static DiffSource workingTree(Path root, String name, String path, GitContent content) {
+        String title = message("Git.diff.workingTree");
+        if (content instanceof GitContent.Text text && !GitContentReader.LINK_MODE.equals(text.mode())) {
+            File onDisk = root.resolve(path).toFile();
+            FileObject file = onDisk.isFile() ? FileUtil.toFileObject(onDisk) : null;
+            if (file != null) {
+                return DiffSource.editable(title, file, text.text()).withPath(path);
+            }
+        }
+        return source(title, name, content).withPath(path);
+    }
+
+    /** The side of a diff for {@code content}: its text, no file, or why it cannot be compared. */
+    static DiffSource source(String title, String name, GitContent content) {
+        if (content instanceof GitContent.Text text) {
+            return DiffSource.of(title, name, text.text());
+        }
+        String problem = problem(content);
+        return problem == null ? DiffSource.missing(title, name) : DiffSource.unreadable(title, name, problem);
+    }
+
+    /**
+     * Why {@code content} is no text to compare, for the user to read; {@code null} for content
+     * that is one, or that is not there.
+     */
+    static String problem(GitContent content) {
+        return switch (content) {
+            case GitContent.Text text -> null;
+            case GitContent.Missing missing -> null;
+            case GitContent.Binary binary -> message("Git.diff.binary");
+            case GitContent.TooLarge large -> NbBundle.getMessage(GitDiff.class, "Git.diff.tooLarge", large.size(),
+                    large.limit());
+            case GitContent.Unmerged unmerged -> message("Git.diff.unmerged");
+            case GitContent.NotAFile other -> message("Git.diff.notAFile");
+            case GitContent.Malformed malformed -> NbBundle.getMessage(GitDiff.class, "Git.diff.malformed",
+                    malformed.charset());
+            case GitContent.Failed failed -> failed.message().isBlank() ? message("Git.diff.unreadable")
+                    : failed.message();
+        };
     }
 
     private static Node icon(FileObject file) {

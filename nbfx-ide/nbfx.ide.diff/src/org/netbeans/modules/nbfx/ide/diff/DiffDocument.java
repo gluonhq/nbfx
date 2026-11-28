@@ -18,10 +18,10 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import javafx.beans.binding.Bindings;
+import java.util.function.Consumer;
 import java.io.IOException;
 import java.util.Objects;
-import java.util.function.Consumer;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.ReadOnlyBooleanProperty;
 import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.value.ObservableValue;
@@ -33,12 +33,14 @@ import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.openide.filesystems.FileObject;
 
 /**
- * The document of a diff tab in the editor area: a {@link DiffPane} or a {@link DiffBrowser} that
- * the shell treats as it does an editor - a tab with a title, closed and moved like the others -
- * though it is the editor of no file. When the diff shown has a side that is edited, what is asked
- * of the tab - undo, paste, find - is handed to the editor of that side, and saving writes the
- * edits made in the diff; else there is nothing to save, undo or paste. It is told apart from
- * other diffs by its {@link #key()}.
+ * The document of a diff tab in the editor area: a {@link DiffPane} that the shell treats as it does
+ * an editor - a tab with a title, closed and moved like the others - though it is the editor of no
+ * file. It has nothing to save, undo or paste, and is told apart from other diffs by its
+ * {@link #key()}.
+ * <p>
+ * When the diff shown has a side that is edited, what changes a text - undo, cut, paste - is handed
+ * to the editor of that side, and saving writes the edits made in the diff; Copy and Find are of
+ * the text the keyboard is in, edited or not.
  */
 final class DiffDocument implements EditorDocument {
 
@@ -46,7 +48,11 @@ final class DiffDocument implements EditorDocument {
     private final String title;
     private final Region node;
     private final DiffContent content;
+    private final Runnable onDispose;
+    /** The editor of the side that is edited; of none while neither side is. */
     private final ObservableValue<EditorDocument> editor;
+    /** The editor the keyboard is in, or was in last. */
+    private final ObservableValue<EditorDocument> active;
     private final ReadOnlyBooleanWrapper modified = new ReadOnlyBooleanWrapper(this, "modified", false);
     private final ReadOnlyBooleanWrapper canUndo = new ReadOnlyBooleanWrapper(this, "canUndo", false);
     private final ReadOnlyBooleanWrapper canRedo = new ReadOnlyBooleanWrapper(this, "canRedo", false);
@@ -54,16 +60,24 @@ final class DiffDocument implements EditorDocument {
     private final ReadOnlyBooleanWrapper editable = new ReadOnlyBooleanWrapper(this, "editable", false);
 
     <T extends Region & DiffContent> DiffDocument(Object key, String title, T content) {
+        this(key, title, content, () -> { });
+    }
+
+    /** @param onDispose run when the tab of the diff is closed */
+    <T extends Region & DiffContent> DiffDocument(Object key, String title, T content, Runnable onDispose) {
         this.key = Objects.requireNonNull(key);
         this.title = Objects.requireNonNull(title);
         this.node = Objects.requireNonNull(content);
         this.content = content;
+        this.onDispose = Objects.requireNonNull(onDispose);
         editor = content.editorProperty();
+        active = content.activeEditorProperty();
         ObservableValue<Boolean> unsaved = content.modifiedProperty();
         modified.bind(unsaved.orElse(false));
         canUndo.bind(editor.flatMap(EditorDocument::canUndoProperty).orElse(false));
         canRedo.bind(editor.flatMap(EditorDocument::canRedoProperty).orElse(false));
-        hasSelection.bind(editor.flatMap(EditorDocument::hasSelectionProperty).orElse(false));
+        // Of the text the keyboard is in, or was last: what Copy takes.
+        hasSelection.bind(active.flatMap(EditorDocument::hasSelectionProperty).orElse(false));
         // Edits kept of a file no longer shown can be saved as well: the tab is not a locked one.
         ObservableValue<Boolean> accepts = editor.flatMap(EditorDocument::editableProperty).orElse(false);
         editable.bind(Bindings.createBooleanBinding(
@@ -79,16 +93,16 @@ final class DiffDocument implements EditorDocument {
         return content;
     }
 
-    /** No file: a diff is not the editor of either of the two it shows. */
-    @Override
-    public FileObject getFileObject() {
-        return null;
-    }
-
     /** As its content says: a diff of what a provider has can be opened again, one of two texts cannot. */
     @Override
     public SavedDocument getSavedState() {
         return content.savedState();
+    }
+
+    /** No file: a diff is not the editor of either of the two it shows. */
+    @Override
+    public FileObject getFileObject() {
+        return null;
     }
 
     @Override
@@ -111,6 +125,7 @@ final class DiffDocument implements EditorDocument {
         return modified.getReadOnlyProperty();
     }
 
+    /** Writes the edits made in the diff to their files. */
     @Override
     public void save() throws IOException {
         content.save();
@@ -133,19 +148,31 @@ final class DiffDocument implements EditorDocument {
         edited(EditorDocument::redo);
     }
 
+    /** Copies what is selected in the text the keyboard is in, edited or only shown. */
     @Override
     public void copy() {
-        edited(EditorDocument::copy);
+        active(EditorDocument::copy);
     }
 
     @Override
+    public String getSelectedText() {
+        EditorDocument in = active.getValue();
+        return in == null ? "" : in.getSelectedText();
+    }
+
+    /** Only of the text that is edited, and only while the keyboard is in it. */
+    @Override
     public void cut() {
-        edited(EditorDocument::cut);
+        if (editor.getValue() != null && editor.getValue() == active.getValue()) {
+            editor.getValue().cut();
+        }
     }
 
     @Override
     public void paste() {
-        edited(EditorDocument::paste);
+        if (editor.getValue() != null && editor.getValue() == active.getValue()) {
+            editor.getValue().paste();
+        }
     }
 
     @Override
@@ -161,12 +188,6 @@ final class DiffDocument implements EditorDocument {
     @Override
     public ReadOnlyBooleanProperty hasSelectionProperty() {
         return hasSelection.getReadOnlyProperty();
-    }
-
-    @Override
-    public String getSelectedText() {
-        EditorDocument edited = editor.getValue();
-        return edited == null ? "" : edited.getSelectedText();
     }
 
     @Override
@@ -189,9 +210,10 @@ final class DiffDocument implements EditorDocument {
         edited(edited -> edited.setLineSeparator(separator));
     }
 
+    /** Find is of the text the keyboard is in: either side can be searched, the edited one replaced in. */
     @Override
     public void showFind() {
-        edited(EditorDocument::showFind);
+        active(EditorDocument::showFind);
     }
 
     @Override
@@ -201,38 +223,50 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public void findNext() {
-        edited(EditorDocument::findNext);
+        active(EditorDocument::findNext);
     }
 
     @Override
     public void findPrevious() {
-        edited(EditorDocument::findPrevious);
+        active(EditorDocument::findPrevious);
     }
 
     @Override
     public void findSelection() {
-        edited(EditorDocument::findSelection);
+        active(EditorDocument::findSelection);
     }
 
     @Override
     public void requestFocus() {
-        EditorDocument edited = editor.getValue();
-        if (edited != null) {
-            edited.requestFocus();
-        } else {
-            node.requestFocus();
-        }
+        content.focusEditor();
     }
 
     @Override
     public void dispose() {
-        content.dispose();
+        modified.unbind();
+        canUndo.unbind();
+        canRedo.unbind();
+        hasSelection.unbind();
+        editable.unbind();
+        try {
+            content.dispose();
+        } finally {
+            // Forgotten whatever became of its editors: a closed diff is not the one asked for again.
+            onDispose.run();
+        }
     }
 
     private void edited(Consumer<EditorDocument> action) {
         EditorDocument edited = editor.getValue();
         if (edited != null) {
             action.accept(edited);
+        }
+    }
+
+    private void active(Consumer<EditorDocument> action) {
+        EditorDocument in = active.getValue();
+        if (in != null) {
+            action.accept(in);
         }
     }
 }

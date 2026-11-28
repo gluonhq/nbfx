@@ -91,9 +91,10 @@
                     </test-dependency>
                 </test-type>
             </test-dependencies>
-            <public-packages>
+            <friend-packages>
+                <friend>org.netbeans.modules.nbfx.ide.vcs</friend>
                 <package>org.netbeans.modules.nbfx.ide.diff</package>
-            </public-packages>
+            </friend-packages>
         </data>
     </configuration>
 </project>

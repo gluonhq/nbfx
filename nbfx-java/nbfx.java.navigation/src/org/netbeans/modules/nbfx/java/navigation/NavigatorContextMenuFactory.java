@@ -84,6 +84,15 @@ final class NavigatorContextMenuFactory<T> {
         }
 
         /**
+         * The files {@code item} lists when it is a group of chosen files and not a folder - the
+         * project files of a project, some of them from folders below its own - or {@code null}
+         * when it stands for its folder. The version control badge of a group is for these files.
+         */
+        default List<FileObject> listedFiles(TreeItem<T> item) {
+            return null;
+        }
+
+        /**
          * What {@code item} is, for the first line of its tooltip: the name of its file, unless the
          * view has more to say.
          */

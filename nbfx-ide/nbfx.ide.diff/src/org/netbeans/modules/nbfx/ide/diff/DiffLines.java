@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
+import org.openide.util.NbBundle;
 
 /**
  * What the two editors of a diff view need of the differences, without a toolkit: the bands that
@@ -81,34 +82,60 @@ final class DiffLines {
      * moves the other without a jump.
      */
     static double toRight(List<Difference> differences, double left) {
-        int shift = 0;
-        for (Difference difference : differences) {
-            if (left < difference.leftStart()) {
-                break;
-            }
-            if (left < difference.leftEnd()) {
-                return difference.rightStart()
-                        + (left - difference.leftStart()) * difference.rightCount() / difference.leftCount();
-            }
-            shift = difference.rightEnd() - difference.leftEnd();
-        }
-        return Math.max(0, left + shift);
+        return beside(differences, left, true);
     }
 
     /** The place in the left text beside place {@code right} of the right one; see {@link #toRight}. */
     static double toLeft(List<Difference> differences, double right) {
+        return beside(differences, right, false);
+    }
+
+    /**
+     * The place on the other side beside {@code place} of this one - the left one with
+     * {@code fromLeft}, else the right one.
+     * <p>
+     * A block this side has no lines of - lines added on the other, seen from here - cannot be
+     * passed line by line: there is no line here to scroll through while the other side goes
+     * through them. Passed in no time, the other side would jump by the whole block. So the line
+     * next to where they would go - the one above, or the one below at the top of the text or
+     * right after another block - takes them along: while it is scrolled through, the other side
+     * goes through its own line and the lines of the block, at the pace that takes.
+     */
+    private static double beside(List<Difference> differences, double place, boolean fromLeft) {
         int shift = 0;
-        for (Difference difference : differences) {
-            if (right < difference.rightStart()) {
+        for (int i = 0; i < differences.size(); i++) {
+            Difference difference = differences.get(i);
+            int start = fromLeft ? difference.leftStart() : difference.rightStart();
+            int count = fromLeft ? difference.leftCount() : difference.rightCount();
+            int otherStart = fromLeft ? difference.rightStart() : difference.leftStart();
+            int otherCount = fromLeft ? difference.rightCount() : difference.leftCount();
+            if (count == 0) {
+                Difference above = i == 0 ? null : differences.get(i - 1);
+                int aboveEnd = above == null ? 0 : fromLeft ? above.leftEnd() : above.rightEnd();
+                // A line of its own above it, in no block: that one takes the lines along.
+                boolean lineAbove = start > 0 && aboveEnd < start;
+                if (lineAbove && place >= start - 1 && place < start) {
+                    return start - 1 + shift + (place - (start - 1)) * (otherCount + 1);
+                }
+                if (place < start) {
+                    break;
+                }
+                if (!lineAbove && place < start + 1) {
+                    // Else the line below, which the block is passed with.
+                    return otherStart + (place - start) * (otherCount + 1);
+                }
+                shift = otherStart + otherCount - start;
+                continue;
+            }
+            if (place < start) {
                 break;
             }
-            if (right < difference.rightEnd()) {
-                return difference.leftStart()
-                        + (right - difference.rightStart()) * difference.leftCount() / difference.rightCount();
+            if (place < start + count) {
+                return otherStart + (place - start) * otherCount / count;
             }
-            shift = difference.leftEnd() - difference.rightEnd();
+            shift = otherStart + otherCount - (start + count);
         }
-        return Math.max(0, right + shift);
+        return Math.max(0, place + shift);
     }
 
     /** Where in a right text of {@code lineCount} lines the block starts, from 0 at its top to 1. */
@@ -122,16 +149,67 @@ final class DiffLines {
     }
 
     /**
+     * The block that is at, or nearest below, line {@code rightLine} of the right text; the last
+     * one when they are all above it. For a comparison made again: the block the view was at is
+     * found by where it was, not by its number, which another block coming or going changes.
+     */
+    static int blockAt(List<Difference> differences, int rightLine) {
+        for (int i = 0; i < differences.size(); i++) {
+            Difference difference = differences.get(i);
+            if (difference.rightStart() >= rightLine || difference.rightEnd() > rightLine) {
+                return i;
+            }
+        }
+        return differences.size() - 1;
+    }
+
+    /**
      * The block to go to from block {@code current} of {@code count}: the next one, or with
-     * {@code forward} false the one before; the same one at either end, and -1 when there is none.
+     * {@code forward} false the one before; the same one at either end - there is no going round -
+     * and from no block ({@code current} below zero) the first one going forward, the last one
+     * going back; -1 when there is none.
      */
     static int step(int current, int count, boolean forward) {
         if (count <= 0) {
             return -1;
         }
+        if (current < 0) {
+            // From no block: the first one going down, the last one going up.
+            return forward ? 0 : count - 1;
+        }
         return Math.clamp(current + (forward ? 1 : -1), 0, count - 1);
     }
 
+    /** What happened to the lines of the left text, block by block, in words: "Lines 3 to 4 changed". */
+    static List<String> describeLeft(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> NbBundle.getMessage(DiffLines.class, "Diff.told.addedAfter", difference.leftStart());
+                case DELETE -> lines("Diff.told.deleted", difference.leftStart(), difference.leftCount());
+                case CHANGE -> lines("Diff.told.changed", difference.leftStart(), difference.leftCount());
+            });
+        }
+        return told;
+    }
+
+    /** What happened to the lines of the right text, block by block, in words. */
+    static List<String> describeRight(List<Difference> differences) {
+        List<String> told = new ArrayList<>();
+        for (Difference difference : differences) {
+            told.add(switch (difference.kind()) {
+                case ADD -> lines("Diff.told.added", difference.rightStart(), difference.rightCount());
+                case DELETE -> NbBundle.getMessage(DiffLines.class, "Diff.told.deletedAfter", difference.rightStart());
+                case CHANGE -> lines("Diff.told.changed", difference.rightStart(), difference.rightCount());
+            });
+        }
+        return told;
+    }
+
+    /** The message of {@code key} for {@code count} lines from {@code start}, counted from one for the reader. */
+    private static String lines(String key, int start, int count) {
+        return NbBundle.getMessage(DiffLines.class, key, start + 1, start + count, count);
+    }
 
     /**
      * The bands of a unified diff, by the first character of its {@code lines}: each run of lines
@@ -143,7 +221,9 @@ final class DiffLines {
         int start = 0;
         String running = null;
         for (int i = 0; i <= lines.size(); i++) {
-            String kind = i < 2 || i == lines.size() ? null : unifiedKind(lines.get(i));
+            String kind = i < 2 || i == lines.size() ? null
+                    // What is said of the line before - that it has no line ending - is part of it.
+                    : lines.get(i).startsWith("\\") ? running : unifiedKind(lines.get(i));
             if (!Objects.equals(kind, running)) {
                 if (running != null) {
                     bands.add(new LineBand(start, i - start, running));
@@ -153,6 +233,19 @@ final class DiffLines {
             }
         }
         return bands;
+    }
+
+    /**
+     * How many lines of a unified diff the block that starts at {@code start} takes: its lines
+     * deleted and added, with what is said of their end.
+     */
+    static int unifiedBlockLength(List<String> lines, int start) {
+        int end = start;
+        while (end < lines.size() && (lines.get(end).startsWith("-") || lines.get(end).startsWith("+")
+                || lines.get(end).startsWith("\\"))) {
+            end++;
+        }
+        return end - start;
     }
 
     /**
@@ -200,5 +293,30 @@ final class DiffLines {
 
     private static String unifiedKind(String line) {
         return line.startsWith("+") ? ADDED : line.startsWith("-") ? DELETED : line.startsWith("@@") ? CHANGED : null;
+    }
+
+    /**
+     * How the lines of {@code text} end, as it is named: {@code LF}, {@code CRLF}, {@code CR},
+     * {@code mixed} for more than one of them, or {@code none} for a text of one line.
+     */
+    static String lineEnding(String text) {
+        boolean lf = false;
+        boolean crlf = false;
+        boolean cr = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n') {
+                lf = true;
+            } else if (c == '\r') {
+                if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                    crlf = true;
+                    i++;
+                } else {
+                    cr = true;
+                }
+            }
+        }
+        int kinds = (lf ? 1 : 0) + (crlf ? 1 : 0) + (cr ? 1 : 0);
+        return kinds > 1 ? "mixed" : lf ? "LF" : crlf ? "CRLF" : cr ? "CR" : "none";
     }
 }
