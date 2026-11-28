@@ -35,6 +35,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
@@ -47,6 +48,7 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Subscription;
@@ -57,6 +59,7 @@ import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.diff.UnifiedDiff;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
+import org.netbeans.api.nbfx.editor.LineBand;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
@@ -89,6 +92,8 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** The lines kept in view above the block gone to. */
     private static final int CONTEXT_LINES = 3;
 
+    /** The most lines that differ that are written as a unified diff; more are said to be too many. */
+    static final long MOST_TEXTUAL_LINES = 100_000;
     /** No unified diff: nothing compared yet, or nothing that can be. */
     private static final UnifiedDiff NO_UNIFIED = new UnifiedDiff("", List.of());
 
@@ -113,6 +118,8 @@ final class DiffPane extends BorderPane implements DiffContent {
     private int currentLine = -1;
     /** Whether a comparison was asked for and its blocks are not shown yet. */
     private boolean comparing;
+    /** Whether what is shown is how the two sides compare: not while they are compared, nor after that failed. */
+    private boolean compared;
     private final ToggleButton graphicalTab = tab("Diff.graphical");
     private final ToggleButton textualTab = tab("Diff.textual");
     /** The two texts side by side, or the unified diff: what the tab chosen shows. */
@@ -121,8 +128,21 @@ final class DiffPane extends BorderPane implements DiffContent {
     private Node sides;
     private EditorDocument left;
     private EditorDocument right;
-    /** The differences as a unified diff; what the Textual tab shows. */
+    /**
+     * The differences as a unified diff, which the Textual tab shows: written when that tab is
+     * first shown after a comparison, not with each comparison - until then, none.
+     */
     private UnifiedDiff unified = NO_UNIFIED;
+    /** Whether {@link #unified} is of the differences shown, and whether it is being written. */
+    private boolean unifiedWritten;
+    private boolean unifiedWriting;
+    /** Why there is no unified diff to show though the texts differ, for the user; {@code null} when there is. */
+    private String unifiedProblem;
+    /** The lines and the bands of the unified diff in its editor, by which the current block is marked. */
+    private List<String> textualLines = List.of();
+    private List<LineBand> textualBands = List.of();
+    /** What the Textual tab says while it has no text to show. */
+    private final Label textualNote = notice("");
     /** The editor of the unified diff, made when the Textual tab is first shown and after each comparison. */
     private EditorDocument textual;
     private List<Difference> differences = List.of();
@@ -212,9 +232,14 @@ final class DiffPane extends BorderPane implements DiffContent {
 
     /** As {@link #setSources(DiffSource, DiffSource)}, with what else differs between the two, or {@code null}. */
     void setSources(DiffSource left, DiffSource right, String note) {
-        this.note = note;
         // Sides that show the same keep their editors, and where they are scrolled to.
         boolean same = left.equals(leftSource) && right.equals(rightSource);
+        if (same && Objects.equals(note, this.note) && compared) {
+            // Asked for again, and nothing is other than it was: what is shown is what there is
+            // to show - the blocks, the block the view is at, the unified diff - and stays.
+            return;
+        }
+        this.note = note;
         leftSource = Objects.requireNonNull(left);
         rightSource = Objects.requireNonNull(right);
         if (!same) {
@@ -259,8 +284,7 @@ final class DiffPane extends BorderPane implements DiffContent {
             }
         }
         // The unified diff was of the texts that were: none until these are compared.
-        unified = NO_UNIFIED;
-        dropTextual();
+        forgetUnified();
         if (failure != null) {
             sides = notice(failure);
             place();
@@ -342,9 +366,30 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
-    /** The differences as a unified diff: what the Textual tab shows. Empty until compared, and when the same. */
+    /**
+     * The differences as a unified diff: what the Textual tab shows. Empty until compared, and
+     * when the same. Written here and now if it was not yet; for tests.
+     */
     String unified() {
+        if (!unifiedWritten && !comparing) {
+            try {
+                unified = write(leftSource, rightSource, differences);
+            } catch (IllegalStateException tooLarge) {
+                unified = NO_UNIFIED;
+            }
+            unifiedWritten = true;
+        }
         return unified.text();
+    }
+
+    /** Whether the unified diff is being written for the Textual tab; for tests. */
+    boolean isWritingUnified() {
+        return unifiedWriting;
+    }
+
+    /** What the Textual tab says in place of a text, or {@code null} while it shows one; for tests. */
+    String textualNote() {
+        return content.getChildren().contains(textualNote) ? textualNote.getText() : null;
     }
 
     /** Whether the Textual tab is the one shown. */
@@ -429,47 +474,46 @@ final class DiffPane extends BorderPane implements DiffContent {
     @Override
     public void refresh() {
         long asked = comparison.incrementAndGet();
+        compared = false;
         DiffSource from = leftSource;
         DiffSource to = rightSource;
         String noted = note;
         if (!from.isComparable() || !to.isComparable()) {
             // Nothing to compare: said, with the side it is of, and not shown as no difference.
             DiffSource unreadable = from.isComparable() ? to : from;
-            show(List.of(), NO_UNIFIED, 1, NbBundle.getMessage(DiffPane.class, "Diff.unreadable", unreadable.title(),
+            show(List.of(), 1, NbBundle.getMessage(DiffPane.class, "Diff.unreadable", unreadable.title(),
                     unreadable.problem()));
+            compared = true;
             return;
         }
         summary.setText(message("Diff.loading"));
         comparing = true;
         RP.post(() -> {
             DiffResult result;
-            UnifiedDiff text;
             int rightLines;
             try {
                 if (asked != comparison.get()) {
                     return;
                 }
-                List<String> left = from.lines();
                 List<String> right = to.lines();
                 // A text that is not there has no line, and is marked along its whole edge as one.
                 rightLines = Math.max(1, right.size());
-                result = Diff.compute(left, right, DiffOptions.EXACT, () -> asked != comparison.get());
-                text = UnifiedDiff.of(from.unifiedName("a/"), to.unifiedName("b/"), left, right,
-                        result.differences(), UnifiedDiff.DEFAULT_CONTEXT);
+                result = Diff.compute(from.lines(), right, DiffOptions.EXACT, () -> asked != comparison.get());
             } catch (CancellationException ex) {
                 return;
             } catch (RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot compare " + from.title() + " and " + to.title(), ex);
                 Platform.runLater(() -> {
                     if (asked == comparison.get()) {
-                        show(List.of(), NO_UNIFIED, 1, message("Diff.failed"));
+                        show(List.of(), 1, message("Diff.failed"));
                     }
                 });
                 return;
             }
             Platform.runLater(() -> {
                 if (asked == comparison.get()) {
-                    show(result.differences(), text, rightLines, told(from, to, result.differences(), noted));
+                    show(result.differences(), rightLines, told(from, to, result.differences(), noted));
+                    compared = true;
                 }
             });
         });
@@ -535,6 +579,7 @@ final class DiffPane extends BorderPane implements DiffContent {
         next.setDisable(current < 0 || current >= differences.size() - 1);
         connectors.setCurrent(current);
         overview.setCurrent(current);
+        markTextual();
         if (current >= 0 && isTextual()) {
             if (textual != null && current < unified.differenceLines().size()) {
                 textual.scrollToParagraph(Math.max(0, unified.differenceLines().get(current) - CONTEXT_LINES));
@@ -556,18 +601,17 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
-    private void show(List<Difference> found, UnifiedDiff asText, int rightLines, String text) {
+    private void show(List<Difference> found, int rightLines, String text) {
         // Where the block the view was at starts, in the right text: by which it is found again.
         int at = currentLine;
         comparing = false;
         differences = found;
-        unified = asText;
+        summary.setText(text);
         // Of the texts as they were compared before: written again, now if its tab is the one shown.
-        dropTextual();
+        forgetUnified();
         if (isTextual()) {
             place();
         }
-        summary.setText(text);
         // Said, not only shown: how the comparison ended, and on each side which lines differ and
         // how - the colour of a band tells nobody who does not see it.
         summary.setAccessibleText(text);
@@ -596,9 +640,23 @@ final class DiffPane extends BorderPane implements DiffContent {
     private void place() {
         if (isTextual()) {
             if (textual == null) {
-                textual = unifiedEditor();
+                // No text to show, or not yet: said in its place, never an empty editor.
+                if (comparing || !unifiedWritten) {
+                    textualNote.setText(message("Diff.loading"));
+                    if (!comparing) {
+                        writeUnified();
+                    }
+                } else if (unifiedProblem != null) {
+                    textualNote.setText(unifiedProblem);
+                } else if (unified.text().isEmpty()) {
+                    // Nothing differs, or nothing can be compared: what the line above says of it.
+                    textualNote.setText(summary.getText());
+                } else {
+                    textual = unifiedEditor();
+                    textualNote.setText(message("Diff.textual.failed"));
+                }
             }
-            content.getChildren().setAll(textual != null ? textual.getNode() : notice(""));
+            content.getChildren().setAll(textual != null ? textual.getNode() : textualNote);
             // Copy is of the text shown.
             activeEditor.set(textual);
         } else {
@@ -607,6 +665,72 @@ final class DiffPane extends BorderPane implements DiffContent {
             }
             activeEditor.set(right != null ? right : left);
         }
+    }
+
+    /**
+     * Writes the unified diff of the differences shown, off the FX thread, and shows it if its
+     * tab is still the one chosen; once for a comparison, and not for one that was made again
+     * meanwhile.
+     */
+    private void writeUnified() {
+        if (unifiedWriting) {
+            return;
+        }
+        unifiedWriting = true;
+        long asked = comparison.get();
+        DiffSource from = leftSource;
+        DiffSource to = rightSource;
+        List<Difference> found = differences;
+        RP.post(() -> {
+            UnifiedDiff written = NO_UNIFIED;
+            String problem = null;
+            try {
+                written = write(from, to, found);
+            } catch (IllegalStateException tooLarge) {
+                problem = tooLarge.getMessage();
+            } catch (RuntimeException ex) {
+                LOG.log(Level.INFO, "Cannot write the unified diff of " + from.title() + " and " + to.title(), ex);
+                problem = message("Diff.textual.failed");
+            }
+            UnifiedDiff text = written;
+            String why = problem;
+            Platform.runLater(() -> {
+                unifiedWriting = false;
+                if (asked == comparison.get() && !comparing) {
+                    unified = text;
+                    unifiedProblem = why;
+                    unifiedWritten = true;
+                }
+                // Of a comparison made again meanwhile: asked for again, if still wanted.
+                if (isTextual()) {
+                    place();
+                    if (current >= 0) {
+                        select(current);
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * The unified diff of {@code found} between the two sides, named as git names them.
+     *
+     * @throws IllegalStateException when more lines differ than are shown as text, with what to
+     *         tell the user for a message
+     */
+    private static UnifiedDiff write(DiffSource from, DiffSource to, List<Difference> found) {
+        if (!from.isComparable() || !to.isComparable() || found.isEmpty()) {
+            return NO_UNIFIED;
+        }
+        long changed = 0;
+        for (Difference difference : found) {
+            changed += difference.leftCount() + difference.rightCount();
+        }
+        if (changed > MOST_TEXTUAL_LINES) {
+            throw new IllegalStateException(NbBundle.getMessage(DiffPane.class, "Diff.textual.tooLarge", changed));
+        }
+        return UnifiedDiff.of(from.unifiedName("a/"), to.unifiedName("b/"), from.lines(), to.lines(), found,
+                UnifiedDiff.DEFAULT_CONTEXT);
     }
 
     /**
@@ -623,14 +747,44 @@ final class DiffPane extends BorderPane implements DiffContent {
             EditorDocument editor = editors.createPreviewDocument(
                     inMemory(rightSource.fileName() + ".diff", unified.text()));
             editor.showBreadcrumbsProperty().set(false);
-            editor.setLineBands(DiffLines.unifiedBands(Diff.lines(unified.text())));
-            editor.getNode().getStyleClass().add("diff-textual");
+            textualLines = Diff.lines(unified.text());
+            textualBands = DiffLines.unifiedBands(textualLines);
+            editor.setLineBands(textualBands);
             editor.getNode().setAccessibleText(message("Diff.textual"));
             return editor;
         } catch (IOException | RuntimeException ex) {
             LOG.log(Level.INFO, "Cannot show the unified diff", ex);
             return null;
         }
+    }
+
+    /**
+     * Marks, in the unified diff, the bands of the block the view is at with the style class the
+     * two sides mark theirs with, so that "2/5" is a block one sees there too.
+     */
+    private void markTextual() {
+        if (textual == null || !(textual.getNode().lookup(".line-bands") instanceof Parent overlay)) {
+            return;
+        }
+        int start = current >= 0 && current < unified.differenceLines().size()
+                ? unified.differenceLines().get(current) : -1;
+        int end = start < 0 ? -1 : start + DiffLines.unifiedBlockLength(textualLines, start);
+        List<Node> regions = overlay.getChildrenUnmodifiable().stream().filter(Region.class::isInstance).toList();
+        for (int i = 0; i < regions.size() && i < textualBands.size(); i++) {
+            int line = textualBands.get(i).paragraph();
+            regions.get(i).getStyleClass().remove("diff-current");
+            if (line >= start && line < end) {
+                regions.get(i).getStyleClass().add("diff-current");
+            }
+        }
+    }
+
+    /** Lets go of the unified diff and of its editor: they were of a comparison that is no longer the one shown. */
+    private void forgetUnified() {
+        unified = NO_UNIFIED;
+        unifiedWritten = false;
+        unifiedProblem = null;
+        dropTextual();
     }
 
     private void dropTextual() {
@@ -641,6 +795,8 @@ final class DiffPane extends BorderPane implements DiffContent {
             content.getChildren().remove(textual.getNode());
             textual.dispose();
             textual = null;
+            textualLines = List.of();
+            textualBands = List.of();
         }
     }
 
@@ -690,6 +846,8 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** A tab that chooses how the differences are shown; reached with the keyboard as the buttons are. */
     private static ToggleButton tab(String key) {
         ToggleButton tab = new ToggleButton(message(key));
+        tab.setTooltip(new Tooltip(message(key + ".tip")));
+        tab.setAccessibleHelp(message(key + ".tip"));
         tab.getStyleClass().add("diff-view-tab");
         return tab;
     }

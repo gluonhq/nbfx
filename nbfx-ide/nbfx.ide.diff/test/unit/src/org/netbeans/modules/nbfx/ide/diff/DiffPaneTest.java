@@ -334,4 +334,55 @@ public class DiffPaneTest {
             return new javafx.beans.property.SimpleObjectProperty<>();
         }
     }
+
+    @Test
+    public void theTextualTabSaysWhyItHasNoTextToShowAndIsNeverAnEmptyEditor() throws Exception {
+        // Nothing differs: what the line above says.
+        DiffPane same = pane("a\n", "a\n");
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> same.setTextual(true));
+        awaitTextual(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("No differences", same.textualNote()));
+
+        // A side that cannot be compared: that it cannot, and why.
+        DiffPane binary = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.unreadable("HEAD", "logo.png", "A binary file."),
+                DiffSource.of("Working Tree", "logo.png", "text\n")));
+        JavaFxTestSupport.onFx(() -> binary.setTextual(true));
+        awaitTextual(binary);
+        JavaFxTestSupport.onFx(() -> assertEquals("HEAD: A binary file.", binary.textualNote()));
+
+        // More than is written as text: how much.
+        DiffPane large = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.missing("HEAD", "big.txt"),
+                DiffSource.of("Working Tree", "big.txt", "x\n".repeat((int) DiffPane.MOST_TEXTUAL_LINES + 1))));
+        awaitComparison(large);
+        JavaFxTestSupport.onFx(() -> large.setTextual(true));
+        awaitTextual(large);
+        JavaFxTestSupport.onFx(() -> assertTrue(large.textualNote(),
+                large.textualNote().startsWith("Too much differs to show as text: ")));
+
+        // Texts that differ, and no editor to show them in.
+        DiffPane differs = pane("a\n", "b\n");
+        awaitComparison(differs);
+        JavaFxTestSupport.onFx(() -> differs.setTextual(true));
+        awaitTextual(differs);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("The differences could not be shown as text", differs.textualNote());
+            // The tabs say what they are of, and are reached with the keyboard.
+            assertTrue(differs.textualTab().isFocusTraversable());
+            assertEquals("The differences as a unified diff", differs.textualTab().getTooltip().getText());
+            // Back on the two sides nothing is said in their place.
+            differs.setTextual(false);
+            assertNull(differs.textualNote());
+        });
+    }
+
+    private static void awaitTextual(DiffPane pane) throws Exception {
+        for (int i = 0; i < 400; i++) {
+            if (JavaFxTestSupport.onFx(() -> !pane.isWritingUnified() && !"Comparing...".equals(pane.textualNote()))) {
+                return;
+            }
+            Thread.sleep(25);
+        }
+        throw new AssertionError("the unified diff was not shown");
+    }
 }

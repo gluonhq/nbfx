@@ -178,4 +178,19 @@ public class DiffLinesTest {
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("--- a", "+++ b")));
         assertEquals(List.of(), DiffLines.unifiedBands(List.of("")));
     }
+
+    @Test
+    public void whatIsSaidOfTheEndOfALineIsPartOfItsBand() {
+        List<String> lines = List.of("--- a", "+++ b", "@@ -1,2 +1,2 @@", " a", "-b", "\\ No newline at end of file", "+b",
+                "+c", "\\ No newline at end of file", " d");
+
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 2, DiffLines.DELETED),
+                new LineBand(6, 3, DiffLines.ADDED)), DiffLines.unifiedBands(lines));
+        // Said of a line the texts share, it is no band of its own.
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED)), DiffLines.unifiedBands(
+                List.of("--- a", "+++ b", "@@ -1,1 +1,1 @@", " a", "\\ No newline at end of file")));
+        // The lines of the block that starts at a line: deleted, added, and what is said of their ends.
+        assertEquals(5, DiffLines.unifiedBlockLength(lines, 4));
+        assertEquals(0, DiffLines.unifiedBlockLength(lines, 3));
+    }
 }

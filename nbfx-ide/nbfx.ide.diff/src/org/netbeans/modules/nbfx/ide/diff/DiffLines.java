@@ -221,7 +221,9 @@ final class DiffLines {
         int start = 0;
         String running = null;
         for (int i = 0; i <= lines.size(); i++) {
-            String kind = i < 2 || i == lines.size() ? null : unifiedKind(lines.get(i));
+            String kind = i < 2 || i == lines.size() ? null
+                    // What is said of the line before - that it has no line ending - is part of it.
+                    : lines.get(i).startsWith("\\") ? running : unifiedKind(lines.get(i));
             if (!Objects.equals(kind, running)) {
                 if (running != null) {
                     bands.add(new LineBand(start, i - start, running));
@@ -231,6 +233,19 @@ final class DiffLines {
             }
         }
         return bands;
+    }
+
+    /**
+     * How many lines of a unified diff the block that starts at {@code start} takes: its lines
+     * deleted and added, with what is said of their end.
+     */
+    static int unifiedBlockLength(List<String> lines, int start) {
+        int end = start;
+        while (end < lines.size() && (lines.get(end).startsWith("-") || lines.get(end).startsWith("+")
+                || lines.get(end).startsWith("\\"))) {
+            end++;
+        }
+        return end - start;
     }
 
     private static String unifiedKind(String line) {

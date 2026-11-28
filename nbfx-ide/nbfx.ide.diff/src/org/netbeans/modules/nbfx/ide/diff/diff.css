@@ -291,6 +291,12 @@
     -fx-background-insets: 0, 0 0 2 0;
 }
 
+/* Where the keyboard is: the rule the buttons and the marks have. */
+.diff-pane .diff-view-tab:focused {
+    -fx-border-color: -nbfx-accent;
+    -fx-border-width: 1;
+}
+
 .diff-pane .diff-view-tab:selected {
     -fx-background-color: -nbfx-accent-hover, -nbfx-chrome, -nbfx-canvas;
     -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;

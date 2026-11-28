@@ -37,8 +37,10 @@
                 Adds <code>UnifiedDiff</code>, which writes the differences between two texts as
                 <code>diff -u</code> does: the two names, then each hunk with its
                 <code>@@</code> ranges, its lines of context and
-                <code>\ No newline at end of file</code> where a text ends without one. It also
-                tells the line each block of differences starts at in that text.
+                <code>\ No newline at end of file</code> where a text ends without one - a last
+                line that only one of the texts ends is written as a line that differs. The names
+                are quoted as <code>git diff</code> quotes paths, so that each is one line. It
+                also tells the line each block of differences starts at in that text.
             </description>
             <class package="org.netbeans.api.nbfx.diff" name="UnifiedDiff"/>
         </change>
