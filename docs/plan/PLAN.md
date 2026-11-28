@@ -409,7 +409,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 | `ide.tests` | test runner UI + coverage view | new |
 | `ide.vcs` | VCS framework + status/badges | replaces `nbfx.vcs` |
 | `ide.vcs.git` | Git provider (jgit) | new |
-| `ide.diff` | diff/merge view + patch UI (landed so far: the side-by-side view of two texts in an editor-area tab, over `api.diff`, with connectors, navigation and an overview; and the header a `DiffProvider` feeds - compare-mode toggles, Refresh and the table of the files that differ; the Textual tab of the unified diff) | new |
+| `ide.diff` | diff/merge view + patch UI (landed so far: the side-by-side view of two texts in an editor-area tab, over `api.diff`, with connectors, navigation and an overview; and the header a `DiffProvider` feeds - compare-mode toggles, Refresh and the table of the files that differ; the Textual tab of the unified diff; the right side edited when it is a file on disk, compared again as it changes, with per-block Revert and Revert All) | new |
 | `ide.localhistory` | local history view | new |
 | `ide.tasklist` | task list view + providers | new |
 | `ide.bookmarks` | bookmarks view | new |

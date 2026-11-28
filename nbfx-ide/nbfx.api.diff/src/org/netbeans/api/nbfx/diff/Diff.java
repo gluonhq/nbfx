@@ -28,7 +28,7 @@ import java.util.function.BooleanSupplier;
  * Compares two texts line by line. It knows nothing of files, version control or views: the lines
  * come from wherever the caller has them, and what is done with the result is the caller's.
  * <p>
- * Under development until its first consumer, the diff view, has landed: it may change
+ * Under development until its first consumer, the diff view, is complete: it may change
  * incompatibly until then.
  *
  * @since 1.0

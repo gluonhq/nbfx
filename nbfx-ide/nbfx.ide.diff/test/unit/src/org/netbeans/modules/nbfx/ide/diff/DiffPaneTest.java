@@ -19,6 +19,8 @@
 package org.netbeans.modules.nbfx.ide.diff;
 
 import java.util.List;
+import org.netbeans.junit.MockServices;
+import org.junit.Before;
 import org.junit.Test;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.diff.Difference.Kind;
@@ -37,6 +39,12 @@ import static org.junit.Assert.assertTrue;
  * what is checked here, the marking of the lines in {@link DiffLinesTest}.
  */
 public class DiffPaneTest {
+
+    /** Without editors: these tests are of what is around the two texts, not of the texts. */
+    @Before
+    public void noEditors() {
+        MockServices.setServices(NoEditors.class);
+    }
 
     @Test
     public void comparesTheTwoFilesAndTellsHowManyBlocksDiffer() throws Exception {
@@ -219,7 +227,7 @@ public class DiffPaneTest {
         assertEquals(text, DiffSource.of("HEAD", "A.txt", ""));
         assertNotEquals(text, missing);
         assertNotEquals(text, DiffSource.of("HEAD", "A.txt", "\n"));
-        assertThrows(IllegalArgumentException.class, () -> new DiffSource("HEAD", "A.txt", "text", "and a problem", null));
+        assertThrows(IllegalArgumentException.class, () -> new DiffSource("HEAD", "A.txt", "text", "and a problem", null, null));
         // Where it is named differently in the unified diff, it does not show the same.
         assertNotEquals(text, text.withPath("src/A.txt"));
         assertEquals("a/src/A.txt", text.withPath("src/A.txt").unifiedName("a/"));

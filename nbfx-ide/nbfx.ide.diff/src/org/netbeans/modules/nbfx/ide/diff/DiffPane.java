@@ -25,19 +25,26 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.animation.PauseTransition;
 import javafx.application.Platform;
+import javafx.beans.property.ReadOnlyBooleanWrapper;
 import javafx.beans.property.ReadOnlyObjectWrapper;
 import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
+import javafx.geometry.Orientation;
 import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
@@ -51,6 +58,7 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 import javafx.util.Subscription;
 import org.netbeans.api.nbfx.diff.Diff;
 import org.netbeans.api.nbfx.diff.DiffOptions;
@@ -60,6 +68,7 @@ import org.netbeans.api.nbfx.diff.UnifiedDiff;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.EditorService;
 import org.netbeans.api.nbfx.editor.LineBand;
+import org.netbeans.api.nbfx.editor.OpenSources;
 import org.netbeans.api.nbfx.icons.ToolIcons;
 import org.openide.filesystems.FileObject;
 import org.openide.filesystems.FileUtil;
@@ -85,7 +94,7 @@ import org.openide.util.RequestProcessor;
 final class DiffPane extends BorderPane implements DiffContent {
 
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
-    private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
+    static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
     /** Next and Previous Difference, as in NetBeans: Ctrl+Period and Ctrl+Comma, on every platform. */
     static final KeyCombination NEXT_KEY = new KeyCodeCombination(KeyCode.PERIOD, KeyCombination.CONTROL_DOWN);
     static final KeyCombination PREVIOUS_KEY = new KeyCodeCombination(KeyCode.COMMA, KeyCombination.CONTROL_DOWN);
@@ -97,6 +106,9 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** No unified diff: nothing compared yet, or nothing that can be. */
     private static final UnifiedDiff NO_UNIFIED = new UnifiedDiff("", List.of());
 
+    /** How long after the last change to the text edited here the two are compared again. */
+    private static final Duration RECOMPARE_DELAY = Duration.millis(150);
+
     private DiffSource leftSource;
     /** What differs between the two sides that their texts do not show; {@code null} for nothing. */
     private String note;
@@ -105,6 +117,28 @@ final class DiffPane extends BorderPane implements DiffContent {
     private final Label counter = heading("");
     private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous", PREVIOUS_KEY);
     private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next", NEXT_KEY);
+    private final Button revertAll = plainButton(DiffIcons.revertAll(), "Diff.revertAll");
+    private final PauseTransition recompare = new PauseTransition(RECOMPARE_DELAY);
+    /**
+     * Whether the right side is edited here: a source that says so, of a file on disk that can be
+     * written, in an editor of that file - not a copy of its text - which shares what it holds
+     * with the other editors of the file.
+     */
+    private boolean editable;
+    /** The editor of the right side while it is edited here; of none else. */
+    private final ReadOnlyObjectWrapper<EditorDocument> edited = new ReadOnlyObjectWrapper<>(this, "edited");
+    private final ReadOnlyBooleanWrapper takesEdits = new ReadOnlyBooleanWrapper(this, "takesEdits", false);
+    /** Asks before all of a file is reverted, given what to ask; tests answer for the user. */
+    static Predicate<String> confirmation = DiffPane::ask;
+    private final ReadOnlyBooleanWrapper modified = new ReadOnlyBooleanWrapper(this, "modified", false);
+    /** Listens to the text edited here, to compare again as it changes. */
+    private Subscription edits = Subscription.EMPTY;
+    /**
+     * The right side as it was compared last - what its editor held then, when it is edited - and
+     * what {@link #version()} was then: what a block is reverted from, and the unified diff is of.
+     */
+    private DiffSource rightCompared;
+    private long comparedVersion = -1;
     private final DiffConnectors connectors = new DiffConnectors();
     private final DiffOverview overview = new DiffOverview();
     /** What holds the connectors, and what holds the overview: there while there are blocks to show. */
@@ -184,7 +218,16 @@ final class DiffPane extends BorderPane implements DiffContent {
         HBox.setHgrow(summary, Priority.ALWAYS);
         previous.setOnAction(event -> go(false));
         next.setOnAction(event -> go(true));
-        HBox bar = new HBox(previous, next, summary);
+        revertAll.setOnAction(event -> revertAll());
+        revertAll.setDisable(true);
+        // Typed here, in another editor of the file, or read again from disk: compared again
+        // shortly after the last of it, with the view left where it is.
+        recompare.setOnFinished(event -> refresh(true));
+        modified.bind(edited.flatMap(EditorDocument::modifiedProperty).orElse(false));
+        takesEdits.bind(edited.flatMap(EditorDocument::editableProperty).orElse(false));
+        // A file that is locked, or one that takes edits again: its blocks are reverted or not.
+        takesEdits.subscribe(now -> updateRevert());
+        HBox bar = new HBox(previous, next, new Separator(Orientation.VERTICAL), revertAll, summary);
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
         ToggleGroup tabs = new ToggleGroup();
@@ -244,10 +287,14 @@ final class DiffPane extends BorderPane implements DiffContent {
             return;
         }
         this.note = note;
+        // The file edited here is still the one to edit: its editor stays, with what was typed in
+        // it and where its caret is, whatever the file is read to hold by now.
+        boolean stays = editable && this.right != null && rightSource != null && right.isEditable()
+                && right.file().equals(rightSource.file());
         leftSource = Objects.requireNonNull(left);
         rightSource = Objects.requireNonNull(right);
         if (!same) {
-            showEditors();
+            showEditors(stays);
         }
         refresh();
     }
@@ -258,14 +305,18 @@ final class DiffPane extends BorderPane implements DiffContent {
      * side that cannot be compared. The new sides are made first and put in place together; if
      * one cannot be made, what was made of the other is released, and the pane says so.
      */
-    private void showEditors() {
+    private void showEditors(boolean rightStays) {
         EditorService editors = Lookup.getDefault().lookup(EditorService.class);
+        EditorDocument kept = rightStays ? right : null;
+        boolean edits = kept != null || editors != null && canEdit(rightSource);
         EditorDocument newLeft = null;
-        EditorDocument newRight = null;
+        EditorDocument newRight = kept;
         String failure = null;
         try {
-            newLeft = editor(editors, leftSource);
-            newRight = editor(editors, rightSource);
+            newLeft = editor(editors, leftSource, false);
+            if (newRight == null) {
+                newRight = editor(editors, rightSource, edits);
+            }
         } catch (IOException | RuntimeException ex) {
             LOG.log(Level.INFO, "Cannot show " + leftSource.title() + " and " + rightSource.title(), ex);
             if (newLeft != null) {
@@ -276,10 +327,21 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
         scrolling.unsubscribe();
         scrolling = Subscription.EMPTY;
-        disposeEditors();
+        this.edits.unsubscribe();
+        this.edits = Subscription.EMPTY;
+        recompare.stop();
+        disposeEditors(kept);
         differences = List.of();
         left = newLeft;
         right = newRight;
+        editable = edits && right != null;
+        rightCompared = null;
+        comparedVersion = -1;
+        edited.set(editable ? right : null);
+        if (editable) {
+            this.edits = right.textVersionProperty().subscribe((was, now) -> edited());
+        }
+        updateRevert();
         activeEditor.set(right != null ? right : left);
         for (EditorDocument editor : new EditorDocument[] {left, right}) {
             if (editor != null) {
@@ -319,13 +381,22 @@ final class DiffPane extends BorderPane implements DiffContent {
      * An editor that shows the text of {@code source}, or {@code null} when it has none to show -
      * it cannot be compared - or there is no editor to be had. It shows a copy of the text in
      * memory, named as the file so that it is coloured as one: what is shown is what is compared,
-     * whatever becomes of the file meanwhile.
+     * whatever becomes of the file meanwhile. With {@code edits}, it is an editor of the file of
+     * the source instead, as a tab of that file has: what is typed in it is typed in the file.
      */
-    private static EditorDocument editor(EditorService editors, DiffSource source) throws IOException {
+    private static EditorDocument editor(EditorService editors, DiffSource source, boolean edits) throws IOException {
         if (editors == null || !source.isComparable()) {
             return null;
         }
+        if (edits) {
+            return editors.createDocument(source.file());
+        }
         return editors.createPreviewDocument(inMemory(source.fileName(), source.text() == null ? "" : source.text()));
+    }
+
+    /** Whether {@code source} is edited in the diff: it says so, and its file is one on disk that can be written. */
+    private static boolean canEdit(DiffSource source) {
+        return source.isEditable() && FileUtil.toFile(source.file()) != null && source.file().canWrite();
     }
 
     /** A file in memory named {@code name} that holds {@code text}. */
@@ -343,16 +414,27 @@ final class DiffPane extends BorderPane implements DiffContent {
         return activeEditor.getReadOnlyProperty();
     }
 
-    private void disposeEditors() {
-        if (left != null) {
-            left.dispose();
-        }
-        if (right != null) {
-            right.dispose();
-        }
+    /**
+     * Releases the two editors, but for {@code kept} - the one of the right side, when it stays.
+     * Each is released whatever becomes of the other, and none is held afterwards.
+     */
+    private void disposeEditors(EditorDocument kept) {
+        EditorDocument wasLeft = left;
+        EditorDocument wasRight = right == kept ? null : right;
         left = null;
         right = null;
+        editable = false;
+        edited.set(null);
         activeEditor.set(null);
+        try {
+            if (wasLeft != null) {
+                wasLeft.dispose();
+            }
+        } finally {
+            if (wasRight != null) {
+                wasRight.dispose();
+            }
+        }
     }
 
     /**
@@ -384,7 +466,7 @@ final class DiffPane extends BorderPane implements DiffContent {
     String unified() {
         if (!unifiedWritten && !comparing) {
             try {
-                unified = write(leftSource, rightSource, differences);
+                unified = write(leftSource, rightCompared != null ? rightCompared : rightSource, differences);
             } catch (IllegalStateException tooLarge) {
                 unified = NO_UNIFIED;
             }
@@ -424,6 +506,165 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** The editor of the unified diff, or {@code null} while the Textual tab was not shown; for tests. */
     EditorDocument textualEditor() {
         return textual;
+    }
+
+    /** The buttons that revert the blocks, in their order; shown while the right side is edited here. */
+    List<Button> revertButtons() {
+        return connectors.revertButtons();
+    }
+
+    Button revertAllButton() {
+        return revertAll;
+    }
+
+    /** Whether the right side is edited here. */
+    boolean isEditable() {
+        return editable;
+    }
+
+    /** The editor of the right side when it is edited here, else {@code null}. */
+    EditorDocument editor() {
+        return edited.get();
+    }
+
+    @Override
+    public ObservableValue<EditorDocument> editorProperty() {
+        return edited.getReadOnlyProperty();
+    }
+
+    @Override
+    public ObservableValue<Boolean> editableProperty() {
+        return takesEdits.getReadOnlyProperty();
+    }
+
+    /**
+     * The text edited here changed: the blocks shown are those of the text before, and say so -
+     * none is reverted, and the line above says the texts are compared - until they are compared
+     * again, shortly after the last change.
+     */
+    private void edited() {
+        updateRevert();
+        summary.setText(message("Diff.loading"));
+        recompare.playFromStart();
+    }
+
+    /** Whether the blocks shown are those of the texts as they are, and the right one takes edits. */
+    private boolean canRevert() {
+        return editable && right != null && takesEdits.get() && rightCompared != null && leftSource.isComparable()
+                && comparedVersion == version();
+    }
+
+    /** Offers to revert the blocks, or all of them, while that can be done; see {@link #canRevert}. */
+    private void updateRevert() {
+        boolean can = canRevert();
+        // No button at all for a text that is not edited, or is locked; one that waits, while
+        // the blocks are found again.
+        connectors.setOnRevert(editable && takesEdits.get() ? this::revert : null);
+        connectors.setRevertDisabled(!can);
+        revertAll.setDisable(!can || differences.isEmpty());
+    }
+
+    @Override
+    public ObservableValue<Boolean> modifiedProperty() {
+        return modified.getReadOnlyProperty();
+    }
+
+    @Override
+    public void save() throws IOException {
+        if (editable && right != null) {
+            right.save();
+        }
+    }
+
+    /**
+     * Puts back in the block of that index the lines of the left side, as one edit of the right
+     * one. Nothing when the right side is not edited here, or was changed since the texts were
+     * compared: the blocks are then not where they were, and the buttons take no click until they
+     * are found again.
+     */
+    void revert(int index) {
+        if (index >= 0 && index < differences.size() && canRevert()) {
+            apply(DiffLines.revert(leftSource.lines(), rightCompared.lines(), differences.get(index)));
+        }
+    }
+
+    /**
+     * Makes the right side the text of the left one, as one edit, once the user said so: all that
+     * differs in the file goes, what was typed and not saved with it. See {@link #revert}.
+     */
+    void revertAll() {
+        if (differences.isEmpty() || !canRevert()) {
+            return;
+        }
+        String asked = NbBundle.getMessage(DiffPane.class, "Diff.revertAll.confirm", rightSource.fileName(),
+                leftSource.title(), differences.size());
+        // Asked of the texts as they are; still those when it is answered, or nothing is done.
+        if (confirmation.test(asked) && canRevert()) {
+            apply(DiffLines.revertAll(leftSource.lines(), rightCompared.lines()));
+        }
+    }
+
+    /**
+     * Makes {@code edit} in the right text, and leaves the caret and the view where they were: on
+     * the same line of the text - further down or up by the lines the edit added or took out
+     * above it - or at the start of the lines put back, for a caret that was in those replaced.
+     */
+    private void apply(DiffLines.Edit edit) {
+        if (edit.isEmpty()) {
+            return;
+        }
+        String before = String.join("\n", rightCompared.lines());
+        int firstLine = newlines(before, 0, edit.start());
+        int lastLine = firstLine + newlines(before, edit.start(), edit.end());
+        int grown = newlines(edit.text(), 0, edit.text().length()) - (lastLine - firstLine);
+        int caretLine = right.getCaretParagraph();
+        int caretColumn = right.getCaretColumn();
+        int top = right.getTopParagraph();
+        if (!right.replaceRange(edit.start(), edit.end(), edit.text())) {
+            return;
+        }
+        if (caretLine > lastLine) {
+            right.restoreView(top > lastLine ? top + grown : top, caretLine + grown, caretColumn);
+        } else if (caretLine >= firstLine) {
+            right.restoreView(top, firstLine, 0);
+        } else {
+            right.restoreView(top, caretLine, caretColumn);
+        }
+    }
+
+    private static int newlines(String text, int from, int to) {
+        int count = 0;
+        for (int i = from; i < to; i++) {
+            if (text.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean ask(String text) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, text, ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle(message("Diff.revertAll.title"));
+        alert.setHeaderText(null);
+        return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+    }
+
+    /** Grows with each change to the text edited here; always the same while none is. */
+    private long version() {
+        return editable && right != null ? right.textVersionProperty().getValue().longValue() : 0;
+    }
+
+    /**
+     * The right side as it is now: what its editor holds, with the edits not saved, when it is
+     * edited here; else the snapshot it is.
+     */
+    private DiffSource rightNow() {
+        if (!editable) {
+            return rightSource;
+        }
+        OpenSources sources = Lookup.getDefault().lookup(OpenSources.class);
+        String open = sources == null ? null : sources.textOf(rightSource.file());
+        return open == null ? rightSource : rightSource.withText(open);
     }
 
     /** The differences shown; empty until the texts are compared, and when they are the same. */
@@ -484,16 +725,27 @@ final class DiffPane extends BorderPane implements DiffContent {
      */
     @Override
     public void refresh() {
+        refresh(false);
+    }
+
+    /**
+     * @param quiet whether the view stays where it is, as when the texts are compared again after
+     *        an edit; else the block the view is at is brought into view
+     */
+    private void refresh(boolean quiet) {
         long asked = comparison.incrementAndGet();
         compared = false;
         DiffSource from = leftSource;
-        DiffSource to = rightSource;
+        DiffSource to = rightNow();
+        // How the lines of the file end is told by the file as it was read, not by its editor.
+        DiffSource onDisk = rightSource;
+        long version = version();
         String noted = note;
         if (!from.isComparable() || !to.isComparable()) {
             // Nothing to compare: said, with the side it is of, and not shown as no difference.
             DiffSource unreadable = from.isComparable() ? to : from;
             show(List.of(), 1, NbBundle.getMessage(DiffPane.class, "Diff.unreadable", unreadable.title(),
-                    unreadable.problem()));
+                    unreadable.problem()), false);
             compared = true;
             return;
         }
@@ -516,14 +768,18 @@ final class DiffPane extends BorderPane implements DiffContent {
                 LOG.log(Level.INFO, "Cannot compare " + from.title() + " and " + to.title(), ex);
                 Platform.runLater(() -> {
                     if (asked == comparison.get()) {
-                        show(List.of(), 1, message("Diff.failed"));
+                        rightCompared = null;
+                        comparedVersion = -1;
+                        show(List.of(), 1, message("Diff.failed"), quiet);
                     }
                 });
                 return;
             }
             Platform.runLater(() -> {
                 if (asked == comparison.get()) {
-                    show(result.differences(), rightLines, told(from, to, result.differences(), noted));
+                    rightCompared = to;
+                    comparedVersion = version;
+                    show(result.differences(), rightLines, told(from, to, onDisk, result.differences(), noted), quiet);
                     compared = true;
                 }
             });
@@ -531,18 +787,19 @@ final class DiffPane extends BorderPane implements DiffContent {
     }
 
     /** What the line between the headings says of a comparison: what happened to the file, or how much differs. */
-    private static String told(DiffSource from, DiffSource to, List<Difference> found, String note) {
-        String texts = toldOfTexts(from, to, found);
+    private static String told(DiffSource from, DiffSource to, DiffSource onDisk, List<Difference> found,
+            String note) {
+        String texts = toldOfTexts(from, to, onDisk, found);
         // What the texts do not show - the mode of the file - is said with them, or in their
         // place when they are the same: a file that changed is never just "No differences".
         if (note == null) {
             return texts;
         }
-        return found.isEmpty() && !from.isMissing() && !to.isMissing() && from.text().equals(to.text()) ? note
+        return found.isEmpty() && !from.isMissing() && !to.isMissing() && sameEnds(from, to, onDisk) ? note
                 : NbBundle.getMessage(DiffPane.class, "Diff.withNote", texts, note);
     }
 
-    private static String toldOfTexts(DiffSource from, DiffSource to, List<Difference> found) {
+    private static String toldOfTexts(DiffSource from, DiffSource to, DiffSource onDisk, List<Difference> found) {
         if (from.isMissing() && to.isMissing()) {
             return message("Diff.identical");
         }
@@ -557,20 +814,58 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
         // The same lines, and yet not the same text: only how the lines end can differ, which
         // the comparison of lines leaves out and the file has all the same.
-        return from.text().equals(to.text()) ? message("Diff.identical")
+        return sameEnds(from, to, onDisk) ? message("Diff.identical")
                 : NbBundle.getMessage(DiffPane.class, "Diff.lineEndings", from.title(),
-                        DiffLines.lineEnding(from.text()), to.title(), DiffLines.lineEnding(to.text()));
+                        DiffLines.lineEnding(from.text()), to.title(), DiffLines.lineEnding(onDisk.text()));
+    }
+
+    /**
+     * Whether two texts of the same lines end their lines the same way. Of a side that is edited,
+     * by the file as it was read: its editor holds the lines, and not how they end on disk.
+     */
+    private static boolean sameEnds(DiffSource from, DiffSource to, DiffSource onDisk) {
+        if (!to.isEditable() || onDisk.text() == null) {
+            return from.text().equals(to.text());
+        }
+        String before = DiffLines.lineEnding(from.text());
+        String after = DiffLines.lineEnding(onDisk.text());
+        // A text of one line ends none: it is not told apart from one that would end them another way.
+        return before.equals(after) || "none".equals(before) || "none".equals(after);
     }
 
     /** Releases the two editors, and gives up the comparison that runs. */
     @Override
     public void dispose() {
+        EditorDocument kept = disposeKeepingEdits();
+        if (kept != null) {
+            kept.dispose();
+        }
+    }
+
+    /**
+     * Releases the editors, but for that of the right side when it has edits that are not saved:
+     * it is returned, for the caller to keep - the edits would be lost with the last editor of the
+     * file - and to dispose of later. {@code null} when there is nothing to lose. Each of what
+     * the pane holds is released whatever becomes of the others.
+     */
+    EditorDocument disposeKeepingEdits() {
         disposed = true;
-        connectors.dispose();
         comparison.incrementAndGet();
+        recompare.stop();
+        edits.unsubscribe();
+        edits = Subscription.EMPTY;
         scrolling.unsubscribe();
-        dropTextual();
-        disposeEditors();
+        EditorDocument kept = editable && right != null && right.isModified() ? right : null;
+        try {
+            connectors.dispose();
+        } finally {
+            try {
+                dropTextual();
+            } finally {
+                disposeEditors(kept);
+            }
+        }
+        return kept;
     }
 
     /**
@@ -578,20 +873,7 @@ final class DiffPane extends BorderPane implements DiffContent {
      * editors, brings it into view with a few lines above it.
      */
     void select(int index) {
-        current = index < 0 || index >= differences.size() ? -1 : index;
-        if (current >= 0) {
-            currentLine = differences.get(current).rightStart();
-        } else if (!comparing) {
-            // No block to be at; while a comparison is awaited, the place is kept for its blocks.
-            currentLine = -1;
-        }
-        counter.setText(current < 0 ? ""
-                : NbBundle.getMessage(DiffPane.class, "Diff.counter", current + 1, differences.size()));
-        previous.setDisable(current <= 0);
-        next.setDisable(current < 0 || current >= differences.size() - 1);
-        connectors.setCurrent(current);
-        overview.setCurrent(current);
-        markTextual();
+        mark(index);
         if (current >= 0 && isTextual()) {
             if (textual != null && current < unified.differenceLines().size()) {
                 textual.scrollToParagraph(Math.max(0, unified.differenceLines().get(current) - CONTEXT_LINES));
@@ -606,6 +888,25 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
+    /** Makes the block of that index the current one - counted, drawn as such - without moving the view. */
+    private void mark(int index) {
+        current = index < 0 || index >= differences.size() ? -1 : index;
+        if (current >= 0) {
+            currentLine = differences.get(current).rightStart();
+        } else if (!comparing) {
+            // No block to be at; while a comparison is awaited, the place is kept for its blocks.
+            currentLine = -1;
+        }
+        counter.setText(current < 0 ? ""
+                : NbBundle.getMessage(DiffPane.class, "Diff.counter", current + 1, differences.size()));
+        previous.setDisable(current <= 0);
+        next.setDisable(current < 0 || current >= differences.size() - 1);
+        connectors.setCurrent(current);
+        overview.setCurrent(current);
+        markTextual();
+        updateRevert();
+    }
+
     private void go(boolean forward) {
         int target = DiffLines.step(current, differences.size(), forward);
         if (target != current) {
@@ -613,10 +914,13 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
-    private void show(List<Difference> found, int rightLines, String text) {
+    private void show(List<Difference> found, int rightLines, String text, boolean quiet) {
         // Where the block the view was at starts, in the right text: by which it is found again.
         int at = currentLine;
         comparing = false;
+        // Typed within a line that differs already: the blocks are as they were, and so are their
+        // bands and what joins them.
+        boolean marked = quiet && found.equals(differences);
         differences = found;
         summary.setText(text);
         // Of the texts as they were compared before: written again, now if its tab is the one shown.
@@ -630,7 +934,7 @@ final class DiffPane extends BorderPane implements DiffContent {
         summary.notifyAccessibleAttributeChanged(AccessibleAttribute.TEXT);
         describe(left, leftSource, DiffLines.describeLeft(found));
         describe(right, rightSource, DiffLines.describeRight(found));
-        if (left != null && right != null) {
+        if (left != null && right != null && !marked) {
             left.setLineBands(DiffLines.leftBands(found));
             right.setLineBands(DiffLines.rightBands(found));
             // After the bands: the connectors join the regions the editors have just made for them.
@@ -645,7 +949,13 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
         // At the first block, as when the diff opens - or, compared again, at the block that is
         // where the one the view was at was; without moving the view when there is none.
-        select(none ? -1 : at < 0 ? 0 : DiffLines.blockAt(found, at));
+        int index = none ? -1 : at < 0 ? 0 : DiffLines.blockAt(found, at);
+        if (quiet) {
+            // Compared again as the text is edited: the view is the user's, and stays.
+            mark(index);
+        } else {
+            select(index);
+        }
     }
 
     /** Puts in place what the tab chosen is of; the block the view is at is not touched. */
@@ -703,7 +1013,7 @@ final class DiffPane extends BorderPane implements DiffContent {
         unifiedWriting = true;
         long asked = comparison.get();
         DiffSource from = leftSource;
-        DiffSource to = rightSource;
+        DiffSource to = rightCompared != null ? rightCompared : rightSource;
         List<Difference> found = differences;
         RP.post(() -> {
             UnifiedDiff written = NO_UNIFIED;
@@ -826,11 +1136,13 @@ final class DiffPane extends BorderPane implements DiffContent {
             if (activeEditor.get() == textual) {
                 activeEditor.set(null);
             }
-            content.getChildren().remove(textual.getNode());
-            textual.dispose();
+            EditorDocument was = textual;
             textual = null;
             textualLines = List.of();
             textualBands = List.of();
+            content.getChildren().remove(was.getNode());
+            // Not held any more, whatever becomes of releasing it.
+            was.dispose();
         }
     }
 
@@ -892,6 +1204,16 @@ final class DiffPane extends BorderPane implements DiffContent {
         // Named for who does not see it, with the keys that do the same for who does not click.
         button.setTooltip(new Tooltip(NbBundle.getMessage(DiffPane.class, "Diff.tooltip", message(key),
                 keys.getDisplayText())));
+        button.setAccessibleText(message(key));
+        button.getStyleClass().add("diff-tool-button");
+        return button;
+    }
+
+    /** A button of the bar with no keys of its own. */
+    private static Button plainButton(Node icon, String key) {
+        Button button = new Button();
+        button.setGraphic(icon);
+        button.setTooltip(new Tooltip(message(key)));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");
         return button;

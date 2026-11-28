@@ -302,3 +302,51 @@
     -fx-background-insets: 0, 3 0 1 0, 3 1 0 1;
     -fx-border-color: transparent transparent -nbfx-canvas transparent;
 }
+
+/* The icons the style sheet draws: the arrows that put the left side back over the right one. */
+.diff-icon {
+    -fx-min-width: 16;
+    -fx-min-height: 16;
+    -fx-max-width: 16;
+    -fx-max-height: 16;
+    -fx-background-color: -nbfx-icon;
+    -fx-scale-shape: false;
+    -fx-position-shape: true;
+}
+
+.diff-icon-revert {
+    -fx-min-width: 10;
+    -fx-min-height: 10;
+    -fx-max-width: 10;
+    -fx-max-height: 10;
+    -fx-shape: "M 0 3.5 L 5 3.5 L 5 0.5 L 10 5 L 5 9.5 L 5 6.5 L 0 6.5 Z";
+}
+
+.diff-icon-revert-all {
+    -fx-shape: "M 1 6 L 5 6 L 5 3 L 10 8 L 5 13 L 5 10 L 1 10 Z M 8 3 L 13 8 L 8 13 L 10.5 8 Z";
+}
+
+/* The button of a block that puts back its lines of the left side, over the top of its connector. */
+.diff-pane .diff-revert {
+    -fx-background-color: -nbfx-canvas;
+    -fx-background-insets: 0;
+    -fx-background-radius: 3;
+    -fx-border-color: -nbfx-border;
+    -fx-border-radius: 3;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.diff-pane .diff-revert:hover {
+    -fx-background-color: -nbfx-hover;
+}
+
+.diff-pane .diff-revert:armed {
+    -fx-background-color: -nbfx-pressed;
+}
+
+/* The bar of a diff shown alone holds its buttons as the browser's does. */
+.diff-pane .diff-bar > .diff-tool-button > .diff-icon,
+.diff-browser .diff-bar > .diff-tool-button > .diff-icon {
+    -fx-background-color: -nbfx-icon;
+}

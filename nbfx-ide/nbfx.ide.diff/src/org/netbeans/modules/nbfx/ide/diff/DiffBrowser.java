@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.ide.diff;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.util.Subscription;
 import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.icons.ToolIcons;
@@ -100,6 +102,21 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     private final Button previous = button(ToolIcons.PREVIOUS_MATCH, "Diff.previous");
     private final Button next = button(ToolIcons.NEXT_MATCH, "Diff.next");
     private final Button refresh = button(ToolIcons.REFRESH, "Diff.refresh");
+    private final Button revertAll = button(DiffIcons.revertAll(), "Diff.revertAll");
+    /** The editor of the side edited in the diff shown; of none while neither is. */
+    private final ReadOnlyObjectWrapper<EditorDocument> editor = new ReadOnlyObjectWrapper<>(this, "editor");
+    private final ReadOnlyBooleanWrapper modified = new ReadOnlyBooleanWrapper(this, "modified", false);
+    /**
+     * The editors of the files edited here and left without saving, kept though not shown: their
+     * edits would be lost with the last editor of the file. Released when saved, or with the tab.
+     */
+    private final List<EditorDocument> unsaved = new ArrayList<>();
+    /** What listens to each of those, to be let go of with it. */
+    private final Map<EditorDocument, Subscription> watched = new IdentityHashMap<>();
+    private final ReadOnlyBooleanWrapper takesEdits = new ReadOnlyBooleanWrapper(this, "takesEdits", false);
+    /** Whether the file shown has edits not saved, and takes edits: as its pane says. */
+    private final ReadOnlyBooleanWrapper shownModified = new ReadOnlyBooleanWrapper(this, "shownModified", false);
+    private final ReadOnlyBooleanWrapper shownTakesEdits = new ReadOnlyBooleanWrapper(this, "shownTakesEdits", false);
     /** The table over the diff, or {@code null} when the provider lists no files. */
     private SplitPane split;
     /** Whether the table was given the height of its rows: once, then it is the user's to size. */
@@ -192,7 +209,15 @@ final class DiffBrowser extends BorderPane implements DiffContent {
         summary.setMaxWidth(Double.MAX_VALUE);
         summary.setAlignment(Pos.CENTER);
         HBox.setHgrow(summary, Priority.ALWAYS);
-        bar.getChildren().addAll(previous, next, new Separator(Orientation.VERTICAL), refresh, summary);
+        bar.getChildren().addAll(previous, next, new Separator(Orientation.VERTICAL), revertAll, refresh, summary);
+        revertAll.setOnAction(event -> {
+            if (pane != null) {
+                pane.revertAll();
+            }
+        });
+        // Of the file shown, as it is edited, saved and locked; those left with edits tell of theirs.
+        shownModified.subscribe(now -> updateModified());
+        shownTakesEdits.subscribe(now -> updateModified());
         previous.setOnAction(event -> fire(true));
         next.setOnAction(event -> fire(false));
         refresh.setOnAction(event -> refresh());
@@ -503,14 +528,120 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     }
 
     @Override
+    public ObservableValue<EditorDocument> editorProperty() {
+        return editor.getReadOnlyProperty();
+    }
+
+    @Override
+    public ObservableValue<Boolean> modifiedProperty() {
+        return modified.getReadOnlyProperty();
+    }
+
+    @Override
+    public ObservableValue<Boolean> editableProperty() {
+        return takesEdits.getReadOnlyProperty();
+    }
+
+    /**
+     * Writes the edits of the file shown and of those left without saving: each that can be
+     * written is, whatever becomes of the others. A file that could not be written keeps its
+     * edits, here, to be saved again.
+     *
+     * @throws IOException when one or more could not be written: it names each of them, and has
+     *         what failed for the others as suppressed
+     */
+    @Override
+    public void save() throws IOException {
+        List<String> names = new ArrayList<>();
+        List<IOException> failures = new ArrayList<>();
+        for (EditorDocument kept : List.copyOf(unsaved)) {
+            try {
+                kept.save();
+                release(kept);
+            } catch (IOException ex) {
+                names.add(nameOf(kept));
+                failures.add(ex);
+            }
+        }
+        try {
+            if (pane != null) {
+                pane.save();
+            }
+        } catch (IOException ex) {
+            DiffEntry shown = selected();
+            names.add(shown == null ? String.valueOf(ex.getMessage()) : shown.location());
+            failures.add(ex);
+        } finally {
+            updateModified();
+        }
+        if (!failures.isEmpty()) {
+            IOException failed = new IOException(NbBundle.getMessage(DiffBrowser.class, "Diff.save.failed",
+                    String.join("\n", names)), failures.getFirst());
+            failures.stream().skip(1).forEach(failed::addSuppressed);
+            throw failed;
+        }
+    }
+
+    private static String nameOf(EditorDocument document) {
+        return document.getFileObject() == null ? document.getTitle() : document.getFileObject().getPath();
+    }
+
+    /** Lets go of an editor kept for its edits, and of what listened to it. */
+    private void release(EditorDocument kept) {
+        unsaved.remove(kept);
+        Subscription listening = watched.remove(kept);
+        if (listening != null) {
+            listening.unsubscribe();
+        }
+        try {
+            kept.dispose();
+        } catch (RuntimeException ex) {
+            LOG.log(Level.INFO, "An editor kept for its edits could not be released", ex);
+        }
+    }
+
+    /** The editors kept for their edits, of files not shown. */
+    List<EditorDocument> unsaved() {
+        return List.copyOf(unsaved);
+    }
+
+    Button revertAllButton() {
+        return revertAll;
+    }
+
+    private void updateModified() {
+        modified.set(shownModified.get() || unsaved.stream().anyMatch(EditorDocument::isModified));
+        // A file that is locked is not saved by saving the tab: one that takes edits is.
+        takesEdits.set(shownTakesEdits.get()
+                || unsaved.stream().anyMatch(kept -> kept.editableProperty().get()));
+    }
+
+    /** Keeps the editor of a file left with edits, unless one of that file is kept already. */
+    private void keep(EditorDocument left) {
+        if (unsaved.stream().anyMatch(left::sharesContentWith)) {
+            left.dispose();
+        } else {
+            unsaved.add(left);
+            watched.put(left, left.modifiedProperty().subscribe(now -> updateModified())
+                    .and(left.editableProperty().subscribe(now -> updateModified())));
+        }
+    }
+
+    @Override
     public void dispose() {
         listing.incrementAndGet();
         loading.incrementAndGet();
-        show((DiffPane) null, "");
         try {
-            provider.dispose();
-        } catch (RuntimeException ex) {
-            LOG.log(Level.INFO, "The provider could not be released", ex);
+            show((DiffPane) null, "");
+        } finally {
+            // The tab is closed: the user was asked, and what is left was not to be saved.
+            List.copyOf(unsaved).forEach(this::release);
+            updateModified();
+            try {
+                provider.dispose();
+            } catch (RuntimeException ex) {
+                LOG.log(Level.INFO, "The provider could not be released", ex);
+            }
         }
     }
 
@@ -676,14 +807,27 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             previous.disableProperty().unbind();
             next.disableProperty().unbind();
             summary.textProperty().unbind();
-            pane.dispose();
+            revertAll.disableProperty().unbind();
+            editor.unbind();
+            editor.set(null);
+            shownModified.unbind();
+            shownModified.set(false);
+            shownTakesEdits.unbind();
+            shownTakesEdits.set(false);
+            // Edited and not saved: its editor is kept, or the edits would go with it.
+            EditorDocument left = pane.disposeKeepingEdits();
+            if (left != null) {
+                keep(left);
+            }
         }
         pane = shown;
+        updateModified();
         activeEditor.unbind();
         if (pane == null) {
             activeEditor.set(null);
             previous.setDisable(true);
             next.setDisable(true);
+            revertAll.setDisable(true);
             summary.setText("");
             placeholder.setText(why);
             holder.getChildren().setAll(placeholder);
@@ -696,6 +840,10 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             summary.textProperty().bind(Bindings.createStringBinding(
                     () -> waiting.get() ? message("Diff.loading") : now.summaryProperty().get(),
                     waiting, now.summaryProperty()));
+            revertAll.disableProperty().bind(waiting.or(now.revertAllButton().disableProperty()));
+            editor.bind(now.editorProperty());
+            shownModified.bind(now.modifiedProperty());
+            shownTakesEdits.bind(now.editableProperty());
             pane.setTextual(textual);
             activeEditor.bind(pane.activeEditorProperty());
             holder.getChildren().setAll(pane);
@@ -838,8 +986,12 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     }
 
     private static Button button(String icon, String key) {
+        return button(ToolIcons.view(icon), key);
+    }
+
+    private static Button button(Node icon, String key) {
         Button button = new Button();
-        button.setGraphic(ToolIcons.view(icon));
+        button.setGraphic(icon);
         button.setTooltip(new Tooltip(message(key)));
         button.setAccessibleText(message(key));
         button.getStyleClass().add("diff-tool-button");

@@ -34,6 +34,8 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import javafx.scene.control.Label;
 import javafx.scene.layout.Region;
+import org.netbeans.junit.MockServices;
+import org.junit.Before;
 import org.junit.Test;
 import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
@@ -50,6 +52,12 @@ import static org.junit.Assert.assertTrue;
  * lists, the diff of the one selected, and what choosing a way to compare and Refresh ask for.
  */
 public class DiffBrowserTest {
+
+    /** Without editors: these tests are of what is around the two texts, not of the texts. */
+    @Before
+    public void noEditors() {
+        MockServices.setServices(NoEditors.class);
+    }
 
     private static final DiffMode ALL = new DiffMode("all", "Everything", Region::new);
     private static final DiffMode STAGED = new DiffMode("staged", "Staged", Region::new);

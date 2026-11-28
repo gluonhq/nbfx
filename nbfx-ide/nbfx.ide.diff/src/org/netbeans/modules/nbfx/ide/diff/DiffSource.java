@@ -21,6 +21,7 @@ package org.netbeans.modules.nbfx.ide.diff;
 import java.util.List;
 import java.util.Objects;
 import org.netbeans.api.nbfx.diff.Diff;
+import org.openide.filesystems.FileObject;
 
 /**
  * One of the two sides a diff view compares, as it was when the diff was asked for: a snapshot.
@@ -38,6 +39,12 @@ import org.netbeans.api.nbfx.diff.Diff;
  * file, one too large, one that could not be read - with what to tell the user of it. Nothing is
  * compared then.</li>
  * </ul>
+ * A side with a text may also be <em>edited</em>: it is of a {@link #file() file} on disk, and
+ * the view shows that file in an editor of it - the one text all its editors share - in place of
+ * a copy of the snapshot. What is compared is then what that editor holds, as it is edited; the
+ * snapshot is the text the file had when the diff was asked for, which tells how its lines end.
+ * Only the side compared to, on the right, is edited.
+ * <p>
  * Two sources are equal when they would show the same: a view asked again for a diff of equal
  * sources keeps what it shows.
  *
@@ -49,8 +56,9 @@ import org.netbeans.api.nbfx.diff.Diff;
  * @param path where the file is in what is compared, with {@code /} between its folders - in a
  *        repository, from its root - for the unified diff to name it by, as {@code a/path} and
  *        {@code b/path}; {@code null} to have it named by the title
+ * @param file the file this side is edited in; {@code null} for a side that is only shown
  */
-public record DiffSource(String title, String fileName, String text, String problem, String path) {
+public record DiffSource(String title, String fileName, String text, String problem, String path, FileObject file) {
 
     /** Checks that the title and the name are there, and that the side is one of the three. */
     public DiffSource {
@@ -59,26 +67,48 @@ public record DiffSource(String title, String fileName, String text, String prob
         if (text != null && problem != null) {
             throw new IllegalArgumentException("a side with a text has no problem to tell");
         }
+        if (file != null && text == null) {
+            throw new IllegalArgumentException("a side that is edited has a text");
+        }
     }
 
     /** A side with {@code text}; an empty text is an empty file. */
     public static DiffSource of(String title, String fileName, String text) {
-        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null, null);
+        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null, null, null);
     }
 
     /** A side with no file on it. */
     public static DiffSource missing(String title, String fileName) {
-        return new DiffSource(title, fileName, null, null, null);
+        return new DiffSource(title, fileName, null, null, null, null);
     }
 
     /** A side with no text to compare, for the reason {@code problem} tells the user. */
     public static DiffSource unreadable(String title, String fileName, String problem) {
-        return new DiffSource(title, fileName, null, Objects.requireNonNull(problem, "problem"), null);
+        return new DiffSource(title, fileName, null, Objects.requireNonNull(problem, "problem"), null, null);
     }
 
     /** This side, at {@code path} in what is compared: what the unified diff names it by. */
     public DiffSource withPath(String path) {
-        return new DiffSource(title, fileName, text, problem, path);
+        return new DiffSource(title, fileName, text, problem, path, file);
+    }
+
+    /**
+     * A side that is edited in the diff: {@code file}, a file on disk, whose text was
+     * {@code text} when the diff was asked for. It is named as the file is.
+     */
+    public static DiffSource editable(String title, FileObject file, String text) {
+        Objects.requireNonNull(file, "file");
+        return new DiffSource(title, file.getNameExt(), Objects.requireNonNull(text, "text"), null, null, file);
+    }
+
+    /** Whether this side is edited in the diff, not only shown. */
+    public boolean isEditable() {
+        return file != null;
+    }
+
+    /** This side, holding {@code text}: what its editor holds by now. */
+    DiffSource withText(String text) {
+        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null, path, file);
     }
 
     /**

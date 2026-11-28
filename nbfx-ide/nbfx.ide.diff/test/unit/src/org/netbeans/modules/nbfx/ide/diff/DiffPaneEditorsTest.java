@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.BooleanSupplier;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -53,6 +55,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -553,21 +556,59 @@ public class DiffPaneEditorsTest {
         awaitComparison(pane);
         int made = EDITORS.size();
 
+        // The write waits its turn behind this, so that the diff is closed while it is pending.
+        CountDownLatch held = new CountDownLatch(1);
+        DiffPane.RP.post(() -> {
+            try {
+                held.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+            }
+        });
         JavaFxTestSupport.onFx(() -> {
             pane.setTextual(true);
             assertTrue(pane.isWritingUnified());
             pane.dispose();
         });
-        for (int i = 0; i < 200 && JavaFxTestSupport.onFx(pane::isWritingUnified); i++) {
-            Thread.sleep(10);
+        held.countDown();
+        // Until the write is done, and what it had to tell the FX thread is told - twice over,
+        // for a write that would have been started again and what that one would make.
+        for (int round = 0; round < 2; round++) {
+            DiffPane.RP.post(() -> { }).waitFinished();
+            JavaFxTestSupport.onFx(() -> { });
         }
-        // Time for a write that would have been started again, and for what it would make.
-        Thread.sleep(200);
         JavaFxTestSupport.onFx(() -> {
             assertFalse(pane.isWritingUnified());
             assertNull(pane.textualEditor());
         });
         assertEquals(made, EDITORS.size());
+    }
+
+    @Test
+    public void anEditorThatCannotBeReleasedDoesNotKeepTheOthersFromIt() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+        awaitComparison(pane);
+        int made = EDITORS.size();
+        JavaFxTestSupport.onFx(() -> pane.setTextual(true));
+        awaitTextual(pane);
+        Editor left = EDITORS.get(made - 2);
+        Editor right = EDITORS.get(made - 1);
+        Editor textual = EDITORS.get(made);
+        left.failsToDispose = true;
+        textual.failsToDispose = true;
+
+        AssertionError failure = assertThrows(AssertionError.class, () -> JavaFxTestSupport.onFx(pane::dispose));
+
+        assertTrue(String.valueOf(failure.getCause()), failure.getCause() instanceof IllegalStateException);
+        assertEquals(1, textual.disposed);
+        assertEquals(1, left.disposed);
+        assertEquals(1, right.disposed);
+        JavaFxTestSupport.onFx(() -> {
+            assertNull(pane.textualEditor());
+            assertNull(pane.activeEditorProperty().getValue());
+            assertFalse(pane.connectorsListening());
+        });
     }
 
     @Test
@@ -688,6 +729,8 @@ public class DiffPaneEditorsTest {
         private volatile List<LineBand> bands = List.of();
         private volatile int focused;
         private volatile int disposed;
+        /** Whether releasing this editor fails, after it was counted. */
+        private volatile boolean failsToDispose;
         private EditorDocument document;
 
         /** Places {@code regions} after the layout of the next frame the editor is shown in. */
@@ -843,6 +886,9 @@ public class DiffPaneEditorsTest {
                         return null;
                     case "dispose":
                         editor.disposed++;
+                        if (editor.failsToDispose) {
+                            throw new IllegalStateException("cannot be released");
+                        }
                         return null;
                     case "hashCode":
                         return System.identityHashCode(proxy);

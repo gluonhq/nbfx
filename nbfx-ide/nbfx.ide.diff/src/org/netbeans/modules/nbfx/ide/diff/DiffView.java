@@ -34,6 +34,11 @@ import org.openide.util.NbBundle;
  * Opens diff tabs in the editor area: two texts side by side with their differences marked. What
  * the two texts are - a file and its last commit, two revisions - is the caller's; this module
  * knows nothing of version control.
+ * <p>
+ * The text on the right is edited in the diff when its {@link DiffSource} says so - it is of a
+ * file on disk that can be written - as in an editor of that file and sharing its text with them;
+ * a block of it, or all of it, can be reverted to the text on the left. Any other text is only
+ * shown.
  */
 public final class DiffView {
 

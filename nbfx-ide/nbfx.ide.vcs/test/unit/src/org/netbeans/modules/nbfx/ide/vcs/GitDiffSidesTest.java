@@ -456,7 +456,10 @@ public class GitDiffSidesTest {
         assertThrows(CancellationException.class, () -> provider.entries(mode, () -> true));
         assertThrows(CancellationException.class, () -> GitClient.status(root, () -> true));
         DiffEntry entry = provider.entries(mode, () -> false).getFirst();
-        assertThrows(CancellationException.class, () -> entry.loader().load(() -> true));
+        // Asked once, and nothing more: not wanted before it starts, nothing is read for it.
+        int[] before = new int[1];
+        assertThrows(CancellationException.class, () -> entry.loader().load(() -> ++before[0] > 0));
+        assertEquals(1, before[0]);
         // Wanted when it is started, and no longer when git is first waited for: no command of
         // the load runs on to its end, the one that asks for the charset no more than the others.
         int[] asked = new int[1];

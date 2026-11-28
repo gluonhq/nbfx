@@ -322,8 +322,11 @@ public class UnifiedDiffTest {
         UnifiedDiff diff = UnifiedDiff.of("old", "new", left, right, differences, 0);
 
         assertEquals(blocks, diff.differenceLines().size());
-        // Each in a hunk of its own: the header, then the line.
-        assertEquals(3, (int) diff.differenceLines().getFirst());
-        assertEquals(2 + 2 * blocks - 1, (int) diff.differenceLines().getLast());
+        // Each in a hunk of its own: the header, then the line - after the two lines of the names.
+        for (int i = 0; i < blocks; i++) {
+            if (diff.differenceLines().get(i) != 3 + 2 * i) {
+                assertEquals("the line of block " + i, 3 + 2 * i, (int) diff.differenceLines().get(i));
+            }
+        }
     }
 }

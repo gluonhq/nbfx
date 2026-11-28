@@ -311,7 +311,13 @@ final class GitDiff {
             String committed = file == null ? path : headPath(file, mode);
             return new DiffEntry(name, path, kind == null ? "" : message("Git.kind." + kind.name()),
                     entryKind(kind), () -> fileIcon(path),
-                    cancelled -> pair(root, path, committed, mode, workingCharset(root.resolve(path)), cancelled));
+                    cancelled -> {
+                        // Not wanted before it starts: neither git nor the disk is asked anything.
+                        if (cancelled.getAsBoolean()) {
+                            throw new CancellationException();
+                        }
+                        return pair(root, path, committed, mode, workingCharset(root.resolve(path)), cancelled);
+                    });
         }
 
         /** The icon of the file on disk; none for one that is gone. */
@@ -361,7 +367,8 @@ final class GitDiff {
                 : GitContentReader.workingTree(root.resolve(path), working, MOST_BYTES, cancelled);
         DiffSource left = source(message(fromIndex ? "Git.diff.index" : "Git.diff.head"), name, from)
                 .withPath(fromIndex ? path : headPath);
-        DiffSource right = source(message(toIndex ? "Git.diff.index" : "Git.diff.workingTree"), name, to).withPath(path);
+        DiffSource right = toIndex ? source(message("Git.diff.index"), name, to).withPath(path)
+                : workingTree(root, name, path, to);
         return new DiffPair(left, right, modeNote(root, from, to, !toIndex, cancelled));
     }
 
@@ -400,6 +407,23 @@ final class GitDiff {
     private static GitContent index(Path root, String path, Charset working, BooleanSupplier cancelled) {
         Charset stored = GitClient.storedCharset(root, path, working, false, cancelled);
         return GitClient.indexContent(root, path, stored, MOST_BYTES, cancelled);
+    }
+
+    /**
+     * The working tree side: the file itself, to edit in the diff, when it is a file with a text
+     * on disk - not a link, which is where it points to and not what is there - and else what
+     * there is to show of it.
+     */
+    private static DiffSource workingTree(Path root, String name, String path, GitContent content) {
+        String title = message("Git.diff.workingTree");
+        if (content instanceof GitContent.Text text && !GitContentReader.LINK_MODE.equals(text.mode())) {
+            File onDisk = root.resolve(path).toFile();
+            FileObject file = onDisk.isFile() ? FileUtil.toFileObject(onDisk) : null;
+            if (file != null) {
+                return DiffSource.editable(title, file, text.text()).withPath(path);
+            }
+        }
+        return source(title, name, content).withPath(path);
     }
 
     /** The side of a diff for {@code content}: its text, no file, or why it cannot be compared. */
