@@ -18,13 +18,13 @@ Every number the plan states is derived here from the tree. Regenerate with
 | files constructing TreeView/TreeTableView/TableView/ListView | 27 |
 | files mentioning a TreeView/TreeTableView/TableView/ListView | 36 |
 | `.subscribe(` call sites | 173 |
-| files mentioning `dispose()` | 51 |
+| files mentioning `dispose()` | 52 |
 | modules importing `org.netbeans.api.java.source` | 5: nbfx.java.editor, nbfx.java.model, nbfx.java.navigation, nbfx.java.navigation.structure, nbfx.java.usages |
 | files importing `org.netbeans.api.java.source` | 46 |
 | files touching the Java semantic surface (`java.source`, `api.java.*`, `com.sun.source`, `libs.javacapi`) | 62 |
 | files using `NbBundle` | 182 |
 | `Bundle.properties` files | 69 |
-| test files | 122 |
+| test files | 123 |
 | modules with tests | 42 of 69 |
 | upstream editor/Java modules (ide/editor*, java/java.source*, java.java.hints*) | 50 |
 | of their source files, Swing/AWT-touching | 847 of 1647 |

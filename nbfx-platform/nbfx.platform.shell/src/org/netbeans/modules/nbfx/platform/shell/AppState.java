@@ -102,6 +102,12 @@ public final class AppState {
     private static final double DEFAULT_DETACHED_WIDTH = 900;
     private static final double DEFAULT_DETACHED_HEIGHT = 650;
 
+    /**
+     * The most characters the id and the state of a document that is no file's may take in a
+     * layout, which is kept as one preference with the tabs of every pane in it.
+     */
+    static final int MOST_DOCUMENT_STATE = 1024;
+
     private final Preferences prefs;
 
     // Snapshot of the current UI state, kept up to date on the FX thread.
@@ -789,7 +795,12 @@ public final class AppState {
             for (PaneLayout pane : layout.panes()) {
                 sb.append('\n').append(serialize(pane));
             }
-            node.put(key, sb.toString());
+            try {
+                node.put(key, sb.toString());
+            } catch (IllegalArgumentException ex) {
+                // More than a preference holds: the layout kept before stays, and quitting goes on.
+                LOG.log(Level.WARNING, "The layout is too long to be kept (" + sb.length() + " characters)", ex);
+            }
         }
         flush();
     }

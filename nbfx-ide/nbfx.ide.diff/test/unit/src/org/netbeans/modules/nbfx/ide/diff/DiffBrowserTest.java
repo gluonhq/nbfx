@@ -18,6 +18,15 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import javafx.stage.Stage;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.Scene;
+import javafx.scene.Node;
+import javafx.event.Event;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -29,6 +38,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -54,6 +64,31 @@ public class DiffBrowserTest {
         volatile int disposed;
         /** Whether the provider fails at what it is asked on the FX thread. */
         volatile boolean failing;
+        /** Held up while set: the list of the files, and the reading of the texts of one. */
+        volatile CountDownLatch listHeld;
+        volatile CountDownLatch loadHeld;
+        final AtomicInteger loads = new AtomicInteger();
+
+        private static void hold(CountDownLatch latch) {
+            try {
+                if (latch != null && !latch.await(10, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("never let go");
+                }
+            } catch (InterruptedException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+
+        private DiffEntry held(DiffEntry entry) {
+            return new DiffEntry(entry.name(), entry.location(), entry.status(), entry.kind(), entry.icon(), () -> {
+                hold(loadHeld);
+                try {
+                    return entry.loader().load();
+                } finally {
+                    loads.incrementAndGet();
+                }
+            });
+        }
 
         @Override
         public void modeChosen(DiffMode mode) {
@@ -89,14 +124,15 @@ public class DiffBrowserTest {
         @Override
         public List<DiffEntry> entries(DiffMode mode) {
             asked.add(mode.id());
+            hold(listHeld);
             List<DiffEntry> entries = new ArrayList<>();
             if (empty) {
                 return entries;
             }
             if (mode.equals(ALL)) {
-                entries.add(entry("A.txt", "src/A.txt", "Modified", DiffEntry.Kind.MODIFIED, "a\nb\n", "a\nB\n"));
+                entries.add(held(entry("A.txt", "src/A.txt", "Modified", DiffEntry.Kind.MODIFIED, "a\nb\n", "a\nB\n")));
             }
-            entries.add(entry("B.txt", "src/B.txt", "Added", DiffEntry.Kind.ADDED, "a\nb\nc\nd\n", secondText));
+            entries.add(held(entry("B.txt", "src/B.txt", "Added", DiffEntry.Kind.ADDED, "a\nb\nc\nd\n", secondText)));
             return entries;
         }
     }
@@ -433,5 +469,158 @@ public class DiffBrowserTest {
             String left, String right) {
         return new DiffEntry(name, location, status, kind, null,
                 () -> new DiffPair(DiffSource.of("HEAD", name, left), DiffSource.of("Working Tree", name, right)));
+    }
+
+    @Test
+    public void textsReadForTheListBeforeAreNotShownOnceTheFilesAreAskedForAgain() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+
+        // The texts of the second file are being read, in the first mode...
+        files.loadHeld = new CountDownLatch(1);
+        int loads = files.loads.get();
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        // ...when the other mode is chosen, whose list takes its time.
+        files.listHeld = new CountDownLatch(1);
+        JavaFxTestSupport.onFx(() -> browser.modeToggles().get(1).fire());
+
+        // The texts arrive first: they are of the mode before, and are not shown under the new one.
+        files.loadHeld.countDown();
+        for (int i = 0; i < 200 && files.loads.get() == loads; i++) {
+            Thread.sleep(10);
+        }
+        assertEquals(loads + 1, files.loads.get());
+        JavaFxTestSupport.onFx(() -> { });
+        JavaFxTestSupport.onFx(() -> {
+            assertNull(browser.pane());
+            assertEquals("Comparing...", browser.placeholderText());
+            assertTrue(browser.isBusy());
+        });
+
+        files.loadHeld = null;
+        files.listHeld.countDown();
+        files.listHeld = null;
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals(STAGED, browser.mode());
+            assertEquals("2 differences", browser.summary());
+        });
+    }
+
+    @Test
+    public void whileTheFilesAreAskedForAgainTheDiffShownSaysSoAndIsNotSteppedThrough() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("2 differences", browser.summary());
+            assertFalse(browser.nextButton().isDisable());
+        });
+
+        files.listHeld = new CountDownLatch(1);
+        JavaFxTestSupport.onFx(() -> {
+            browser.refresh();
+            // At once, with the diff of before still there.
+            assertNotNull(browser.pane());
+            assertEquals("Comparing...", browser.summary());
+            assertTrue(browser.nextButton().isDisable());
+            assertTrue(browser.previousButton().isDisable());
+        });
+
+        files.listHeld.countDown();
+        files.listHeld = null;
+        await(browser);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("2 differences", browser.summary());
+            assertFalse(browser.nextButton().isDisable());
+        });
+    }
+
+    @Test
+    public void theKeyboardSentToADiffThatIsNotThereYetGoesToItWhenItComes() throws Exception {
+        Files files = new Files();
+        files.listHeld = new CountDownLatch(1);
+        Stage[] stage = new Stage[1];
+        DiffBrowser browser = JavaFxTestSupport.onFx(() -> {
+            DiffBrowser made = new DiffBrowser(files, ALL);
+            stage[0] = new Stage();
+            stage[0].setScene(new Scene(made, 600, 400));
+            stage[0].show();
+            // As the tab is selected, before the provider has answered.
+            made.focusEditor();
+            return made;
+        });
+        try {
+            JavaFxTestSupport.onFx(() -> {
+                assertNull(browser.pane());
+                // Not on what takes no keys: on the table, until there is a text to be in.
+                assertSame(browser.table(), browser.getScene().getFocusOwner());
+            });
+
+            files.listHeld.countDown();
+            files.listHeld = null;
+            await(browser);
+            JavaFxTestSupport.onFx(() -> assertTrue("the keyboard is in " + browser.getScene().getFocusOwner(),
+                    within(browser.getScene().getFocusOwner(), browser.pane())));
+
+            // The file whose diff has the keyboard gives way to another: the keyboard is in that one.
+            JavaFxTestSupport.onFx(() -> browser.select(1));
+            await(browser);
+            JavaFxTestSupport.onFx(() -> assertTrue("the keyboard is in " + browser.getScene().getFocusOwner(),
+                    within(browser.getScene().getFocusOwner(), browser.pane())));
+
+            // Put elsewhere by the user meanwhile, it stays there.
+            JavaFxTestSupport.onFx(() -> {
+                browser.select(0);
+                browser.refreshButton().requestFocus();
+            });
+            await(browser);
+            JavaFxTestSupport.onFx(() -> assertSame(browser.refreshButton(), browser.getScene().getFocusOwner()));
+        } finally {
+            JavaFxTestSupport.onFx(() -> stage[0].hide());
+        }
+    }
+
+    @Test
+    public void theKeysOfTheNextAndPreviousDifferenceWorkFromTheTableAndTheButtons() throws Exception {
+        Files files = new Files();
+        Stage[] stage = new Stage[1];
+        // In a window: the table is part of the tab once the tab is shown.
+        DiffBrowser browser = JavaFxTestSupport.onFx(() -> {
+            DiffBrowser made = new DiffBrowser(files, ALL);
+            stage[0] = new Stage();
+            stage[0].setScene(new Scene(made, 600, 400));
+            stage[0].show();
+            return made;
+        });
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            // At the first of its two differences, as a diff opens.
+            assertEquals(0, browser.pane().current());
+            Event.fireEvent(browser.table(), key(KeyCode.PERIOD));
+            assertEquals(1, browser.pane().current());
+            Event.fireEvent(browser.refreshButton(), key(KeyCode.COMMA));
+            assertEquals(0, browser.pane().current());
+            Event.fireEvent(browser.modeToggles().get(0), key(KeyCode.PERIOD));
+            assertEquals(1, browser.pane().current());
+            stage[0].hide();
+        });
+    }
+
+    private static KeyEvent key(KeyCode code) {
+        return new KeyEvent(KeyEvent.KEY_PRESSED, "", "", code, false, true, false, false);
+    }
+
+    private static boolean within(Node node, Node part) {
+        while (node != null && node != part) {
+            node = node.getParent();
+        }
+        return node != null && part != null;
     }
 }

@@ -26,6 +26,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CancellationException;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsChangeKind;
+import org.netbeans.modules.nbfx.ide.vcs.model.VcsFileStatus;
+import org.netbeans.modules.nbfx.ide.diff.DiffEntry;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
@@ -125,6 +128,58 @@ public class GitDiffSidesTest {
         assertEquals(DiffSource.of("HEAD", "deleted.txt", "to delete\n"), sides.head());
         assertTrue(sides.workingTree().isMissing());
         assertEquals(List.of(new Difference(Kind.DELETE, 0, 2, 0, 0)), differences(sides));
+    }
+
+    @Test
+    public void aCopiedFileIsAllNewWhateverItWasCopiedFrom() throws Exception {
+        // Told as a copy by git only when asked to look for them, and when its source changed too.
+        git("config", "status.renames", "copies");
+        write("src/copy.txt", COMMITTED);
+        write("src/modified.txt", COMMITTED + "one more\n");
+        git("add", "-A");
+        VcsFileStatus copy = GitClient.status(root).files().stream()
+                .filter(file -> file.path().equals("src/copy.txt")).findFirst().orElseThrow();
+        assertEquals(VcsChangeKind.COPIED, copy.staged());
+        assertEquals("src/modified.txt", copy.originalPath());
+
+        GitDiff.Provider provider = new GitDiff.Provider(root, "src", false);
+        for (VcsCompareMode mode : List.of(VcsCompareMode.HEAD_VS_INDEX, VcsCompareMode.HEAD_VS_WORKING_TREE)) {
+            DiffEntry entry = provider.entries(provider.mode(mode)).stream()
+                    .filter(listed -> listed.location().equals("src/copy.txt")).findFirst().orElseThrow();
+            assertEquals(DiffEntry.Kind.ADDED, entry.kind());
+            DiffPair pair = entry.loader().load();
+            // Not what it was copied from: the last commit has no such file, and all of it is added.
+            assertTrue(mode.name(), pair.left().isMissing());
+            assertEquals(COMMITTED, pair.right().text());
+        }
+    }
+
+    @Test
+    public void aFileRenamedAndThenDeletedIsTheFileOfTheLastCommitGone() throws Exception {
+        git("mv", "src/old name.txt", "src/new name.txt");
+        Files.delete(root.resolve("src/new name.txt"));
+
+        GitDiff.Provider provider = new GitDiff.Provider(root, "src", false);
+        List<DiffEntry> entries = provider.entries(provider.mode(VcsCompareMode.HEAD_VS_WORKING_TREE));
+        // As the status view lists it between the last commit and the disk: under its old name, deleted.
+        assertEquals(List.of("src/old name.txt"), entries.stream().map(DiffEntry::location).toList());
+        assertEquals(DiffEntry.Kind.DELETED, entries.getFirst().kind());
+        DiffPair pair = entries.getFirst().loader().load();
+        assertEquals("renamed\nas it is\n", pair.left().text());
+        assertTrue(pair.right().isMissing());
+
+        // And the diff of that one file, asked for by the name the last commit has it under.
+        GitDiff.Provider single = new GitDiff.Provider(root, "src/old name.txt", true);
+        DiffEntry one = single.entries(single.mode(VcsCompareMode.HEAD_VS_WORKING_TREE)).getFirst();
+        assertEquals(DiffEntry.Kind.DELETED, one.kind());
+        assertTrue(one.loader().load().right().isMissing());
+    }
+
+    @Test
+    public void aWorkingTreeFileIsReadUpToTheLimitAndNoFurther() throws Exception {
+        write("src/big.txt", "0123456789");
+        assertTrue(GitContentReader.workingTree(root.resolve("src/big.txt"), UTF_8, 10) instanceof GitContent.Text);
+        assertEquals(new GitContent.TooLarge(10, 9), GitContentReader.workingTree(root.resolve("src/big.txt"), UTF_8, 9));
     }
 
     @Test

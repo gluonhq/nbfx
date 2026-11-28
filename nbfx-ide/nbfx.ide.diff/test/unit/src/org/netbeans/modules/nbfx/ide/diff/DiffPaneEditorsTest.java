@@ -427,6 +427,46 @@ public class DiffPaneEditorsTest {
     }
 
     @Test
+    public void aProviderGivenForADiffThatIsOpenIsLetGoOfAndTheOneItHasIsKept() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        Content.OPENED.clear();
+        Object key = new Object();
+        int[] disposed = new int[2];
+
+        JavaFxTestSupport.onFx(() -> {
+            DiffView.open(key, "src", null, provider(disposed, 0), null);
+            DiffView.open(key, "src", null, provider(disposed, 1), null);
+        });
+
+        assertSame(Content.OPENED.get(0), Content.OPENED.get(1));
+        assertEquals(0, disposed[0]);
+        assertEquals(1, disposed[1]);
+        // Its own, when its tab is closed.
+        JavaFxTestSupport.onFx(() -> Content.OPENED.get(0).dispose());
+        assertEquals(1, disposed[0]);
+        assertEquals(1, disposed[1]);
+    }
+
+    private static DiffProvider provider(int[] disposed, int index) {
+        return new DiffProvider() {
+            @Override
+            public List<DiffMode> modes() {
+                return List.of();
+            }
+
+            @Override
+            public List<DiffEntry> entries(DiffMode mode) {
+                return List.of();
+            }
+
+            @Override
+            public void dispose() {
+                disposed[index]++;
+            }
+        };
+    }
+
+    @Test
     public void theTabGivesTheKeyboardToTheTextComparedTo() throws Exception {
         DiffPane pane = pane(head("a\n"), working("b\n"));
         DiffDocument document = new DiffDocument("key", "A.txt [ Diff ]", pane);

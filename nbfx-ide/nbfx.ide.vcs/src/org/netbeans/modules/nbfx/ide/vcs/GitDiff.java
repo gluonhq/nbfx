@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -106,8 +107,20 @@ final class GitDiff {
         } catch (IllegalArgumentException ex) {
             return false;
         }
+        // The path is the last of the three, and whole: with the line breaks a name may have.
+        if (!"file".equals(lines[1]) && !"folder".equals(lines[1])) {
+            return false;
+        }
         boolean single = "file".equals(lines[1]);
-        Path target = Path.of(lines[2]);
+        Path target;
+        try {
+            target = Path.of(lines[2]);
+        } catch (InvalidPathException ex) {
+            return false;
+        }
+        if (!target.isAbsolute()) {
+            return false;
+        }
         // A file may be gone - deleted, its diff shows what it held - but not its folder.
         Path folder = single ? target.getParent() : target;
         // Told from the .git entry of a parent, as the menu that leads to a diff does.
@@ -188,10 +201,23 @@ final class GitDiff {
      */
     static List<VcsFileStatus> changedWithin(VcsStatus status, String scope, VcsCompareMode mode) {
         String prefix = scope.isEmpty() ? "" : scope + "/";
-        return status.files().stream()
-                .filter(file -> file.path().startsWith(prefix) && file.change(mode).isPresent())
-                .sorted(Comparator.comparing(VcsFileStatus::path))
+        // As the mode sees them: what the status view lists in it, under the paths it lists them.
+        return status.files(mode).stream()
+                .filter(file -> file.path(mode).startsWith(prefix)
+                        // Moved out of the folder: gone from it, which is a change of the folder.
+                        || mode != VcsCompareMode.INDEX_VS_WORKING_TREE && headPath(file, mode).startsWith(prefix))
+                .sorted(Comparator.comparing(file -> file.path(mode)))
                 .toList();
+    }
+
+    /**
+     * Where the last commit has the file {@code mode} lists as {@code file}: under the name it
+     * was renamed from, for a renamed one. A copy is a new file, with nothing in the last commit
+     * to compare it to, whatever it was copied from.
+     */
+    static String headPath(VcsFileStatus file, VcsCompareMode mode) {
+        boolean renamed = file.staged() == VcsChangeKind.RENAMED || file.unstaged() == VcsChangeKind.RENAMED;
+        return renamed && file.originalPath() != null ? file.originalPath() : file.path(mode);
     }
 
     /** How a diff view colours a file changed as {@code kind}. */
@@ -240,6 +266,12 @@ final class GitDiff {
             return List.copyOf(modes.values());
         }
 
+        /** The diff of one file is of that file: no table to choose it from. */
+        @Override
+        public boolean listed() {
+            return !single;
+        }
+
         /** The mode the user chose is the one the next diff opened from a menu compares as. */
         @Override
         public void modeChosen(DiffMode chosen) {
@@ -258,18 +290,18 @@ final class GitDiff {
             VcsStatus status = GitClient.status(root);
             if (single) {
                 // The file asked for, changed in this mode or not: the same on both sides then.
-                VcsFileStatus file = status.files().stream()
-                        .filter(changed -> changed.path().equals(scope)).findFirst().orElse(null);
+                VcsFileStatus file = status.files(mode).stream()
+                        .filter(changed -> changed.path(mode).equals(scope)).findFirst().orElse(null);
                 return List.of(entry(scope, file, mode));
             }
-            return changedWithin(status, scope, mode).stream().map(file -> entry(file.path(), file, mode)).toList();
+            return changedWithin(status, scope, mode).stream().map(file -> entry(file.path(mode), file, mode)).toList();
         }
 
         private DiffEntry entry(String path, VcsFileStatus file, VcsCompareMode mode) {
             String name = path.substring(path.lastIndexOf('/') + 1);
             VcsChangeKind kind = file == null ? null : file.change(mode).orElse(null);
-            // A renamed file is in the last commit under its old name.
-            String committed = file != null && file.originalPath() != null ? file.originalPath() : path;
+            // A renamed file is in the last commit under its old name; a copied one is not in it.
+            String committed = file == null ? path : headPath(file, mode);
             return new DiffEntry(name, path, kind == null ? "" : message("Git.kind." + kind.name()),
                     entryKind(kind), () -> fileIcon(path),
                     () -> pair(root, path, committed, mode, workingCharset(root.resolve(path)), () -> false));

@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -74,7 +76,9 @@ public final class DiffView {
      * Shows the diff of what {@code provider} has in a tab titled "{@code name} [ Diff ]": the ways
      * it can compare as toggles, its files in a table when it lists them, and the two texts of the
      * file selected. A diff open with the same {@code key} is brought to the front and compared
-     * again, in the way to compare asked for - or the one it is in, for {@code null}. Must run on the JavaFX Application Thread.
+     * again, in the way to compare asked for - or the one it is in, for {@code null}; it keeps the
+     * provider it was opened with, and {@code provider} is {@linkplain DiffProvider#dispose()
+     * disposed of} at once, unused. Must run on the JavaFX Application Thread.
      *
      * @param key what the diff is of, by {@code equals}: the file or the folder
      * @param name the name in the title of the tab
@@ -92,10 +96,20 @@ public final class DiffView {
             return new DiffDocument(key, title(name), browser, onDispose);
         }, open -> {
             // Asked for again, and maybe in another way to compare: that is the one it shows.
+            DiffProvider used = null;
             if (open.content() instanceof DiffBrowser browser) {
                 browser.show(mode);
+                used = browser.provider();
             } else {
                 open.content().refresh();
+            }
+            if (provider != used) {
+                // The diff that is open keeps the provider it has; this one was made for nothing.
+                try {
+                    provider.dispose();
+                } catch (RuntimeException ex) {
+                    Logger.getLogger(DiffView.class.getName()).log(Level.INFO, "The provider could not be released", ex);
+                }
             }
         });
     }
