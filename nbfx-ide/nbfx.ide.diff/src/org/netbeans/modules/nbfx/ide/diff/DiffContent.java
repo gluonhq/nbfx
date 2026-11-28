@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import javafx.beans.value.ObservableValue;
+import org.netbeans.api.nbfx.editor.EditorDocument;
 import org.netbeans.api.nbfx.editor.SavedDocument;
 
 /** What a diff tab holds, as far as its {@link DiffDocument} needs to know. */
@@ -28,6 +30,18 @@ interface DiffContent {
 
     /** Releases the editors. */
     void dispose();
+
+    /**
+     * Gives the keyboard to the text compared to, so that the keys scroll the diff as soon as its
+     * tab is chosen.
+     */
+    void focusEditor();
+
+    /**
+     * The editor the keyboard is in, or was in last, of the two texts shown: the one Copy is of.
+     * Its value is {@code null} while no text is shown.
+     */
+    ObservableValue<EditorDocument> activeEditorProperty();
 
     /** What opens the diff again in a later session, or {@code null} when it is not restored. */
     default SavedDocument savedState() {

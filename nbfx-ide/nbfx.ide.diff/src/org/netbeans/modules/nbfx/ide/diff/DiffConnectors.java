@@ -97,11 +97,16 @@ final class DiffConnectors extends Pane {
     private List<Difference> differences = List.of();
     private List<LineBand> leftBands = List.of();
     private List<LineBand> rightBands = List.of();
+    /** The style class of what is drawn of the block the view is at. */
+    private static final String CURRENT = "diff-current";
+
     private List<Region> leftRegions = List.of();
     private List<Region> rightRegions = List.of();
     private List<Shape> shapes = List.of();
     private int current = -1;
     private boolean redrawRequested;
+    /** Set when the diff is closed: nothing is drawn or listened to from then on. */
+    private boolean disposed;
     /** Set from this drawing in a frame until the next frame starts. */
     private boolean drawnThisFrame;
 
@@ -117,7 +122,7 @@ final class DiffConnectors extends Pane {
                 old.removePostLayoutPulseListener(afterLayout);
                 old.removePreLayoutPulseListener(beforeLayout);
             }
-            if (scene != null) {
+            if (scene != null && !disposed) {
                 scene.addPostLayoutPulseListener(afterLayout);
                 scene.addPreLayoutPulseListener(beforeLayout);
             }
@@ -125,10 +130,49 @@ final class DiffConnectors extends Pane {
     }
 
     /**
+     * Lets go of the editors and of the frames of the window: the bands are no longer listened
+     * to nor marked, nothing is drawn any more, and nothing is done in a frame. For the diff whose
+     * tab is closed, which may stay in the window a while longer, or be held by what closed it.
+     */
+    void dispose() {
+        disposed = true;
+        current = -1;
+        mark();
+        watched.forEach(this::unwatch);
+        watched.clear();
+        leftRegions = List.of();
+        rightRegions = List.of();
+        shapes = List.of();
+        differences = List.of();
+        getChildren().clear();
+        widthProperty().removeListener(moved);
+        heightProperty().removeListener(moved);
+        clip.widthProperty().unbind();
+        clip.heightProperty().unbind();
+        if (getScene() != null) {
+            getScene().removePostLayoutPulseListener(afterLayout);
+            getScene().removePreLayoutPulseListener(beforeLayout);
+        }
+    }
+
+    /** Whether anything of an editor, or of a frame, is still listened to; for tests. */
+    boolean isListening() {
+        return !disposed || !watched.isEmpty();
+    }
+
+    /**
      * Joins the blocks of {@code found} as the two editors show them. Called after the bands were
      * set on both, in the order of the differences.
      */
     void show(EditorDocument left, EditorDocument right, List<Difference> found) {
+        if (disposed) {
+            return;
+        }
+        // The bands of the block that was the current one are those of an editor that may stay.
+        int was = current;
+        current = -1;
+        mark();
+        current = was;
         watched.forEach(this::unwatch);
         watched.clear();
         differences = found;
@@ -144,19 +188,31 @@ final class DiffConnectors extends Pane {
         requestRedraw();
     }
 
-    /** Draws the block of that index as the current one; -1 for none. */
+    /** Draws the block of that index - its connector and its bands - as the current one; -1 for none. */
     void setCurrent(int index) {
         current = index;
         mark();
     }
 
+    /**
+     * Marks the current block with the style class {@code diff-current}: its connector, and the
+     * band of each side it joins, so that the block the view is at reads as one shape too.
+     */
     private void mark() {
         for (int i = 0; i < shapes.size(); i++) {
-            List<String> classes = shapes.get(i).path().getStyleClass();
-            classes.remove("diff-current");
-            if (i == current) {
-                classes.add("diff-current");
+            mark(shapes.get(i).path().getStyleClass(), i == current);
+        }
+        for (List<Region> regions : List.of(leftRegions, rightRegions)) {
+            for (int i = 0; i < regions.size(); i++) {
+                mark(regions.get(i).getStyleClass(), i == current);
             }
+        }
+    }
+
+    private static void mark(List<String> classes, boolean isCurrent) {
+        classes.remove(CURRENT);
+        if (isCurrent) {
+            classes.add(CURRENT);
         }
     }
 
@@ -198,6 +254,9 @@ final class DiffConnectors extends Pane {
      * moving before the next frame starts - this takes its turn again, behind them from then on.
      */
     private void requestRedraw() {
+        if (disposed) {
+            return;
+        }
         if (drawnThisFrame && getScene() != null) {
             drawnThisFrame = false;
             getScene().removePostLayoutPulseListener(afterLayout);

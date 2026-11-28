@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<!DOCTYPE api-answers PUBLIC "-//NetBeans//DTD Arch Answers//EN" "../../nbbuild/antsrc/org/netbeans/nbbuild/Arch.dtd" [
+  <!ENTITY api-questions SYSTEM "../../nbbuild/antsrc/org/netbeans/nbbuild/Arch-api-questions.xml">
+]>
+
+<api-answers
+  question-version="1.29"
+  author="sven"
+>
+
+  &api-questions;
+
+  <answer id="arch-what">
+    <p>
+      The <b>nbfx Diff API</b> is the headless line comparison: <code>Diff</code> compares two
+      texts line by line under <code>DiffOptions</code> and answers with a <code>DiffResult</code>,
+      the <code>Difference</code> blocks of added, deleted and changed lines. It is the first part
+      of the M-tier diff contract and is <b>devel</b> until its first consumer, the diff view,
+      has landed and shown what it needs of it; <code>Patch</code> and <code>Merge</code> are
+      planned for M2. It compares lines and nothing else: what a view shows beside them - a
+      renamed file, a changed mode, line endings, a missing last line ending, a binary file - is
+      for the view to tell from what it compares.
+    </p>
+  </answer>
+
+  <answer id="arch-overall">
+    <p>
+      The comparison is the Hunt-McIlroy longest common subsequence, ported from the
+      <code>HuntDiff</code> of NetBeans' diff module and kept package-private. The API is
+      toolkit-free and knows nothing of files, version control or views: the lines come from
+      wherever the caller has them, and what is done with the result is the caller's.
+    </p>
+  </answer>
+
+  <answer id="arch-usecases">
+    <p>
+      A diff view compares the content of a file at two points - the last commit, the index, the
+      working tree - and draws the blocks that differ; a caller may leave out differences in case
+      or in white space.
+    </p>
+  </answer>
+
+  <answer id="arch-quality">
+    <p>
+      <code>DiffTest</code> covers additions, deletions and changes, the options alone and
+      together, case folding, argument and result checking, and cancellation in every part of a
+      comparison. The blocks are checked against the texts: that they lead from one to the other,
+      and, against a plain longest-common-subsequence table, that they keep as many lines as the
+      texts have in common - for every pair of small texts, for random ones with many repeated
+      lines, and under every combination of the options. The API is <b>devel</b> until the diff
+      view has landed; API signature tests (<code>sigtest</code>) are enabled when it is no
+      longer.
+    </p>
+  </answer>
+
+  <answer id="arch-time">
+    <p>Not applicable; the API is small and <b>devel</b> until the diff view has landed.</p>
+  </answer>
+
+  <answer id="arch-where">
+    <defaultanswer generate='here' />
+  </answer>
+
+  <answer id="compat-deprecation">
+    <p>
+      The API is <b>devel</b> until its first consumer, the diff view, has landed; incompatible
+      changes are allowed until then and documented in <code>apichanges.xml</code> afterwards.
+    </p>
+  </answer>
+
+  <answer id="dep-jre">
+    <p>Java 25 or later.</p>
+  </answer>
+
+  <answer id="dep-nb">
+    <p>None: the module depends on no other module.</p>
+  </answer>
+
+  <answer id="deploy-packages">
+    <p>
+      Only <code>org.netbeans.api.nbfx.diff</code> is public; the comparison itself,
+      <code>HuntDiff</code>, is package-private.
+    </p>
+  </answer>
+
+  <answer id="lookup-lookup">
+    <p>None.</p>
+  </answer>
+
+  <answer id="lookup-register">
+    <p>None.</p>
+  </answer>
+
+  <answer id="resources-preferences">
+    <p>None.</p>
+  </answer>
+
+  <answer id="exec-threading">
+    <p>
+      <code>Diff</code> is stateless and its results are immutable: it may be called on any thread.
+      A comparison takes time that grows with the texts and with how often their lines repeat,
+      and nothing in the engine limits their size: a view runs it off its drawing thread, decides
+      how large a text it compares, and cancels a comparison nobody waits for through the
+      <code>BooleanSupplier</code> of <code>Diff.compute</code>, which is asked before the
+      comparison starts and in every loop of it - over lines, characters, pairs of lines and
+      blocks - but not within the single copy of each list of lines nor the check the result
+      makes of its blocks.
+    </p>
+  </answer>
+
+  <answer id="perf-startup">
+    <p>No code runs on startup.</p>
+  </answer>
+
+  <answer id="perf-exit">
+    <p>No code runs on exit.</p>
+  </answer>
+
+  <answer id="default">
+    <p>No special requirements.</p>
+  </answer>
+
+</api-answers>

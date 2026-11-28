@@ -19,6 +19,9 @@
 package org.netbeans.modules.nbfx.platform.shell;
 
 
+import java.util.Set;
+import java.util.IdentityHashMap;
+import java.util.Collections;
 import org.netbeans.api.nbfx.editor.ContentManager;
 import org.netbeans.api.nbfx.editor.EditorContext;
 import org.netbeans.api.nbfx.editor.EditorDocument;
@@ -59,6 +62,8 @@ public class ContentManagerService implements ContentManager {
     private static final PseudoClass READONLY = PseudoClass.getPseudoClass("readonly");
 
     private final TabPane mainPane;
+    /** The documents whose tab is asked for and not attached yet, by identity; of the FX thread. */
+    private final Set<EditorDocument> attaching = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public ContentManagerService() {
         LOG.info("Creating main pane");
@@ -119,7 +124,13 @@ public class ContentManagerService implements ContentManager {
         }
         NbfxTabPane.findTab(document).ifPresentOrElse(
             NbfxTabPane::selectTabAndMoveToFront,
-            () -> attachNewTab(document, graphic));
+            () -> {
+                // Its tab is attached in a later step: asked for again before that, the document
+                // is on its way already, and a second tab would share it with the first.
+                if (attaching.add(document)) {
+                    attachNewTab(document, graphic);
+                }
+            });
     }
 
     /** Builds a tab for a freshly created {@code document} and adds it to the pane editors open in. */
@@ -127,8 +138,12 @@ public class ContentManagerService implements ContentManager {
         LOG.info("Open tab named " + document.getTitle() + " with content " + document.getNode());
         Platform.runLater(() -> {
             EditorContext editorContext = Lookup.getDefault().lookup(EditorContext.class);
-            Tab tab = createTab(document, graphic, editorContext);
-            NbfxTabPane.attachTab(NbfxTabPane.editorHome(mainPane, editorContext), tab);
+            try {
+                Tab tab = createTab(document, graphic, editorContext);
+                NbfxTabPane.attachTab(NbfxTabPane.editorHome(mainPane, editorContext), tab);
+            } finally {
+                attaching.remove(document);
+            }
         });
     }
 

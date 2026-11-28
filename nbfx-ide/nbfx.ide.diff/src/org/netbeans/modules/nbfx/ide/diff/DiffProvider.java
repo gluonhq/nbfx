@@ -26,8 +26,14 @@ import org.netbeans.api.nbfx.editor.SavedDocument;
  * What a diff tab shows when it is of more than two fixed texts: the files that differ, each with
  * its two texts, and the ways to compare them the user can choose from. The diff view asks again
  * when a mode is chosen and when it is refreshed.
- *
- * @since 1.1
+ * <p>
+ * {@link #modes()}, {@link #listed()}, {@link #savedState} and {@link #modeChosen} are called on
+ * the JavaFX Application Thread: they answer at once, from what the provider already has, and
+ * throw nothing - a provider that does is taken to have no modes, to list its files, and not to
+ * be restored. {@link #entries} and the {@linkplain DiffEntry.Loader loaders} of its entries are
+ * called off that thread, one at a time, and may read the disk or run a command; what they throw
+ * is shown in the diff as a comparison that failed. A request the user no longer waits for - the
+ * mode was changed again, the tab closed - is not started, and its answer is not shown.
  */
 public interface DiffProvider {
 
@@ -61,5 +67,22 @@ public interface DiffProvider {
      */
     default boolean listed() {
         return true;
+    }
+
+    /**
+     * Told when the user chooses {@code mode} with its toggle - not when a diff is opened in a
+     * mode, compared again or opened again with the session - so that a provider can make it the
+     * mode its next diff opens in. The default does nothing.
+     *
+     * @param mode one of {@link #modes()}
+     */
+    default void modeChosen(DiffMode mode) {
+    }
+
+    /**
+     * Told when the tab of the diff is closed: nothing is asked of the provider afterwards, and
+     * it lets go of what it holds. The default does nothing.
+     */
+    default void dispose() {
     }
 }

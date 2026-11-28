@@ -146,20 +146,29 @@ abstract class NavigatorTreeCell<T> extends TreeCell<T> {
             pseudoClassStateChanged(VCS_STATES.get(marked), marked == state);
             vcsTooltipState.pseudoClassStateChanged(VCS_STATES.get(marked), marked == state);
         }
-        within = treeItem == null ? null : VcsStates.stateWithin(file, host.isRecursive(treeItem));
+        List<FileObject> listed = treeItem == null ? null : host.listedFiles(treeItem);
+        if (listed != null) {
+            within = VcsStates.stateAmong(listed);
+        } else {
+            within = treeItem == null ? null : VcsStates.stateWithin(file, host.isRecursive(treeItem));
+        }
         if (state != null) {
             // A changed file: its state, in its colour.
             vcsTooltipState.setText(NbBundle.getMessage(NavigatorTreeCell.class, "Vcs.state." + state.name()));
             vcsTooltipState.setGraphic(null);
             setTooltip(vcsTooltip);
+            setAccessibleHelp(vcsTooltipState.getText());
         } else if (within != null) {
             // What holds changed files: its badge and what the badge says.
             vcsTooltipBadge.setImage(within == VcsFileState.CONFLICTED ? CONFLICTS_BADGE : MODIFIED_BADGE);
             vcsTooltipState.setText(NbBundle.getMessage(NavigatorTreeCell.class, "Vcs.within." + within.name()));
             vcsTooltipState.setGraphic(vcsTooltipBadge);
             setTooltip(vcsTooltip);
+            // The colour and the badge say it to the eye only.
+            setAccessibleHelp(vcsTooltipState.getText());
         } else {
             setTooltip(null);
+            setAccessibleHelp(null);
         }
     }
 

@@ -81,19 +81,22 @@
     -fx-stroke-width: 1;
 }
 
+/* Filled and outlined as the band it joins, so that the two read as one shape. */
 .diff-pane .diff-connector.diff-added {
-    -fx-fill: rgba(60, 200, 60, 0.28);
-    -fx-stroke: rgb(60, 170, 60);
+    -fx-fill: -nbfx-diff-added-bg;
+    -fx-stroke: -nbfx-diff-added;
 }
 
 .diff-pane .diff-connector.diff-deleted {
-    -fx-fill: rgba(230, 70, 70, 0.26);
-    -fx-stroke: rgb(210, 70, 70);
+    -fx-fill: -nbfx-diff-deleted-bg;
+    -fx-stroke: -nbfx-diff-deleted;
+    -fx-stroke-dash-array: 4 3;
 }
 
 .diff-pane .diff-connector.diff-changed {
-    -fx-fill: rgba(70, 130, 230, 0.26);
-    -fx-stroke: rgb(70, 130, 230);
+    -fx-fill: -nbfx-diff-changed-bg;
+    -fx-stroke: -nbfx-diff-changed;
+    -fx-stroke-dash-array: 1 3;
 }
 
 .diff-pane .diff-connector.diff-current {
@@ -114,15 +117,22 @@
 }
 
 .diff-pane .diff-mark.diff-added {
-    -fx-background-color: rgb(60, 170, 60);
+    -fx-background-color: -nbfx-diff-added;
 }
 
 .diff-pane .diff-mark.diff-deleted {
-    -fx-background-color: rgb(210, 70, 70);
+    -fx-background-color: -nbfx-diff-deleted;
 }
 
 .diff-pane .diff-mark.diff-changed {
-    -fx-background-color: rgb(70, 130, 230);
+    -fx-background-color: -nbfx-diff-changed;
+}
+
+/* Under the mouse, or reached with the keyboard: outlined, as the current one is. */
+.diff-pane .diff-mark:hover,
+.diff-pane .diff-mark:focused {
+    -fx-border-color: -nbfx-accent;
+    -fx-border-width: 1;
 }
 
 .diff-pane .diff-mark.diff-current {
@@ -131,45 +141,74 @@
 }
 
 /*
- * The blocks that differ, as NetBeans colours them: added green, deleted red, changed blue. Each is
- * ruled above and below in the colour its connector is drawn with, so that the two read as one shape.
+ * One vertical scroll bar for the two texts, that of the right one, as in NetBeans: they scroll in
+ * step, and the left one is still scrolled with the wheel and the keys. Its scroll bar is given no
+ * room rather than hidden: the editor is moved through it, and asks it whether there is anywhere
+ * to scroll to.
+ */
+.diff-pane .diff-side-left .scroll-bar:vertical {
+    -fx-min-width: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+    -fx-padding: 0;
+    -fx-opacity: 0;
+}
+
+/* What is said where a text would be: a side that cannot be compared. */
+.diff-pane .diff-notice {
+    -fx-text-fill: -nbfx-text-faint;
+    -fx-padding: 12;
+}
+
+/*
+ * The blocks that differ, as NetBeans colours them - added green, deleted red, changed blue - in the
+ * colours the theme has for them: a fill that lets the text through, ruled above and below in the
+ * colour its connector is outlined with, so that the two read as one shape. The colour is not all
+ * that tells them apart: each kind has its own line - solid for added, dashed for deleted, dotted
+ * for changed.
  */
 .diff-pane .line-band {
     -fx-border-width: 1 0 1 0;
 }
 
 .diff-pane .line-band.diff-added {
-    -fx-background-color: rgba(60, 200, 60, 0.28);
-    -fx-border-color: rgb(60, 170, 60);
+    -fx-background-color: -nbfx-diff-added-bg;
+    -fx-border-color: -nbfx-diff-added;
+    -fx-border-style: solid;
 }
 
 .diff-pane .line-band.diff-deleted {
-    -fx-background-color: rgba(230, 70, 70, 0.26);
-    -fx-border-color: rgb(210, 70, 70);
+    -fx-background-color: -nbfx-diff-deleted-bg;
+    -fx-border-color: -nbfx-diff-deleted;
+    -fx-border-style: dashed;
 }
 
 .diff-pane .line-band.diff-changed {
-    -fx-background-color: rgba(70, 130, 230, 0.26);
-    -fx-border-color: rgb(70, 130, 230);
+    -fx-background-color: -nbfx-diff-changed-bg;
+    -fx-border-color: -nbfx-diff-changed;
+    -fx-border-style: dotted;
 }
 
-/* A rule where this side lacks the lines of the other. */
+/* The block the view is at: ruled twice as thick, as its connector is outlined. */
+.diff-pane .line-band.diff-current {
+    -fx-border-width: 2 0 2 0;
+}
+
+/* A rule where this side lacks the lines of the other: a line of the colour of the outline. */
 .diff-pane .line-band.line-band-rule {
     -fx-border-width: 0;
 }
 
 .diff-pane .line-band.line-band-rule.diff-added {
-    -fx-background-color: rgb(60, 170, 60);
+    -fx-background-color: -nbfx-diff-added;
 }
 
 .diff-pane .line-band.line-band-rule.diff-deleted {
-    -fx-background-color: rgb(210, 70, 70);
+    -fx-background-color: -nbfx-diff-deleted;
 }
 
-/* A diff shows two texts, not where the caret is in one: no breadcrumbs under its editors. */
-.diff-pane .code-editor > .editor-side-bars {
-    visibility: hidden;
-    -fx-managed: false;
+.diff-pane .line-band.line-band-rule.diff-changed {
+    -fx-background-color: -nbfx-diff-changed;
 }
 
 /* The table of the files that differ, above the two texts. */

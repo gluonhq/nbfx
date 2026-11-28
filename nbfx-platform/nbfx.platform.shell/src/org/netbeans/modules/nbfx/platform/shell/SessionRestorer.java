@@ -259,6 +259,31 @@ public final class SessionRestorer {
                 anchored ? anchor.side() : null, anchor == null ? Double.NaN : anchor.share(), other, far);
     }
 
+    /**
+     * The entry of {@code document}, which is no file's, or {@code null} when it is not restored:
+     * it says so, it fails to say, or what it says is more than a layout can carry. One document
+     * must not keep the layout of all the others from being saved.
+     */
+    static TabEntry documentEntry(EditorDocument document) {
+        SavedDocument saved;
+        try {
+            saved = document.getSavedState();
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "A document could not tell how to open it again; it is not restored", ex);
+            return null;
+        }
+        if (saved == null) {
+            return null;
+        }
+        if (saved.restorerId().length() + saved.state().length() > AppState.MOST_DOCUMENT_STATE) {
+            LOG.log(Level.WARNING, "The saved state of a document of {0} is {1} characters, more than the {2}"
+                    + " a layout carries; it is not restored",
+                    new Object[] {saved.restorerId(), saved.state().length(), AppState.MOST_DOCUMENT_STATE});
+            return null;
+        }
+        return TabEntry.document(saved);
+    }
+
     /** The persistable descriptor of {@code tab}, or {@code null} if it carries no stable id. */
     private static TabEntry entryFor(Tab tab) {
         EditorDocument document = NbfxTabPane.documentOf(tab);
@@ -266,8 +291,7 @@ public final class SessionRestorer {
             String path = pathOf(document.getFileObject());
             if (path == null) {
                 // The editor of no file - a diff: restored by who made it, if it says how.
-                SavedDocument saved = document.getSavedState();
-                return saved == null ? null : TabEntry.document(saved);
+                return documentEntry(document);
             }
             EditorDocument second = EditorSplit.secondOf(tab);
             SplitEntry split = second == null ? null : new SplitEntry(EditorSplit.orientationOf(tab),
@@ -397,7 +421,9 @@ public final class SessionRestorer {
         Set<String> opened = new LinkedHashSet<>();
         for (PaneLayout pane : layout.panes()) {
             for (TabEntry tab : pane.tabs()) {
-                if (tab.kind() == TabKind.DOCUMENT && opened.add(TabKind.DOCUMENT + tab.id())) {
+                if (tab.kind() == TabKind.DOCUMENT) {
+                    // Asked for once for each tab there was, as an editor is cloned for each: whether
+                    // two tabs of the same are two documents or one is for who restores them to say.
                     restoreDocument(tab);
                 }
                 if (tab.kind() != TabKind.EDITOR || !opened.add(tab.id())) {

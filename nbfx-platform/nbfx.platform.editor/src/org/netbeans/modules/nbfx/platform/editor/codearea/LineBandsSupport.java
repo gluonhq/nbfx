@@ -47,6 +47,8 @@ final class LineBandsSupport {
 
     /** The height of a band of no lines: a rule where lines are missing. */
     private static final double RULE_HEIGHT = 2;
+    /** What the rich text area has its line numbers in, on the left of the text or on its right. */
+    private static final List<String> GUTTERS = List.of(".left-side", ".right-side");
     /** How many pulses a scroll asked for before the area is laid out is tried again. */
     private static final int LAYOUT_RETRIES = 3;
     /** How many pulses after a scroll the top line is measured again. */
@@ -78,6 +80,8 @@ final class LineBandsSupport {
     private double lineHeight;
     /** Counts the scrolls asked for: one put off until the area is ready gives way to a later one. */
     private long scrollRequest;
+    /** Set when the editor is closed: what was put off until later is then not done. */
+    private boolean disposed;
 
     LineBandsSupport(CodeArea codeArea) {
         this.codeArea = codeArea;
@@ -131,14 +135,21 @@ final class LineBandsSupport {
 
     private void scrollTo(double position, int retries, long request) {
         RestoreViewSupport.whenSkinned(codeArea, () -> {
-            if (request != scrollRequest) {
+            if (request != scrollRequest || disposed) {
                 // Asked before the area had a skin, or to be tried again, and another place was
-                // asked for since: that one stands.
+                // asked for since - that one stands - or the editor was closed.
                 return;
             }
             hook();
             int count = codeArea.getParagraphCount();
             if (vertical == null || count < 2) {
+                return;
+            }
+            if (!vertical.isVisible() || vertical.getVisibleAmount() >= vertical.getMax() - vertical.getMin()) {
+                // All the text is in view: there is nowhere to scroll to. Its scroll bar, though
+                // not shown, would still take a value, and the text would be drawn moved up by it
+                // until it is next laid out - one frame of the text jumping, for every line the
+                // other editor scrolls.
                 return;
             }
             double wanted = Math.clamp(position, 0, count - 1);
@@ -182,15 +193,20 @@ final class LineBandsSupport {
 
     /** Measures again in each of the next {@code pulses} pulses. */
     private void settle(int pulses) {
-        if (pulses > 0) {
+        if (pulses > 0 && !disposed) {
             Platform.runLater(() -> {
-                update();
-                settle(pulses - 1);
+                if (!disposed) {
+                    update();
+                    settle(pulses - 1);
+                }
             });
         }
     }
 
     void dispose() {
+        // What waits for the area to have a skin finds this, and does nothing.
+        disposed = true;
+        scrollRequest++;
         subscription.unsubscribe();
         subscription = Subscription.EMPTY;
         follow(null);
@@ -202,14 +218,16 @@ final class LineBandsSupport {
 
     private void watch() {
         RestoreViewSupport.whenSkinned(codeArea, () -> {
-            hook();
-            scheduleUpdate();
+            if (!disposed) {
+                hook();
+                scheduleUpdate();
+            }
         });
     }
 
     /** Follows the scroll bar, the size of the area and its font, once the skin exists. */
     private void hook() {
-        if (hooked) {
+        if (hooked || disposed) {
             return;
         }
         hooked = true;
@@ -297,6 +315,9 @@ final class LineBandsSupport {
      * it does not shrink as it scrolls away. The overlay shows the part over the viewport.
      */
     private void update() {
+        if (disposed) {
+            return;
+        }
         Node vport = codeArea.lookup(".vport");
         if (vport == null || codeArea.getScene() == null || codeArea.getScene().getWindow() == null) {
             regions.forEach(region -> region.setVisible(false));
@@ -320,12 +341,19 @@ final class LineBandsSupport {
             regions.forEach(region -> region.setVisible(false));
             return;
         }
-        // Across the gutter too, so that what is drawn beside the editor meets the band, not a gap.
-        Node gutter = codeArea.lookup(".left-side");
-        Bounds gutterView = gutter == null || !gutter.isVisible() ? null
-                : overlay.sceneToLocal(gutter.localToScene(gutter.getLayoutBounds()));
-        double bandX = gutterView == null ? view.getMinX() : Math.min(view.getMinX(), gutterView.getMinX());
-        double bandWidth = view.getMaxX() - bandX;
+        // Across the gutter too, on whichever side of the text it is, so that what is drawn beside
+        // the editor meets the band, not a gap.
+        double bandX = view.getMinX();
+        double bandEnd = view.getMaxX();
+        for (String side : GUTTERS) {
+            Node gutter = codeArea.lookup(side);
+            if (gutter != null && gutter.isVisible() && gutter.getScene() != null) {
+                Bounds gutterView = overlay.sceneToLocal(gutter.localToScene(gutter.getLayoutBounds()));
+                bandX = Math.min(bandX, gutterView.getMinX());
+                bandEnd = Math.max(bandEnd, gutterView.getMaxX());
+            }
+        }
+        double bandWidth = bandEnd - bandX;
         clip.setX(bandX);
         clip.setY(view.getMinY());
         clip.setWidth(bandWidth);
@@ -345,17 +373,23 @@ final class LineBandsSupport {
             double scrolledOff = Math.clamp((top - firstStart) / lineHeight, 0, MAX_FRACTION);
             topParagraph.set(first + Math.round(scrolledOff * 100) / 100.0);
         }
+        // No band goes past the foot of the last line: one that names more lines than there are
+        // ends there, and a rule after the last line is at that foot - not at the foot of the
+        // viewport, below a text shorter than it.
+        int count = codeArea.getParagraphCount();
         for (int i = 0; i < bands.size(); i++) {
             LineBand band = bands.get(i);
             Region region = regions.get(i);
-            double from = rowOf(band.paragraph(), x, top, bottom, first, last, firstStart, lastStart);
+            int start = Math.min(band.paragraph(), count);
+            int end = (int) Math.min((long) band.paragraph() + band.count(), count);
+            double from = rowOf(start, x, top, bottom, first, last, firstStart, lastStart);
             // On whole pixels, the foot as the top: a band drawn between them would have its edges
             // fall on one pixel or the next as it scrolls, and seem to shake.
             double y = view.getMinY() + (from - top);
             if (band.count() == 0) {
                 region.resizeRelocate(bandX, overlay.snapPositionY(y - RULE_HEIGHT / 2), bandWidth, RULE_HEIGHT);
             } else {
-                double to = rowOf(band.paragraph() + band.count(), x, top, bottom, first, last, firstStart, lastStart);
+                double to = rowOf(end, x, top, bottom, first, last, firstStart, lastStart);
                 double snappedTop = overlay.snapPositionY(y);
                 double snappedFoot = overlay.snapPositionY(view.getMinY() + (to - top));
                 region.resizeRelocate(bandX, snappedTop, bandWidth, Math.max(1, snappedFoot - snappedTop));

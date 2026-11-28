@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+
+-->
+<?xml-stylesheet type="text/xsl" href="../../nbbuild/javadoctools/apichanges.xsl"?>
+<!DOCTYPE apichanges PUBLIC "-//NetBeans//DTD API changes list 1.0//EN" "../../nbbuild/javadoctools/apichanges.dtd">
+<apichanges>
+    <apidefs>
+        <apidef name="netbeansfx_diff">NetBeansFX Diff API</apidef>
+    </apidefs>
+    <changes>
+        <change id="diff.unified">
+            <api name="netbeansfx_diff"/>
+            <summary>The unified text of a comparison.</summary>
+            <version major="1" minor="1"/>
+            <date day="28" month="11" year="2026"/>
+            <author login="jperedadnr"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>UnifiedDiff</code>, which writes the differences between two texts as
+                <code>diff -u</code> does: the two names, then each hunk with its
+                <code>@@</code> ranges, its lines of context and
+                <code>\ No newline at end of file</code> where a text ends without one. It also
+                tells the line each block of differences starts at in that text.
+            </description>
+            <class package="org.netbeans.api.nbfx.diff" name="UnifiedDiff"/>
+        </change>
+        <change id="diff.lines">
+            <api name="netbeansfx_diff"/>
+            <summary>The headless line comparison.</summary>
+            <version major="1" minor="0"/>
+            <date day="27" month="11" year="2026"/>
+            <author login="jperedadnr"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>Diff</code>, which compares two texts line by line, its
+                <code>DiffOptions</code>, and the <code>DiffResult</code> it answers with: the
+                <code>Difference</code> blocks of added, deleted and changed lines. A comparison
+                can be cancelled, before it starts and in every loop of it; the options leave
+                out, together, what each leaves out, and letters are compared whatever their
+                case one for one. A result checks that its blocks are in order.
+            </description>
+            <class package="org.netbeans.api.nbfx.diff" name="Diff"/>
+            <class package="org.netbeans.api.nbfx.diff" name="DiffOptions"/>
+            <class package="org.netbeans.api.nbfx.diff" name="DiffResult"/>
+            <class package="org.netbeans.api.nbfx.diff" name="Difference"/>
+        </change>
+    </changes>
+    <htmlcontents>
+        <head>
+            <title>Change History for the NetBeansFX Diff API</title>
+        </head>
+        <body>
+            <p class="overviewlink"><a href="overview-summary.html">Overview</a></p>
+            <h1>Introduction</h1>
+            <p>This document lists changes made to the <a href="@TOP@">NetBeansFX Diff API</a>.</p>
+            <hr/><standard-changelists module-code-name="org.netbeans.modules.nbfx.api.diff"/>
+            <hr/><p>@FOOTER@</p>
+        </body>
+    </htmlcontents>
+</apichanges>

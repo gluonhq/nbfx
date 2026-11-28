@@ -325,8 +325,8 @@ plugin implements is not yet in its API/SPI packages.
 | `api.debug` | M | **planned — M2** | `DebuggerBackend`, `DebuggerSession`, `Breakpoint`, `StackFrame`, `Variable` |
 | `api.profile` | M | **planned — M2** | `ProfileBackend`, `ProfileSession`, `StackTree`, `HeapSnapshot` |
 | `api.tests` | M | **planned — M2** | `TestRunner`, `TestSession`, `TestReportParser`, `CoverageProvider` |
-| `api.vcs` | M | **partial — M2** | only `VcsAnnotator`/`VcsFileState` (the file state the Projects and Files trees colour names by; Git answers from `ide.vcs`); `VcsProvider`, `VcsStatus`, `VcsHistoryProvider` are the M2 contract (the status model currently lives in `ide.vcs`) |
-| `api.diff` | M | **partial — M2** | only the line comparison and its unified text: `Diff`, `DiffResult`, `Difference`, `DiffOptions`, `UnifiedDiff` (the Hunt-McIlroy engine ported from NetBeans' `HuntDiff`, no dependencies); `Patch` and `Merge` are the M2 contract |
+| `api.vcs` | M | **partial — M2** (`devel` until M2) | only `VcsAnnotator`/`VcsFileState` (the file state the Projects and Files trees colour names by; Git answers from `ide.vcs`); `VcsProvider`, `VcsStatus`, `VcsHistoryProvider` are the M2 contract (the status model currently lives in `ide.vcs`); annotator ownership/priority, a "not known yet" answer and finer states (untracked, renamed, copied) are settled with that contract |
+| `api.diff` | M | **partial — M2** (`devel` until the diff view, its first consumer, lands) | only the line comparison and its unified text: `Diff`, `DiffResult`, `Difference`, `DiffOptions`, `UnifiedDiff` (the Hunt-McIlroy engine ported from NetBeans' `HuntDiff`, no dependencies); `Patch` and `Merge` are the M2 contract |
 | `api.tasklist` | M | **planned — M2** | `TaskProvider`, `Task`, `TaskScope` |
 | `api.plugins` | T1 | **planned — M5** | plugin metadata, install/update service surface |
 | `api.layer` | T1 | **landed** | `LayerPaths` — the one owner of the layer folder constants (`NbFx/Views`, …) — and `LayerInstances`/`LayerEntry` — the node-free reader of class-based `.instance` entries with their attributes and layer order; nbfx-internal, not part of the published plugin API (§3.3, Appendix C.3) |
@@ -409,7 +409,7 @@ application framework; `platform.shell` is its composition root, not the whole A
 | `ide.tests` | test runner UI + coverage view | new |
 | `ide.vcs` | VCS framework + status/badges | replaces `nbfx.vcs` |
 | `ide.vcs.git` | Git provider (jgit) | new |
-| `ide.diff` | diff/merge view + patch UI (landed so far: the side-by-side view of two texts in an editor-area tab, over `api.diff`, with connectors, navigation and an overview; and the header a `DiffProvider` feeds - compare-mode toggles, Refresh and the table of the files that differ; the Textual tab of the unified diff; diff tabs restored with the session) | new |
+| `ide.diff` | diff/merge view + patch UI (landed so far: the side-by-side view of two texts in an editor-area tab, over `api.diff`, with connectors, navigation and an overview; and the header a `DiffProvider` feeds - compare-mode toggles, Refresh and the table of the files that differ; the Textual tab of the unified diff) | new |
 | `ide.localhistory` | local history view | new |
 | `ide.tasklist` | task list view + providers | new |
 | `ide.bookmarks` | bookmarks view | new |
