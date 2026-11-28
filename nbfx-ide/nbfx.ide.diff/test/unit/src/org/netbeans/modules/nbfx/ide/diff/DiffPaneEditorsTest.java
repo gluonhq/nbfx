@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.function.BooleanSupplier;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -455,7 +456,7 @@ public class DiffPaneEditorsTest {
             }
 
             @Override
-            public List<DiffEntry> entries(DiffMode mode) {
+            public List<DiffEntry> entries(DiffMode mode, BooleanSupplier cancelled) {
                 return List.of();
             }
 

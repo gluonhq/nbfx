@@ -81,8 +81,32 @@ final class GitClient {
      * paths are relative to the repository root, whatever {@code dir} is. Untracked files are listed
      * one by one, not by folder.
      */
+    /**
+     * Whether git counts, in the repository at {@code root}, whether a file can be run:
+     * {@code core.fileMode}, which is on unless it is set off - as on a disk that keeps no such
+     * permission.
+     */
+    static boolean tracksFileMode(Path root, BooleanSupplier cancelled) {
+        Output output = run(root, Map.of(), cancelled, "config", "--type=bool", "--get", "core.fileMode");
+        return !(output.exitCode() == 0 && "false".equals(new String(output.output(), StandardCharsets.UTF_8).strip()));
+    }
+
     static VcsStatus status(Path dir) throws IOException {
-        Result result = result(dir, "status", "--porcelain=v2", "-z", "--untracked-files=all", "--", ".");
+        return status(dir, () -> false);
+    }
+
+    /**
+     * As {@link #status(Path)}, given up when {@code cancelled} says the status is no longer
+     * wanted: git is ended.
+     *
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static VcsStatus status(Path dir, BooleanSupplier cancelled) throws IOException {
+        Output output = run(dir, Map.of(), cancelled, "status", "--porcelain=v2", "-z", "--untracked-files=all",
+                "--", ".");
+        // Read as is: the status records end with a NUL and their paths may hold any other character.
+        Result result = new Result(output.exitCode(), output.exitCode() == 0 || output.error().isBlank()
+                ? new String(output.output(), StandardCharsets.UTF_8) : output.error());
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }

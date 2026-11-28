@@ -236,4 +236,29 @@ final class DiffLines {
     private static String unifiedKind(String line) {
         return line.startsWith("+") ? ADDED : line.startsWith("-") ? DELETED : line.startsWith("@@") ? CHANGED : null;
     }
+
+    /**
+     * How the lines of {@code text} end, as it is named: {@code LF}, {@code CRLF}, {@code CR},
+     * {@code mixed} for more than one of them, or {@code none} for a text of one line.
+     */
+    static String lineEnding(String text) {
+        boolean lf = false;
+        boolean crlf = false;
+        boolean cr = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n') {
+                lf = true;
+            } else if (c == '\r') {
+                if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                    crlf = true;
+                    i++;
+                } else {
+                    cr = true;
+                }
+            }
+        }
+        int kinds = (lf ? 1 : 0) + (crlf ? 1 : 0) + (cr ? 1 : 0);
+        return kinds > 1 ? "mixed" : lf ? "LF" : crlf ? "CRLF" : cr ? "CR" : "none";
+    }
 }

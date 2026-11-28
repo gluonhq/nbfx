@@ -365,7 +365,8 @@ public class GitContentReaderTest {
         // As it is on disk, not as git has it: no object id.
         write("modified.txt", COMMITTED + "on disk\n");
         assertEquals(new GitContent.Text(COMMITTED + "on disk\n", null, COMMITTED.length() + 8),
-                GitContentReader.workingTree(root.resolve("modified.txt"), UTF_8, LIMIT));
+                ((GitContent.Text) GitContentReader.workingTree(root.resolve("modified.txt"), UTF_8, LIMIT))
+                        .withMode(null));
         assertEquals(new GitContent.Missing(), GitContentReader.workingTree(root.resolve("gone.txt"), UTF_8, LIMIT));
         assertEquals(new GitContent.NotAFile("tree"), GitContentReader.workingTree(root, UTF_8, LIMIT));
 
@@ -427,5 +428,56 @@ public class GitContentReaderTest {
             Thread.currentThread().interrupt();
             return false;
         }
+    }
+
+    @Test
+    public void aLinkIsWhereItPointsToAsGitStoresItNotWhatIsThere() throws Exception {
+        write("target.txt", "the content of the target\n");
+        Path link = root.resolve("link.txt");
+        try {
+            Files.createSymbolicLink(link, Path.of("target.txt"));
+        } catch (UnsupportedOperationException | IOException ex) {
+            Assume.assumeNoException("no links on this disk", ex);
+        }
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "a link");
+
+        // In the commit and on disk the same: the path it points to, of the mode of a link.
+        GitContent.Text committed = (GitContent.Text) GitContentReader.head(root, "link.txt", UTF_8, LIMIT, () -> false);
+        GitContent.Text onDisk = (GitContent.Text) GitContentReader.workingTree(link, UTF_8, LIMIT);
+        assertEquals("target.txt", committed.text());
+        assertEquals("target.txt", onDisk.text());
+        assertEquals(GitContentReader.LINK_MODE, committed.mode());
+        assertEquals(GitContentReader.LINK_MODE, onDisk.mode());
+
+        // One that points nowhere is still a link, not a file that is gone.
+        Files.delete(link);
+        Files.createSymbolicLink(link, Path.of("nowhere.txt"));
+        assertEquals("nowhere.txt", ((GitContent.Text) GitContentReader.workingTree(link, UTF_8, LIMIT)).text());
+        // And one to a folder is not the folder.
+        Files.delete(link);
+        Files.createSymbolicLink(link, root);
+        assertTrue(GitContentReader.workingTree(link, UTF_8, LIMIT) instanceof GitContent.Text);
+    }
+
+    @Test
+    public void aFileTellsItsModeWhereTheDiskKeepsOneAndAReadNobodyWantsIsGivenUp() throws Exception {
+        Path script = root.resolve("modified.txt");
+        Assume.assumeTrue("no permissions on this disk",
+                Files.getFileAttributeView(script, java.nio.file.attribute.PosixFileAttributeView.class) != null);
+        assertEquals(GitContentReader.FILE_MODE,
+                ((GitContent.Text) GitContentReader.head(root, "modified.txt", UTF_8, LIMIT, () -> false)).mode());
+        assertEquals(GitContentReader.FILE_MODE, ((GitContent.Text) GitContentReader.workingTree(script, UTF_8, LIMIT)).mode());
+        assertTrue(script.toFile().setExecutable(true));
+        assertEquals(GitContentReader.EXECUTABLE_MODE,
+                ((GitContent.Text) GitContentReader.workingTree(script, UTF_8, LIMIT)).mode());
+
+        assertThrows(CancellationException.class, () -> GitContentReader.workingTree(script, UTF_8, LIMIT, () -> true));
+        // Asked between the pieces it is read in: given up part way through a large file.
+        write("large.txt", "0123456789abcdef".repeat(1 << 15));
+        int[] asked = new int[1];
+        assertThrows(CancellationException.class,
+                () -> GitContentReader.workingTree(root.resolve("large.txt"), UTF_8, LIMIT, () -> ++asked[0] > 2));
+        assertEquals(3, asked[0]);
     }
 }

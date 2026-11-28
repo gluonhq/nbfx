@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import org.netbeans.modules.nbfx.ide.diff.DiffMode;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -45,6 +46,7 @@ import org.openide.filesystems.LocalFileSystem;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -144,10 +146,10 @@ public class GitDiffSidesTest {
 
         GitDiff.Provider provider = new GitDiff.Provider(root, "src", false);
         for (VcsCompareMode mode : List.of(VcsCompareMode.HEAD_VS_INDEX, VcsCompareMode.HEAD_VS_WORKING_TREE)) {
-            DiffEntry entry = provider.entries(provider.mode(mode)).stream()
+            DiffEntry entry = provider.entries(provider.mode(mode), () -> false).stream()
                     .filter(listed -> listed.location().equals("src/copy.txt")).findFirst().orElseThrow();
             assertEquals(DiffEntry.Kind.ADDED, entry.kind());
-            DiffPair pair = entry.loader().load();
+            DiffPair pair = entry.loader().load(() -> false);
             // Not what it was copied from: the last commit has no such file, and all of it is added.
             assertTrue(mode.name(), pair.left().isMissing());
             assertEquals(COMMITTED, pair.right().text());
@@ -160,19 +162,19 @@ public class GitDiffSidesTest {
         Files.delete(root.resolve("src/new name.txt"));
 
         GitDiff.Provider provider = new GitDiff.Provider(root, "src", false);
-        List<DiffEntry> entries = provider.entries(provider.mode(VcsCompareMode.HEAD_VS_WORKING_TREE));
+        List<DiffEntry> entries = provider.entries(provider.mode(VcsCompareMode.HEAD_VS_WORKING_TREE), () -> false);
         // As the status view lists it between the last commit and the disk: under its old name, deleted.
         assertEquals(List.of("src/old name.txt"), entries.stream().map(DiffEntry::location).toList());
         assertEquals(DiffEntry.Kind.DELETED, entries.getFirst().kind());
-        DiffPair pair = entries.getFirst().loader().load();
+        DiffPair pair = entries.getFirst().loader().load(() -> false);
         assertEquals("renamed\nas it is\n", pair.left().text());
         assertTrue(pair.right().isMissing());
 
         // And the diff of that one file, asked for by the name the last commit has it under.
         GitDiff.Provider single = new GitDiff.Provider(root, "src/old name.txt", true);
-        DiffEntry one = single.entries(single.mode(VcsCompareMode.HEAD_VS_WORKING_TREE)).getFirst();
+        DiffEntry one = single.entries(single.mode(VcsCompareMode.HEAD_VS_WORKING_TREE), () -> false).getFirst();
         assertEquals(DiffEntry.Kind.DELETED, one.kind());
-        assertTrue(one.loader().load().right().isMissing());
+        assertTrue(one.loader().load(() -> false).right().isMissing());
     }
 
     @Test
@@ -385,5 +387,80 @@ public class GitDiffSidesTest {
             Thread.currentThread().interrupt();
             return false;
         }
+    }
+
+    @Test
+    public void aFileMadeOneThatCanBeRunIsSaidToHaveChangedThoughItsTextIsTheSame() throws Exception {
+        Path script = root.resolve("src/modified.txt");
+        Assume.assumeTrue("no permissions on this disk",
+                Files.getFileAttributeView(script, java.nio.file.attribute.PosixFileAttributeView.class) != null);
+        git("config", "core.fileMode", "true");
+        assertNull(pairOf("src/modified.txt", VcsCompareMode.HEAD_VS_WORKING_TREE).note());
+
+        assertTrue(script.toFile().setExecutable(true));
+        DiffPair onDisk = pairOf("src/modified.txt", VcsCompareMode.HEAD_VS_WORKING_TREE);
+        assertEquals(onDisk.left().text(), onDisk.right().text());
+        assertEquals("File mode changed: 100644 \u2192 100755", onDisk.note());
+        // Not staged yet: the index has it as the commit does.
+        assertNull(pairOf("src/modified.txt", VcsCompareMode.HEAD_VS_INDEX).note());
+        git("add", "-A");
+        assertEquals("File mode changed: 100644 \u2192 100755",
+                pairOf("src/modified.txt", VcsCompareMode.HEAD_VS_INDEX).note());
+        assertNull(pairOf("src/modified.txt", VcsCompareMode.INDEX_VS_WORKING_TREE).note());
+
+        // Where git is told not to count it, what the disk says of a file is no change.
+        git("config", "core.fileMode", "false");
+        assertTrue(script.toFile().setExecutable(false));
+        assertNull(pairOf("src/modified.txt", VcsCompareMode.INDEX_VS_WORKING_TREE).note());
+        // What is in the index against the commit still is.
+        assertEquals("File mode changed: 100644 \u2192 100755",
+                pairOf("src/modified.txt", VcsCompareMode.HEAD_VS_INDEX).note());
+    }
+
+    @Test
+    public void aLinkPointedElsewhereIsComparedByWhereItPoints() throws Exception {
+        Path link = root.resolve("src/link.txt");
+        try {
+            Files.createSymbolicLink(link, Path.of("modified.txt"));
+        } catch (UnsupportedOperationException | IOException ex) {
+            Assume.assumeNoException("no links on this disk", ex);
+        }
+        git("add", "-A");
+        git("commit", "--quiet", "-m", "a link");
+        // The file it points to changes: the link does not.
+        write("src/modified.txt", COMMITTED + "more\n");
+        DiffPair unchanged = pairOf("src/link.txt", VcsCompareMode.HEAD_VS_WORKING_TREE);
+        assertEquals("modified.txt", unchanged.left().text());
+        assertEquals("modified.txt", unchanged.right().text());
+        assertNull(unchanged.note());
+
+        Files.delete(link);
+        Files.createSymbolicLink(link, Path.of("deleted.txt"));
+        DiffPair moved = pairOf("src/link.txt", VcsCompareMode.HEAD_VS_WORKING_TREE);
+        assertEquals("modified.txt", moved.left().text());
+        assertEquals("deleted.txt", moved.right().text());
+
+        // Replaced by a file with what it pointed to for a text: a change of what it is.
+        Files.delete(link);
+        Files.writeString(link, "deleted.txt");
+        assertEquals("File mode changed: 120000 \u2192 100644",
+                pairOf("src/link.txt", VcsCompareMode.HEAD_VS_WORKING_TREE).note());
+    }
+
+    @Test
+    public void aListAndItsTextsNobodyWantsAreGivenUp() throws Exception {
+        write("src/modified.txt", COMMITTED + "more\n");
+        GitDiff.Provider provider = new GitDiff.Provider(root, "src", false);
+        DiffMode mode = provider.mode(VcsCompareMode.HEAD_VS_WORKING_TREE);
+
+        assertThrows(CancellationException.class, () -> provider.entries(mode, () -> true));
+        assertThrows(CancellationException.class, () -> GitClient.status(root, () -> true));
+        DiffEntry entry = provider.entries(mode, () -> false).getFirst();
+        assertThrows(CancellationException.class, () -> entry.loader().load(() -> true));
+        assertEquals(COMMITTED + "more\n", entry.loader().load(() -> false).right().text());
+    }
+
+    private DiffPair pairOf(String path, VcsCompareMode mode) {
+        return GitDiff.pair(root, path, path, mode, UTF_8, () -> false);
     }
 }

@@ -18,6 +18,10 @@
  */
 package org.netbeans.modules.nbfx.ide.vcs;
 
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.LinkOption;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,8 +70,15 @@ final class GitContentReader {
     private static final Map<String, String> LITERAL = Map.of("GIT_LITERAL_PATHSPECS", "1", "LC_ALL", "C");
 
     /** What is at a path: its kind as git names it, and the id of its object. */
-    private record Entry(String type, String objectId) {
+    private record Entry(String type, String objectId, String mode) {
     }
+
+    /** The modes git gives a file, one that can be run, and a link. */
+    static final String FILE_MODE = "100644";
+    static final String EXECUTABLE_MODE = "100755";
+    static final String LINK_MODE = "120000";
+    /** How much of a working tree file is read between two looks at whether it is still wanted. */
+    private static final int PIECE = 1 << 16;
 
     private GitContentReader() {
     }
@@ -97,7 +108,7 @@ final class GitContentReader {
         for (String[] fields : entries(listed.output(), path)) {
             // "<mode> <type> <id>"
             if (fields.length == 3) {
-                entry = new Entry(fields[1], fields[2]);
+                entry = new Entry(fields[1], fields[2], fields[0]);
             }
         }
         return entry == null ? new GitContent.Missing() : read(root, entry, charset, maxBytes, cancelled);
@@ -125,7 +136,7 @@ final class GitContentReader {
             }
             if ("0".equals(fields[2])) {
                 // A link to another repository has the mode of one, and its commit for an id.
-                entry = new Entry("160000".equals(fields[0]) ? "commit" : "blob", fields[1]);
+                entry = new Entry("160000".equals(fields[0]) ? "commit" : "blob", fields[1], fields[0]);
             } else {
                 unmerged = true;
             }
@@ -168,30 +179,87 @@ final class GitContentReader {
      * are not made one. Its text has no object id: git has not stored it.
      */
     static GitContent workingTree(Path file, Charset charset, long maxBytes) {
+        return workingTree(file, charset, maxBytes, () -> false);
+    }
+
+    /**
+     * As {@link #workingTree(Path, Charset, long)}, given up when {@code cancelled} says the
+     * content is no longer wanted: asked before the file is touched and between the pieces it is
+     * read in.
+     * <p>
+     * A link is not followed: its content is where it points to, as text, which is what git
+     * stores of it - not the content of the file it points to, and not nothing when it points
+     * nowhere.
+     *
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static GitContent workingTree(Path file, Charset charset, long maxBytes, BooleanSupplier cancelled) {
         Objects.requireNonNull(charset, "charset");
+        Objects.requireNonNull(cancelled, "cancelled");
+        if (cancelled.getAsBoolean()) {
+            throw new CancellationException();
+        }
         try {
-            if (!Files.exists(file)) {
+            if (Files.isSymbolicLink(file)) {
+                String target = Files.readSymbolicLink(file).toString();
+                return new GitContent.Text(target, null, target.getBytes(StandardCharsets.UTF_8).length, LINK_MODE);
+            }
+            if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
                 return new GitContent.Missing();
             }
-            if (!Files.isRegularFile(file)) {
-                return new GitContent.NotAFile(Files.isDirectory(file) ? "tree" : "other");
+            if (!Files.isRegularFile(file, LinkOption.NOFOLLOW_LINKS)) {
+                return new GitContent.NotAFile(Files.isDirectory(file, LinkOption.NOFOLLOW_LINKS) ? "tree" : "other");
             }
             long limit = Math.min(maxBytes, MOST_BYTES);
             long size = Files.size(file);
             if (size > limit) {
                 return new GitContent.TooLarge(size, limit);
             }
-            byte[] bytes;
-            try (InputStream in = Files.newInputStream(file)) {
-                // One byte beyond the limit at most, however much the file grew since it was measured.
-                bytes = in.readNBytes((int) Math.min(limit + 1, Integer.MAX_VALUE - 8));
+            // One byte beyond the limit at most, however much the file grew since it was measured.
+            long most = Math.min(limit + 1, Integer.MAX_VALUE - 8);
+            ByteArrayOutputStream read = new ByteArrayOutputStream((int) Math.min(size + 1, most));
+            try (InputStream in = Files.newInputStream(file, LinkOption.NOFOLLOW_LINKS)) {
+                byte[] piece = new byte[PIECE];
+                while (read.size() < most) {
+                    if (cancelled.getAsBoolean()) {
+                        throw new CancellationException();
+                    }
+                    int count = in.read(piece, 0, (int) Math.min(piece.length, most - read.size()));
+                    if (count < 0) {
+                        break;
+                    }
+                    read.write(piece, 0, count);
+                }
             }
+            byte[] bytes = read.toByteArray();
             if (bytes.length > limit) {
                 return new GitContent.TooLarge(Math.max(Files.size(file), bytes.length), limit);
             }
-            return decoded(bytes, null, charset);
+            GitContent content = decoded(bytes, null, charset);
+            return content instanceof GitContent.Text text ? text.withMode(modeOnDisk(file)) : content;
+        } catch (CancellationException ex) {
+            throw ex;
         } catch (IOException | RuntimeException ex) {
             return new GitContent.Failed(String.valueOf(ex.getMessage()));
+        }
+    }
+
+    /**
+     * The mode git would give the file at {@code file}: {@code 100755} for one its owner can run,
+     * {@code 100644} for another; {@code null} where the disk does not tell - it keeps no such
+     * permission - so that nothing is made of it.
+     */
+    private static String modeOnDisk(Path file) {
+        try {
+            PosixFileAttributeView view = Files.getFileAttributeView(file, PosixFileAttributeView.class,
+                    LinkOption.NOFOLLOW_LINKS);
+            if (view == null) {
+                return null;
+            }
+            return view.readAttributes().permissions().contains(PosixFilePermission.OWNER_EXECUTE)
+                    ? EXECUTABLE_MODE : FILE_MODE;
+        } catch (IOException | RuntimeException ex) {
+            return null;
         }
     }
 
@@ -269,7 +337,8 @@ final class GitContentReader {
             if (bytes == null) {
                 return new GitContent.TooLarge(size[0], limit);
             }
-            return decoded(bytes, entry.objectId(), charset);
+            GitContent content = decoded(bytes, entry.objectId(), charset);
+            return content instanceof GitContent.Text text ? text.withMode(entry.mode()) : content;
         } catch (IOException ex) {
             String error = "";
             try {

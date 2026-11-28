@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -449,7 +450,11 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             List<DiffEntry> found;
             String failure = null;
             try {
-                found = List.copyOf(provider.entries(compared));
+                found = List.copyOf(provider.entries(compared, () -> asked != listing.get()));
+            } catch (CancellationException ex) {
+                // Given up because it is no longer wanted: nothing to show, nor to say.
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot list what differs", ex);
                 found = List.of();
@@ -635,7 +640,10 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             }
             DiffPair pair = null;
             try {
-                pair = entry.loader().load();
+                pair = entry.loader().load(() -> asked != loading.get());
+            } catch (CancellationException ex) {
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot read " + entry.location(), ex);
             }
@@ -648,9 +656,9 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 if (read == null) {
                     show((DiffPane) null, message("Diff.failed"));
                 } else if (inPlace && pane != null) {
-                    pane.setSources(read.left(), read.right());
+                    pane.setSources(read.left(), read.right(), read.note());
                 } else {
-                    show(new DiffPane(read.left(), read.right(), false), "");
+                    show(new DiffPane(read.left(), read.right(), read.note(), false), "");
                 }
             });
         });

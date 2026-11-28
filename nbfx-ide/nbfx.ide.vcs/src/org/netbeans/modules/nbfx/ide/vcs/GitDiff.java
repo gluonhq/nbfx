@@ -121,6 +121,10 @@ final class GitDiff {
         if (!target.isAbsolute()) {
             return false;
         }
+        if (single && target.toFile().isDirectory()) {
+            // What was a file is a folder by now: not the diff that was saved.
+            return false;
+        }
         // A file may be gone - deleted, its diff shows what it held - but not its folder.
         Path folder = single ? target.getParent() : target;
         // Told from the .git entry of a parent, as the menu that leads to a diff does.
@@ -285,9 +289,9 @@ final class GitDiff {
         }
 
         @Override
-        public List<DiffEntry> entries(DiffMode chosen) throws IOException {
+        public List<DiffEntry> entries(DiffMode chosen, BooleanSupplier cancelled) throws IOException {
             VcsCompareMode mode = VcsCompareMode.valueOf(chosen.id());
-            VcsStatus status = GitClient.status(root);
+            VcsStatus status = GitClient.status(root, cancelled);
             if (single) {
                 // The file asked for, changed in this mode or not: the same on both sides then.
                 VcsFileStatus file = status.files(mode).stream()
@@ -304,7 +308,7 @@ final class GitDiff {
             String committed = file == null ? path : headPath(file, mode);
             return new DiffEntry(name, path, kind == null ? "" : message("Git.kind." + kind.name()),
                     entryKind(kind), () -> fileIcon(path),
-                    () -> pair(root, path, committed, mode, workingCharset(root.resolve(path)), () -> false));
+                    cancelled -> pair(root, path, committed, mode, workingCharset(root.resolve(path)), cancelled));
         }
 
         /** The icon of the file on disk; none for one that is gone. */
@@ -317,11 +321,19 @@ final class GitDiff {
 
     /**
      * The charset the text of {@code file} is in, in the working tree: the one the editor reads it
-     * in, or UTF-8 for a file that is gone. May read the disk: not for the FX thread.
+     * in. A file that is gone - deleted, or only in the index - is taken to be in the charset the
+     * files beside it are in: what its project says of the nearest folder that is still there,
+     * and UTF-8 when nothing says. May read the disk: not for the FX thread.
      */
     static Charset workingCharset(Path file) {
-        FileObject onDisk = file.toFile().isFile() ? FileUtil.toFileObject(file.toFile()) : null;
-        return onDisk == null ? StandardCharsets.UTF_8 : FileEncodingQuery.getEncoding(onDisk);
+        for (Path at = file; at != null; at = at.getParent()) {
+            File onDisk = at.toFile();
+            if (at == file ? onDisk.isFile() : onDisk.isDirectory()) {
+                FileObject found = FileUtil.toFileObject(onDisk);
+                return found == null ? StandardCharsets.UTF_8 : FileEncodingQuery.getEncoding(found);
+            }
+        }
+        return StandardCharsets.UTF_8;
     }
 
     /**
@@ -339,11 +351,33 @@ final class GitDiff {
     static DiffPair pair(Path root, String path, String headPath, VcsCompareMode mode, Charset working,
             BooleanSupplier cancelled) {
         String name = path.substring(path.lastIndexOf('/') + 1);
-        DiffSource left = mode == VcsCompareMode.INDEX_VS_WORKING_TREE
-                ? index(root, name, path, working, cancelled) : head(root, name, headPath, working, cancelled);
-        DiffSource right = mode == VcsCompareMode.HEAD_VS_INDEX
-                ? index(root, name, path, working, cancelled) : workingTree(root, name, path, working);
-        return new DiffPair(left, right);
+        boolean fromIndex = mode == VcsCompareMode.INDEX_VS_WORKING_TREE;
+        boolean toIndex = mode == VcsCompareMode.HEAD_VS_INDEX;
+        GitContent from = fromIndex ? index(root, path, working, cancelled) : head(root, headPath, working, cancelled);
+        GitContent to = toIndex ? index(root, path, working, cancelled)
+                : GitContentReader.workingTree(root.resolve(path), working, MOST_BYTES, cancelled);
+        DiffSource left = source(message(fromIndex ? "Git.diff.index" : "Git.diff.head"), name, from)
+                .withPath(fromIndex ? path : headPath);
+        DiffSource right = source(message(toIndex ? "Git.diff.index" : "Git.diff.workingTree"), name, to).withPath(path);
+        return new DiffPair(left, right, modeNote(root, from, to, !toIndex, cancelled));
+    }
+
+    /**
+     * What to say of the modes of the two sides when they differ - a file made one that can be
+     * run, or a link - which their texts do not show; {@code null} when they are the same or one
+     * is not known. The mode of a file on disk counts only where git counts it.
+     */
+    static String modeNote(Path root, GitContent from, GitContent to, boolean onDisk, BooleanSupplier cancelled) {
+        if (!(from instanceof GitContent.Text before) || !(to instanceof GitContent.Text after)
+                || before.mode() == null || after.mode() == null || before.mode().equals(after.mode())) {
+            return null;
+        }
+        if (onDisk && !GitContentReader.LINK_MODE.equals(before.mode())
+                && !GitContentReader.LINK_MODE.equals(after.mode()) && !GitClient.tracksFileMode(root, cancelled)) {
+            // core.fileMode is off: whether the file can be run is not a change to git.
+            return null;
+        }
+        return NbBundle.getMessage(GitDiff.class, "Git.diff.mode", before.mode(), after.mode());
     }
 
     /** The two sides of the diff of {@code file} between the last commit and the working tree; see {@link #pair}. */
@@ -354,23 +388,15 @@ final class GitDiff {
     }
 
     /** What the last commit has of the file: in the charset git stores it in. */
-    private static DiffSource head(Path root, String name, String path, Charset working, BooleanSupplier cancelled) {
+    private static GitContent head(Path root, String path, Charset working, BooleanSupplier cancelled) {
         Charset stored = GitClient.storedCharset(root, path, working, true);
-        return source(message("Git.diff.head"), name, GitClient.headContent(root, path, stored, MOST_BYTES, cancelled))
-                .withPath(path);
+        return GitClient.headContent(root, path, stored, MOST_BYTES, cancelled);
     }
 
     /** What the index has of the file: what the next commit takes. */
-    private static DiffSource index(Path root, String name, String path, Charset working, BooleanSupplier cancelled) {
+    private static GitContent index(Path root, String path, Charset working, BooleanSupplier cancelled) {
         Charset stored = GitClient.storedCharset(root, path, working, false);
-        return source(message("Git.diff.index"), name,
-                GitClient.indexContent(root, path, stored, MOST_BYTES, cancelled)).withPath(path);
-    }
-
-    /** The file as it is on disk, read with the same care as what git has. */
-    private static DiffSource workingTree(Path root, String name, String path, Charset working) {
-        return source(message("Git.diff.workingTree"), name,
-                GitContentReader.workingTree(root.resolve(path), working, MOST_BYTES)).withPath(path);
+        return GitClient.indexContent(root, path, stored, MOST_BYTES, cancelled);
     }
 
     /** The side of a diff for {@code content}: its text, no file, or why it cannot be compared. */

@@ -93,6 +93,8 @@ final class DiffPane extends BorderPane implements DiffContent {
     private static final UnifiedDiff NO_UNIFIED = new UnifiedDiff("", List.of());
 
     private DiffSource leftSource;
+    /** What differs between the two sides that their texts do not show; {@code null} for nothing. */
+    private String note;
     private DiffSource rightSource;
     private final Label summary = new Label();
     private final Label counter = heading("");
@@ -142,6 +144,14 @@ final class DiffPane extends BorderPane implements DiffContent {
      *        {@link DiffBrowser} shows them in its own bar instead
      */
     DiffPane(DiffSource leftSource, DiffSource rightSource, boolean ownBar) {
+        this(leftSource, rightSource, null, ownBar);
+    }
+
+    /**
+     * @param note what differs between the two sides that their texts do not show, or {@code null}
+     * @param ownBar whether the buttons and the summary are shown above the headings
+     */
+    DiffPane(DiffSource leftSource, DiffSource rightSource, String note, boolean ownBar) {
         getStyleClass().add("diff-pane");
         getStylesheets().add(Objects.requireNonNull(DiffPane.class.getResource("diff.css")).toExternalForm());
         summary.getStyleClass().add("diff-summary");
@@ -188,7 +198,7 @@ final class DiffPane extends BorderPane implements DiffContent {
             }
         });
         select(-1);
-        setSources(leftSource, rightSource);
+        setSources(leftSource, rightSource, note);
     }
 
     /**
@@ -197,6 +207,12 @@ final class DiffPane extends BorderPane implements DiffContent {
      * was of when its tab was opened. Must run on the JavaFX Application Thread.
      */
     void setSources(DiffSource left, DiffSource right) {
+        setSources(left, right, null);
+    }
+
+    /** As {@link #setSources(DiffSource, DiffSource)}, with what else differs between the two, or {@code null}. */
+    void setSources(DiffSource left, DiffSource right, String note) {
+        this.note = note;
         // Sides that show the same keep their editors, and where they are scrolled to.
         boolean same = left.equals(leftSource) && right.equals(rightSource);
         leftSource = Objects.requireNonNull(left);
@@ -415,6 +431,7 @@ final class DiffPane extends BorderPane implements DiffContent {
         long asked = comparison.incrementAndGet();
         DiffSource from = leftSource;
         DiffSource to = rightSource;
+        String noted = note;
         if (!from.isComparable() || !to.isComparable()) {
             // Nothing to compare: said, with the side it is of, and not shown as no difference.
             DiffSource unreadable = from.isComparable() ? to : from;
@@ -452,14 +469,25 @@ final class DiffPane extends BorderPane implements DiffContent {
             }
             Platform.runLater(() -> {
                 if (asked == comparison.get()) {
-                    show(result.differences(), text, rightLines, told(from, to, result.differences()));
+                    show(result.differences(), text, rightLines, told(from, to, result.differences(), noted));
                 }
             });
         });
     }
 
     /** What the line between the headings says of a comparison: what happened to the file, or how much differs. */
-    private static String told(DiffSource from, DiffSource to, List<Difference> found) {
+    private static String told(DiffSource from, DiffSource to, List<Difference> found, String note) {
+        String texts = toldOfTexts(from, to, found);
+        // What the texts do not show - the mode of the file - is said with them, or in their
+        // place when they are the same: a file that changed is never just "No differences".
+        if (note == null) {
+            return texts;
+        }
+        return found.isEmpty() && !from.isMissing() && !to.isMissing() && from.text().equals(to.text()) ? note
+                : NbBundle.getMessage(DiffPane.class, "Diff.withNote", texts, note);
+    }
+
+    private static String toldOfTexts(DiffSource from, DiffSource to, List<Difference> found) {
         if (from.isMissing() && to.isMissing()) {
             return message("Diff.identical");
         }
@@ -469,8 +497,14 @@ final class DiffPane extends BorderPane implements DiffContent {
         if (to.isMissing()) {
             return message("Diff.deleted");
         }
-        return found.isEmpty() ? message("Diff.identical")
-                : NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size());
+        if (!found.isEmpty()) {
+            return NbBundle.getMessage(DiffPane.class, "Diff.differences", found.size());
+        }
+        // The same lines, and yet not the same text: only how the lines end can differ, which
+        // the comparison of lines leaves out and the file has all the same.
+        return from.text().equals(to.text()) ? message("Diff.identical")
+                : NbBundle.getMessage(DiffPane.class, "Diff.lineEndings", from.title(),
+                        DiffLines.lineEnding(from.text()), to.title(), DiffLines.lineEnding(to.text()));
     }
 
     /** Releases the two editors, and gives up the comparison that runs. */

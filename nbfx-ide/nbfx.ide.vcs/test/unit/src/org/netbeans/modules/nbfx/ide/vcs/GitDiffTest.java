@@ -104,7 +104,7 @@ public class GitDiffTest {
                 // Listing in a mode - as a diff opened in it, compared again or restored does -
                 // leaves the mode of the next diff alone, whether it can be listed or not.
                 try {
-                    provider.entries(provider.mode(VcsCompareMode.INDEX_VS_WORKING_TREE));
+                    provider.entries(provider.mode(VcsCompareMode.INDEX_VS_WORKING_TREE), () -> false);
                 } catch (java.io.IOException noRepository) {
                     // Not what is tested here.
                 }
@@ -185,6 +185,9 @@ public class GitDiffTest {
             Path gone = root.resolve("src").resolve("two\nlines.txt");
             assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, gone)));
             assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.INDEX_VS_WORKING_TREE, false, root.resolve("src"))));
+
+            // Saved as a file, and a folder by now: not the diff that was saved.
+            assertFalse(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, root.resolve("src"))));
 
             // Neither a file nor a folder; and a path that is not whole.
             assertFalse(GitDiff.restore("HEAD_VS_INDEX\nlink\n" + root.resolve("src")));

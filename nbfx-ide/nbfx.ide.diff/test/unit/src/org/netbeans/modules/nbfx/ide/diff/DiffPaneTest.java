@@ -260,4 +260,78 @@ public class DiffPaneTest {
         }
         throw new AssertionError("the files were not compared");
     }
+
+    @Test
+    public void textsThatDifferOnlyInHowTheirLinesEndAreNotSaidToBeTheSame() throws Exception {
+        DiffPane pane = pane("a\nb\n", "a\r\nb\r\n");
+        awaitComparison(pane);
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(pane.differences().isEmpty());
+            assertEquals("Only line endings differ: LF in HEAD, CRLF in Working Tree", pane.summary());
+        });
+
+        assertEquals("LF", DiffLines.lineEnding("a\nb\n"));
+        assertEquals("CRLF", DiffLines.lineEnding("a\r\nb"));
+        assertEquals("CR", DiffLines.lineEnding("a\rb\r"));
+        assertEquals("mixed", DiffLines.lineEnding("a\nb\r\n"));
+        assertEquals("none", DiffLines.lineEnding("a"));
+    }
+
+    @Test
+    public void whatTheTextsDoNotShowIsSaidInPlaceOfNoDifferencesOrWithThem() throws Exception {
+        DiffPane same = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo\n"), "File mode changed: 100644 \u2192 100755", true));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("File mode changed: 100644 \u2192 100755", same.summary()));
+
+        JavaFxTestSupport.onFx(() -> same.setSources(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo hi\n"), "File mode changed: 100644 \u2192 100755"));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("1 difference. File mode changed: 100644 \u2192 100755", same.summary()));
+
+        // Asked for again with nothing more to say: said no longer.
+        JavaFxTestSupport.onFx(() -> same.setSources(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo\n")));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("No differences", same.summary()));
+    }
+
+    @Test
+    public void aDiffWhoseContentFailsToCloseIsForgottenAllTheSame() throws Exception {
+        boolean[] forgotten = new boolean[1];
+        DiffDocument document = JavaFxTestSupport.onFx(
+                () -> new DiffDocument("key", "A.txt [ Diff ]", new Failing(), () -> forgotten[0] = true));
+
+        // The failure is still told, to who closes it.
+        AssertionError failure = assertThrows(AssertionError.class, () -> JavaFxTestSupport.onFx(document::dispose));
+        assertTrue(String.valueOf(failure.getCause()), failure.getCause() instanceof IllegalStateException);
+        assertTrue(forgotten[0]);
+    }
+
+    /** The content of a diff that cannot be closed. */
+    private static final class Failing extends javafx.scene.layout.Region implements DiffContent {
+
+        @Override
+        public void refresh() {
+        }
+
+        @Override
+        public void dispose() {
+            throw new IllegalStateException("an editor that could not be released");
+        }
+
+        @Override
+        public org.netbeans.api.nbfx.editor.SavedDocument savedState() {
+            return null;
+        }
+
+        @Override
+        public void focusEditor() {
+        }
+
+        @Override
+        public javafx.beans.value.ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeEditorProperty() {
+            return new javafx.beans.property.SimpleObjectProperty<>();
+        }
+    }
 }
