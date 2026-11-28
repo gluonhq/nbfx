@@ -122,6 +122,8 @@ final class DiffConnectors extends Pane {
     private int current = -1;
     /** What a block is reverted with, given its index; {@code null} when the right side cannot be edited. */
     private IntConsumer onRevert;
+    /** Whether the blocks cannot be reverted for now: they are not those of the text as it is. */
+    private boolean revertDisabled;
     private boolean redrawRequested;
     /** Set when the diff is closed: nothing is drawn or listened to from then on. */
     private boolean disposed;
@@ -211,6 +213,13 @@ final class DiffConnectors extends Pane {
                     onRevert.accept(index);
                 }
             });
+            // Told apart by who does not see where it is: which block, of how many, of which lines.
+            List<String> told = DiffLines.describeRight(found);
+            String name = NbBundle.getMessage(DiffConnectors.class, "Diff.revert.block", i + 1, shapes.size(),
+                    told.get(i));
+            shapes.get(i).revert().setAccessibleText(name);
+            shapes.get(i).revert().getTooltip().setText(name);
+            shapes.get(i).revert().setDisable(revertDisabled);
             getChildren().add(shapes.get(i).revert());
         }
         mark();
@@ -224,6 +233,15 @@ final class DiffConnectors extends Pane {
     void setOnRevert(IntConsumer action) {
         onRevert = action;
         requestRedraw();
+    }
+
+    /**
+     * Has the buttons that revert the blocks take no click for now - the text was changed since
+     * the blocks were found, and they are not where they were - or take them again.
+     */
+    void setRevertDisabled(boolean disabled) {
+        revertDisabled = disabled;
+        shapes.forEach(shape -> shape.revert().setDisable(disabled));
     }
 
     /** The buttons that revert the blocks, in their order, those out of view too. */

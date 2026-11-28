@@ -48,10 +48,20 @@ interface DiffContent {
 
     /**
      * The editor of the side that is edited in the diff shown, which the tab hands what changes a
-     * text - undo, cut, paste - and what is saved; its value is {@code null} while neither side is.
+     * text - undo, redo, and cut and paste while the keyboard is in it; its value is {@code null}
+     * while neither side is. It is that editor on the Textual tab too, where it is not seen: what
+     * is undone there shows in the unified diff, which is of that text.
      */
     default ObservableValue<EditorDocument> editorProperty() {
         return new SimpleObjectProperty<>(null);
+    }
+
+    /**
+     * Whether what is edited in this diff takes edits and can be saved by now: not for a text
+     * that is only shown, nor for a file that was locked - changed on disk under edits not saved.
+     */
+    default ObservableValue<Boolean> editableProperty() {
+        return new SimpleBooleanProperty(false);
     }
 
     /** Whether there are edits made in this diff that are not saved. */

@@ -18,7 +18,6 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
-import javafx.beans.binding.Bindings;
 import java.util.function.Consumer;
 import java.io.IOException;
 import java.util.Objects;
@@ -38,9 +37,10 @@ import org.openide.filesystems.FileObject;
  * file. It has nothing to save, undo or paste, and is told apart from other diffs by its
  * {@link #key()}.
  * <p>
- * When the diff shown has a side that is edited, what changes a text - undo, cut, paste - is handed
- * to the editor of that side, and saving writes the edits made in the diff; Copy and Find are of
- * the text the keyboard is in, edited or not.
+ * When the diff shown has a side that is edited, Undo and Redo are handed to the editor of that
+ * side - on the Textual tab too, where what they do shows in the unified diff - and saving writes
+ * the edits made in the diff. Cut, Paste and Replace are of that side while the keyboard is in
+ * it; Copy, Find and the caret told are of the text the keyboard is in, edited or not.
  */
 final class DiffDocument implements EditorDocument {
 
@@ -78,10 +78,8 @@ final class DiffDocument implements EditorDocument {
         canRedo.bind(editor.flatMap(EditorDocument::canRedoProperty).orElse(false));
         // Of the text the keyboard is in, or was last: what Copy takes.
         hasSelection.bind(active.flatMap(EditorDocument::hasSelectionProperty).orElse(false));
-        // Edits kept of a file no longer shown can be saved as well: the tab is not a locked one.
-        ObservableValue<Boolean> accepts = editor.flatMap(EditorDocument::editableProperty).orElse(false);
-        editable.bind(Bindings.createBooleanBinding(
-                () -> accepts.getValue() || Boolean.TRUE.equals(unsaved.getValue()), accepts, unsaved));
+        // As the texts edited are: not for one that is locked, whatever was typed in it before.
+        editable.bind(content.editableProperty().orElse(false));
     }
 
     /** What this diff is of: opening a diff with the same key shows this one again. */
@@ -195,9 +193,10 @@ final class DiffDocument implements EditorDocument {
         return editable.getReadOnlyProperty();
     }
 
+    /** Of the text the keyboard is in: the caret one sees, not that of a side that is not shown. */
     @Override
     public ObservableValue<CaretInfo> caretInfoProperty() {
-        return editor.flatMap(EditorDocument::caretInfoProperty);
+        return active.flatMap(EditorDocument::caretInfoProperty);
     }
 
     @Override
@@ -216,9 +215,12 @@ final class DiffDocument implements EditorDocument {
         active(EditorDocument::showFind);
     }
 
+    /** Only in the text that is edited, and only while the keyboard is in it: where its bar is seen. */
     @Override
     public void showReplace() {
-        edited(EditorDocument::showReplace);
+        if (editor.getValue() != null && editor.getValue() == active.getValue()) {
+            editor.getValue().showReplace();
+        }
     }
 
     @Override

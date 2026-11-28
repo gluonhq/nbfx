@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.animation.PauseTransition;
@@ -39,7 +40,9 @@ import javafx.geometry.Pos;
 import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.ToggleButton;
@@ -124,6 +127,9 @@ final class DiffPane extends BorderPane implements DiffContent {
     private boolean editable;
     /** The editor of the right side while it is edited here; of none else. */
     private final ReadOnlyObjectWrapper<EditorDocument> edited = new ReadOnlyObjectWrapper<>(this, "edited");
+    private final ReadOnlyBooleanWrapper takesEdits = new ReadOnlyBooleanWrapper(this, "takesEdits", false);
+    /** Asks before all of a file is reverted, given what to ask; tests answer for the user. */
+    static Predicate<String> confirmation = DiffPane::ask;
     private final ReadOnlyBooleanWrapper modified = new ReadOnlyBooleanWrapper(this, "modified", false);
     /** Listens to the text edited here, to compare again as it changes. */
     private Subscription edits = Subscription.EMPTY;
@@ -218,6 +224,9 @@ final class DiffPane extends BorderPane implements DiffContent {
         // shortly after the last of it, with the view left where it is.
         recompare.setOnFinished(event -> refresh(true));
         modified.bind(edited.flatMap(EditorDocument::modifiedProperty).orElse(false));
+        takesEdits.bind(edited.flatMap(EditorDocument::editableProperty).orElse(false));
+        // A file that is locked, or one that takes edits again: its blocks are reverted or not.
+        takesEdits.subscribe(now -> updateRevert());
         HBox bar = new HBox(previous, next, new Separator(Orientation.VERTICAL), revertAll, summary);
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
@@ -329,12 +338,10 @@ final class DiffPane extends BorderPane implements DiffContent {
         rightCompared = null;
         comparedVersion = -1;
         edited.set(editable ? right : null);
-        // A button on each block that puts back the lines of the left side, where there is a
-        // text to put them back in.
-        connectors.setOnRevert(editable ? this::revert : null);
         if (editable) {
-            this.edits = right.textVersionProperty().subscribe((was, now) -> recompare.playFromStart());
+            this.edits = right.textVersionProperty().subscribe((was, now) -> edited());
         }
+        updateRevert();
         activeEditor.set(right != null ? right : left);
         for (EditorDocument editor : new EditorDocument[] {left, right}) {
             if (editor != null) {
@@ -526,6 +533,38 @@ final class DiffPane extends BorderPane implements DiffContent {
     }
 
     @Override
+    public ObservableValue<Boolean> editableProperty() {
+        return takesEdits.getReadOnlyProperty();
+    }
+
+    /**
+     * The text edited here changed: the blocks shown are those of the text before, and say so -
+     * none is reverted, and the line above says the texts are compared - until they are compared
+     * again, shortly after the last change.
+     */
+    private void edited() {
+        updateRevert();
+        summary.setText(message("Diff.loading"));
+        recompare.playFromStart();
+    }
+
+    /** Whether the blocks shown are those of the texts as they are, and the right one takes edits. */
+    private boolean canRevert() {
+        return editable && right != null && takesEdits.get() && rightCompared != null && leftSource.isComparable()
+                && comparedVersion == version();
+    }
+
+    /** Offers to revert the blocks, or all of them, while that can be done; see {@link #canRevert}. */
+    private void updateRevert() {
+        boolean can = canRevert();
+        // No button at all for a text that is not edited, or is locked; one that waits, while
+        // the blocks are found again.
+        connectors.setOnRevert(editable && takesEdits.get() ? this::revert : null);
+        connectors.setRevertDisabled(!can);
+        revertAll.setDisable(!can || differences.isEmpty());
+    }
+
+    @Override
     public ObservableValue<Boolean> modifiedProperty() {
         return modified.getReadOnlyProperty();
     }
@@ -540,7 +579,8 @@ final class DiffPane extends BorderPane implements DiffContent {
     /**
      * Puts back in the block of that index the lines of the left side, as one edit of the right
      * one. Nothing when the right side is not edited here, or was changed since the texts were
-     * compared: the blocks are then not where they were, and are found again first.
+     * compared: the blocks are then not where they were, and the buttons take no click until they
+     * are found again.
      */
     void revert(int index) {
         if (index >= 0 && index < differences.size() && canRevert()) {
@@ -548,30 +588,65 @@ final class DiffPane extends BorderPane implements DiffContent {
         }
     }
 
-    /** Makes the right side the text of the left one, as one edit; see {@link #revert}. */
+    /**
+     * Makes the right side the text of the left one, as one edit, once the user said so: all that
+     * differs in the file goes, what was typed and not saved with it. See {@link #revert}.
+     */
     void revertAll() {
-        if (!differences.isEmpty() && canRevert()) {
+        if (differences.isEmpty() || !canRevert()) {
+            return;
+        }
+        String asked = NbBundle.getMessage(DiffPane.class, "Diff.revertAll.confirm", rightSource.fileName(),
+                leftSource.title(), differences.size());
+        // Asked of the texts as they are; still those when it is answered, or nothing is done.
+        if (confirmation.test(asked) && canRevert()) {
             apply(DiffLines.revertAll(leftSource.lines(), rightCompared.lines()));
         }
     }
 
-    private boolean canRevert() {
-        if (!editable || right == null || !right.editableProperty().get() || rightCompared == null
-                || !leftSource.isComparable()) {
-            return false;
+    /**
+     * Makes {@code edit} in the right text, and leaves the caret and the view where they were: on
+     * the same line of the text - further down or up by the lines the edit added or took out
+     * above it - or at the start of the lines put back, for a caret that was in those replaced.
+     */
+    private void apply(DiffLines.Edit edit) {
+        if (edit.isEmpty()) {
+            return;
         }
-        if (comparedVersion != version()) {
-            recompare.stop();
-            refresh(true);
-            return false;
+        String before = String.join("\n", rightCompared.lines());
+        int firstLine = newlines(before, 0, edit.start());
+        int lastLine = firstLine + newlines(before, edit.start(), edit.end());
+        int grown = newlines(edit.text(), 0, edit.text().length()) - (lastLine - firstLine);
+        int caretLine = right.getCaretParagraph();
+        int caretColumn = right.getCaretColumn();
+        int top = right.getTopParagraph();
+        if (!right.replaceRange(edit.start(), edit.end(), edit.text())) {
+            return;
         }
-        return true;
+        if (caretLine > lastLine) {
+            right.restoreView(top > lastLine ? top + grown : top, caretLine + grown, caretColumn);
+        } else if (caretLine >= firstLine) {
+            right.restoreView(top, firstLine, 0);
+        } else {
+            right.restoreView(top, caretLine, caretColumn);
+        }
     }
 
-    private void apply(DiffLines.Edit edit) {
-        if (!edit.isEmpty()) {
-            right.replaceRange(edit.start(), edit.end(), edit.text());
+    private static int newlines(String text, int from, int to) {
+        int count = 0;
+        for (int i = from; i < to; i++) {
+            if (text.charAt(i) == '\n') {
+                count++;
+            }
         }
+        return count;
+    }
+
+    private static boolean ask(String text) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION, text, ButtonType.OK, ButtonType.CANCEL);
+        alert.setTitle(message("Diff.revertAll.title"));
+        alert.setHeaderText(null);
+        return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
     }
 
     /** Grows with each change to the text edited here; always the same while none is. */
@@ -655,8 +730,7 @@ final class DiffPane extends BorderPane implements DiffContent {
 
     /**
      * @param quiet whether the view stays where it is, as when the texts are compared again after
-     *        an edit; else the block the view is at is brought into view, and the summary says the
-     *        texts are being compared
+     *        an edit; else the block the view is at is brought into view
      */
     private void refresh(boolean quiet) {
         long asked = comparison.incrementAndGet();
@@ -675,9 +749,7 @@ final class DiffPane extends BorderPane implements DiffContent {
             compared = true;
             return;
         }
-        if (!quiet) {
-            summary.setText(message("Diff.loading"));
-        }
+        summary.setText(message("Diff.loading"));
         comparing = true;
         RP.post(() -> {
             DiffResult result;
@@ -832,7 +904,7 @@ final class DiffPane extends BorderPane implements DiffContent {
         connectors.setCurrent(current);
         overview.setCurrent(current);
         markTextual();
-        revertAll.setDisable(!editable || differences.isEmpty());
+        updateRevert();
     }
 
     private void go(boolean forward) {
