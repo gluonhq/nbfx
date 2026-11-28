@@ -211,7 +211,8 @@ public class GitStatusPaneTest {
             menu.getItems().get(3).fire();
             assertEquals(1, refreshed.get());
 
-            // A folder, and a file that is not on disk, have nothing to open or compare.
+            // A folder has nothing to open or compare; a file that is not on disk has nothing to
+            // open, but its diff shows what is gone.
             pane.table().getSelectionModel().select(0);
             menu.getOnShowing().handle(null);
             assertTrue(open.isDisable());
@@ -219,7 +220,7 @@ public class GitStatusPaneTest {
             pane.table().getSelectionModel().select(1);
             menu.getOnShowing().handle(null);
             assertTrue(open.isDisable());
-            assertTrue(diff.isDisable());
+            assertFalse(diff.isDisable());
 
             // Commit follows the tool bar button.
             assertTrue(commit.isDisable());

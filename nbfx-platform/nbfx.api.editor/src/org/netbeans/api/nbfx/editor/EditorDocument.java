@@ -282,6 +282,18 @@ public interface EditorDocument extends Lookup.Provider {
     }
 
     /**
+     * What opens this document again in a later session, when it is the editor of no file - one
+     * with a file is opened again from it. {@code null}, the default, for a document that is not
+     * restored.
+     *
+     * @return who can open it again and what of, or {@code null}
+     * @since 1.5
+     */
+    default SavedDocument getSavedState() {
+        return null;
+    }
+
+    /**
      * Restores the editor's scroll and caret state: scrolls so {@code topParagraph} is at the top of
      * the viewport and places the caret at {@code caretParagraph}/{@code caretColumn}.
      *

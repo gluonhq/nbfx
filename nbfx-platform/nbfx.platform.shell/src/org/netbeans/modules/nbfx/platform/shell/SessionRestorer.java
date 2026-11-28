@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.platform.shell;
 
 
 
+import java.util.logging.Level;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea;
 import org.netbeans.modules.nbfx.platform.workspace.DockArea.Anchor;
@@ -38,6 +39,8 @@ import org.netbeans.api.nbfx.views.ViewRegistration;
 import org.netbeans.modules.nbfx.platform.shell.AppState.Layout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout;
 import org.netbeans.modules.nbfx.platform.shell.AppState.PaneLayout.Minimized;
+import org.netbeans.api.nbfx.editor.SavedDocument;
+import org.netbeans.spi.nbfx.editor.DocumentRestorer;
 import org.netbeans.modules.nbfx.platform.shell.AppState.SplitEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabEntry;
 import org.netbeans.modules.nbfx.platform.shell.AppState.TabKind;
@@ -256,13 +259,39 @@ public final class SessionRestorer {
                 anchored ? anchor.side() : null, anchor == null ? Double.NaN : anchor.share(), other, far);
     }
 
+    /**
+     * The entry of {@code document}, which is no file's, or {@code null} when it is not restored:
+     * it says so, it fails to say, or what it says is more than a layout can carry. One document
+     * must not keep the layout of all the others from being saved.
+     */
+    static TabEntry documentEntry(EditorDocument document) {
+        SavedDocument saved;
+        try {
+            saved = document.getSavedState();
+        } catch (RuntimeException ex) {
+            LOG.log(Level.WARNING, "A document could not tell how to open it again; it is not restored", ex);
+            return null;
+        }
+        if (saved == null) {
+            return null;
+        }
+        if (saved.restorerId().length() + saved.state().length() > AppState.MOST_DOCUMENT_STATE) {
+            LOG.log(Level.WARNING, "The saved state of a document of {0} is {1} characters, more than the {2}"
+                    + " a layout carries; it is not restored",
+                    new Object[] {saved.restorerId(), saved.state().length(), AppState.MOST_DOCUMENT_STATE});
+            return null;
+        }
+        return TabEntry.document(saved);
+    }
+
     /** The persistable descriptor of {@code tab}, or {@code null} if it carries no stable id. */
     private static TabEntry entryFor(Tab tab) {
         EditorDocument document = NbfxTabPane.documentOf(tab);
         if (document != null) {
             String path = pathOf(document.getFileObject());
             if (path == null) {
-                return null;
+                // The editor of no file - a diff: restored by who made it, if it says how.
+                return documentEntry(document);
             }
             EditorDocument second = EditorSplit.secondOf(tab);
             SplitEntry split = second == null ? null : new SplitEntry(EditorSplit.orientationOf(tab),
@@ -392,6 +421,11 @@ public final class SessionRestorer {
         Set<String> opened = new LinkedHashSet<>();
         for (PaneLayout pane : layout.panes()) {
             for (TabEntry tab : pane.tabs()) {
+                if (tab.kind() == TabKind.DOCUMENT) {
+                    // Asked for once for each tab there was, as an editor is cloned for each: whether
+                    // two tabs of the same are two documents or one is for who restores them to say.
+                    restoreDocument(tab);
+                }
                 if (tab.kind() != TabKind.EDITOR || !opened.add(tab.id())) {
                     continue;
                 }
@@ -403,6 +437,42 @@ public final class SessionRestorer {
                 cm.openFile(fo, null);
             }
         }
+    }
+
+    /** Has the restorer of the document saved as {@code entry} open it again, if there still is one. */
+    private static void restoreDocument(TabEntry entry) {
+        SavedDocument saved = entry.saved();
+        if (saved == null) {
+            return;
+        }
+        for (DocumentRestorer restorer : Lookup.getDefault().lookupAll(DocumentRestorer.class)) {
+            if (saved.restorerId().equals(restorer.id())) {
+                try {
+                    restorer.restore(saved.state());
+                } catch (RuntimeException ex) {
+                    LOG.log(Level.WARNING, "Cannot restore the document of " + saved.restorerId(), ex);
+                }
+                return;
+            }
+        }
+    }
+
+    /** The tab of the document saved as {@code entry} that {@code taken} does not hold yet, or {@code null}. */
+    private static Tab documentTab(TabEntry entry, Set<Tab> claimed, List<Tab> taken) {
+        SavedDocument saved = entry.saved();
+        if (saved == null) {
+            return null;
+        }
+        for (TabPane pane : NbfxTabPane.tabPanes()) {
+            for (Tab tab : pane.getTabs()) {
+                EditorDocument document = NbfxTabPane.documentOf(tab);
+                if (document != null && saved.equals(document.getSavedState())
+                        && !claimed.contains(tab) && !taken.contains(tab)) {
+                    return tab;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -656,9 +726,11 @@ public final class SessionRestorer {
     private List<Tab> resolveTabs(PaneLayout pane, ContentManager cm, Set<Tab> claimed, Map<Tab, TabEntry> editors) {
         List<Tab> tabs = new ArrayList<>();
         for (TabEntry entry : pane.tabs()) {
-            Tab tab = entry.kind() == TabKind.VIEW
-                    ? viewTabs.apply(entry.id())
-                    : editorTab(entry.id(), cm, claimed, tabs);
+            Tab tab = switch (entry.kind()) {
+                case VIEW -> viewTabs.apply(entry.id());
+                case DOCUMENT -> documentTab(entry, claimed, tabs);
+                case EDITOR -> editorTab(entry.id(), cm, claimed, tabs);
+            };
             if (tab != null && !tabs.contains(tab)) {
                 tabs.add(tab);
                 if (entry.kind() == TabKind.EDITOR) {

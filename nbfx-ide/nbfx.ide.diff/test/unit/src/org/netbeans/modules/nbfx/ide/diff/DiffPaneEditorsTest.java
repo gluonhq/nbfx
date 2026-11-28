@@ -414,7 +414,7 @@ public class DiffPaneEditorsTest {
         DiffDocument document = (DiffDocument) Content.OPENED.get(0);
         assertEquals("A.txt [ Diff ]", document.getTitle());
         // And it shows what was asked for last.
-        awaitComparison(document.pane());
+        awaitComparison((DiffPane) document.content());
         assertEquals("c\n", EDITORS.get(EDITORS.size() - 1).file.asText("UTF-8"));
 
         // Closed, it is forgotten: asked for again, another one is opened.
@@ -424,6 +424,46 @@ public class DiffPaneEditorsTest {
         assertEquals(3, Content.OPENED.size());
         assertNotSame(document, Content.OPENED.get(2));
         JavaFxTestSupport.onFx(() -> Content.OPENED.get(2).dispose());
+    }
+
+    @Test
+    public void aProviderGivenForADiffThatIsOpenIsLetGoOfAndTheOneItHasIsKept() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        Content.OPENED.clear();
+        Object key = new Object();
+        int[] disposed = new int[2];
+
+        JavaFxTestSupport.onFx(() -> {
+            DiffView.open(key, "src", null, provider(disposed, 0), null);
+            DiffView.open(key, "src", null, provider(disposed, 1), null);
+        });
+
+        assertSame(Content.OPENED.get(0), Content.OPENED.get(1));
+        assertEquals(0, disposed[0]);
+        assertEquals(1, disposed[1]);
+        // Its own, when its tab is closed.
+        JavaFxTestSupport.onFx(() -> Content.OPENED.get(0).dispose());
+        assertEquals(1, disposed[0]);
+        assertEquals(1, disposed[1]);
+    }
+
+    private static DiffProvider provider(int[] disposed, int index) {
+        return new DiffProvider() {
+            @Override
+            public List<DiffMode> modes() {
+                return List.of();
+            }
+
+            @Override
+            public List<DiffEntry> entries(DiffMode mode) {
+                return List.of();
+            }
+
+            @Override
+            public void dispose() {
+                disposed[index]++;
+            }
+        };
     }
 
     @Test

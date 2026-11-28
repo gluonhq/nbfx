@@ -29,6 +29,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.application.Platform;
 import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
@@ -71,7 +72,7 @@ import org.openide.util.RequestProcessor;
  * The texts are read and compared off the FX thread; until then, and when they are the same, the
  * line between the headings says so.
  */
-final class DiffPane extends BorderPane {
+final class DiffPane extends BorderPane implements DiffContent {
 
     private static final Logger LOG = Logger.getLogger(DiffPane.class.getName());
     private static final RequestProcessor RP = new RequestProcessor("nbfx-diff", 1);
@@ -113,6 +114,14 @@ final class DiffPane extends BorderPane {
     private final AtomicLong comparison = new AtomicLong();
 
     DiffPane(DiffSource leftSource, DiffSource rightSource) {
+        this(leftSource, rightSource, true);
+    }
+
+    /**
+     * @param ownBar whether the buttons and the summary are shown above the headings; a
+     *        {@link DiffBrowser} shows them in its own bar instead
+     */
+    DiffPane(DiffSource leftSource, DiffSource rightSource, boolean ownBar) {
         getStyleClass().add("diff-pane");
         getStylesheets().add(Objects.requireNonNull(DiffPane.class.getResource("diff.css")).toExternalForm());
         summary.getStyleClass().add("diff-summary");
@@ -124,7 +133,9 @@ final class DiffPane extends BorderPane {
         HBox bar = new HBox(previous, next, summary);
         bar.getStyleClass().add("diff-bar");
         bar.setAlignment(Pos.CENTER_LEFT);
-        setTop(bar);
+        if (ownBar) {
+            setTop(bar);
+        }
         strip.getStyleClass().add("diff-strip");
         edge.getStyleClass().add("diff-edge");
         overview.setOnSelect(this::select);
@@ -241,7 +252,8 @@ final class DiffPane extends BorderPane {
     }
 
     /** The editor the keyboard is in, or was in last: the one Copy is of. {@code null} with no editor. */
-    ObservableValue<EditorDocument> activeEditorProperty() {
+    @Override
+    public ObservableValue<EditorDocument> activeEditorProperty() {
         return activeEditor.getReadOnlyProperty();
     }
 
@@ -261,7 +273,8 @@ final class DiffPane extends BorderPane {
      * Gives the keyboard to the text compared to, the one on the right - the file as it is now -
      * so that the keys scroll the diff as soon as its tab is chosen.
      */
-    void focusEditor() {
+    @Override
+    public void focusEditor() {
         if (right != null) {
             right.requestFocus();
         } else {
@@ -311,6 +324,10 @@ final class DiffPane extends BorderPane {
         return connectors.connectors();
     }
 
+    ReadOnlyStringProperty summaryProperty() {
+        return summary.textProperty();
+    }
+
     /** The text of the line above the headings. */
     String summary() {
         return summary.getText();
@@ -321,7 +338,8 @@ final class DiffPane extends BorderPane {
      * given up: all the panes compare on one thread, and what nobody waits for must not hold up
      * what somebody does.
      */
-    void refresh() {
+    @Override
+    public void refresh() {
         long asked = comparison.incrementAndGet();
         DiffSource from = leftSource;
         DiffSource to = rightSource;
@@ -380,7 +398,8 @@ final class DiffPane extends BorderPane {
     }
 
     /** Releases the two editors, and gives up the comparison that runs. */
-    void dispose() {
+    @Override
+    public void dispose() {
         connectors.dispose();
         comparison.incrementAndGet();
         scrolling.unsubscribe();

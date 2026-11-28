@@ -25,8 +25,10 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
 import javafx.scene.Node;
+import javafx.scene.layout.Region;
 import org.netbeans.api.nbfx.editor.CaretInfo;
 import org.netbeans.api.nbfx.editor.EditorDocument;
+import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.openide.filesystems.FileObject;
 
 /**
@@ -39,23 +41,25 @@ final class DiffDocument implements EditorDocument {
 
     private final Object key;
     private final String title;
-    private final DiffPane pane;
+    private final Region node;
+    private final DiffContent content;
     private final Runnable onDispose;
     private final ReadOnlyBooleanWrapper never = new ReadOnlyBooleanWrapper(this, "never", false);
     private final ReadOnlyBooleanWrapper hasSelection = new ReadOnlyBooleanWrapper(this, "hasSelection", false);
 
-    DiffDocument(Object key, String title, DiffPane pane) {
-        this(key, title, pane, () -> { });
+    <T extends Region & DiffContent> DiffDocument(Object key, String title, T content) {
+        this(key, title, content, () -> { });
     }
 
     /** @param onDispose run when the tab of the diff is closed */
-    DiffDocument(Object key, String title, DiffPane pane, Runnable onDispose) {
+    <T extends Region & DiffContent> DiffDocument(Object key, String title, T content, Runnable onDispose) {
         this.key = Objects.requireNonNull(key);
         this.title = Objects.requireNonNull(title);
-        this.pane = Objects.requireNonNull(pane);
+        this.node = Objects.requireNonNull(content);
+        this.content = content;
         this.onDispose = Objects.requireNonNull(onDispose);
         // Of the text the keyboard is in, or was last: what Copy takes.
-        hasSelection.bind(pane.activeEditorProperty().flatMap(EditorDocument::hasSelectionProperty).orElse(false));
+        hasSelection.bind(content.activeEditorProperty().flatMap(EditorDocument::hasSelectionProperty).orElse(false));
     }
 
     /** What this diff is of: opening a diff with the same key shows this one again. */
@@ -63,8 +67,14 @@ final class DiffDocument implements EditorDocument {
         return key;
     }
 
-    DiffPane pane() {
-        return pane;
+    DiffContent content() {
+        return content;
+    }
+
+    /** As its content says: a diff of what a provider has can be opened again, one of two texts cannot. */
+    @Override
+    public SavedDocument getSavedState() {
+        return content.savedState();
     }
 
     /** No file: a diff is not the editor of either of the two it shows. */
@@ -75,7 +85,7 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public Node getNode() {
-        return pane;
+        return node;
     }
 
     @Override
@@ -108,7 +118,7 @@ final class DiffDocument implements EditorDocument {
     /** Copies what is selected in the text the keyboard is in; nothing is cut from or pasted into a diff. */
     @Override
     public void copy() {
-        EditorDocument active = pane.activeEditorProperty().getValue();
+        EditorDocument active = content.activeEditorProperty().getValue();
         if (active != null) {
             active.copy();
         }
@@ -116,7 +126,7 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public String getSelectedText() {
-        EditorDocument active = pane.activeEditorProperty().getValue();
+        EditorDocument active = content.activeEditorProperty().getValue();
         return active == null ? "" : active.getSelectedText();
     }
 
@@ -164,13 +174,13 @@ final class DiffDocument implements EditorDocument {
 
     @Override
     public void requestFocus() {
-        pane.focusEditor();
+        content.focusEditor();
     }
 
     @Override
     public void dispose() {
         hasSelection.unbind();
-        pane.dispose();
+        content.dispose();
         onDispose.run();
     }
 }

@@ -47,6 +47,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import org.openide.filesystems.FileObject;
+import org.openide.filesystems.FileUtil;
 import org.openide.util.LookupListener;
 import org.openide.util.NbBundle;
 import org.openide.util.NbPreferences;
@@ -67,6 +68,8 @@ final class GitStatusView extends BorderPane {
     private static final String KEY_MODE = "status.mode";
     private static final String KEY_FLAVOUR = "status.flavour";
     private static final String KEY_COLUMNS = "status.columns";
+    /** The folder of the project shown, so that the view restored at start-up shows it again. */
+    private static final String KEY_PROJECT = "status.project";
     /** How long a read waits for another to be asked for, in milliseconds: one read serves them all. */
     private static final int READ_DELAY = 100;
 
@@ -154,6 +157,8 @@ final class GitStatusView extends BorderPane {
     void show(Path folder, String name) {
         if (folder != null) {
             target = new Target(folder, name == null ? String.valueOf(folder.getFileName()) : name);
+            // Kept, so that the view restored at start-up shows it again.
+            preferences.put(KEY_PROJECT, folder.toString());
         }
         reload();
     }
@@ -165,9 +170,15 @@ final class GitStatusView extends BorderPane {
      */
     void reload() {
         if (target == null) {
-            OpenProject selected = ProjectContext.selectedProject();
-            Path folder = GitMenus.folderOf(selected);
-            target = folder == null ? null : new Target(folder, selected.getDisplayName());
+            // The project shown in the last session, if it is open - it may not be yet at start-up,
+            // and is asked for again when the selection changes - else the one selected.
+            OpenProject stored = storedProject();
+            OpenProject shown = stored != null ? stored : ProjectContext.selectedProject();
+            Path folder = GitMenus.folderOf(shown);
+            target = folder == null ? null : new Target(folder, shown.getDisplayName());
+            if (target != null && stored == null) {
+                preferences.put(KEY_PROJECT, folder.toString());
+            }
         }
         long read = reads.incrementAndGet();
         // Nothing to commit until it is read again: the rows may be out of date.
@@ -241,6 +252,16 @@ final class GitStatusView extends BorderPane {
         pane.setBranch(branch);
         pane.setMessage(text);
         pane.setCommitDisabled(true, null);
+    }
+
+    /** The open project of the folder kept in the preferences, or {@code null}. */
+    private OpenProject storedProject() {
+        String path = preferences.get(KEY_PROJECT, null);
+        java.io.File folder = path == null ? null : new java.io.File(path);
+        FileObject root = folder == null || !folder.isDirectory() ? null : FileUtil.toFileObject(folder);
+        OpenProject owner = ProjectContext.projectOf(root);
+        // Of that very folder: a file of a project that was closed may be in another that is open.
+        return owner != null && path.equals(owner.getPath()) ? owner : null;
     }
 
     private <E extends Enum<E>> E stored(String key, E fallback) {

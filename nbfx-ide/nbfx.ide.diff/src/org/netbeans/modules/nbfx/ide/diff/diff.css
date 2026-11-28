@@ -17,29 +17,38 @@
  * under the License.
  */
 
-.diff-pane > .diff-bar {
+.diff-bar {
     -fx-padding: 2 6 2 6;
     -fx-spacing: 2;
     -fx-border-color: transparent transparent -nbfx-border transparent;
 }
 
-.diff-pane > .diff-bar > .diff-summary {
+.diff-bar > .diff-summary {
     -fx-padding: 1 8 1 8;
     -fx-text-fill: -nbfx-text-faint;
 }
 
-.diff-pane > .diff-bar > .diff-tool-button {
+.diff-bar > .diff-tool-button {
     -fx-background-color: transparent;
     -fx-background-insets: 0;
     -fx-background-radius: 3;
     -fx-padding: 3;
 }
 
-.diff-pane > .diff-bar > .diff-tool-button:hover {
+.diff-bar > .diff-tool-button:hover {
     -fx-background-color: -nbfx-hover;
 }
 
-.diff-pane > .diff-bar > .diff-tool-button:disabled {
+.diff-bar > .diff-tool-button:armed,
+.diff-bar > .diff-tool-button:selected {
+    -fx-background-color: -nbfx-pressed;
+}
+
+.diff-bar > .separator:vertical {
+    -fx-padding: 0 3 0 3;
+}
+
+.diff-bar > .diff-tool-button:disabled {
     -fx-opacity: 0.4;
 }
 
@@ -200,4 +209,51 @@
 
 .diff-pane .line-band.line-band-rule.diff-changed {
     -fx-background-color: -nbfx-diff-changed;
+}
+
+/* The table of the files that differ, above the two texts. */
+.diff-browser .diff-split {
+    -fx-padding: 0;
+    -fx-background-insets: 0;
+}
+
+.diff-browser .diff-files {
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+
+.diff-browser .diff-files .tree-table-cell {
+    -fx-padding: 1 4 1 2;
+}
+
+/* The divider between the table and the two texts, as those of the docking area. */
+.diff-browser .diff-split.split-pane:vertical > .split-pane-divider {
+    -fx-background-color: -nbfx-canvas;
+    -fx-background-insets: 0;
+}
+
+.diff-browser .diff-placeholder {
+    -fx-text-fill: -nbfx-text-faint;
+    -fx-padding: 12;
+}
+
+/* File names by change, as the status view colours them. */
+.diff-files .diff-file-cell.diff-file-modified {
+    -fx-text-fill: -nbfx-accent;
+}
+
+.diff-files .diff-file-cell.diff-file-added {
+    -fx-text-fill: -nbfx-output-success;
+}
+
+.diff-files .diff-file-cell.diff-file-deleted {
+    -fx-text-fill: -nbfx-text-faint;
+}
+
+.diff-files .diff-file-cell.diff-file-conflicted {
+    -fx-text-fill: -nbfx-editor-text-error;
+}
+
+.diff-files:focused > .virtual-flow > .clipped-container > .sheet > .tree-table-row-cell:selected:filled > .diff-file-cell {
+    -fx-text-fill: -nbfx-on-accent;
 }

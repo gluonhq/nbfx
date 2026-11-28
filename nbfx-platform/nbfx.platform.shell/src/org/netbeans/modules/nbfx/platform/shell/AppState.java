@@ -18,6 +18,9 @@
  */
 package org.netbeans.modules.nbfx.platform.shell;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import org.netbeans.api.nbfx.editor.SavedDocument;
 import org.netbeans.api.nbfx.shell.PaneRole;
 import org.netbeans.modules.nbfx.platform.workspace.DockTree;
 import org.netbeans.api.nbfx.views.PaneKind;
@@ -98,6 +101,12 @@ public final class AppState {
     /** Default detached-window size used when a persisted one is off-screen or invalid. */
     private static final double DEFAULT_DETACHED_WIDTH = 900;
     private static final double DEFAULT_DETACHED_HEIGHT = 650;
+
+    /**
+     * The most characters the id and the state of a document that is no file's may take in a
+     * layout, which is kept as one preference with the tabs of every pane in it.
+     */
+    static final int MOST_DOCUMENT_STATE = 1024;
 
     private final Preferences prefs;
 
@@ -374,12 +383,14 @@ public final class AppState {
     // --- Window layout (panes + their tabs) ---------------------------------
 
     /** The kind of content a persisted tab holds. */
-    public enum TabKind { EDITOR, VIEW }
+    public enum TabKind { EDITOR, VIEW, DOCUMENT }
 
     /**
      * A persisted tab. For {@link TabKind#EDITOR} the {@code id} is an absolute file path and the
      * scroll/caret fields are meaningful; for {@link TabKind#VIEW} the {@code id} is the view
-     * provider identifier and the remaining fields are unused.
+     * provider identifier and the remaining fields are unused; for {@link TabKind#DOCUMENT} - a
+     * document that is the editor of no file - the {@code id} is its saved state as
+     * {@link TabEntry#document} writes it, and the remaining fields are unused.
      */
     public record TabEntry(TabKind kind, String id, int topParagraph, int caretParagraph, int caretColumn,
                            SplitEntry split) {
@@ -391,6 +402,29 @@ public final class AppState {
 
         static TabEntry view(String providerId) {
             return new TabEntry(TabKind.VIEW, providerId, 0, 0, 0);
+        }
+
+        /**
+         * The entry of a document saved as {@code saved}: the id of its restorer, a colon, and its
+         * state in Base64, as the state may hold the characters that separate the fields.
+         */
+        static TabEntry document(SavedDocument saved) {
+            return new TabEntry(TabKind.DOCUMENT, saved.restorerId() + ":" + Base64.getUrlEncoder()
+                    .withoutPadding().encodeToString(saved.state().getBytes(StandardCharsets.UTF_8)), 0, 0, 0);
+        }
+
+        /** What a {@link TabKind#DOCUMENT} entry was saved from, or {@code null} when it cannot be read. */
+        SavedDocument saved() {
+            int colon = id.indexOf(':');
+            if (kind != TabKind.DOCUMENT || colon <= 0) {
+                return null;
+            }
+            try {
+                return new SavedDocument(id.substring(0, colon),
+                        new String(Base64.getUrlDecoder().decode(id.substring(colon + 1)), StandardCharsets.UTF_8));
+            } catch (IllegalArgumentException ex) {
+                return null;
+            }
         }
     }
 
@@ -761,7 +795,12 @@ public final class AppState {
             for (PaneLayout pane : layout.panes()) {
                 sb.append('\n').append(serialize(pane));
             }
-            node.put(key, sb.toString());
+            try {
+                node.put(key, sb.toString());
+            } catch (IllegalArgumentException ex) {
+                // More than a preference holds: the layout kept before stays, and quitting goes on.
+                LOG.log(Level.WARNING, "The layout is too long to be kept (" + sb.length() + " characters)", ex);
+            }
         }
         flush();
     }

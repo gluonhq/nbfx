@@ -174,6 +174,8 @@ public class DiffPaneTest {
         assertEquals(pane, document.getNode());
         assertEquals(false, document.isModified());
         assertEquals(false, document.editableProperty().get());
+        // Two texts handed over: nothing to open them again from.
+        assertNull(document.getSavedState());
         JavaFxTestSupport.onFx(document::dispose);
     }
 

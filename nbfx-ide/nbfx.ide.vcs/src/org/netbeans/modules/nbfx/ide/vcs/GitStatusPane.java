@@ -423,9 +423,9 @@ final class GitStatusPane extends BorderPane {
         MenuItem diff = new MenuItem(message("Git.diff"));
         diff.setOnAction(event -> {
             StatusRow.File row = selectedFile();
-            if (row != null) {
-                // A renamed file is compared with what it was called in the last commit.
-                GitDiff.open(fileObject(row), row.status().originalPath());
+            if (row != null && repository != null) {
+                // In the mode of the table, so that the diff shows the change the row tells of.
+                GitDiff.open(repository, row.path(), row.name(), icon(row), mode.get());
             }
         });
         MenuItem commitItem = new MenuItem(message("Git.commit.menu"));
@@ -438,9 +438,8 @@ final class GitStatusPane extends BorderPane {
             StatusRow.File row = selectedFile();
             FileObject file = row == null ? null : fileObject(row);
             open.setDisable(file == null || !file.isData());
-            // A deleted file has no working tree side to show, and in another mode than that of
-            // the last commit and the working tree the diff would not be of what the row tells.
-            diff.setDisable(!GitDiff.canDiff(file, mode.get()));
+            // A deleted file too: its diff shows what is gone.
+            diff.setDisable(row == null || repository == null);
         });
         return menu;
     }
@@ -474,20 +473,21 @@ final class GitStatusPane extends BorderPane {
         return item;
     }
 
-    /** Opens the file in the editor; a deleted file has nothing to open. */
     /**
      * What a double click or Enter on {@code row} does, as in NetBeans' Versioning window: shows
      * what changed in the file - its diff - where one is offered, and else opens the file.
      */
     private void activate(StatusRow.File row) {
-        FileObject file = fileObject(row);
-        if (GitDiff.canDiff(file, mode.get())) {
-            GitDiff.open(file, row.status().originalPath());
+        if (repository != null) {
+            // In the mode of the table, so that the diff shows the change the row tells of; a
+            // deleted file too, whose diff shows what is gone.
+            GitDiff.open(repository, row.path(), row.name(), icon(row), mode.get());
         } else {
             open(row);
         }
     }
 
+    /** Opens the file in the editor; a deleted file has nothing to open. */
     private void open(StatusRow.File row) {
         FileObject file = fileObject(row);
         ContentManager content = Lookup.getDefault().lookup(ContentManager.class);

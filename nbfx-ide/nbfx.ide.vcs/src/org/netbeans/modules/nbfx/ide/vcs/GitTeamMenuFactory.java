@@ -41,8 +41,8 @@ import org.openide.util.NbBundle;
 import org.openide.util.lookup.ServiceProvider;
 
 /**
- * The Git entries of the Team menu, as in NetBeans: Show Changes while the selected project is in a
- * Git working tree, and Git &#9656; Initialize Repository... while it is not.
+ * The Git entries of the Team menu, as in NetBeans: Show Changes and Diff while the selected project
+ * is in a Git working tree, and Git &#9656; Initialize Repository... while it is not.
  *
  * @since 1.2
  */
@@ -56,16 +56,17 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
     }
 
     /**
-     * Both entries, one of them visible. They are told apart again when the selection changes and
+     * All the entries, those of one case visible. They are told apart again when the selection changes and
      * when the menu opens, as a repository can be made or removed outside the IDE.
      */
     static final class TeamMenu implements DynamicMenu {
 
         private final MenuItem showChanges = new MenuItem(message("CTL_SelectGitCommand"),
                 GitIcons.menuView(GitIcons.SHOW_CHANGES));
+        private final MenuItem diff = new MenuItem(message("Git.diff"));
         private final MenuItem initialize = new MenuItem(message("Git.init.menu"));
         private final Menu git = new Menu(message("Git.menu"), null, initialize);
-        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, git);
+        private final ObservableList<MenuItem> items = FXCollections.observableArrayList(showChanges, diff, git);
         private final List<Lookup.Result<?>> contextResults = new ArrayList<>();
         private final LookupListener contextListener = event -> Platform.runLater(this::refresh);
         private final EventHandler<Event> showing = event -> refresh();
@@ -78,6 +79,7 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
                     view.show(ProjectContext.selectedProject());
                 }
             });
+            diff.setOnAction(event -> GitDiff.open(diffTarget()));
             initialize.setOnAction(event -> GitInitDialog.show(GitMenus.folderOf(ProjectContext.selectedProject()),
                     this::refresh));
             ActionContext context = ActionContext.getDefault();
@@ -113,7 +115,28 @@ public final class GitTeamMenuFactory implements DynamicMenu.Factory {
             Path folder = GitMenus.folderOf(project);
             boolean repository = folder != null && GitMenus.inWorkingTree(folder.toFile());
             showChanges.setVisible(repository);
+            // Shown for what choosing it would compare: the file in the context, or the project.
+            diff.setVisible(diffTarget() != null);
             git.setVisible(!repository);
+        }
+
+        /**
+         * What Diff is of: the file or the folder selected - the file of the editor, when it has
+         * the focus - when it is in a working tree, else the selected project.
+         */
+        private static FileObject diffTarget() {
+            ActionContext context = ActionContext.getDefault();
+            FileObject selected = context == null ? null : context.lookup(FileObject.class);
+            if (selected == null && context != null) {
+                EditorDocument document = context.lookup(EditorDocument.class);
+                selected = document == null ? null : document.getFileObject();
+            }
+            if (GitDiff.canDiff(selected)) {
+                return selected;
+            }
+            OpenProject project = ProjectContext.selectedProject();
+            FileObject root = project == null ? null : project.getRoot();
+            return GitDiff.canDiff(root) ? root : null;
         }
 
         private void follow(Menu menu) {

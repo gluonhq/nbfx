@@ -181,10 +181,13 @@ final class GitContentReader {
             if (size > limit) {
                 return new GitContent.TooLarge(size, limit);
             }
-            byte[] bytes = Files.readAllBytes(file);
+            byte[] bytes;
+            try (InputStream in = Files.newInputStream(file)) {
+                // One byte beyond the limit at most, however much the file grew since it was measured.
+                bytes = in.readNBytes((int) Math.min(limit + 1, Integer.MAX_VALUE - 8));
+            }
             if (bytes.length > limit) {
-                // Grown since it was measured.
-                return new GitContent.TooLarge(bytes.length, limit);
+                return new GitContent.TooLarge(Math.max(Files.size(file), bytes.length), limit);
             }
             return decoded(bytes, null, charset);
         } catch (IOException | RuntimeException ex) {
