@@ -18,6 +18,8 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
 import javafx.stage.Stage;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.KeyCode;
@@ -68,6 +70,11 @@ public class DiffBrowserTest {
         volatile CountDownLatch listHeld;
         volatile CountDownLatch loadHeld;
         final AtomicInteger loads = new AtomicInteger();
+        /** While set, the texts of a file are read until they are no longer wanted. */
+        volatile boolean untilCancelled;
+        final AtomicInteger givenUp = new AtomicInteger();
+        /** Whether the list was still wanted each time it was asked for, as it was told on its way. */
+        final List<Boolean> listCancelled = new CopyOnWriteArrayList<>();
 
         private static void hold(CountDownLatch latch) {
             try {
@@ -80,10 +87,24 @@ public class DiffBrowserTest {
         }
 
         private DiffEntry held(DiffEntry entry) {
-            return new DiffEntry(entry.name(), entry.location(), entry.status(), entry.kind(), entry.icon(), () -> {
+            return new DiffEntry(entry.name(), entry.location(), entry.status(), entry.kind(), entry.icon(), cancelled -> {
                 hold(loadHeld);
+                if (untilCancelled) {
+                    // As a read that takes long does: asks whether it is still wanted, and gives up.
+                    for (int i = 0; i < 1000 && !cancelled.getAsBoolean(); i++) {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException ex) {
+                            throw new IllegalStateException(ex);
+                        }
+                    }
+                    if (cancelled.getAsBoolean()) {
+                        givenUp.incrementAndGet();
+                        throw new CancellationException();
+                    }
+                }
                 try {
-                    return entry.loader().load();
+                    return entry.loader().load(cancelled);
                 } finally {
                     loads.incrementAndGet();
                 }
@@ -122,9 +143,10 @@ public class DiffBrowserTest {
         }
 
         @Override
-        public List<DiffEntry> entries(DiffMode mode) {
+        public List<DiffEntry> entries(DiffMode mode, BooleanSupplier cancelled) {
             asked.add(mode.id());
             hold(listHeld);
+            listCancelled.add(cancelled.getAsBoolean());
             List<DiffEntry> entries = new ArrayList<>();
             if (empty) {
                 return entries;
@@ -227,6 +249,21 @@ public class DiffBrowserTest {
         JavaFxTestSupport.onFx(() -> browser.modeToggles().get(1).fire());
         await(browser);
         assertEquals(new SavedDocument("test-diff", "staged"), JavaFxTestSupport.onFx(document::getSavedState));
+    }
+
+    @Test
+    public void theNextFileIsShownOnTheTabTheLastOneWasOn() throws Exception {
+        DiffBrowser browser = browser(new Files(), null);
+        await(browser);
+        JavaFxTestSupport.onFx(() -> browser.pane().setTextual(true));
+
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(browser.pane().isTextual());
+            assertTrue(browser.pane().unified().startsWith("--- HEAD\n+++ Working Tree\n@@ "));
+        });
     }
 
     @Test
@@ -468,7 +505,7 @@ public class DiffBrowserTest {
     private static DiffEntry entry(String name, String location, String status, DiffEntry.Kind kind,
             String left, String right) {
         return new DiffEntry(name, location, status, kind, null,
-                () -> new DiffPair(DiffSource.of("HEAD", name, left), DiffSource.of("Working Tree", name, right)));
+                cancelled -> new DiffPair(DiffSource.of("HEAD", name, left), DiffSource.of("Working Tree", name, right)));
     }
 
     @Test
@@ -622,5 +659,65 @@ public class DiffBrowserTest {
             node = node.getParent();
         }
         return node != null && part != null;
+    }
+
+    @Test
+    public void whatIsNoLongerWantedIsToldSoWhileItIsReadAndListed() throws Exception {
+        Files files = new Files();
+        DiffBrowser browser = browser(files, ALL);
+        await(browser);
+
+        // The texts of the second file take long to read; meanwhile the first is chosen again.
+        files.untilCancelled = true;
+        JavaFxTestSupport.onFx(() -> browser.select(1));
+        Thread.sleep(100);
+        files.untilCancelled = false;
+        JavaFxTestSupport.onFx(() -> browser.select(0));
+        await(browser);
+        // The read was told, and gave up: nothing of it is shown, nor is a failure said.
+        assertEquals(1, files.givenUp.get());
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("A.txt", browser.selected().name());
+            assertEquals("1 difference", browser.summary());
+        });
+
+        // A list that is asked for again while it is made is told too.
+        files.listCancelled.clear();
+        files.listHeld = new CountDownLatch(1);
+        JavaFxTestSupport.onFx(browser::refresh);
+        for (int i = 0; i < 200 && files.asked.size() < 2; i++) {
+            Thread.sleep(10);
+        }
+        JavaFxTestSupport.onFx(browser::refresh);
+        files.listHeld.countDown();
+        files.listHeld = null;
+        await(browser);
+        assertEquals(List.of(true, false), files.listCancelled);
+    }
+
+    @Test
+    public void whatElseDiffersBetweenTheTwoSidesIsSaidWithTheDiff() throws Exception {
+        DiffProvider provider = new DiffProvider() {
+            @Override
+            public List<DiffMode> modes() {
+                return List.of();
+            }
+
+            @Override
+            public boolean listed() {
+                return false;
+            }
+
+            @Override
+            public List<DiffEntry> entries(DiffMode mode, BooleanSupplier cancelled) {
+                return List.of(new DiffEntry("run.sh", "run.sh", "Modified", DiffEntry.Kind.MODIFIED, null,
+                        gone -> new DiffPair(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                                DiffSource.of("Working Tree", "run.sh", "echo\n"), "File mode changed")));
+            }
+        };
+        DiffBrowser browser = browser(provider, null);
+        await(browser);
+
+        JavaFxTestSupport.onFx(() -> assertEquals("File mode changed", browser.summary()));
     }
 }

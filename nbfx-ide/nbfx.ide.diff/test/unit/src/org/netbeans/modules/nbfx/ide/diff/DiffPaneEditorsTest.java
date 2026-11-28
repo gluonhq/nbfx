@@ -18,6 +18,7 @@
  */
 package org.netbeans.modules.nbfx.ide.diff;
 
+import java.util.function.BooleanSupplier;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -48,6 +49,7 @@ import org.netbeans.modules.nbfx.test.fx.JavaFxTestSupport;
 import org.openide.filesystems.FileObject;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -455,7 +457,7 @@ public class DiffPaneEditorsTest {
             }
 
             @Override
-            public List<DiffEntry> entries(DiffMode mode) {
+            public List<DiffEntry> entries(DiffMode mode, BooleanSupplier cancelled) {
                 return List.of();
             }
 
@@ -464,6 +466,149 @@ public class DiffPaneEditorsTest {
                 disposed[index]++;
             }
         };
+    }
+
+    @Test
+    public void theTextualTabShowsTheUnifiedDiffInAnEditorOfItsOwnThatIsLetGoOfWithTheTextsItIsOf() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        int before = EDITORS.size();
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+        awaitComparison(pane);
+        // Not made until its tab is shown.
+        assertEquals(before + 2, EDITORS.size());
+
+        JavaFxTestSupport.onFx(() -> {
+            pane.textualTab().fire();
+            // Written off the FX thread, when its tab is first shown: said to be on its way.
+            assertEquals("Comparing...", pane.textualNote());
+        });
+        awaitTextual(pane);
+        assertEquals(before + 3, EDITORS.size());
+        assertNull(JavaFxTestSupport.onFx(pane::textualNote));
+        Editor textual = EDITORS.get(before + 2);
+        assertEquals("A.txt.diff", textual.file.getNameExt());
+        assertEquals("--- HEAD\n+++ Working Tree\n@@ -1,3 +1,3 @@\n a\n-b\n+x\n c\n", textual.file.asText("UTF-8"));
+        // The hunk line, the line deleted and the line added: not the two lines that name the sides.
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 1, DiffLines.DELETED),
+                new LineBand(5, 1, DiffLines.ADDED)), textual.bands);
+        assertFalse(textual.breadcrumbs.get());
+        JavaFxTestSupport.onFx(() -> {
+            // The block the view is at is marked as on the two sides: its lines, not the hunk line.
+            List<Boolean> current = textual.overlay.getChildren().stream()
+                    .map(region -> region.getStyleClass().contains("diff-current")).toList();
+            assertEquals(List.of(false, true, true), current);
+            // Copy and the keyboard are of the text shown.
+            assertSame(textual.document, pane.activeEditorProperty().getValue());
+            assertSame(textual.document, pane.textualEditor());
+            pane.focusEditor();
+        });
+        assertEquals(1, textual.focused);
+
+        // Back on the two sides, Copy is of the text compared to again; the unified one is kept.
+        JavaFxTestSupport.onFx(() -> pane.setTextual(false));
+        assertSame(EDITORS.get(before + 1).document, JavaFxTestSupport.onFx(() -> pane.activeEditorProperty().getValue()));
+        assertEquals(0, textual.disposed);
+        JavaFxTestSupport.onFx(() -> pane.setTextual(true));
+        assertEquals(before + 3, EDITORS.size());
+
+        // Asked for again with nothing other than it was: nothing is compared, written or made
+        // again, and the view stays at its block.
+        int made = EDITORS.size();
+        JavaFxTestSupport.onFx(() -> {
+            pane.setSources(head("a\nb\nc\n"), working("a\nx\nc\n"));
+            assertEquals("1 difference", pane.summary());
+            assertFalse(pane.isWritingUnified());
+            assertNull(pane.textualNote());
+            assertSame(textual.document, pane.textualEditor());
+            assertEquals(0, pane.current());
+        });
+        assertEquals(made, EDITORS.size());
+        assertEquals(0, textual.disposed);
+        // Refresh, which is asked for expressly, compares again all the same.
+        JavaFxTestSupport.onFx(pane::refresh);
+        awaitComparison(pane);
+        awaitTextual(pane);
+        assertEquals(1, textual.disposed);
+        Editor rewritten = EDITORS.get(EDITORS.size() - 1);
+
+        // Other texts, with its tab shown: the editor of the diff that was is let go of, and one
+        // of the diff that is takes its place.
+        JavaFxTestSupport.onFx(() -> pane.setSources(head("a\nb\nc\n"), working("a\nb\nz\n")));
+        awaitComparison(pane);
+        awaitTextual(pane);
+        assertEquals(1, rewritten.disposed);
+        Editor again = EDITORS.get(EDITORS.size() - 1);
+        assertTrue(again.file.asText("UTF-8"), again.file.asText("UTF-8").endsWith(" a\n b\n-c\n+z\n"));
+        assertSame(again.document, JavaFxTestSupport.onFx(() -> pane.activeEditorProperty().getValue()));
+
+        JavaFxTestSupport.onFx(pane::dispose);
+        assertEquals(1, again.disposed);
+        assertEquals(1, textual.disposed);
+    }
+
+    @Test
+    public void aDiffClosedWhileItsUnifiedTextIsWrittenMakesNoEditorForIt() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+        awaitComparison(pane);
+        int made = EDITORS.size();
+
+        JavaFxTestSupport.onFx(() -> {
+            pane.setTextual(true);
+            assertTrue(pane.isWritingUnified());
+            pane.dispose();
+        });
+        for (int i = 0; i < 200 && JavaFxTestSupport.onFx(pane::isWritingUnified); i++) {
+            Thread.sleep(10);
+        }
+        // Time for a write that would have been started again, and for what it would make.
+        Thread.sleep(200);
+        JavaFxTestSupport.onFx(() -> {
+            assertFalse(pane.isWritingUnified());
+            assertNull(pane.textualEditor());
+        });
+        assertEquals(made, EDITORS.size());
+    }
+
+    @Test
+    public void theKeyboardSentToAUnifiedTextNotYetShownGoesToItUnlessItWasMovedSince() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        for (boolean moved : new boolean[] {false, true}) {
+            DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+            awaitComparison(pane);
+            int made = EDITORS.size();
+            Stage[] stage = new Stage[1];
+            JavaFxTestSupport.onFx(() -> {
+                stage[0] = new Stage();
+                stage[0].setScene(new Scene(pane, 600, 400));
+                stage[0].show();
+                pane.setTextual(true);
+                // As the tab of the diff is chosen, or its file: before the text is written.
+                pane.focusEditor();
+                // Not the two sides, which are not shown: what is said in place of the text.
+                assertEquals("Comparing...", pane.textualNote());
+                assertTrue(pane.getScene().getFocusOwner() instanceof javafx.scene.control.Label);
+                if (moved) {
+                    pane.graphicalTab().requestFocus();
+                }
+            });
+            try {
+                awaitTextual(pane);
+                assertEquals(made + 1, EDITORS.size());
+                Editor textual = EDITORS.get(made);
+                assertEquals(moved ? 0 : 1, textual.focused);
+                // The two sides were not sent the keyboard for it.
+                assertEquals(0, EDITORS.get(made - 1).focused);
+                if (moved) {
+                    JavaFxTestSupport.onFx(() -> assertSame(pane.graphicalTab(), pane.getScene().getFocusOwner()));
+                }
+            } finally {
+                JavaFxTestSupport.onFx(() -> {
+                    stage[0].hide();
+                    pane.dispose();
+                });
+            }
+        }
     }
 
     @Test
@@ -504,6 +649,17 @@ public class DiffPaneEditorsTest {
 
     private static DiffPane pane(DiffSource left, DiffSource right) throws Exception {
         return JavaFxTestSupport.onFx(() -> new DiffPane(left, right));
+    }
+
+    /** Until the unified diff asked for with the Textual tab is written and shown. */
+    private static void awaitTextual(DiffPane pane) throws Exception {
+        for (int i = 0; i < 200; i++) {
+            if (JavaFxTestSupport.onFx(() -> !pane.isWritingUnified() && !"Comparing...".equals(pane.textualNote()))) {
+                return;
+            }
+            Thread.sleep(25);
+        }
+        throw new AssertionError("the unified diff was not shown");
     }
 
     private static void awaitComparison(DiffPane pane) throws Exception {

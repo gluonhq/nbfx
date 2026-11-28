@@ -20,6 +20,7 @@ package org.netbeans.modules.nbfx.ide.diff;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.netbeans.api.nbfx.diff.Difference;
 import org.netbeans.api.nbfx.editor.LineBand;
 import org.openide.util.NbBundle;
@@ -208,5 +209,71 @@ final class DiffLines {
     /** The message of {@code key} for {@code count} lines from {@code start}, counted from one for the reader. */
     private static String lines(String key, int start, int count) {
         return NbBundle.getMessage(DiffLines.class, key, start + 1, start + count, count);
+    }
+
+    /**
+     * The bands of a unified diff, by the first character of its {@code lines}: each run of lines
+     * added, of lines deleted, and each line that starts a hunk. The two lines that name the texts
+     * - the first two - have none, though they start as lines deleted and added do.
+     */
+    static List<LineBand> unifiedBands(List<String> lines) {
+        List<LineBand> bands = new ArrayList<>();
+        int start = 0;
+        String running = null;
+        for (int i = 0; i <= lines.size(); i++) {
+            String kind = i < 2 || i == lines.size() ? null
+                    // What is said of the line before - that it has no line ending - is part of it.
+                    : lines.get(i).startsWith("\\") ? running : unifiedKind(lines.get(i));
+            if (!Objects.equals(kind, running)) {
+                if (running != null) {
+                    bands.add(new LineBand(start, i - start, running));
+                }
+                running = kind;
+                start = i;
+            }
+        }
+        return bands;
+    }
+
+    /**
+     * How many lines of a unified diff the block that starts at {@code start} takes: its lines
+     * deleted and added, with what is said of their end.
+     */
+    static int unifiedBlockLength(List<String> lines, int start) {
+        int end = start;
+        while (end < lines.size() && (lines.get(end).startsWith("-") || lines.get(end).startsWith("+")
+                || lines.get(end).startsWith("\\"))) {
+            end++;
+        }
+        return end - start;
+    }
+
+    private static String unifiedKind(String line) {
+        return line.startsWith("+") ? ADDED : line.startsWith("-") ? DELETED : line.startsWith("@@") ? CHANGED : null;
+    }
+
+    /**
+     * How the lines of {@code text} end, as it is named: {@code LF}, {@code CRLF}, {@code CR},
+     * {@code mixed} for more than one of them, or {@code none} for a text of one line.
+     */
+    static String lineEnding(String text) {
+        boolean lf = false;
+        boolean crlf = false;
+        boolean cr = false;
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '\n') {
+                lf = true;
+            } else if (c == '\r') {
+                if (i + 1 < text.length() && text.charAt(i + 1) == '\n') {
+                    crlf = true;
+                    i++;
+                } else {
+                    cr = true;
+                }
+            }
+        }
+        int kinds = (lf ? 1 : 0) + (crlf ? 1 : 0) + (cr ? 1 : 0);
+        return kinds > 1 ? "mixed" : lf ? "LF" : crlf ? "CRLF" : cr ? "CR" : "none";
     }
 }

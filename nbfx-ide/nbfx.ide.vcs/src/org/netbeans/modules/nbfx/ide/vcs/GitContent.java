@@ -38,8 +38,20 @@ sealed interface GitContent {
      * @param objectId the id of the blob it was read from: the same id is the same content;
      *        {@code null} for the text of a file in the working tree, which git has not stored
      * @param size the size of the blob, in bytes
+     * @param mode the mode of the file as git writes it - {@code 100644}, {@code 100755} for one
+     *        that can be run, {@code 120000} for a link - or {@code null} where it is not known
      */
-    record Text(String text, String objectId, long size) implements GitContent {
+    record Text(String text, String objectId, long size, String mode) implements GitContent {
+
+        /** A text whose mode is not known. */
+        Text(String text, String objectId, long size) {
+            this(text, objectId, size, null);
+        }
+
+        /** This text, of a file of {@code mode}. */
+        Text withMode(String mode) {
+            return new Text(text, objectId, size, mode);
+        }
     }
 
     /**

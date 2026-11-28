@@ -81,8 +81,32 @@ final class GitClient {
      * paths are relative to the repository root, whatever {@code dir} is. Untracked files are listed
      * one by one, not by folder.
      */
+    /**
+     * Whether git counts, in the repository at {@code root}, whether a file can be run:
+     * {@code core.fileMode}, which is on unless it is set off - as on a disk that keeps no such
+     * permission.
+     */
+    static boolean tracksFileMode(Path root, BooleanSupplier cancelled) {
+        Output output = run(root, Map.of(), cancelled, "config", "--type=bool", "--get", "core.fileMode");
+        return !(output.exitCode() == 0 && "false".equals(new String(output.output(), StandardCharsets.UTF_8).strip()));
+    }
+
     static VcsStatus status(Path dir) throws IOException {
-        Result result = result(dir, "status", "--porcelain=v2", "-z", "--untracked-files=all", "--", ".");
+        return status(dir, () -> false);
+    }
+
+    /**
+     * As {@link #status(Path)}, given up when {@code cancelled} says the status is no longer
+     * wanted: git is ended.
+     *
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static VcsStatus status(Path dir, BooleanSupplier cancelled) throws IOException {
+        Output output = run(dir, Map.of(), cancelled, "status", "--porcelain=v2", "-z", "--untracked-files=all",
+                "--", ".");
+        // Read as is: the status records end with a NUL and their paths may hold any other character.
+        Result result = new Result(output.exitCode(), output.exitCode() == 0 || output.error().isBlank()
+                ? new String(output.output(), StandardCharsets.UTF_8) : output.error());
         if (result.exitCode() != 0) {
             throw new IOException(result.output());
         }
@@ -129,7 +153,18 @@ final class GitClient {
      * @param committed whether the content is that of the last commit, not of the index
      */
     static Charset storedCharset(Path root, String path, Charset working, boolean committed) {
-        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr",
+        return storedCharset(root, path, working, committed, () -> false);
+    }
+
+    /**
+     * As {@link #storedCharset(Path, String, Charset, boolean)}, given up when {@code cancelled}
+     * says the content is no longer wanted: git is not started for it, or is ended.
+     *
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static Charset storedCharset(Path root, String path, Charset working, boolean committed,
+            BooleanSupplier cancelled) {
+        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), cancelled, "check-attr",
                 committed ? "--source=HEAD" : "--cached", "-z", "working-tree-encoding", "--", path);
         // "<path> NUL <attribute> NUL <value> NUL"; no commit yet, or a git that knows no
         // "--source", is no attribute.

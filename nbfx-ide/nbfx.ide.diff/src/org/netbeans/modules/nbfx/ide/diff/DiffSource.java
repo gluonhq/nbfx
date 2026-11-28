@@ -46,8 +46,11 @@ import org.netbeans.api.nbfx.diff.Diff;
  * @param text the text; {@code null} for a side that is missing or unreadable
  * @param problem why there is no text to compare, for the user to read; {@code null} for a side
  *        that has a text or is missing
+ * @param path where the file is in what is compared, with {@code /} between its folders - in a
+ *        repository, from its root - for the unified diff to name it by, as {@code a/path} and
+ *        {@code b/path}; {@code null} to have it named by the title
  */
-public record DiffSource(String title, String fileName, String text, String problem) {
+public record DiffSource(String title, String fileName, String text, String problem, String path) {
 
     /** Checks that the title and the name are there, and that the side is one of the three. */
     public DiffSource {
@@ -60,17 +63,30 @@ public record DiffSource(String title, String fileName, String text, String prob
 
     /** A side with {@code text}; an empty text is an empty file. */
     public static DiffSource of(String title, String fileName, String text) {
-        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null);
+        return new DiffSource(title, fileName, Objects.requireNonNull(text, "text"), null, null);
     }
 
     /** A side with no file on it. */
     public static DiffSource missing(String title, String fileName) {
-        return new DiffSource(title, fileName, null, null);
+        return new DiffSource(title, fileName, null, null, null);
     }
 
     /** A side with no text to compare, for the reason {@code problem} tells the user. */
     public static DiffSource unreadable(String title, String fileName, String problem) {
-        return new DiffSource(title, fileName, null, Objects.requireNonNull(problem, "problem"));
+        return new DiffSource(title, fileName, null, Objects.requireNonNull(problem, "problem"), null);
+    }
+
+    /** This side, at {@code path} in what is compared: what the unified diff names it by. */
+    public DiffSource withPath(String path) {
+        return new DiffSource(title, fileName, text, problem, path);
+    }
+
+    /**
+     * What the unified diff calls this side: {@code /dev/null} when there is no file on it, as
+     * {@code git diff} does; else its path after {@code prefix}, or its title when it has none.
+     */
+    String unifiedName(String prefix) {
+        return isMissing() ? "/dev/null" : path == null ? title : prefix + path;
     }
 
     /** Whether there is no file on this side. */

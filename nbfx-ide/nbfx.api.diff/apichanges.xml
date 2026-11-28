@@ -26,6 +26,24 @@
         <apidef name="netbeansfx_diff">NetBeansFX Diff API</apidef>
     </apidefs>
     <changes>
+        <change id="diff.unified">
+            <api name="netbeansfx_diff"/>
+            <summary>The unified text of a comparison.</summary>
+            <version major="1" minor="1"/>
+            <date day="28" month="11" year="2026"/>
+            <author login="jperedadnr"/>
+            <compatibility addition="yes" semantic="compatible"/>
+            <description>
+                Adds <code>UnifiedDiff</code>, which writes the differences between two texts as
+                <code>diff -u</code> does: the two names, then each hunk with its
+                <code>@@</code> ranges, its lines of context and
+                <code>\ No newline at end of file</code> where a text ends without one - a last
+                line that only one of the texts ends is written as a line that differs. The names
+                are quoted as <code>git diff</code> quotes paths, so that each is one line. It
+                also tells the line each block of differences starts at in that text.
+            </description>
+            <class package="org.netbeans.api.nbfx.diff" name="UnifiedDiff"/>
+        </change>
         <change id="diff.lines">
             <api name="netbeansfx_diff"/>
             <summary>The headless line comparison.</summary>

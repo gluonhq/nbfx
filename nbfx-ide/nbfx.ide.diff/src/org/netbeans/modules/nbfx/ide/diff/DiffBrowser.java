@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,6 +108,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
     /** Set while a mode is selected because it was asked for with the diff, not chosen by the user. */
     private boolean settingMode;
     private DiffPane pane;
+    /** Whether the diff shown last was on its Textual tab. */
+    private boolean textual;
     /** The editor the keyboard is in, or was in last, of the diff shown; of none while there is none. */
     private final ReadOnlyObjectWrapper<EditorDocument> activeEditor = new ReadOnlyObjectWrapper<>(this, "activeEditor");
     /** Set while the table is filled: the selection is acted on once, when it is. */
@@ -447,7 +450,11 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             List<DiffEntry> found;
             String failure = null;
             try {
-                found = List.copyOf(provider.entries(compared));
+                found = List.copyOf(provider.entries(compared, () -> asked != listing.get()));
+            } catch (CancellationException ex) {
+                // Given up because it is no longer wanted: nothing to show, nor to say.
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot list what differs", ex);
                 found = List.of();
@@ -633,7 +640,10 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             }
             DiffPair pair = null;
             try {
-                pair = entry.loader().load();
+                pair = entry.loader().load(() -> asked != loading.get());
+            } catch (CancellationException ex) {
+                Platform.runLater(() -> busy(-1));
+                return;
             } catch (IOException | RuntimeException ex) {
                 LOG.log(Level.INFO, "Cannot read " + entry.location(), ex);
             }
@@ -646,9 +656,9 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 if (read == null) {
                     show((DiffPane) null, message("Diff.failed"));
                 } else if (inPlace && pane != null) {
-                    pane.setSources(read.left(), read.right());
+                    pane.setSources(read.left(), read.right(), read.note());
                 } else {
-                    show(new DiffPane(read.left(), read.right(), false), "");
+                    show(new DiffPane(read.left(), read.right(), read.note(), false), "");
                 }
             });
         });
@@ -661,6 +671,8 @@ final class DiffBrowser extends BorderPane implements DiffContent {
                 // The keyboard was in the diff that goes: it waits for the one that comes.
                 park();
             }
+            // The next file is shown as this one was: side by side, or as a unified diff.
+            textual = pane.isTextual();
             previous.disableProperty().unbind();
             next.disableProperty().unbind();
             summary.textProperty().unbind();
@@ -684,6 +696,7 @@ final class DiffBrowser extends BorderPane implements DiffContent {
             summary.textProperty().bind(Bindings.createStringBinding(
                     () -> waiting.get() ? message("Diff.loading") : now.summaryProperty().get(),
                     waiting, now.summaryProperty()));
+            pane.setTextual(textual);
             activeEditor.bind(pane.activeEditorProperty());
             holder.getChildren().setAll(pane);
             if (parked != null) {

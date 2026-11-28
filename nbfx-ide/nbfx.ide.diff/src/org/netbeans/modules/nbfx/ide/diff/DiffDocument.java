@@ -180,7 +180,11 @@ final class DiffDocument implements EditorDocument {
     @Override
     public void dispose() {
         hasSelection.unbind();
-        content.dispose();
-        onDispose.run();
+        try {
+            content.dispose();
+        } finally {
+            // Forgotten whatever became of its editors: a closed diff is not the one asked for again.
+            onDispose.run();
+        }
     }
 }

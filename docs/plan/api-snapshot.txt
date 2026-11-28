@@ -45,6 +45,7 @@ org.netbeans.api.nbfx.diff.Diff
 org.netbeans.api.nbfx.diff.DiffOptions
 org.netbeans.api.nbfx.diff.DiffResult
 org.netbeans.api.nbfx.diff.Difference
+org.netbeans.api.nbfx.diff.UnifiedDiff
 org.netbeans.api.nbfx.editor.BreadcrumbsElements
 org.netbeans.api.nbfx.editor.CaretInfo
 org.netbeans.api.nbfx.editor.ContentManager

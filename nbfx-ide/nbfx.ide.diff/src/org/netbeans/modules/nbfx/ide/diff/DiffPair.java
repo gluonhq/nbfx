@@ -25,12 +25,19 @@ import java.util.Objects;
  *
  * @param left the text compared from, shown on the left
  * @param right the text compared to, shown on the right
+ * @param note what differs between the two that their texts do not show - the mode of the file,
+ *        say - for the user to read beside how much the texts differ; {@code null} for nothing
  */
-public record DiffPair(DiffSource left, DiffSource right) {
+public record DiffPair(DiffSource left, DiffSource right, String note) {
 
-    /** Both are required. */
+    /** The two sides are required. */
     public DiffPair {
         Objects.requireNonNull(left, "left");
         Objects.requireNonNull(right, "right");
+    }
+
+    /** Two sides with nothing more to say of them. */
+    public DiffPair(DiffSource left, DiffSource right) {
+        this(left, right, null);
     }
 }

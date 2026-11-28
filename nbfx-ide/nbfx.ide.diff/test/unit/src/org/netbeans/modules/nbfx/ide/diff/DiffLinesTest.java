@@ -165,4 +165,32 @@ public class DiffLinesTest {
                 .mapToObj(line -> toRight ? DiffLines.toRight(DIFFERENCES, line) : DiffLines.toLeft(DIFFERENCES, line))
                 .toList();
     }
+
+    @Test
+    public void unifiedDiffMarksRunsOfLinesAddedAndDeletedAndTheHunkLines() {
+        List<String> lines = List.of("--- HEAD", "+++ Working Tree", "@@ -1,4 +1,5 @@", " a", "-b", "-c", "+x", "+y", "+z",
+                " d", "@@ -9,2 +10,1 @@", "-e", " f");
+
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 2, DiffLines.DELETED),
+                new LineBand(6, 3, DiffLines.ADDED), new LineBand(10, 1, DiffLines.CHANGED),
+                new LineBand(11, 1, DiffLines.DELETED)), DiffLines.unifiedBands(lines));
+        // The names of the texts are not lines deleted and added; no diff, no bands.
+        assertEquals(List.of(), DiffLines.unifiedBands(List.of("--- a", "+++ b")));
+        assertEquals(List.of(), DiffLines.unifiedBands(List.of("")));
+    }
+
+    @Test
+    public void whatIsSaidOfTheEndOfALineIsPartOfItsBand() {
+        List<String> lines = List.of("--- a", "+++ b", "@@ -1,2 +1,2 @@", " a", "-b", "\\ No newline at end of file", "+b",
+                "+c", "\\ No newline at end of file", " d");
+
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED), new LineBand(4, 2, DiffLines.DELETED),
+                new LineBand(6, 3, DiffLines.ADDED)), DiffLines.unifiedBands(lines));
+        // Said of a line the texts share, it is no band of its own.
+        assertEquals(List.of(new LineBand(2, 1, DiffLines.CHANGED)), DiffLines.unifiedBands(
+                List.of("--- a", "+++ b", "@@ -1,1 +1,1 @@", " a", "\\ No newline at end of file")));
+        // The lines of the block that starts at a line: deleted, added, and what is said of their ends.
+        assertEquals(5, DiffLines.unifiedBlockLength(lines, 4));
+        assertEquals(0, DiffLines.unifiedBlockLength(lines, 3));
+    }
 }

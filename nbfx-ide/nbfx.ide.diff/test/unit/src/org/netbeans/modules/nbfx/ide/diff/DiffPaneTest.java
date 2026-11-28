@@ -89,6 +89,65 @@ public class DiffPaneTest {
     }
 
     @Test
+    public void theUnifiedDiffNamesTheSidesByTheirPath() throws Exception {
+        DiffPane pane = JavaFxTestSupport.onFx(() -> new DiffPane(
+                DiffSource.of("HEAD", "App.java", "a\nb\n").withPath("src/App.java"),
+                DiffSource.of("Working Tree", "App.java", "a\nx\n").withPath("src/App.java")));
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> assertTrue(pane.unified(),
+                pane.unified().startsWith("--- a/src/App.java\n+++ b/src/App.java\n@@ ")));
+    }
+
+    @Test
+    public void aSideWithNoFileIsNamedAsGitNamesItAndOneThatCannotBeComparedHasNoUnifiedDiff() throws Exception {
+        DiffPane added = JavaFxTestSupport.onFx(() -> new DiffPane(
+                DiffSource.missing("HEAD", "New.java").withPath("src/New.java"),
+                DiffSource.of("Working Tree", "New.java", "a\nb\n").withPath("src/New.java")));
+        awaitComparison(added);
+        JavaFxTestSupport.onFx(() -> assertEquals("--- /dev/null\n+++ b/src/New.java\n@@ -0,0 +1,2 @@\n+a\n+b\n",
+                added.unified()));
+
+        DiffPane binary = JavaFxTestSupport.onFx(() -> new DiffPane(
+                DiffSource.unreadable("HEAD", "logo.png", "Binary file").withPath("logo.png"),
+                DiffSource.of("Working Tree", "logo.png", "text\n").withPath("logo.png")));
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("", binary.unified());
+            // Its tab can be shown all the same, and shows nothing.
+            binary.setTextual(true);
+            assertTrue(binary.isTextual());
+        });
+
+        // Asked for again with other texts: the unified diff is of those.
+        JavaFxTestSupport.onFx(() -> added.setSources(DiffSource.of("HEAD", "New.java", "a\n"),
+                DiffSource.of("Working Tree", "New.java", "b\n")));
+        awaitComparison(added);
+        JavaFxTestSupport.onFx(() -> assertEquals("--- HEAD\n+++ Working Tree\n@@ -1,1 +1,1 @@\n-a\n+b\n", added.unified()));
+    }
+
+    @Test
+    public void theTextualTabIsOfTheUnifiedDiff() throws Exception {
+        DiffPane pane = pane("a\nb\nc\n", "a\nx\nc\n");
+        awaitComparison(pane);
+
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("--- HEAD\n+++ Working Tree\n@@ -1,3 +1,3 @@\n a\n-b\n+x\n c\n", pane.unified());
+            assertTrue(pane.graphicalTab().isSelected());
+            assertFalse(pane.isTextual());
+
+            pane.textualTab().fire();
+            assertTrue(pane.isTextual());
+            // The blocks are still gone through, and a click on the tab shown leaves it shown.
+            assertEquals("1/1", pane.counter());
+            pane.textualTab().fire();
+            assertTrue(pane.isTextual());
+
+            pane.setTextual(false);
+            assertTrue(pane.graphicalTab().isSelected());
+        });
+    }
+
+    @Test
     public void sameFilesHaveNoDifferences() throws Exception {
         DiffPane pane = pane("same\n", "same\n");
 
@@ -160,7 +219,12 @@ public class DiffPaneTest {
         assertEquals(text, DiffSource.of("HEAD", "A.txt", ""));
         assertNotEquals(text, missing);
         assertNotEquals(text, DiffSource.of("HEAD", "A.txt", "\n"));
-        assertThrows(IllegalArgumentException.class, () -> new DiffSource("HEAD", "A.txt", "text", "and a problem"));
+        assertThrows(IllegalArgumentException.class, () -> new DiffSource("HEAD", "A.txt", "text", "and a problem", null));
+        // Where it is named differently in the unified diff, it does not show the same.
+        assertNotEquals(text, text.withPath("src/A.txt"));
+        assertEquals("a/src/A.txt", text.withPath("src/A.txt").unifiedName("a/"));
+        assertEquals("HEAD", text.unifiedName("a/"));
+        assertEquals("/dev/null", missing.withPath("src/A.txt").unifiedName("a/"));
         assertThrows(NullPointerException.class, () -> DiffSource.of("HEAD", "A.txt", null));
     }
 
@@ -195,5 +259,141 @@ public class DiffPaneTest {
             Thread.sleep(50);
         }
         throw new AssertionError("the files were not compared");
+    }
+
+    @Test
+    public void textsThatDifferOnlyInHowTheirLinesEndAreNotSaidToBeTheSame() throws Exception {
+        DiffPane pane = pane("a\nb\n", "a\r\nb\r\n");
+        awaitComparison(pane);
+        JavaFxTestSupport.onFx(() -> {
+            assertTrue(pane.differences().isEmpty());
+            assertEquals("Only line endings differ: LF in HEAD, CRLF in Working Tree", pane.summary());
+        });
+
+        assertEquals("LF", DiffLines.lineEnding("a\nb\n"));
+        assertEquals("CRLF", DiffLines.lineEnding("a\r\nb"));
+        assertEquals("CR", DiffLines.lineEnding("a\rb\r"));
+        assertEquals("mixed", DiffLines.lineEnding("a\nb\r\n"));
+        assertEquals("none", DiffLines.lineEnding("a"));
+    }
+
+    @Test
+    public void whatTheTextsDoNotShowIsSaidInPlaceOfNoDifferencesOrWithThem() throws Exception {
+        DiffPane same = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo\n"), "File mode changed: 100644 \u2192 100755", true));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("File mode changed: 100644 \u2192 100755", same.summary()));
+
+        JavaFxTestSupport.onFx(() -> same.setSources(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo hi\n"), "File mode changed: 100644 \u2192 100755"));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("1 difference. File mode changed: 100644 \u2192 100755", same.summary()));
+
+        // Asked for again with nothing more to say: said no longer.
+        JavaFxTestSupport.onFx(() -> same.setSources(DiffSource.of("HEAD", "run.sh", "echo\n"),
+                DiffSource.of("Working Tree", "run.sh", "echo\n")));
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("No differences", same.summary()));
+    }
+
+    @Test
+    public void aDiffWhoseContentFailsToCloseIsForgottenAllTheSame() throws Exception {
+        boolean[] forgotten = new boolean[1];
+        DiffDocument document = JavaFxTestSupport.onFx(
+                () -> new DiffDocument("key", "A.txt [ Diff ]", new Failing(), () -> forgotten[0] = true));
+
+        // The failure is still told, to who closes it.
+        AssertionError failure = assertThrows(AssertionError.class, () -> JavaFxTestSupport.onFx(document::dispose));
+        assertTrue(String.valueOf(failure.getCause()), failure.getCause() instanceof IllegalStateException);
+        assertTrue(forgotten[0]);
+    }
+
+    /** The content of a diff that cannot be closed. */
+    private static final class Failing extends javafx.scene.layout.Region implements DiffContent {
+
+        @Override
+        public void refresh() {
+        }
+
+        @Override
+        public void dispose() {
+            throw new IllegalStateException("an editor that could not be released");
+        }
+
+        @Override
+        public org.netbeans.api.nbfx.editor.SavedDocument savedState() {
+            return null;
+        }
+
+        @Override
+        public void focusEditor() {
+        }
+
+        @Override
+        public javafx.beans.value.ObservableValue<org.netbeans.api.nbfx.editor.EditorDocument> activeEditorProperty() {
+            return new javafx.beans.property.SimpleObjectProperty<>();
+        }
+    }
+
+    @Test
+    public void theTextualTabSaysWhyItHasNoTextToShowAndIsNeverAnEmptyEditor() throws Exception {
+        // Nothing differs: what the line above says.
+        DiffPane same = pane("a\n", "a\n");
+        awaitComparison(same);
+        JavaFxTestSupport.onFx(() -> same.setTextual(true));
+        awaitTextual(same);
+        JavaFxTestSupport.onFx(() -> assertEquals("No differences", same.textualNote()));
+
+        // A side that cannot be compared: that it cannot, and why.
+        DiffPane binary = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.unreadable("HEAD", "logo.png", "A binary file."),
+                DiffSource.of("Working Tree", "logo.png", "text\n")));
+        JavaFxTestSupport.onFx(() -> binary.setTextual(true));
+        awaitTextual(binary);
+        JavaFxTestSupport.onFx(() -> assertEquals("HEAD: A binary file.", binary.textualNote()));
+
+        // A file with nothing in it, added: nothing to write of it, and no failure for that.
+        DiffPane empty = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.missing("HEAD", "empty.txt"),
+                DiffSource.of("Working Tree", "empty.txt", "")));
+        awaitComparison(empty);
+        JavaFxTestSupport.onFx(() -> empty.setTextual(true));
+        awaitTextual(empty);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("Added: there is no file to compare with", empty.textualNote());
+            assertEquals("", empty.unified());
+        });
+
+        // More than is written as text: how much.
+        DiffPane large = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.missing("HEAD", "big.txt"),
+                DiffSource.of("Working Tree", "big.txt", "x\n".repeat((int) DiffPane.MOST_TEXTUAL_LINES + 1))));
+        awaitComparison(large);
+        JavaFxTestSupport.onFx(() -> large.setTextual(true));
+        awaitTextual(large);
+        JavaFxTestSupport.onFx(() -> assertTrue(large.textualNote(),
+                large.textualNote().startsWith("Too much differs to show as text: ")));
+
+        // Texts that differ, and no editor to show them in.
+        DiffPane differs = pane("a\n", "b\n");
+        awaitComparison(differs);
+        JavaFxTestSupport.onFx(() -> differs.setTextual(true));
+        awaitTextual(differs);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("The differences could not be shown as text", differs.textualNote());
+            // The tabs say what they are of, and are reached with the keyboard.
+            assertTrue(differs.textualTab().isFocusTraversable());
+            assertEquals("The differences as a unified diff", differs.textualTab().getTooltip().getText());
+            // Back on the two sides nothing is said in their place.
+            differs.setTextual(false);
+            assertNull(differs.textualNote());
+        });
+    }
+
+    private static void awaitTextual(DiffPane pane) throws Exception {
+        for (int i = 0; i < 400; i++) {
+            if (JavaFxTestSupport.onFx(() -> !pane.isWritingUnified() && !"Comparing...".equals(pane.textualNote()))) {
+                return;
+            }
+            Thread.sleep(25);
+        }
+        throw new AssertionError("the unified diff was not shown");
     }
 }
