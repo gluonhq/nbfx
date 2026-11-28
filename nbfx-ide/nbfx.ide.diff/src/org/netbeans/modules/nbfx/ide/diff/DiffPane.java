@@ -133,6 +133,10 @@ final class DiffPane extends BorderPane implements DiffContent {
      * first shown after a comparison, not with each comparison - until then, none.
      */
     private UnifiedDiff unified = NO_UNIFIED;
+    /** Set when the tab of the diff is closed: nothing is written, made or shown from then on. */
+    private boolean disposed;
+    /** Set when the keyboard was sent to a unified diff that is not shown yet: it goes there when it is. */
+    private boolean textualFocusWanted;
     /** Whether {@link #unified} is of the differences shown, and whether it is being written. */
     private boolean unifiedWritten;
     private boolean unifiedWriting;
@@ -357,8 +361,15 @@ final class DiffPane extends BorderPane implements DiffContent {
      */
     @Override
     public void focusEditor() {
-        if (isTextual() && textual != null) {
-            textual.requestFocus();
+        if (isTextual()) {
+            if (textual != null) {
+                textual.requestFocus();
+            } else {
+                // The two sides are not what is shown: the keyboard waits on what is said in place
+                // of the text, and goes to the text when it is there.
+                textualFocusWanted = true;
+                textualNote.requestFocus();
+            }
         } else if (right != null) {
             right.requestFocus();
         } else {
@@ -554,6 +565,7 @@ final class DiffPane extends BorderPane implements DiffContent {
     /** Releases the two editors, and gives up the comparison that runs. */
     @Override
     public void dispose() {
+        disposed = true;
         connectors.dispose();
         comparison.incrementAndGet();
         scrolling.unsubscribe();
@@ -638,7 +650,13 @@ final class DiffPane extends BorderPane implements DiffContent {
 
     /** Puts in place what the tab chosen is of; the block the view is at is not touched. */
     private void place() {
+        if (disposed) {
+            return;
+        }
         if (isTextual()) {
+            // Whether the keyboard still waits where it was left for the text: not moved since.
+            Node owner = getScene() == null ? null : getScene().getFocusOwner();
+            boolean waiting = textualFocusWanted && (owner == null || owner == textualNote);
             if (textual == null) {
                 // No text to show, or not yet: said in its place, never an empty editor.
                 if (comparing || !unifiedWritten) {
@@ -659,6 +677,12 @@ final class DiffPane extends BorderPane implements DiffContent {
             content.getChildren().setAll(textual != null ? textual.getNode() : textualNote);
             // Copy is of the text shown.
             activeEditor.set(textual);
+            if (textual != null && textualFocusWanted) {
+                textualFocusWanted = false;
+                if (waiting) {
+                    textual.requestFocus();
+                }
+            }
         } else {
             if (sides != null) {
                 content.getChildren().setAll(sides);
@@ -673,7 +697,7 @@ final class DiffPane extends BorderPane implements DiffContent {
      * meanwhile.
      */
     private void writeUnified() {
-        if (unifiedWriting) {
+        if (unifiedWriting || disposed) {
             return;
         }
         unifiedWriting = true;
@@ -696,6 +720,10 @@ final class DiffPane extends BorderPane implements DiffContent {
             String why = problem;
             Platform.runLater(() -> {
                 unifiedWriting = false;
+                if (disposed) {
+                    // Closed meanwhile: not shown, and not asked for again.
+                    return;
+                }
                 if (asked == comparison.get() && !comparing) {
                     unified = text;
                     unifiedProblem = why;
@@ -743,9 +771,9 @@ final class DiffPane extends BorderPane implements DiffContent {
         if (editors == null) {
             return null;
         }
+        EditorDocument editor = null;
         try {
-            EditorDocument editor = editors.createPreviewDocument(
-                    inMemory(rightSource.fileName() + ".diff", unified.text()));
+            editor = editors.createPreviewDocument(inMemory(rightSource.fileName() + ".diff", unified.text()));
             editor.showBreadcrumbsProperty().set(false);
             textualLines = Diff.lines(unified.text());
             textualBands = DiffLines.unifiedBands(textualLines);
@@ -754,6 +782,12 @@ final class DiffPane extends BorderPane implements DiffContent {
             return editor;
         } catch (IOException | RuntimeException ex) {
             LOG.log(Level.INFO, "Cannot show the unified diff", ex);
+            if (editor != null) {
+                // Made, and not set up: released, not left behind.
+                editor.dispose();
+            }
+            textualLines = List.of();
+            textualBands = List.of();
             return null;
         }
     }

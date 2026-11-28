@@ -22,7 +22,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.EnumMap;
@@ -121,8 +123,9 @@ final class GitDiff {
         if (!target.isAbsolute()) {
             return false;
         }
-        if (single && target.toFile().isDirectory()) {
-            // What was a file is a folder by now: not the diff that was saved.
+        if (single && Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+            // What was a file is a folder by now: not the diff that was saved. A link to a folder
+            // is a file to git, and its diff is restored.
             return false;
         }
         // A file may be gone - deleted, its diff shows what it held - but not its folder.
@@ -389,13 +392,13 @@ final class GitDiff {
 
     /** What the last commit has of the file: in the charset git stores it in. */
     private static GitContent head(Path root, String path, Charset working, BooleanSupplier cancelled) {
-        Charset stored = GitClient.storedCharset(root, path, working, true);
+        Charset stored = GitClient.storedCharset(root, path, working, true, cancelled);
         return GitClient.headContent(root, path, stored, MOST_BYTES, cancelled);
     }
 
     /** What the index has of the file: what the next commit takes. */
     private static GitContent index(Path root, String path, Charset working, BooleanSupplier cancelled) {
-        Charset stored = GitClient.storedCharset(root, path, working, false);
+        Charset stored = GitClient.storedCharset(root, path, working, false, cancelled);
         return GitClient.indexContent(root, path, stored, MOST_BYTES, cancelled);
     }
 

@@ -87,7 +87,8 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
      * @param context the number of shared lines written before and after each block; blocks whose
      *        shared lines would meet or overlap are written in one hunk
      * @return the unified diff, with the line each of {@code differences} starts at; an empty
-     *         one when there are none
+     *         one when there are none, or none with a line to write - an empty text against one
+     *         that is not there
      * @throws NullPointerException when an argument is {@code null}
      * @throws IllegalArgumentException when {@code context} is negative, or the blocks are not in
      *         order, overlap, or reach beyond the lines of a text
@@ -121,6 +122,10 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
             asFound.add(writer.written(difference));
         }
         List<Block> blocks = writer.blocks(asFound);
+        if (blocks.isEmpty()) {
+            // No line to write on either side: a file with nothing in it against no file at all.
+            return new UnifiedDiff("", List.of());
+        }
         writer.lines.add("--- " + quoted(leftName));
         writer.lines.add("+++ " + quoted(rightName));
         int from = 0;
@@ -138,18 +143,16 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
             text.append(line).append('\n');
         }
         List<Integer> differenceLines = new ArrayList<>();
+        // Both in the order of the texts: the block a difference was written in is the one the
+        // difference before it was written in, or a later one - found in one pass over them.
+        int within = 0;
         for (Block found : asFound) {
-            // The block it was written in: its own, one it was joined to, or the last line of the
-            // texts, written as changed for an end that only one of them has.
-            Block within = blocks.getLast();
-            for (Block block : blocks) {
-                if (block.leftStart <= found.leftStart && found.leftStart <= block.leftEnd
-                        && block.rightStart <= found.rightStart && found.rightStart <= block.rightEnd) {
-                    within = block;
-                    break;
-                }
+            // Its own block, one it was joined to, or the last line of the texts, written as
+            // changed for an end that only one of them has - which is the last block.
+            while (within < blocks.size() - 1 && !blocks.get(within).holds(found)) {
+                within++;
             }
-            differenceLines.add(within.line);
+            differenceLines.add(blocks.get(within).line);
         }
         return new UnifiedDiff(text.toString(), differenceLines);
     }
@@ -194,6 +197,12 @@ public record UnifiedDiff(String text, List<Integer> differenceLines) {
 
         boolean isEmpty() {
             return leftStart == leftEnd && rightStart == rightEnd;
+        }
+
+        /** Whether {@code other} starts within this block, or right at its end. */
+        boolean holds(Block other) {
+            return leftStart <= other.leftStart && other.leftStart <= leftEnd
+                    && rightStart <= other.rightStart && other.rightStart <= rightEnd;
         }
     }
 

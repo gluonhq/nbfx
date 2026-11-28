@@ -153,7 +153,18 @@ final class GitClient {
      * @param committed whether the content is that of the last commit, not of the index
      */
     static Charset storedCharset(Path root, String path, Charset working, boolean committed) {
-        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), "check-attr",
+        return storedCharset(root, path, working, committed, () -> false);
+    }
+
+    /**
+     * As {@link #storedCharset(Path, String, Charset, boolean)}, given up when {@code cancelled}
+     * says the content is no longer wanted: git is not started for it, or is ended.
+     *
+     * @throws CancellationException when {@code cancelled} answered {@code true}
+     */
+    static Charset storedCharset(Path root, String path, Charset working, boolean committed,
+            BooleanSupplier cancelled) {
+        Output attribute = run(root, Map.of("GIT_LITERAL_PATHSPECS", "1"), cancelled, "check-attr",
                 committed ? "--source=HEAD" : "--cached", "-z", "working-tree-encoding", "--", path);
         // "<path> NUL <attribute> NUL <value> NUL"; no commit yet, or a git that knows no
         // "--source", is no attribute.

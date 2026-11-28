@@ -450,6 +450,9 @@ public class GitContentReaderTest {
         assertEquals(GitContentReader.LINK_MODE, committed.mode());
         assertEquals(GitContentReader.LINK_MODE, onDisk.mode());
 
+        // Where it points to is its content, and no more of it is taken than of any other.
+        assertEquals(new GitContent.TooLarge(10, 5), GitContentReader.workingTree(link, UTF_8, 5));
+
         // One that points nowhere is still a link, not a file that is gone.
         Files.delete(link);
         Files.createSymbolicLink(link, Path.of("nowhere.txt"));
@@ -479,5 +482,14 @@ public class GitContentReaderTest {
         assertThrows(CancellationException.class,
                 () -> GitContentReader.workingTree(root.resolve("large.txt"), UTF_8, LIMIT, () -> ++asked[0] > 2));
         assertEquals(3, asked[0]);
+    }
+
+    @Test
+    public void theCharsetOfWhatGitStoresIsNotAskedForContentNobodyWants() throws Exception {
+        assertThrows(CancellationException.class,
+                () -> GitClient.storedCharset(root, "modified.txt", UTF_8, true, () -> true));
+        assertThrows(CancellationException.class,
+                () -> GitClient.storedCharset(root, "modified.txt", UTF_8, false, () -> true));
+        assertEquals(UTF_8, GitClient.storedCharset(root, "modified.txt", UTF_8, true, () -> false));
     }
 }

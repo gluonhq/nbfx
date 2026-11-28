@@ -189,6 +189,22 @@ public class GitDiffTest {
             // Saved as a file, and a folder by now: not the diff that was saved.
             assertFalse(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, root.resolve("src"))));
 
+            // A link to a folder is a file to git: the diff of it is restored.
+            Path link = root.resolve("link");
+            boolean linked = true;
+            try {
+                java.nio.file.Files.createSymbolicLink(link, root.resolve("src"));
+            } catch (UnsupportedOperationException | java.io.IOException ex) {
+                linked = false;
+            }
+            if (linked) {
+                try {
+                    assertTrue(GitDiff.restore(GitDiff.state(VcsCompareMode.HEAD_VS_INDEX, true, link)));
+                } finally {
+                    java.nio.file.Files.delete(link);
+                }
+            }
+
             // Neither a file nor a folder; and a path that is not whole.
             assertFalse(GitDiff.restore("HEAD_VS_INDEX\nlink\n" + root.resolve("src")));
             assertFalse(GitDiff.restore("HEAD_VS_INDEX\nfolder\nsrc"));

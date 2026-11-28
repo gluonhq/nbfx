@@ -547,6 +547,71 @@ public class DiffPaneEditorsTest {
     }
 
     @Test
+    public void aDiffClosedWhileItsUnifiedTextIsWrittenMakesNoEditorForIt() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+        awaitComparison(pane);
+        int made = EDITORS.size();
+
+        JavaFxTestSupport.onFx(() -> {
+            pane.setTextual(true);
+            assertTrue(pane.isWritingUnified());
+            pane.dispose();
+        });
+        for (int i = 0; i < 200 && JavaFxTestSupport.onFx(pane::isWritingUnified); i++) {
+            Thread.sleep(10);
+        }
+        // Time for a write that would have been started again, and for what it would make.
+        Thread.sleep(200);
+        JavaFxTestSupport.onFx(() -> {
+            assertFalse(pane.isWritingUnified());
+            assertNull(pane.textualEditor());
+        });
+        assertEquals(made, EDITORS.size());
+    }
+
+    @Test
+    public void theKeyboardSentToAUnifiedTextNotYetShownGoesToItUnlessItWasMovedSince() throws Exception {
+        MockServices.setServices(Editors.class, Content.class);
+        for (boolean moved : new boolean[] {false, true}) {
+            DiffPane pane = pane(head("a\nb\nc\n"), working("a\nx\nc\n"));
+            awaitComparison(pane);
+            int made = EDITORS.size();
+            Stage[] stage = new Stage[1];
+            JavaFxTestSupport.onFx(() -> {
+                stage[0] = new Stage();
+                stage[0].setScene(new Scene(pane, 600, 400));
+                stage[0].show();
+                pane.setTextual(true);
+                // As the tab of the diff is chosen, or its file: before the text is written.
+                pane.focusEditor();
+                // Not the two sides, which are not shown: what is said in place of the text.
+                assertEquals("Comparing...", pane.textualNote());
+                assertTrue(pane.getScene().getFocusOwner() instanceof javafx.scene.control.Label);
+                if (moved) {
+                    pane.graphicalTab().requestFocus();
+                }
+            });
+            try {
+                awaitTextual(pane);
+                assertEquals(made + 1, EDITORS.size());
+                Editor textual = EDITORS.get(made);
+                assertEquals(moved ? 0 : 1, textual.focused);
+                // The two sides were not sent the keyboard for it.
+                assertEquals(0, EDITORS.get(made - 1).focused);
+                if (moved) {
+                    JavaFxTestSupport.onFx(() -> assertSame(pane.graphicalTab(), pane.getScene().getFocusOwner()));
+                }
+            } finally {
+                JavaFxTestSupport.onFx(() -> {
+                    stage[0].hide();
+                    pane.dispose();
+                });
+            }
+        }
+    }
+
+    @Test
     public void theTabGivesTheKeyboardToTheTextComparedTo() throws Exception {
         DiffPane pane = pane(head("a\n"), working("b\n"));
         DiffDocument document = new DiffDocument("key", "A.txt [ Diff ]", pane);

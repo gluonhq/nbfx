@@ -202,7 +202,10 @@ final class GitContentReader {
         try {
             if (Files.isSymbolicLink(file)) {
                 String target = Files.readSymbolicLink(file).toString();
-                return new GitContent.Text(target, null, target.getBytes(StandardCharsets.UTF_8).length, LINK_MODE);
+                long length = target.getBytes(StandardCharsets.UTF_8).length;
+                long most = Math.min(maxBytes, MOST_BYTES);
+                return length > most ? new GitContent.TooLarge(length, most)
+                        : new GitContent.Text(target, null, length, LINK_MODE);
             }
             if (!Files.exists(file, LinkOption.NOFOLLOW_LINKS)) {
                 return new GitContent.Missing();

@@ -35,8 +35,8 @@
       The <b>nbfx Diff API</b> is the headless line comparison: <code>Diff</code> compares two
       texts line by line under <code>DiffOptions</code> and answers with a <code>DiffResult</code>,
       the <code>Difference</code> blocks of added, deleted and changed lines. It is the first part
-      of the M-tier diff contract and is <b>devel</b> until its first consumer, the diff view,
-      has landed and shown what it needs of it; <code>Patch</code> and <code>Merge</code> are
+      of the M-tier diff contract and is <b>devel</b> while its first consumer, the diff view,
+      is built and shows what it needs of it - until the last part of that view has landed; <code>Patch</code> and <code>Merge</code> are
       planned for M2. It compares lines and nothing else: what a view shows beside them - a
       renamed file, a changed mode, line endings, a missing last line ending, a binary file - is
       for the view to tell from what it compares.
@@ -68,13 +68,13 @@
       and, against a plain longest-common-subsequence table, that they keep as many lines as the
       texts have in common - for every pair of small texts, for random ones with many repeated
       lines, and under every combination of the options. The API is <b>devel</b> until the diff
-      view has landed; API signature tests (<code>sigtest</code>) are enabled when it is no
+      view is complete; API signature tests (<code>sigtest</code>) are enabled when it is no
       longer.
     </p>
   </answer>
 
   <answer id="arch-time">
-    <p>Not applicable; the API is small and <b>devel</b> until the diff view has landed.</p>
+    <p>Not applicable; the API is small and <b>devel</b> until the diff view is complete.</p>
   </answer>
 
   <answer id="arch-where">
@@ -83,7 +83,7 @@
 
   <answer id="compat-deprecation">
     <p>
-      The API is <b>devel</b> until its first consumer, the diff view, has landed; incompatible
+      The API is <b>devel</b> until its first consumer, the diff view, is complete; incompatible
       changes are allowed until then and documented in <code>apichanges.xml</code> afterwards.
     </p>
   </answer>

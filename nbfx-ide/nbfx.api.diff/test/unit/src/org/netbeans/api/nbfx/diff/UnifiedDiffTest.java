@@ -285,4 +285,45 @@ public class UnifiedDiffTest {
         assertEquals(List.of(0), diff.differenceLines());
         assertThrows(UnsupportedOperationException.class, () -> diff.differenceLines().add(1));
     }
+
+    @Test
+    public void anEmptyTextAgainstOneThatIsNotThereHasNoLineToWrite() {
+        // As a view tells them apart: no lines for no file, one empty line for an empty one.
+        for (boolean added : new boolean[] {true, false}) {
+            List<String> none = List.of();
+            List<String> empty = Diff.lines("");
+            List<String> from = added ? none : empty;
+            List<String> to = added ? empty : none;
+            List<Difference> found = Diff.compute(from, to).differences();
+            assertEquals(1, found.size());
+
+            UnifiedDiff diff = UnifiedDiff.of("old", "new", from, to, found, 3);
+
+            assertEquals("", diff.text());
+            assertTrue(diff.differenceLines().isEmpty());
+        }
+    }
+
+    @Test(timeout = 5000)
+    public void aGreatManyBlocksFarApartAreWrittenInOnePassOverThem() {
+        int blocks = 100_000;
+        List<String> left = new java.util.ArrayList<>();
+        List<String> right = new java.util.ArrayList<>();
+        List<Difference> differences = new java.util.ArrayList<>();
+        for (int i = 0; i < blocks; i++) {
+            left.add("same");
+            right.add("same");
+            differences.add(new Difference(Difference.Kind.ADD, left.size(), 0, right.size(), 1));
+            right.add("added");
+        }
+        left.add("");
+        right.add("");
+
+        UnifiedDiff diff = UnifiedDiff.of("old", "new", left, right, differences, 0);
+
+        assertEquals(blocks, diff.differenceLines().size());
+        // Each in a hunk of its own: the header, then the line.
+        assertEquals(3, (int) diff.differenceLines().getFirst());
+        assertEquals(2 + 2 * blocks - 1, (int) diff.differenceLines().getLast());
+    }
 }

@@ -351,6 +351,17 @@ public class DiffPaneTest {
         awaitTextual(binary);
         JavaFxTestSupport.onFx(() -> assertEquals("HEAD: A binary file.", binary.textualNote()));
 
+        // A file with nothing in it, added: nothing to write of it, and no failure for that.
+        DiffPane empty = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.missing("HEAD", "empty.txt"),
+                DiffSource.of("Working Tree", "empty.txt", "")));
+        awaitComparison(empty);
+        JavaFxTestSupport.onFx(() -> empty.setTextual(true));
+        awaitTextual(empty);
+        JavaFxTestSupport.onFx(() -> {
+            assertEquals("Added: there is no file to compare with", empty.textualNote());
+            assertEquals("", empty.unified());
+        });
+
         // More than is written as text: how much.
         DiffPane large = JavaFxTestSupport.onFx(() -> new DiffPane(DiffSource.missing("HEAD", "big.txt"),
                 DiffSource.of("Working Tree", "big.txt", "x\n".repeat((int) DiffPane.MOST_TEXTUAL_LINES + 1))));
